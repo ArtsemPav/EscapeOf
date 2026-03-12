@@ -1,21 +1,24 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Singleton that holds the player's items and handles crafting logic.
-/// Does not depend on any UI � fires events for UI to react.
+/// Singleton that holds the player's items in fixed-position slots and handles crafting.
+/// Slot positions are preserved during drag-and-drop reordering.
+/// Does not depend on any UI — fires events for UI to react.
 /// </summary>
 public class InventorySystem : MonoBehaviour
 {
     public static InventorySystem Instance { get; private set; }
 
+    [Header("Inventory")]
+    [SerializeField] private int maxSlots = 8;
+
     [Header("Crafting")]
     [SerializeField] private CraftingRecipe[] recipes;
 
-    private readonly List<ItemData> _items = new();
+    private ItemData[] _slots;
 
-    public IReadOnlyList<ItemData> Items => _items;
+    public int MaxSlots => maxSlots;
 
     public event Action OnInventoryChanged;
 
@@ -28,30 +31,66 @@ public class InventorySystem : MonoBehaviour
         }
 
         Instance = this;
+        _slots = new ItemData[maxSlots];
     }
 
-    /// <summary>Adds an item to the inventory and notifies listeners.</summary>
+    /// <summary>Returns the item at a given slot index, or null if the slot is empty.</summary>
+    public ItemData GetItemAt(int slotIndex) =>
+        slotIndex >= 0 && slotIndex < _slots.Length ? _slots[slotIndex] : null;
+
+    /// <summary>Adds item to the first empty slot. Logs a warning if inventory is full.</summary>
     public void AddItem(ItemData item)
     {
         if (item == null) return;
-        _items.Add(item);
-        OnInventoryChanged?.Invoke();
+
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] != null) continue;
+            _slots[i] = item;
+            OnInventoryChanged?.Invoke();
+            return;
+        }
+
+        Debug.LogWarning("Inventory is full — cannot add item.", this);
     }
 
-    /// <summary>Removes an item from the inventory and notifies listeners.</summary>
+    /// <summary>Removes the item from its slot. Returns true on success.</summary>
     public bool RemoveItem(ItemData item)
     {
-        bool removed = _items.Remove(item);
-        if (removed) OnInventoryChanged?.Invoke();
-        return removed;
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] != item) continue;
+            _slots[i] = null;
+            OnInventoryChanged?.Invoke();
+            return true;
+        }
+        return false;
     }
 
     /// <summary>Returns true if the inventory contains the given item.</summary>
-    public bool HasItem(ItemData item) => _items.Contains(item);
+    public bool HasItem(ItemData item)
+    {
+        foreach (var slot in _slots)
+            if (slot == item) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Swaps items between two slot indices.
+    /// Works with empty slots — effectively moves an item to an empty slot.
+    /// </summary>
+    public void SwapSlots(int slotA, int slotB)
+    {
+        if (slotA < 0 || slotB < 0 || slotA >= _slots.Length || slotB >= _slots.Length) return;
+        if (slotA == slotB) return;
+
+        (_slots[slotA], _slots[slotB]) = (_slots[slotB], _slots[slotA]);
+        OnInventoryChanged?.Invoke();
+    }
 
     /// <summary>
     /// Tries to combine two items using registered recipes.
-    /// On success removes both ingredients, adds result and returns true.
+    /// On success removes both ingredients, places result in slot A and returns true.
     /// </summary>
     public bool TryCombine(ItemData a, ItemData b, out ItemData result)
     {
@@ -63,14 +102,31 @@ public class InventorySystem : MonoBehaviour
             if (!match) continue;
 
             result = recipe.result;
-            _items.Remove(a);
-            _items.Remove(b);
-            _items.Add(result);
+            int slotA = FindSlotOf(a);
+            RemoveInternal(b);
+            if (slotA >= 0) _slots[slotA] = result;
             OnInventoryChanged?.Invoke();
             return true;
         }
 
         result = null;
         return false;
+    }
+
+    private int FindSlotOf(ItemData item)
+    {
+        for (int i = 0; i < _slots.Length; i++)
+            if (_slots[i] == item) return i;
+        return -1;
+    }
+
+    private void RemoveInternal(ItemData item)
+    {
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] != item) continue;
+            _slots[i] = null;
+            return;
+        }
     }
 }

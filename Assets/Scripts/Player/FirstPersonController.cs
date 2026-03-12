@@ -72,8 +72,23 @@ public class FirstPersonController : MonoBehaviour
         HandleCrouchTransition();
     }
 
+    private bool _lookEnabled = true;
+
+    /// <summary>Enables or disables camera look and player movement input. Used by InventoryUI.</summary>
+    public void SetPlayerInputEnabled(bool enabled)
+    {
+        _lookEnabled = enabled;
+
+        if (enabled)
+            _input.Player.Enable();
+        else
+            _input.Player.Disable();
+    }
+
     private void HandleLook()
     {
+        if (!_lookEnabled) return;
+
         transform.Rotate(Vector3.up * _lookInput.x * mouseSensitivity);
 
         _verticalRotation -= _lookInput.y * mouseSensitivity;

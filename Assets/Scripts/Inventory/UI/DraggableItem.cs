@@ -26,6 +26,15 @@ public class DraggableItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        // Refresh SourceSlot in case the slot was reused with a different item
+        SourceSlot = GetComponentInParent<InventorySlot>();
+
+        if (SourceSlot == null || SourceSlot.IsEmpty)
+        {
+            eventData.pointerDrag = null;
+            return;
+        }
+
         _originalParent = transform.parent;
         transform.SetParent(_rootCanvas.transform, true);
         transform.SetAsLastSibling();

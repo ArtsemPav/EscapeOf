@@ -5,37 +5,56 @@ using UnityEngine.UI;
 /// <summary>
 /// One inventory slot. Always visible as a background cell.
 /// Shows item icon when filled, hides icon when empty.
+/// Handles drag-and-drop: moves items between slots or tries crafting.
 /// </summary>
 public class InventorySlot : MonoBehaviour, IDropHandler
 {
     [SerializeField] private Image iconImage;
 
-    private ItemData _item;
-
-    public ItemData Item => _item;
-    public bool IsEmpty => _item == null;
+    public int SlotIndex { get; set; }
+    public ItemData Item { get; private set; }
+    public bool IsEmpty => Item == null;
 
     /// <summary>Fills the slot with an item and shows its icon.</summary>
     public void Setup(ItemData item)
     {
-        _item = item;
-        iconImage.sprite = item.icon;
-        iconImage.color = item.icon != null ? Color.white : new Color(1f, 1f, 1f, 0.2f);
-        iconImage.gameObject.SetActive(true);
+        Item = item;
+
+        if (item != null)
+        {
+            iconImage.sprite = item.icon;
+            iconImage.color = item.icon != null ? Color.white : new Color(1f, 1f, 1f, 0.3f);
+            iconImage.enabled = true;
+        }
+        else
+        {
+            Clear();
+        }
     }
 
-    /// <summary>Clears the slot — hides icon, keeps background visible.</summary>
+    /// <summary>Clears the slot. Keeps Icon GameObject active so DraggableItem stays functional.</summary>
     public void Clear()
     {
-        _item = null;
-        iconImage.gameObject.SetActive(false);
+        Item = null;
+        iconImage.enabled = false;
     }
 
     public void OnDrop(PointerEventData eventData)
     {
         DraggableItem dragged = eventData.pointerDrag?.GetComponent<DraggableItem>();
-        if (dragged == null || dragged.SourceSlot == this || IsEmpty) return;
+        if (dragged == null) return;
 
-        InventorySystem.Instance.TryCombine(dragged.SourceSlot.Item, _item, out _);
+        InventorySlot sourceSlot = dragged.SourceSlot;
+        if (sourceSlot == this) return;
+
+        if (!IsEmpty && !sourceSlot.IsEmpty)
+        {
+            if (InventorySystem.Instance.TryCombine(sourceSlot.Item, Item, out _))
+                return;
+        }
+
+        InventorySystem.Instance.SwapSlots(sourceSlot.SlotIndex, SlotIndex);
     }
 }
+
+//ï¿½ hides icon, keeps background visible.

@@ -60,6 +60,21 @@ public class FPSController : MonoBehaviour
         _input.Player.Crouch.performed += Crouch;
     }
 
+    /// <summary>Enables or disables all player input. Called by InventoryUI when opening/closing inventory.</summary>
+    public void SetPlayerInputEnabled(bool enabled)
+    {
+        if (enabled)
+        {
+            _input.Player.Enable();
+        }
+        else
+        {
+            _lookInput = Vector2.zero;
+            _moveInput = Vector2.zero;
+            _input.Player.Disable();
+        }
+    }
+
     private void OnDisable() {
         _input.Player.Disable();
         _input.Player.Move.performed -= StoreMovementInput;

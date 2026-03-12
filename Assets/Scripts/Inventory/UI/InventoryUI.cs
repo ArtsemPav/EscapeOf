@@ -18,6 +18,7 @@ public class InventoryUI : MonoBehaviour
     private PlayerInputActions _input;
     private bool _isOpen;
     private InventorySlot[] _slots;
+    private FPSController _playerController;
 
     private void Awake()
     {
@@ -29,12 +30,17 @@ public class InventoryUI : MonoBehaviour
     {
         if (InventorySystem.Instance == null)
         {
-            Debug.LogError("InventorySystem �� ������ � �����!", this);
+            Debug.LogError("InventorySystem �� ������ � �����!", this);
             return;
         }
 
         CreateSlots();
         InventorySystem.Instance.OnInventoryChanged += RefreshSlots;
+        _playerController = GetComponentInParent<FPSController>(includeInactive: true)
+                            ?? Object.FindFirstObjectByType<FPSController>();
+
+        if (_playerController == null)
+            Debug.LogWarning("InventoryUI: FPSController не найден — камера не будет блокироваться.", this);
     }
 
     private void OnEnable()
@@ -55,11 +61,13 @@ public class InventoryUI : MonoBehaviour
     /// <summary>Creates all slots once at start. Slots are reused, not recreated.</summary>
     private void CreateSlots()
     {
-        _slots = new InventorySlot[slotCount];
+        int count = InventorySystem.Instance.MaxSlots;
+        _slots = new InventorySlot[count];
 
-        for (int i = 0; i < slotCount; i++)
+        for (int i = 0; i < count; i++)
         {
             _slots[i] = Instantiate(slotPrefab, slotsContainer);
+            _slots[i].SlotIndex = i;
             _slots[i].Clear();
         }
     }
@@ -76,6 +84,7 @@ public class InventoryUI : MonoBehaviour
         inventoryPanel.SetActive(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        _playerController?.SetPlayerInputEnabled(false);
         RefreshSlots();
     }
 
@@ -85,24 +94,18 @@ public class InventoryUI : MonoBehaviour
         inventoryPanel.SetActive(false);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        _playerController?.SetPlayerInputEnabled(true);
     }
 
     /// <summary>
-    /// Fills slots with items from inventory in order.
+    /// Fills slots with items from inventory by slot index.
     /// Empty slots are cleared and show only the background.
     /// </summary>
     private void RefreshSlots()
     {
         if (_slots == null) return;
 
-        var items = InventorySystem.Instance.Items;
-
         for (int i = 0; i < _slots.Length; i++)
-        {
-            if (i < items.Count)
-                _slots[i].Setup(items[i]);
-            else
-                _slots[i].Clear();
-        }
+            _slots[i].Setup(InventorySystem.Instance.GetItemAt(i));
     }
 }
