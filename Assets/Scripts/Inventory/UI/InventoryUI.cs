@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Controls the inventory panel visibility.
-/// Toggles on Tab, locks/unlocks cursor and player input accordingly.
+/// Creates a fixed number of slots. Fills them with items on refresh.
 /// </summary>
 public class InventoryUI : MonoBehaviour
 {
@@ -12,23 +12,29 @@ public class InventoryUI : MonoBehaviour
     [SerializeField] private InventorySlot slotPrefab;
     [SerializeField] private Transform slotsContainer;
 
+    [Header("Settings")]
+    [SerializeField] private int slotCount = 8;
+
     private PlayerInputActions _input;
     private bool _isOpen;
+    private InventorySlot[] _slots;
+
+    private void Awake()
+    {
+        _input = new PlayerInputActions();
+        inventoryPanel.SetActive(false);
+    }
 
     private void Start()
     {
         if (InventorySystem.Instance == null)
         {
-            Debug.LogError("InventorySystem не найден в сцене! Добавь GameObject с компонентом InventorySystem.", this);
+            Debug.LogError("InventorySystem не найден в сцене!", this);
             return;
         }
 
+        CreateSlots();
         InventorySystem.Instance.OnInventoryChanged += RefreshSlots;
-    }
-    private void Awake()
-    {
-        _input = new PlayerInputActions();
-        inventoryPanel.SetActive(false);
     }
 
     private void OnEnable()
@@ -44,6 +50,18 @@ public class InventoryUI : MonoBehaviour
 
         if (InventorySystem.Instance != null)
             InventorySystem.Instance.OnInventoryChanged -= RefreshSlots;
+    }
+
+    /// <summary>Creates all slots once at start. Slots are reused, not recreated.</summary>
+    private void CreateSlots()
+    {
+        _slots = new InventorySlot[slotCount];
+
+        for (int i = 0; i < slotCount; i++)
+        {
+            _slots[i] = Instantiate(slotPrefab, slotsContainer);
+            _slots[i].Clear();
+        }
     }
 
     private void OnToggleInventory(InputAction.CallbackContext ctx)
@@ -69,15 +87,22 @@ public class InventoryUI : MonoBehaviour
         Cursor.visible = false;
     }
 
+    /// <summary>
+    /// Fills slots with items from inventory in order.
+    /// Empty slots are cleared and show only the background.
+    /// </summary>
     private void RefreshSlots()
     {
-        foreach (Transform child in slotsContainer)
-            Destroy(child.gameObject);
+        if (_slots == null) return;
 
-        foreach (var item in InventorySystem.Instance.Items)
+        var items = InventorySystem.Instance.Items;
+
+        for (int i = 0; i < _slots.Length; i++)
         {
-            InventorySlot slot = Instantiate(slotPrefab, slotsContainer);
-            slot.Setup(item);
+            if (i < items.Count)
+                _slots[i].Setup(items[i]);
+            else
+                _slots[i].Clear();
         }
     }
 }

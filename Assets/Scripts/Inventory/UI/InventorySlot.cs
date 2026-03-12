@@ -3,8 +3,8 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 /// <summary>
-/// Represents one slot in the inventory UI.
-/// Accepts dropped items and initiates crafting via InventorySystem.
+/// One inventory slot. Always visible as a background cell.
+/// Shows item icon when filled, hides icon when empty.
 /// </summary>
 public class InventorySlot : MonoBehaviour, IDropHandler
 {
@@ -13,23 +13,28 @@ public class InventorySlot : MonoBehaviour, IDropHandler
     private ItemData _item;
 
     public ItemData Item => _item;
+    public bool IsEmpty => _item == null;
 
-    /// <summary>Sets the item this slot displays.</summary>
+    /// <summary>Fills the slot with an item and shows its icon.</summary>
     public void Setup(ItemData item)
     {
         _item = item;
         iconImage.sprite = item.icon;
         iconImage.color = item.icon != null ? Color.white : new Color(1f, 1f, 1f, 0.2f);
+        iconImage.gameObject.SetActive(true);
     }
 
-    /// <summary>
-    /// Called when another slot's DraggableItem is dropped onto this slot.
-    /// Tries to combine the two items.
-    /// </summary>
+    /// <summary>Clears the slot — hides icon, keeps background visible.</summary>
+    public void Clear()
+    {
+        _item = null;
+        iconImage.gameObject.SetActive(false);
+    }
+
     public void OnDrop(PointerEventData eventData)
     {
         DraggableItem dragged = eventData.pointerDrag?.GetComponent<DraggableItem>();
-        if (dragged == null || dragged.SourceSlot == this) return;
+        if (dragged == null || dragged.SourceSlot == this || IsEmpty) return;
 
         InventorySystem.Instance.TryCombine(dragged.SourceSlot.Item, _item, out _);
     }
