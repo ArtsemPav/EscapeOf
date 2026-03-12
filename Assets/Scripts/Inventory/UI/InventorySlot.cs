@@ -49,7 +49,7 @@ public class InventorySlot : MonoBehaviour, IDropHandler
 
         if (!IsEmpty && !sourceSlot.IsEmpty)
         {
-            if (InventorySystem.Instance.TryCombine(sourceSlot.Item, Item, out _))
+            if (InventorySystem.Instance.TryCombine(sourceSlot.SlotIndex, SlotIndex, out _))
                 return;
         }
 

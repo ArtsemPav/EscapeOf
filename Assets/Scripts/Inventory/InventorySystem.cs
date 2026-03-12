@@ -89,11 +89,20 @@ public class InventorySystem : MonoBehaviour
     }
 
     /// <summary>
-    /// Tries to combine two items using registered recipes.
-    /// On success removes both ingredients, places result in slot A and returns true.
+    /// Tries to combine items from two slots using registered recipes.
+    /// On success, places the result in the source slot and clears the target slot.
     /// </summary>
-    public bool TryCombine(ItemData a, ItemData b, out ItemData result)
+    public bool TryCombine(int sourceSlotIndex, int targetSlotIndex, out ItemData result)
     {
+        ItemData a = GetItemAt(sourceSlotIndex);
+        ItemData b = GetItemAt(targetSlotIndex);
+
+        if (a == null || b == null)
+        {
+            result = null;
+            return false;
+        }
+
         foreach (var recipe in recipes)
         {
             bool match = (recipe.ingredientA == a && recipe.ingredientB == b)
@@ -102,9 +111,8 @@ public class InventorySystem : MonoBehaviour
             if (!match) continue;
 
             result = recipe.result;
-            int slotA = FindSlotOf(a);
-            RemoveInternal(b);
-            if (slotA >= 0) _slots[slotA] = result;
+            _slots[targetSlotIndex] = result;
+            _slots[sourceSlotIndex] = null;
             OnInventoryChanged?.Invoke();
             return true;
         }
@@ -113,20 +121,4 @@ public class InventorySystem : MonoBehaviour
         return false;
     }
 
-    private int FindSlotOf(ItemData item)
-    {
-        for (int i = 0; i < _slots.Length; i++)
-            if (_slots[i] == item) return i;
-        return -1;
-    }
-
-    private void RemoveInternal(ItemData item)
-    {
-        for (int i = 0; i < _slots.Length; i++)
-        {
-            if (_slots[i] != item) continue;
-            _slots[i] = null;
-            return;
-        }
-    }
 }
