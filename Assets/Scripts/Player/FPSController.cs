@@ -24,8 +24,13 @@ public class FPSController : MonoBehaviour
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float rotationSmoothTime = 0.12f;
 
+    [Header("Interaction")]
+    public float interactDistance = 2.5f;
+    public LayerMask interactableLayer;
+
     private CharacterController _characterController;
     private PlayerInputActions _input;
+    private IInteractable _currentInteractable;
 
     private Vector2 _moveInput;
     private Vector2 _lookInput;
@@ -48,6 +53,7 @@ public class FPSController : MonoBehaviour
         _input.Player.Move.canceled += StoreMovementInput;
         _input.Player.Look.performed += StoreLookInput;
         _input.Player.Look.canceled += StoreLookInput;
+        _input.Player.Interact.performed += Interact;
         _input.Player.Jump.performed += Jump;
         _input.Player.Sprint.performed += Sprint;
         _input.Player.Sprint.canceled += Sprint;
@@ -60,6 +66,7 @@ public class FPSController : MonoBehaviour
         _input.Player.Move.canceled -= StoreMovementInput;
         _input.Player.Look.performed -= StoreLookInput;
         _input.Player.Look.canceled -= StoreLookInput;
+        _input.Player.Interact.performed -= Interact;
         _input.Player.Jump.performed -= Jump;
         _input.Player.Sprint.performed -= Sprint;
         _input.Player.Sprint.canceled -= Sprint;
@@ -73,6 +80,7 @@ public class FPSController : MonoBehaviour
         HandleLook();
         HandleMovement();
         HandleCrouchTransition();
+        HandleInteractionDetection();
     }
 
     private void HandleLook() {
@@ -113,6 +121,35 @@ public class FPSController : MonoBehaviour
         cameraTransform.localPosition = new Vector3(currentCamPos.x, Mathf.Lerp(currentCamPos.y, targetCameraY, crouchSpeed * Time.deltaTime), currentCamPos.z);
     }
 
+    private void HandleInteractionDetection() {
+        Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer)) {
+            if (hit.collider.TryGetComponent(out IInteractable interactable)) {
+                if (_currentInteractable != interactable) {
+                    _currentInteractable = interactable;
+                    if (Assets.Scripts.UI.InteractionUI.Instance != null) {
+                        Assets.Scripts.UI.InteractionUI.Instance.SetHint(true, _currentInteractable.GetInteractText(), _currentInteractable.IsPickable());
+                    }
+                }
+                return;
+            }
+        }
+
+        if (_currentInteractable != null) {
+            _currentInteractable = null;
+            if (Assets.Scripts.UI.InteractionUI.Instance != null) {
+                Assets.Scripts.UI.InteractionUI.Instance.SetHint(false);
+            }
+        }
+    }
+
+    private void HandleGravity() {
+        if (_isGrounded && _verticalVelocity < 0) {
+            _verticalVelocity = initialFallVelocity;
+        }
+        _verticalVelocity += gravity * Time.deltaTime;
+    }
+
     private void StoreMovementInput(InputAction.CallbackContext context) {
         _moveInput = context.ReadValue<Vector2>();
     }
@@ -136,10 +173,14 @@ public class FPSController : MonoBehaviour
         _isRunning = context.performed;
     }
 
-    private void HandleGravity() {
-        if (_isGrounded && _verticalVelocity < 0) {
-            _verticalVelocity = initialFallVelocity;
+    private void Interact(InputAction.CallbackContext ctx) {
+        if (_currentInteractable != null) {
+            _currentInteractable.Interact();
+            // Force refresh hint after interaction
+            _currentInteractable = null;
+            if (Assets.Scripts.UI.InteractionUI.Instance != null) {
+                Assets.Scripts.UI.InteractionUI.Instance.SetHint(false);
+            }
         }
-        _verticalVelocity += gravity * Time.deltaTime;
     }
 }
