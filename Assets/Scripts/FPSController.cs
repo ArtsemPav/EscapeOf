@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(CharacterController))]
 public class FPSController : MonoBehaviour
 {
     [Header("Speed")]
@@ -16,18 +17,19 @@ public class FPSController : MonoBehaviour
     [Header("Crouching")]
     [SerializeField] private float standingHeight = 2f;
     [SerializeField] private float crouchingHeight = 1f;
-    [SerializeField] private float crouchingSpeed = 10f;
     [SerializeField] private float cameraOffset = 0.4f;
 
-    [Header("Reference")]
+    [Header("Look")]
     [SerializeField] private Transform cameraTransform;
-    [SerializeField] private InputActionReference moveAction;
-    [SerializeField] private InputActionReference jumpAction;
-    [SerializeField] private InputActionReference crouchAction;
-    [SerializeField] private InputActionReference sprintAction;
+    [SerializeField] private float mouseSensitivity = 0.2f;
+    [SerializeField] private float rotationSmoothTime = 0.12f;
 
     private CharacterController _characterController;
+    private PlayerInputActions _input;
+
     private Vector2 _moveInput;
+    private Vector2 _lookInput;
+    private float _cameraPitch;
     private bool _isGrounded;
     private bool _isCrouching;
     private bool _isRunning;
@@ -36,66 +38,56 @@ public class FPSController : MonoBehaviour
 
     private void Awake() {
         _characterController = GetComponent<CharacterController>();
+        _input = new PlayerInputActions();
         _targetHeight = standingHeight;
     }
 
     private void OnEnable() {
-        moveAction.action.performed += StoreMovementInput;
-        moveAction.action.canceled += StoreMovementInput;
-        jumpAction.action.performed += Jump;
-        sprintAction.action.performed += Sprint;
-        sprintAction.action.canceled += Sprint;
-        crouchAction.action.performed += Crouch;
+        _input.Player.Enable();
+        _input.Player.Move.performed += StoreMovementInput;
+        _input.Player.Move.canceled += StoreMovementInput;
+        _input.Player.Look.performed += StoreLookInput;
+        _input.Player.Look.canceled += StoreLookInput;
+        _input.Player.Jump.performed += Jump;
+        _input.Player.Sprint.performed += Sprint;
+        _input.Player.Sprint.canceled += Sprint;
+        _input.Player.Crouch.performed += Crouch;
     }
 
     private void OnDisable() {
-        moveAction.action.performed -= StoreMovementInput;
-        moveAction.action.canceled -= StoreMovementInput;
-        jumpAction.action.performed -= Jump;
-        sprintAction.action.performed -= Sprint;
-        sprintAction.action.canceled -= Sprint;
-        crouchAction.action.performed -= Crouch;
+        _input.Player.Disable();
+        _input.Player.Move.performed -= StoreMovementInput;
+        _input.Player.Move.canceled -= StoreMovementInput;
+        _input.Player.Look.performed -= StoreLookInput;
+        _input.Player.Look.canceled -= StoreLookInput;
+        _input.Player.Jump.performed -= Jump;
+        _input.Player.Sprint.performed -= Sprint;
+        _input.Player.Sprint.canceled -= Sprint;
+        _input.Player.Crouch.performed -= Crouch;
     }
 
     void Update()
     {
         _isGrounded = _characterController.isGrounded;
         HandleGravity();
+        HandleLook();
         HandleMovement();
         HandleCrouchTransition();
     }
-    private void StoreMovementInput(InputAction.CallbackContext context) {
-        _moveInput = context.ReadValue<Vector2>();
-    }
 
-    private void Jump(InputAction.CallbackContext context) {
-        if (_isGrounded) {
-            _verticalVelocity = jumpForce;
-        }
-    }
+    private void HandleLook() {
+        float mouseX = _lookInput.x * mouseSensitivity;
+        float mouseY = _lookInput.y * mouseSensitivity;
 
-    private void Crouch(InputAction.CallbackContext context) {
-        if (_isCrouching) {
-            _targetHeight = standingHeight;
-        } else {
-            _targetHeight = crouchingHeight;
-        }
-        _isCrouching = !_isCrouching;
-    }
+        _cameraPitch -= mouseY;
+        _cameraPitch = Mathf.Clamp(_cameraPitch, -89f, 89f);
 
-    private void Sprint(InputAction.CallbackContext context) {
-        _isRunning = context.performed;
-    }
-
-    private void HandleGravity() {
-        if (_isGrounded && _verticalVelocity < 0) {
-            _verticalVelocity = initialFallVelocity;
-        }
-        _verticalVelocity += gravity * Time.deltaTime;
+        cameraTransform.localRotation = Quaternion.Euler(_cameraPitch, 0f, 0f);
+        transform.Rotate(Vector3.up * mouseX);
     }
 
     private void HandleMovement() {
-        Vector3 move = cameraTransform.TransformDirection(new Vector3(_moveInput.x, 0, _moveInput.y));
+        Vector3 move = transform.right * _moveInput.x + transform.forward * _moveInput.y;
         float currentSpeed = _isCrouching ? crouchSpeed : _isRunning ? runSpeed : walkSpeed;
         Vector3 finalMove = move * currentSpeed;
         finalMove.y = _verticalVelocity;
@@ -112,11 +104,42 @@ public class FPSController : MonoBehaviour
             _characterController.height = _targetHeight;
             return;
         }
-        float newHeight = Mathf.Lerp(currentHeight, _targetHeight, crouchingSpeed * Time.deltaTime);
+        float newHeight = Mathf.Lerp(currentHeight, _targetHeight, crouchSpeed * Time.deltaTime);
         _characterController.height = newHeight;
-        _characterController.center = Vector3.up * (newHeight * 0.5f);
+        _characterController.center = new Vector3(0, newHeight * 0.5f, 0);
 
-        Vector3 cameraTransformPosition = cameraTransform.localPosition;
-        cameraTransform.localPosition = Vector3.Lerp(cameraTransform.localPosition, cameraTransformPosition, crouchingSpeed * Time.deltaTime);
+        float targetCameraY = newHeight - cameraOffset;
+        Vector3 currentCamPos = new Vector3(cameraTransform.localPosition.x, targetCameraY, cameraTransform.localPosition.z);
+        cameraTransform.localPosition = new Vector3(currentCamPos.x, Mathf.Lerp(currentCamPos.y, targetCameraY, crouchSpeed * Time.deltaTime), currentCamPos.z);
+    }
+
+    private void StoreMovementInput(InputAction.CallbackContext context) {
+        _moveInput = context.ReadValue<Vector2>();
+    }
+
+    private void StoreLookInput(InputAction.CallbackContext context) {
+        _lookInput = context.ReadValue<Vector2>();
+    }
+
+    private void Jump(InputAction.CallbackContext context) {
+        if (_isGrounded) {
+            _verticalVelocity = jumpForce;
+        }
+    }
+
+    private void Crouch(InputAction.CallbackContext context) {
+        _isCrouching = !_isCrouching;
+        _targetHeight = _isCrouching ? crouchingHeight : standingHeight;
+    }
+
+    private void Sprint(InputAction.CallbackContext context) {
+        _isRunning = context.performed;
+    }
+
+    private void HandleGravity() {
+        if (_isGrounded && _verticalVelocity < 0) {
+            _verticalVelocity = initialFallVelocity;
+        }
+        _verticalVelocity += gravity * Time.deltaTime;
     }
 }
