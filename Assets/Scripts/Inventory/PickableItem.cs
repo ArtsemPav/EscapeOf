@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Place on any world object to make it pickable.
-/// When the player interacts — item is added to inventory and object is destroyed.
+/// When the player interacts ï¿½ item is added to inventory and object is destroyed.
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class PickableItem : MonoBehaviour, IInteractable
@@ -21,4 +21,8 @@ public class PickableItem : MonoBehaviour, IInteractable
         InventorySystem.Instance.AddItem(itemData);
         Destroy(gameObject);
     }
+
+    public string GetInteractText() => itemData != null ? $"Pick up {itemData.itemName}" : "Pick up item";
+
+    public bool IsPickable() => true;
 }
