@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 
 namespace Assets.Scripts.UI
 {
@@ -16,6 +17,10 @@ namespace Assets.Scripts.UI
         [SerializeField] private TextMeshProUGUI hintText;
         [SerializeField] private Image interactionIcon;
 
+        [Header("Blocked Hint")]
+        [SerializeField] private TextMeshProUGUI blockedHintText;
+        [SerializeField] private float blockedHintDuration = 3f;
+
         [Header("Hint Icons")]
         [SerializeField] private Sprite handIcon;
         [SerializeField] private Sprite defaultIcon;
@@ -27,6 +32,8 @@ namespace Assets.Scripts.UI
         [SerializeField] private Sprite crosshairLocked;
         [SerializeField] private Sprite crosshairUnlocked;
         [SerializeField] private Sprite crosshairGrab;
+
+        private Coroutine _blockedHintCoroutine;
 
         private void Awake()
         {
@@ -40,17 +47,15 @@ namespace Assets.Scripts.UI
             if (hintPanel != null)
                 hintPanel.SetActive(false);
 
-            // Initialize crosshair to default sprite on startup
+            if (blockedHintText != null)
+                blockedHintText.gameObject.SetActive(false);
+
             SetCrosshair(CrosshairMode.Default);
         }
 
         /// <summary>
         /// Shows or hides the interaction hint and switches the crosshair accordingly.
         /// </summary>
-        /// <param name="visible">Whether the hint panel should be visible.</param>
-        /// <param name="text">Hint text to display.</param>
-        /// <param name="isPickable">Whether the object is pickable (selects hand hint icon).</param>
-        /// <param name="crosshairMode">Crosshair sprite to show while hovering.</param>
         public void SetHint(bool visible, string text = "", bool isPickable = false,
                             CrosshairMode crosshairMode = CrosshairMode.Default)
         {
@@ -71,6 +76,30 @@ namespace Assets.Scripts.UI
             }
 
             SetCrosshair(visible ? crosshairMode : CrosshairMode.Default);
+        }
+
+        /// <summary>
+        /// Shows a temporary hint at the bottom of the screen explaining why an interaction
+        /// is blocked. Hides automatically after blockedHintDuration seconds.
+        /// </summary>
+        public void ShowBlockedHint(string hint)
+        {
+            if (blockedHintText == null || string.IsNullOrEmpty(hint)) return;
+
+            if (_blockedHintCoroutine != null)
+                StopCoroutine(_blockedHintCoroutine);
+
+            blockedHintText.text = hint;
+            blockedHintText.gameObject.SetActive(true);
+            _blockedHintCoroutine = StartCoroutine(HideBlockedHintAfter(blockedHintDuration));
+        }
+
+        private IEnumerator HideBlockedHintAfter(float duration)
+        {
+            yield return new WaitForSeconds(duration);
+            if (blockedHintText != null)
+                blockedHintText.gameObject.SetActive(false);
+            _blockedHintCoroutine = null;
         }
 
         /// <summary>

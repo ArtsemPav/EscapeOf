@@ -14,6 +14,8 @@ namespace Escape.Core {
         [Header("Lock Settings")]
         [SerializeField] private ItemData _requiredKey;
         [SerializeField] private string _lockedMessage = "Дверь заперта. Нужен ключ.";
+        [Tooltip("Shown below the action hint when the door is locked and the player doesn't have the key.")]
+        [SerializeField] private string _requirementHint = "";
 
         [Header("UI Hints")]
         [SerializeField] private string _openText = "Открыть дверь";
@@ -25,7 +27,6 @@ namespace Escape.Core {
 
         [SerializeField] private DoorAnimator _doorAnimator;
 
-        private bool _showingLockedMessage = false;
         private FPSController _fpsController;
 
         private void Start() {
@@ -44,7 +45,8 @@ namespace Escape.Core {
                     ToggleDoor();
                 } else {
                     Debug.Log("<color=orange>Взаимодействие: " + _lockedMessage + "</color>");
-                    StartCoroutine(ShowTemporaryLockedMessage());
+                    if (!string.IsNullOrEmpty(_requirementHint))
+                        Assets.Scripts.UI.InteractionUI.Instance?.ShowBlockedHint(_requirementHint);
                 }
             } else {
                 ToggleDoor();
@@ -60,7 +62,6 @@ namespace Escape.Core {
         }
 
         public string GetInteractText() {
-            if (_showingLockedMessage) return _lockedMessage;
             return _isOpen ? _closeText : _openText;
         }
 
@@ -72,12 +73,6 @@ namespace Escape.Core {
             if (!_isLocked || _isOpen) return CrosshairMode.Hand;
             bool hasKey = _requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey);
             return hasKey ? CrosshairMode.Unlocked : CrosshairMode.Locked;
-        }
-
-        private IEnumerator ShowTemporaryLockedMessage() {
-            _showingLockedMessage = true;
-            yield return new WaitForSeconds(1.5f);
-            _showingLockedMessage = false;
         }
     }
 }

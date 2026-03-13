@@ -45,6 +45,8 @@ public class FPSController : MonoBehaviour
     private CharacterController _characterController;
     private PlayerInputActions _input;
     private IInteractable _currentInteractable;
+    private string _lastHintText;
+    private CrosshairMode _lastCrosshairMode;
 
     private Vector2 _moveInput;
     private Vector2 _lookInput;
@@ -243,15 +245,21 @@ public class FPSController : MonoBehaviour
         {
             if (hit.collider.TryGetComponent(out IInteractable interactable))
             {
-                if (_currentInteractable != interactable)
+                string newText = interactable.GetInteractText();
+                CrosshairMode newMode = interactable.GetCrosshairMode();
+
+                if (_currentInteractable != interactable || newText != _lastHintText || newMode != _lastCrosshairMode)
                 {
                     _currentInteractable = interactable;
+                    _lastHintText = newText;
+                    _lastCrosshairMode = newMode;
+
                     if (Assets.Scripts.UI.InteractionUI.Instance != null)
                         Assets.Scripts.UI.InteractionUI.Instance.SetHint(
                             true,
-                            _currentInteractable.GetInteractText(),
-                            _currentInteractable.IsPickable(),
-                            _currentInteractable.GetCrosshairMode()
+                            newText,
+                            interactable.IsPickable(),
+                            newMode
                         );
                 }
                 return;
@@ -261,6 +269,9 @@ public class FPSController : MonoBehaviour
         if (_currentInteractable != null)
         {
             _currentInteractable = null;
+            _lastHintText = null;
+            _lastCrosshairMode = CrosshairMode.Default;
+
             if (Assets.Scripts.UI.InteractionUI.Instance != null)
                 Assets.Scripts.UI.InteractionUI.Instance.SetHint(false);
         }
@@ -326,7 +337,11 @@ public class FPSController : MonoBehaviour
         if (_currentInteractable != null)
         {
             _currentInteractable.Interact();
+            // Reset cache so hint refreshes on next frame with updated state
             _currentInteractable = null;
+            _lastHintText = null;
+            _lastCrosshairMode = CrosshairMode.Default;
+
             if (Assets.Scripts.UI.InteractionUI.Instance != null)
                 Assets.Scripts.UI.InteractionUI.Instance.SetHint(false);
         }
