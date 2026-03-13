@@ -25,6 +25,7 @@ namespace Assets.Scripts.UI
         [SerializeField] private Sprite crosshairDefault;
         [SerializeField] private Sprite crosshairHand;
         [SerializeField] private Sprite crosshairLocked;
+        [SerializeField] private Sprite crosshairUnlocked;
         [SerializeField] private Sprite crosshairGrab;
 
         private void Awake()
@@ -81,10 +82,11 @@ namespace Assets.Scripts.UI
 
             crosshairImage.sprite = mode switch
             {
-                CrosshairMode.Hand   => crosshairHand    != null ? crosshairHand   : crosshairDefault,
-                CrosshairMode.Locked => crosshairLocked  != null ? crosshairLocked : crosshairDefault,
-                CrosshairMode.Grab   => crosshairGrab    != null ? crosshairGrab   : crosshairDefault,
-                _                    => crosshairDefault
+                CrosshairMode.Hand     => crosshairHand     != null ? crosshairHand     : crosshairDefault,
+                CrosshairMode.Locked   => crosshairLocked   != null ? crosshairLocked   : crosshairDefault,
+                CrosshairMode.Unlocked => crosshairUnlocked != null ? crosshairUnlocked : crosshairDefault,
+                CrosshairMode.Grab     => crosshairGrab     != null ? crosshairGrab     : crosshairDefault,
+                _                      => crosshairDefault
             };
         }
     }

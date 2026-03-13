@@ -9,8 +9,11 @@ public enum CrosshairMode
     /// <summary>Open hand — object can be picked up or door can be opened.</summary>
     Hand,
 
-    /// <summary>Lock icon — interaction is blocked (e.g. locked door).</summary>
+    /// <summary>Lock icon — interaction is blocked (e.g. locked door, no key).</summary>
     Locked,
+
+    /// <summary>Open lock icon — door is locked but the player has the required key.</summary>
+    Unlocked,
 
     /// <summary>Grab/drag icon — physics object can be dragged.</summary>
     Grab

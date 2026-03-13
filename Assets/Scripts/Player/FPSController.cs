@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
 public class FPSController : MonoBehaviour
@@ -57,6 +58,10 @@ public class FPSController : MonoBehaviour
     private Vector3 _horizontalVelocity;
     private Vector3 _velocitySmoothRef;
     private float _speedMultiplier = 1f;
+
+    // Position lock (used to prevent animated objects from pushing the player)
+    private bool _positionLocked = false;
+    private Vector3 _lockedPosition;
 
     // Camera look
     private float _targetPitch;
@@ -171,6 +176,13 @@ public class FPSController : MonoBehaviour
         var collisions = _characterController.Move(finalMove * Time.deltaTime);
         if ((collisions & CollisionFlags.Above) != 0)
             _verticalVelocity = initialFallVelocity;
+
+        // Restore XZ position if locked — prevents animated colliders from pushing the player
+        if (_positionLocked)
+        {
+            Vector3 pos = transform.position;
+            transform.position = new Vector3(_lockedPosition.x, pos.y, _lockedPosition.z);
+        }
     }
 
     private void HandleHeadBob()
@@ -277,6 +289,24 @@ public class FPSController : MonoBehaviour
     }
 
     private void Sprint(InputAction.CallbackContext context) => _isRunning = context.performed;
+
+    /// <summary>
+    /// Locks the player's XZ position for the given duration so animated objects
+    /// (drawers, doors) cannot push the character during their animation.
+    /// Gravity and vertical movement are unaffected.
+    /// </summary>
+    public void LockPositionFor(float duration)
+    {
+        StartCoroutine(LockPositionCoroutine(duration));
+    }
+
+    private IEnumerator LockPositionCoroutine(float duration)
+    {
+        _lockedPosition = transform.position;
+        _positionLocked = true;
+        yield return new WaitForSeconds(duration);
+        _positionLocked = false;
+    }
 
     /// <summary>Returns true while the player is holding the Sprint key.</summary>
     public bool IsRunning => _isRunning;

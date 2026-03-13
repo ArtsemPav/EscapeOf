@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System;
 
 namespace Escape.Core {
     /// <summary>
@@ -20,14 +19,22 @@ namespace Escape.Core {
         [SerializeField] private string _openText = "Открыть дверь";
         [SerializeField] private string _closeText = "Закрыть дверь";
 
-        // Ссылка на компонент анимации (может быть на этом же объекте или дочернем)
+        [Header("Animation")]
+        [Tooltip("Duration of the open/close animation. Colliders are triggers during this time so the player is not pushed.")]
+        [SerializeField] private float animationDuration = 0.5f;
+
         [SerializeField] private DoorAnimator _doorAnimator;
+
         private bool _showingLockedMessage = false;
+        private FPSController _fpsController;
 
         private void Start() {
-            // Устанавливаем начальное состояние в аниматоре без проигрывания анимации входа
             if (_doorAnimator != null)
                 _doorAnimator.SetInitialState(_isOpen);
+
+            GameObject player = GameObject.FindWithTag("Player");
+            if (player != null)
+                _fpsController = player.GetComponent<FPSController>();
         }
 
         public void Interact() {
@@ -48,6 +55,8 @@ namespace Escape.Core {
             _isOpen = !_isOpen;
             if (_doorAnimator != null)
                 _doorAnimator.PlayAnimation(_isOpen);
+
+            _fpsController?.LockPositionFor(animationDuration);
         }
 
         public string GetInteractText() {
@@ -58,7 +67,12 @@ namespace Escape.Core {
         public bool IsPickable() => false;
 
         /// <summary>Shows a lock icon when the door is locked, hand otherwise.</summary>
-        public CrosshairMode GetCrosshairMode() => (_isLocked && !_isOpen) ? CrosshairMode.Locked : CrosshairMode.Hand;
+        public CrosshairMode GetCrosshairMode()
+        {
+            if (!_isLocked || _isOpen) return CrosshairMode.Hand;
+            bool hasKey = _requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey);
+            return hasKey ? CrosshairMode.Unlocked : CrosshairMode.Locked;
+        }
 
         private IEnumerator ShowTemporaryLockedMessage() {
             _showingLockedMessage = true;
