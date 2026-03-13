@@ -24,6 +24,14 @@ public class ItemInspector : MonoBehaviour
 
     [Header("Rotation")]
     [SerializeField] private float rotationSpeed = 180f;
+    [Tooltip("Initial euler rotation applied to the model when inspection opens. Gives a 3/4 perspective look by default.")]
+    [SerializeField] private Vector3 initialRotation = new Vector3(15f, -35f, 0f);
+
+    [Header("Idle Spin")]
+    [Tooltip("Duration of the opening spin animation in seconds.")]
+    [SerializeField] private float idleSpinDuration = 1.8f;
+    [Tooltip("Peak rotation speed at the start of the idle spin (degrees/sec).")]
+    [SerializeField] private float idleSpinSpeed = 80f;
 
     [Header("Settings")]
     [SerializeField] private string inspectionLayerName = "Inspection";
@@ -43,6 +51,7 @@ public class ItemInspector : MonoBehaviour
     private FPSController _playerController;
     private bool _isInspecting;
     private bool _ignoreInputThisFrame;
+    private float _idleSpinTimer;
 
     private void Awake()
     {
@@ -95,7 +104,26 @@ public class ItemInspector : MonoBehaviour
             return;
         }
 
-        if (Mouse.current.leftButton.isPressed)
+        bool userDragging = Mouse.current.leftButton.isPressed;
+
+        // Idle spin: плавно замедляется (ease-out cosine) и останавливается.
+        // Прерывается как только пользователь начинает крутить мышью.
+        if (_idleSpinTimer > 0f)
+        {
+            if (userDragging)
+            {
+                _idleSpinTimer = 0f;
+            }
+            else
+            {
+                float t = 1f - (_idleSpinTimer / idleSpinDuration);          // 0 → 1
+                float easedSpeed = idleSpinSpeed * Mathf.Cos(t * Mathf.PI * 0.5f); // ease-out
+                _inspectionPivot.transform.Rotate(Vector3.up, easedSpeed * Time.deltaTime, Space.World);
+                _idleSpinTimer -= Time.deltaTime;
+            }
+        }
+
+        if (userDragging)
         {
             Vector2 delta = Mouse.current.delta.ReadValue();
             _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
@@ -151,6 +179,8 @@ public class ItemInspector : MonoBehaviour
         _inspectionPivot = new GameObject("InspectionPivot");
         _inspectionPivot.transform.position = itemCenter;
         _inspectionInstance.transform.SetParent(_inspectionPivot.transform, worldPositionStays: true);
+        // Применяем начальный поворот после парентинга — иначе worldPositionStays компенсирует его
+        _inspectionPivot.transform.rotation = Quaternion.Euler(initialRotation);
 
         // Orthographic: размер вида = половина maxSize × множитель
         inspectionCamera.orthographicSize = maxSize * framingMultiplier * 0.5f;
@@ -176,6 +206,7 @@ public class ItemInspector : MonoBehaviour
         inspectionCamera.gameObject.SetActive(true);
         inspectionPanel.SetActive(true);
         _isInspecting = true;
+        _idleSpinTimer = idleSpinDuration;
         _ignoreInputThisFrame = true; // E использована для открытия — не закрываем в этом же кадре
 
         _playerController?.SetPlayerInputEnabled(false);
