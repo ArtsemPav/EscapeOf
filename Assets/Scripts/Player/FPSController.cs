@@ -56,6 +56,7 @@ public class FPSController : MonoBehaviour
     // Movement inertia
     private Vector3 _horizontalVelocity;
     private Vector3 _velocitySmoothRef;
+    private float _speedMultiplier = 1f;
 
     // Camera look
     private float _targetPitch;
@@ -157,7 +158,7 @@ public class FPSController : MonoBehaviour
 
     private void HandleMovement()
     {
-        float currentSpeed = _isCrouching ? crouchSpeed : _isRunning ? runSpeed : walkSpeed;
+        float currentSpeed = (_isCrouching ? crouchSpeed : _isRunning ? runSpeed : walkSpeed) * _speedMultiplier;
         Vector3 targetVelocity = (transform.right * _moveInput.x + transform.forward * _moveInput.y) * currentSpeed;
 
         // Separate smooth times: quicker deceleration for snappy stops, gradual acceleration for weight
@@ -271,6 +272,19 @@ public class FPSController : MonoBehaviour
     }
 
     private void Sprint(InputAction.CallbackContext context) => _isRunning = context.performed;
+
+    /// <summary>Returns true while the player is holding the Sprint key.</summary>
+    public bool IsRunning => _isRunning;
+
+    /// <summary>
+    /// Scales all movement speeds by the given multiplier (0..1).
+    /// Pass 1 to restore normal speed. Used by PhysicsGrabber to slow the player
+    /// while dragging heavy objects.
+    /// </summary>
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Clamp01(multiplier);
+    }
 
     private void Interact(InputAction.CallbackContext ctx)
     {
