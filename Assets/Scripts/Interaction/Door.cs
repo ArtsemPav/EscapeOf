@@ -1,10 +1,7 @@
 ﻿using UnityEngine;
-// Удалено using Escape.Inventory; так как пространство имен не используется в проекте
+using System.Collections;
 
 namespace Escape.Core {
-    /// <summary>
-    /// Компонент для управления дверью с поддержкой проверки ключа в инвентаре.
-    /// </summary>
     public class Door : MonoBehaviour, IInteractable {
         [Header("Settings")]
         [SerializeField] private bool _isOpen = false;
@@ -13,7 +10,7 @@ namespace Escape.Core {
 
         [Header("Lock System")]
         [SerializeField] private bool _isLocked = false;
-        [SerializeField] private ItemData _requiredKey; // Ссылка на ScriptableObject ключа
+        [SerializeField] private ItemData _requiredKey;
         [SerializeField] private string _lockedMessage = "Дверь заперта. Нужен ключ.";
 
         [Header("UI Hints")]
@@ -22,6 +19,7 @@ namespace Escape.Core {
 
         private Quaternion _closedRotation;
         private Quaternion _targetRotation;
+        private bool _showingLockedMessage = false;
 
         private void Start() {
             _closedRotation = transform.localRotation;
@@ -29,7 +27,6 @@ namespace Escape.Core {
         }
 
         private void Update() {
-            // Плавная анимация поворота
             transform.localRotation = Quaternion.Slerp(
                 transform.localRotation,
                 _targetRotation,
@@ -37,27 +34,30 @@ namespace Escape.Core {
             );
         }
 
-        /// <summary>
-        /// Вызывается при взаимодействии (клавиша E).
-        /// </summary>
         public void Interact() {
             if (_isLocked && !_isOpen) {
-                // Проверяем наличие ключа через глобальный InventorySystem.Instance
+                // Проверяем наличие ключа только при нажатии E
                 if (_requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey)) {
-                    _isLocked = false; // Отпираем дверь
+                    _isLocked = false;
                     ToggleDoor();
                 } else {
-                    Debug.Log(_lockedMessage);
+                    // Выводим сообщение в консоль (или запустите здесь свою корутину для UI)
+                    Debug.Log("<color=red>" + _lockedMessage + "</color>");
+
+                    // Опционально: можно на секунду изменить текст подсказки
+                    StartCoroutine(ShowTemporaryLockedMessage());
                 }
             } else {
                 ToggleDoor();
             }
         }
 
+        /// <summary>
+        /// Теперь всегда возвращает стандартный текст, 
+        /// если только мы не хотим временно показать "Заперто" после нажатия.
+        /// </summary>
         public string GetInteractText() {
-            if (_isLocked && !_isOpen) {
-                return _lockedMessage;
-            }
+            if (_showingLockedMessage) return _lockedMessage;
             return _isOpen ? _closeText : _openText;
         }
 
@@ -72,6 +72,13 @@ namespace Escape.Core {
             _targetRotation = _isOpen
                 ? _closedRotation * Quaternion.Euler(0, _openAngle, 0)
                 : _closedRotation;
+        }
+
+        // Корутина для временной смены текста в UI подсказке
+        private IEnumerator ShowTemporaryLockedMessage() {
+            _showingLockedMessage = true;
+            yield return new WaitForSeconds(1.5f); // Сообщение повисит 1.5 секунды
+            _showingLockedMessage = false;
         }
     }
 }

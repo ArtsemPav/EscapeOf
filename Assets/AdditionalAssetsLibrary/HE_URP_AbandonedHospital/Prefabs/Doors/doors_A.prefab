@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 400000}
   - component: {fileID: 4716264007618459369}
+  - component: {fileID: 7410521151778560345}
   m_Layer: 0
   m_Name: doors_A
   m_TagString: Untagged
@@ -55,6 +56,18 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &7410521151778560345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b4b8b3f66eb7734593e7c1378f655fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorAnimator
 --- !u!1 &100002
 GameObject:
   m_ObjectHideFlags: 0
@@ -293,6 +306,7 @@ GameObject:
   - component: {fileID: 8928088211627058800}
   - component: {fileID: 1986995280891582145}
   - component: {fileID: 7189541884768786926}
+  - component: {fileID: 6114417178439168429}
   m_Layer: 0
   m_Name: Doormesh
   m_TagString: Untagged
@@ -396,3 +410,23 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300058, guid: 2cd235bc655a48545b2c61baea3b2c77, type: 3}
+--- !u!114 &6114417178439168429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3018493325908883247}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 1
+  _isLocked: 0
+  _requiredKey: {fileID: 0}
+  _lockedMessage: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _doorAnimator: {fileID: 7410521151778560345}

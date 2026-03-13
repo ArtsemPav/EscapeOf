@@ -625,6 +625,18 @@ PrefabInstance:
       propertyPath: m_Name
       value: doors_A
       objectReference: {fileID: 0}
+    - target: {fileID: 100002, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 100002, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 100004, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: m_LocalPosition.x
       value: -5.902755
@@ -673,14 +685,22 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 4716264007618459369, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+    - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: _isOpen
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: _isLocked
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: _requiredKey
+      value: 
+      objectReference: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3018493325908883247, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 2090462955}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
 --- !u!4 &167866559 stripped
 Transform:
@@ -1566,6 +1586,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: desk_A
       objectReference: {fileID: 0}
+    - target: {fileID: 100004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 100004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -11.31
@@ -1609,6 +1637,10 @@ PrefabInstance:
     - target: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.771
+      objectReference: {fileID: 0}
+    - target: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.178113
       objectReference: {fileID: 0}
     - target: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
       propertyPath: m_LocalPosition.z
@@ -6014,32 +6046,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: db8eaa2fa47d6ef4f9b6c0d3538128a5, type: 3}
   m_PrefabInstance: {fileID: 2087169377}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &2090462950 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3018493325908883247, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
-  m_PrefabInstance: {fileID: 167866558}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2090462955
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2090462950}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 54317efebbc8ee04cb023b8505c5844d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.Door
-  _isOpen: 0
-  _openAngle: 90
-  _smoothSpeed: 5
-  _isLocked: 1
-  _requiredKey: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
-  _lockedMessage: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
-    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
-  _openText: Open Door
-  _closeText: Close Door
 --- !u!1 &2120642151
 GameObject:
   m_ObjectHideFlags: 0
