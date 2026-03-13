@@ -22,6 +22,7 @@ public class FPSController : MonoBehaviour
     [SerializeField] private float standingHeight = 2f;
     [SerializeField] private float crouchingHeight = 1f;
     [SerializeField] private float cameraOffset = 0.4f;
+    [SerializeField] private float crouchSpeedUp = 6f;
 
     [Header("Look")]
     [SerializeField] private Transform cameraTransform;
@@ -89,6 +90,7 @@ public class FPSController : MonoBehaviour
         _input.Player.Sprint.performed += Sprint;
         _input.Player.Sprint.canceled += Sprint;
         _input.Player.Crouch.performed += Crouch;
+        _input.Player.Crouch.canceled += Crouch;
     }
 
     /// <summary>Enables or disables all player input. Called by InventoryUI when opening/closing inventory.</summary>
@@ -118,6 +120,7 @@ public class FPSController : MonoBehaviour
         _input.Player.Sprint.performed -= Sprint;
         _input.Player.Sprint.canceled -= Sprint;
         _input.Player.Crouch.performed -= Crouch;
+        _input.Player.Crouch.canceled -= Crouch;
     }
 
     private void Update()
@@ -202,7 +205,7 @@ public class FPSController : MonoBehaviour
         }
         else
         {
-            float newHeight = Mathf.Lerp(currentHeight, _targetHeight, crouchSpeed * Time.deltaTime);
+            float newHeight = Mathf.Lerp(currentHeight, _targetHeight, crouchSpeedUp * Time.deltaTime);
             _characterController.height = newHeight;
         }
 

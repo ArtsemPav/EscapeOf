@@ -501,7 +501,7 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 149179980}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -511,7 +511,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 2, y: 2}
+  m_SizeDelta: {x: 10, y: 10}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &149179982
 MonoBehaviour:
@@ -1644,11 +1644,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.094
+      value: -0.133
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 786866613}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
 --- !u!4 &404954395 stripped
@@ -2263,6 +2266,9 @@ MonoBehaviour:
     \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closedRotation: {x: 0, y: 0, z: 0, w: 0}
+  _targetRotation: {x: 0, y: 0, z: 0, w: 0}
+  _showingLockedMessage: 0
 --- !u!1 &607536893 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100006, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
@@ -2289,6 +2295,9 @@ MonoBehaviour:
     \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closedRotation: {x: 0, y: 0, z: 0, w: 0}
+  _targetRotation: {x: 0, y: 0, z: 0, w: 0}
+  _showingLockedMessage: 0
 --- !u!1001 &640153218
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2735,12 +2744,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 786866608}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.16730501, y: -0.17746821, z: -0.705661, w: 0.6652493}
-  m_LocalPosition: {x: -3.789, y: 0.738, z: -5.201}
-  m_LocalScale: {x: 0.045960635, y: 0.070903465, z: 0.045960635}
+  m_LocalRotation: {x: -0.3806752, y: 0.34491327, z: -0.61728024, w: 0.59589124}
+  m_LocalPosition: {x: -0.063, y: -0.012, z: 0.093}
+  m_LocalScale: {x: 0.06565804, y: 0.10129064, z: 0.06565804}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 972616583}
   m_LocalEulerAnglesHint: {x: -1.597, y: -28.192, z: -92.976}
 --- !u!1001 &818677612
 PrefabInstance:
@@ -3129,6 +3138,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 15222b74058ef2d4ea309cf6fc5a1c2e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CursorController
+--- !u!4 &972616583 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
+  m_PrefabInstance: {fileID: 404954394}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &975804706
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5066,6 +5080,9 @@ MonoBehaviour:
     \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closedRotation: {x: 0, y: 0, z: 0, w: 0}
+  _targetRotation: {x: 0, y: 0, z: 0, w: 0}
+  _showingLockedMessage: 0
 --- !u!1 &1609847760 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100004, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
@@ -5092,6 +5109,9 @@ MonoBehaviour:
     \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closedRotation: {x: 0, y: 0, z: 0, w: 0}
+  _targetRotation: {x: 0, y: 0, z: 0, w: 0}
+  _showingLockedMessage: 0
 --- !u!1001 &1630567443
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6315,6 +6335,7 @@ MonoBehaviour:
   standingHeight: 2
   crouchingHeight: 1
   cameraOffset: 0.4
+  crouchSpeedUp: 6
   cameraTransform: {fileID: 2786637984071774495}
   mouseSensitivity: 0.2
   pitchSmoothTime: 0.03
@@ -6372,4 +6393,3 @@ SceneRoots:
   - {fileID: 392788460}
   - {fileID: 8543001717011310361}
   - {fileID: 1342183882}
-  - {fileID: 786866613}
