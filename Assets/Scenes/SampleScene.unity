@@ -2096,6 +2096,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: -0.133
       objectReference: {fileID: 0}
+    - target: {fileID: 6400000, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
+      propertyPath: m_Convex
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6500000, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
       propertyPath: m_Size.y
       value: 0.217609
@@ -3584,10 +3588,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2127876394}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 50, y: -20.055}
-  m_SizeDelta: {x: 76, y: 20.11}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &787217277
 MonoBehaviour:
@@ -4217,7 +4221,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 917284720}
   serializedVersion: 5
-  m_Mass: 10
+  m_Mass: 25
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -7006,10 +7010,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2127876394}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 50, y: -41.935}
-  m_SizeDelta: {x: 76, y: 15.65}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1817190393
 MonoBehaviour:
@@ -8155,7 +8159,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 59.760002}
+  m_SizeDelta: {x: 100, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2127876395
 MonoBehaviour:
@@ -8438,6 +8442,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsGrabber
   cameraTransform: {fileID: 2786637984071774495}
   grabDistance: 3
+  detectionRadius: 0.08
   draggableLayer:
     serializedVersion: 2
     m_Bits: 256
@@ -8447,6 +8452,10 @@ MonoBehaviour:
   angularDampingFactor: 8
   maxVelocity: 8
   grabLinearDrag: 5
+  referenceHeavyMass: 20
+  minSpeedMultiplier: 0.4
+  acceptableGap: 0.6
+  maxGap: 1.5
 --- !u!54 &8595136229181082133
 Rigidbody:
   m_ObjectHideFlags: 0
