@@ -91,6 +91,7 @@ public class InventoryUI : MonoBehaviour
     private void CloseInventory()
     {
         _isOpen = false;
+        ItemTooltip.Instance?.Hide();
         inventoryPanel.SetActive(false);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
