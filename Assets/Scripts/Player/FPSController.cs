@@ -84,6 +84,9 @@ public class FPSController : MonoBehaviour
         _input = new PlayerInputActions();
         _targetHeight = standingHeight;
         _baseCameraLocalY = cameraTransform.localPosition.y;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     private void OnEnable()
