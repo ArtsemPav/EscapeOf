@@ -12,9 +12,6 @@ public class InventoryUI : MonoBehaviour
     [SerializeField] private InventorySlot slotPrefab;
     [SerializeField] private Transform slotsContainer;
 
-    [Header("Settings")]
-    [SerializeField] private int slotCount = 8;
-
     private PlayerInputActions _input;
     private bool _isOpen;
     private InventorySlot[] _slots;

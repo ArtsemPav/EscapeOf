@@ -13,4 +13,8 @@ public class ItemData : ScriptableObject
 
     [Header("Visual")]
     public Sprite icon;
+
+    [Header("Inspection")]
+    [Tooltip("3D prefab shown in the inspection view. If null, item is picked up directly.")]
+    public GameObject inspectionPrefab;
 }

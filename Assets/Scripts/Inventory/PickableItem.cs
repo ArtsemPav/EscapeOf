@@ -9,7 +9,7 @@ public class PickableItem : MonoBehaviour, IInteractable
 {
     [SerializeField] private ItemData itemData;
 
-    /// <summary>Picks up the item: adds to inventory and removes from world.</summary>
+    /// <summary>Opens inspection view, or picks up directly if no inspectionPrefab is set.</summary>
     public void Interact()
     {
         if (itemData == null)
@@ -18,8 +18,13 @@ public class PickableItem : MonoBehaviour, IInteractable
             return;
         }
 
-        InventorySystem.Instance.AddItem(itemData);
-        Destroy(gameObject);
+        if (ItemInspector.Instance != null)
+            ItemInspector.Instance.BeginInspection(itemData, gameObject);
+        else
+        {
+            InventorySystem.Instance.AddItem(itemData);
+            Destroy(gameObject);
+        }
     }
 
     public string GetInteractText() => itemData != null ? $"Pick up {itemData.itemName}" : "Pick up item";
