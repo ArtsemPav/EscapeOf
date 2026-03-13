@@ -6,8 +6,9 @@ using UnityEngine.UI;
 /// One inventory slot. Always visible as a background cell.
 /// Shows item icon when filled, hides icon when empty.
 /// Handles drag-and-drop: moves items between slots or tries crafting.
+/// Shows item tooltip on hover.
 /// </summary>
-public class InventorySlot : MonoBehaviour, IDropHandler
+public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler
 {
     [SerializeField] private Image iconImage;
 
@@ -39,6 +40,17 @@ public class InventorySlot : MonoBehaviour, IDropHandler
         iconImage.enabled = false;
     }
 
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (IsEmpty) return;
+        ItemTooltip.Instance?.Show(Item, GetComponent<RectTransform>());
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        ItemTooltip.Instance?.Hide();
+    }
+
     public void OnDrop(PointerEventData eventData)
     {
         DraggableItem dragged = eventData.pointerDrag?.GetComponent<DraggableItem>();
@@ -56,5 +68,3 @@ public class InventorySlot : MonoBehaviour, IDropHandler
         InventorySystem.Instance.SwapSlots(sourceSlot.SlotIndex, SlotIndex);
     }
 }
-
-//� hides icon, keeps background visible.
