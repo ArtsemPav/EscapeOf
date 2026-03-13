@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using System;
 
@@ -56,6 +56,9 @@ namespace Escape.Core {
         }
 
         public bool IsPickable() => false;
+
+        /// <summary>Shows a lock icon when the door is locked, hand otherwise.</summary>
+        public CrosshairMode GetCrosshairMode() => (_isLocked && !_isOpen) ? CrosshairMode.Locked : CrosshairMode.Hand;
 
         private IEnumerator ShowTemporaryLockedMessage() {
             _showingLockedMessage = true;

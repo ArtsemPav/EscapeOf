@@ -235,7 +235,12 @@ public class FPSController : MonoBehaviour
                 {
                     _currentInteractable = interactable;
                     if (Assets.Scripts.UI.InteractionUI.Instance != null)
-                        Assets.Scripts.UI.InteractionUI.Instance.SetHint(true, _currentInteractable.GetInteractText(), _currentInteractable.IsPickable());
+                        Assets.Scripts.UI.InteractionUI.Instance.SetHint(
+                            true,
+                            _currentInteractable.GetInteractText(),
+                            _currentInteractable.IsPickable(),
+                            _currentInteractable.GetCrosshairMode()
+                        );
                 }
                 return;
             }

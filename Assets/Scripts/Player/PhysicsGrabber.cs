@@ -148,7 +148,7 @@ public class PhysicsGrabber : MonoBehaviour
             if (_hoveredDraggable != draggable)
             {
                 _hoveredDraggable = draggable;
-                InteractionUI.Instance?.SetHint(true, draggable.DragHint, isPickable: false);
+                InteractionUI.Instance?.SetHint(true, draggable.DragHint, isPickable: false, CrosshairMode.Grab);
             }
             return;
         }
