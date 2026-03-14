@@ -16,7 +16,10 @@ public enum CrosshairMode
     Unlocked,
 
     /// <summary>Grab/drag icon — physics object can be dragged.</summary>
-    Grab
+    Grab,
+
+    /// <summary>Read icon — object contains readable text (note, book, sign).</summary>
+    Read
 }
 
 public interface IInteractable
@@ -32,4 +35,10 @@ public interface IInteractable
 
     /// <summary>Returns the crosshair mode to show when looking at this object.</summary>
     CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
+
+    /// <summary>
+    /// Returns a hint explaining why interaction is blocked (e.g. missing item).
+    /// Return an empty string if the interaction is not blocked.
+    /// </summary>
+    string GetBlockedHint() => string.Empty;
 }

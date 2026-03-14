@@ -27,7 +27,11 @@ public class PickableItem : MonoBehaviour, IInteractable
         }
     }
 
-    public string GetInteractText() => itemData != null ? $"Pick up {itemData.itemName}" : "Pick up item";
+    public string GetInteractText()
+    {
+        string prefix = UIManager.Instance?.Config?.pickUpPrefix ?? "Взять";
+        return itemData != null ? $"{prefix} {itemData.itemName}" : prefix;
+    }
 
     public bool IsPickable() => true;
 }

@@ -48,10 +48,13 @@ public class ItemInspector : MonoBehaviour
     private GameObject _inspectionInstance;
     private GameObject _inspectionPivot;
     private GameObject _inspectionLight;
-    private FPSController _playerController;
     private bool _isInspecting;
     private bool _ignoreInputThisFrame;
     private float _idleSpinTimer;
+
+    private const float DragThresholdPx = 8f;
+    private Vector2 _mouseDownPos;
+    private bool _mouseWasDragged;
 
     private void Awake()
     {
@@ -90,7 +93,6 @@ public class ItemInspector : MonoBehaviour
 
     private void Start()
     {
-        _playerController = Object.FindFirstObjectByType<FPSController>();
     }
 
     private void Update()
@@ -105,6 +107,20 @@ public class ItemInspector : MonoBehaviour
         }
 
         bool userDragging = Mouse.current.leftButton.isPressed;
+
+        // Track click vs drag: record position on press, flag if moved beyond threshold.
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            _mouseDownPos = Mouse.current.position.ReadValue();
+            _mouseWasDragged = false;
+        }
+
+        if (userDragging && (Mouse.current.position.ReadValue() - _mouseDownPos).magnitude > DragThresholdPx)
+            _mouseWasDragged = true;
+
+        // Short click (no drag) anywhere on screen → pick up.
+        if (Mouse.current.leftButton.wasReleasedThisFrame && !_mouseWasDragged)
+            ConfirmPickup();
 
         // Idle spin: плавно замедляется (ease-out cosine) и останавливается.
         // Прерывается как только пользователь начинает крутить мышью.
@@ -130,11 +146,8 @@ public class ItemInspector : MonoBehaviour
             _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
         }
 
-        if (Keyboard.current.eKey.wasPressedThisFrame)
+        if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
             ConfirmPickup();
-
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
-            CancelInspection();
     }
 
     private void OnDestroy()
@@ -204,14 +217,10 @@ public class ItemInspector : MonoBehaviour
         previewImage.texture = _renderTexture;
 
         inspectionCamera.gameObject.SetActive(true);
-        inspectionPanel.SetActive(true);
+        UIManager.Instance?.OpenPanel(inspectionPanel, CursorLockMode.Confined);
         _isInspecting = true;
         _idleSpinTimer = idleSpinDuration;
         _ignoreInputThisFrame = true; // E использована для открытия — не закрываем в этом же кадре
-
-        _playerController?.SetPlayerInputEnabled(false);
-        Cursor.lockState = CursorLockMode.Confined;
-        Cursor.visible = true;
     }
 
     /// <summary>Adds item to inventory and closes the inspection view.</summary>
@@ -223,10 +232,11 @@ public class ItemInspector : MonoBehaviour
         EndInspection();
     }
 
-    /// <summary>Closes the inspection without picking up.</summary>
+    /// <summary>Closes the inspection without picking up the item.</summary>
     public void CancelInspection()
     {
-        EndInspection();
+        // Cancelling is no longer supported — the item is always picked up.
+        ConfirmPickup();
     }
 
     private void EndInspection()
@@ -248,11 +258,7 @@ public class ItemInspector : MonoBehaviour
         }
 
         inspectionCamera.gameObject.SetActive(false);
-        inspectionPanel.SetActive(false);
-
-        _playerController?.SetPlayerInputEnabled(true);
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        UIManager.Instance?.ClosePanel(inspectionPanel);
 
         _currentItem = null;
         _worldObject = null;

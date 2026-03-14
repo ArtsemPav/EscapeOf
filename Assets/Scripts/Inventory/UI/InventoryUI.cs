@@ -15,7 +15,6 @@ public class InventoryUI : MonoBehaviour
     private PlayerInputActions _input;
     private bool _isOpen;
     private InventorySlot[] _slots;
-    private FPSController _playerController;
 
     private void Awake()
     {
@@ -27,17 +26,12 @@ public class InventoryUI : MonoBehaviour
     {
         if (InventorySystem.Instance == null)
         {
-            Debug.LogError("InventorySystem �� ������ � �����!", this);
+            Debug.LogError("InventorySystem не найден в сцене!", this);
             return;
         }
 
         CreateSlots();
         InventorySystem.Instance.OnInventoryChanged += RefreshSlots;
-        _playerController = GetComponentInParent<FPSController>(includeInactive: true)
-                            ?? Object.FindFirstObjectByType<FPSController>();
-
-        if (_playerController == null)
-            Debug.LogWarning("InventoryUI: FPSController не найден — камера не будет блокироваться.", this);
     }
 
     private void OnEnable()
@@ -71,17 +65,16 @@ public class InventoryUI : MonoBehaviour
 
     private void OnToggleInventory(InputAction.CallbackContext ctx)
     {
-        if (_isOpen) CloseInventory();
-        else OpenInventory();
+        if (_isOpen)
+            CloseInventory();
+        else if (UIManager.Instance == null || !UIManager.Instance.IsAnyPanelOpen)
+            OpenInventory();
     }
 
     private void OpenInventory()
     {
         _isOpen = true;
-        inventoryPanel.SetActive(true);
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-        _playerController?.SetPlayerInputEnabled(false);
+        UIManager.Instance?.OpenPanel(inventoryPanel);
         RefreshSlots();
     }
 
@@ -89,10 +82,7 @@ public class InventoryUI : MonoBehaviour
     {
         _isOpen = false;
         ItemTooltip.Instance?.Hide();
-        inventoryPanel.SetActive(false);
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-        _playerController?.SetPlayerInputEnabled(true);
+        UIManager.Instance?.ClosePanel(inventoryPanel);
     }
 
     /// <summary>

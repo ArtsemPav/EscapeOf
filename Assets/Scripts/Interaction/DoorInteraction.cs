@@ -46,7 +46,7 @@ namespace Escape.Core {
                 } else {
                     Debug.Log("<color=orange>Взаимодействие: " + _lockedMessage + "</color>");
                     if (!string.IsNullOrEmpty(_requirementHint))
-                        Assets.Scripts.UI.InteractionUI.Instance?.ShowBlockedHint(_requirementHint);
+                        InteractionUI.Instance?.ShowBlockedHint(_requirementHint);
                 }
             } else {
                 ToggleDoor();
@@ -73,6 +73,25 @@ namespace Escape.Core {
             if (!_isLocked || _isOpen) return CrosshairMode.Hand;
             bool hasKey = _requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey);
             return hasKey ? CrosshairMode.Unlocked : CrosshairMode.Locked;
+        }
+
+        /// <summary>
+        /// Unlocks the door programmatically without opening it.
+        /// </summary>
+        public void Unlock()
+        {
+            _isLocked = false;
+        }
+
+        /// <summary>
+        /// Unlocks and immediately opens the door.
+        /// Wire this to CodeLock.OnUnlocked in the Inspector.
+        /// </summary>
+        public void UnlockAndOpen()
+        {
+            _isLocked = false;
+            if (!_isOpen)
+                ToggleDoor();
         }
     }
 }

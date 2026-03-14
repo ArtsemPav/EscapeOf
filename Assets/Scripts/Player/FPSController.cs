@@ -243,6 +243,9 @@ public class FPSController : MonoBehaviour
 
     private void HandleInteractionDetection()
     {
+        if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
+            return;
+
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
         if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer))
         {
@@ -257,13 +260,11 @@ public class FPSController : MonoBehaviour
                     _lastHintText = newText;
                     _lastCrosshairMode = newMode;
 
-                    if (Assets.Scripts.UI.InteractionUI.Instance != null)
-                        Assets.Scripts.UI.InteractionUI.Instance.SetHint(
-                            true,
-                            newText,
-                            interactable.IsPickable(),
-                            newMode
-                        );
+                    InteractionUI.Instance?.SetHint(true, newText, interactable.IsPickable(), newMode);
+
+                    string blockedHint = interactable.GetBlockedHint();
+                    if (!string.IsNullOrEmpty(blockedHint))
+                        InteractionUI.Instance?.ShowBlockedHint(blockedHint);
                 }
                 return;
             }
@@ -275,8 +276,7 @@ public class FPSController : MonoBehaviour
             _lastHintText = null;
             _lastCrosshairMode = CrosshairMode.Default;
 
-            if (Assets.Scripts.UI.InteractionUI.Instance != null)
-                Assets.Scripts.UI.InteractionUI.Instance.SetHint(false);
+            InteractionUI.Instance?.SetHint(false);
         }
     }
 
@@ -335,18 +335,27 @@ public class FPSController : MonoBehaviour
         _speedMultiplier = Mathf.Clamp01(multiplier);
     }
 
+    /// <summary>
+    /// Сбрасывает кеш обнаружения интерактивных объектов.
+    /// Следующий кадр Update() заново определит на что смотрит игрок и обновит подсказку.
+    /// </summary>
+    public void ResetInteractionCache()
+    {
+        _currentInteractable = null;
+        _lastHintText = null;
+        _lastCrosshairMode = CrosshairMode.Default;
+    }
+
     private void Interact(InputAction.CallbackContext ctx)
     {
         if (_currentInteractable != null)
         {
             _currentInteractable.Interact();
-            // Reset cache so hint refreshes on next frame with updated state
             _currentInteractable = null;
             _lastHintText = null;
             _lastCrosshairMode = CrosshairMode.Default;
 
-            if (Assets.Scripts.UI.InteractionUI.Instance != null)
-                Assets.Scripts.UI.InteractionUI.Instance.SetHint(false);
+            InteractionUI.Instance?.SetHint(false);
         }
     }
 }
