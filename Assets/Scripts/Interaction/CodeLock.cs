@@ -30,6 +30,8 @@ public class CodeLock : MonoBehaviour, IInteractable
     [SerializeField] private CodeLockUI _lockUI;
 
     [Header("Events")]
+    [Tooltip("Called when the player opens the code panel. Wire horror effects that should disappear here.")]
+    [SerializeField] private UnityEvent _onPanelOpened;
     [Tooltip("Called when the correct code is entered. Wire door.UnlockAndOpen() here.")]
     [SerializeField] private UnityEvent _onUnlocked;
 
@@ -61,6 +63,7 @@ public class CodeLock : MonoBehaviour, IInteractable
         if (_requiredItem != null && !InventorySystem.Instance.HasItem(_requiredItem))
             return;
 
+        _onPanelOpened.Invoke();
         _lockUI.Open(this);
     }
 
