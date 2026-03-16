@@ -79,6 +79,9 @@ public class FPSController : MonoBehaviour
     private Vector3 _bobOffsetSmoothRef;
     private float _baseCameraLocalY;
 
+    //Croach
+    private bool _wantsToStand;
+
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
@@ -101,21 +104,6 @@ public class FPSController : MonoBehaviour
         _input.Player.Crouch.performed += Crouch;
         _input.Player.Crouch.canceled += Crouch;
         _input.Player.Menu.performed += StopLookInput;
-    }
-
-    /// <summary>Enables or disables all player input. Called by InventoryUI when opening/closing inventory.</summary>
-    public void SetPlayerInputEnabled(bool enabled)
-    {
-        if (enabled)
-        {
-            _input.Player.Enable();
-        }
-        else
-        {
-            _lookInput = Vector2.zero;
-            _moveInput = Vector2.zero;
-            _input.Player.Disable();
-        }
     }
 
     private void OnDisable()
@@ -144,6 +132,17 @@ public class FPSController : MonoBehaviour
         HandleCrouchTransition();
         HandleInteractionDetection();
         ApplyCameraTransform();
+    }
+
+    /// <summary>Enables or disables all player input. Called by InventoryUI when opening/closing inventory.</summary>
+    public void SetPlayerInputEnabled(bool enabled) {
+        if (enabled) {
+            _input.Player.Enable();
+        } else {
+            _lookInput = Vector2.zero;
+            _moveInput = Vector2.zero;
+            _input.Player.Disable();
+        }
     }
 
     private void HandleLook()
@@ -216,6 +215,16 @@ public class FPSController : MonoBehaviour
     private void HandleCrouchTransition()
     {
         float currentHeight = _characterController.height;
+        if (_wantsToStand && _isCrouching) {
+            if (CanStandUp()) {
+                _targetHeight = standingHeight;
+                _wantsToStand = false;
+                _isCrouching = false;
+            } else {
+                // Если не можем встать, остаемся в положении сидя
+                _targetHeight = crouchingHeight;
+            }
+        }
 
         if (Mathf.Abs(currentHeight - _targetHeight) < 0.01f)
         {
@@ -299,10 +308,37 @@ public class FPSController : MonoBehaviour
         _isPaused = !_isPaused;
     }
 
-    private void Crouch(InputAction.CallbackContext context)
-    {
-        _isCrouching = !_isCrouching;
-        _targetHeight = _isCrouching ? crouchingHeight : standingHeight;
+    private void Crouch(InputAction.CallbackContext context) {
+        if (context.performed) {
+            // Нажали на кнопку приседания - приседаем
+            _isCrouching = true;
+            _targetHeight = crouchingHeight;
+            _wantsToStand = false;
+        } else if (context.canceled) {
+            // Отпустили кнопку - хотим встать
+            _wantsToStand = true;
+
+            // Пытаемся встать сразу, если есть место
+            if (CanStandUp()) {
+                _isCrouching = false;
+                _targetHeight = standingHeight;
+                _wantsToStand = false;
+            } else {
+                // Если нет места, остаемся в положении сидя
+                _isCrouching = true;
+                _targetHeight = crouchingHeight;
+
+                // Здесь можно добавить звуковой сигнал или визуальный индикатор,
+                // что встать невозможно
+                Debug.Log("Cannot stand up - obstacle above!");
+            }
+        }
+    }
+
+    bool CanStandUp() {
+        float checkDistance = standingHeight - crouchingHeight; // Дистанция проверки вверх
+        bool _canStandUp = !Physics.Raycast(transform.position + Vector3.up * crouchingHeight, Vector3.up, checkDistance);
+        return _canStandUp;
     }
 
     private void Sprint(InputAction.CallbackContext context) => _isRunning = context.performed;
@@ -361,4 +397,5 @@ public class FPSController : MonoBehaviour
             InteractionUI.Instance?.SetHint(false);
         }
     }
-}
+}    
+
