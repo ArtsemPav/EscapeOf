@@ -71,6 +71,7 @@ public class FPSController : MonoBehaviour
     private float _pitchSmoothRef;
     private float _currentTilt;
     private float _tiltSmoothRef;
+    private bool _isPaused;
 
     // Head bob
     private float _bobTimer;
@@ -84,9 +85,6 @@ public class FPSController : MonoBehaviour
         _input = new PlayerInputActions();
         _targetHeight = standingHeight;
         _baseCameraLocalY = cameraTransform.localPosition.y;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     private void OnEnable()
@@ -102,6 +100,7 @@ public class FPSController : MonoBehaviour
         _input.Player.Sprint.canceled += Sprint;
         _input.Player.Crouch.performed += Crouch;
         _input.Player.Crouch.canceled += Crouch;
+        _input.Player.Menu.performed += StopLookInput;
     }
 
     /// <summary>Enables or disables all player input. Called by InventoryUI when opening/closing inventory.</summary>
@@ -132,13 +131,14 @@ public class FPSController : MonoBehaviour
         _input.Player.Sprint.canceled -= Sprint;
         _input.Player.Crouch.performed -= Crouch;
         _input.Player.Crouch.canceled -= Crouch;
+        _input.Player.Menu.performed -= StopLookInput;
     }
 
     private void Update()
     {
         _isGrounded = _characterController.isGrounded;
         HandleGravity();
-        HandleLook();
+        if(!_isPaused) HandleLook();
         HandleMovement();
         HandleHeadBob();
         HandleCrouchTransition();
@@ -289,11 +289,14 @@ public class FPSController : MonoBehaviour
 
     private void StoreMovementInput(InputAction.CallbackContext context) => _moveInput = context.ReadValue<Vector2>();
     private void StoreLookInput(InputAction.CallbackContext context) => _lookInput = context.ReadValue<Vector2>();
-
-    private void Jump(InputAction.CallbackContext context)
-    {
+    private void Jump(InputAction.CallbackContext context) {
         if (_isGrounded)
             _verticalVelocity = jumpForce;
+    }
+
+    private void StopLookInput(InputAction.CallbackContext context)
+    {
+        _isPaused = !_isPaused;
     }
 
     private void Crouch(InputAction.CallbackContext context)
