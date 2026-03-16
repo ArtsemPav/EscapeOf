@@ -19,7 +19,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [SerializeField] private float _openDistance = 0.4f;
 
     [Header("Drag Feel")]
-    [Tooltip("How many metres the drawer moves per pixel of mouse movement.")]
+    [Tooltip("How many units of open-fraction the drawer moves per pixel of mouse movement. Tune this to taste.")]
     [SerializeField] private float _dragSensitivity = 0.003f;
     [Tooltip("Invert the drag axis if the drawer moves in the wrong direction.")]
     [SerializeField] private bool _invertAxis = false;
@@ -38,6 +38,10 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     private float _targetOpenAmount;
     private bool _isDragging;
 
+    // Screen-space direction of the drawer's opening, computed once at drag start.
+    // Projecting mouse delta onto this vector handles all approach angles correctly.
+    private Vector2 _screenOpenDir;
+
     // The Animator driving the parent (disabled while the player manually drags)
     private Animator _parentAnimator;
 
@@ -51,7 +55,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     {
         if (_isDragging) return;
 
-        // Smoothly snap to fully open or closed after the player releases LMB
+        // Smoothly snap to fully open or closed after the player releases LMB.
         _openAmount = Mathf.Lerp(_openAmount, _targetOpenAmount, _snapSpeed * Time.deltaTime);
         ApplyPosition();
     }
@@ -63,7 +67,24 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     {
         _isDragging = true;
 
-        // Disable parent Animator so it doesn't fight the manual position control
+        // Project the drawer's world-space open direction onto screen space.
+        // This makes the drag gesture work correctly from any angle:
+        // moving the mouse in the direction the drawer visually moves = opening it.
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            Vector3 worldOpenDir = transform.TransformDirection(_openDirection.normalized);
+            Vector3 screenOrigin = cam.WorldToScreenPoint(transform.position);
+            Vector3 screenTip    = cam.WorldToScreenPoint(transform.position + worldOpenDir * 0.5f);
+
+            Vector2 dir = new Vector2(screenTip.x - screenOrigin.x, screenTip.y - screenOrigin.y);
+            _screenOpenDir = dir.sqrMagnitude > 1f ? dir.normalized : Vector2.down;
+        }
+        else
+        {
+            _screenOpenDir = Vector2.down;
+        }
+
         if (_parentAnimator != null)
             _parentAnimator.enabled = false;
     }
@@ -71,16 +92,17 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// <summary>Called every frame while LMB is held. Mouse delta is in screen-space pixels.</summary>
     public void OnDrag(Vector2 mouseDelta)
     {
-        // Y axis: moving mouse down = pulling drawer toward you (opening)
-        float delta = _invertAxis ? mouseDelta.y : -mouseDelta.y;
-        _openAmount = Mathf.Clamp01(_openAmount + delta * _dragSensitivity);
+        // Dot product: mouse moving in the same direction the drawer visually opens → positive → opens.
+        float input = Vector2.Dot(mouseDelta, _screenOpenDir);
+        if (_invertAxis) input = -input;
+        _openAmount = Mathf.Clamp01(_openAmount + input * _dragSensitivity);
         ApplyPosition();
     }
 
-    /// <summary>Called by FPSController when LMB is released. Starts snap to nearest rest position.</summary>
+    /// <summary>Called by FPSController when LMB is released. Snaps to nearest rest position.</summary>
     public void OnDragEnd()
     {
-        _isDragging = false;
+        _isDragging       = false;
         _targetOpenAmount = _openAmount >= _snapThreshold ? 1f : 0f;
     }
 

@@ -69,6 +69,7 @@ public class CodeLock : MonoBehaviour, IInteractable
 
     public string GetInteractText() => _interactText;
     public bool IsPickable() => false;
+    public bool UseLMBClick => true;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;
 
     /// <summary>Validates the entered code. Returns true and fires OnUnlocked if correct.</summary>

@@ -27,11 +27,13 @@ public class ItemInspector : MonoBehaviour
     [Tooltip("Initial euler rotation applied to the model when inspection opens. Gives a 3/4 perspective look by default.")]
     [SerializeField] private Vector3 initialRotation = new Vector3(15f, -35f, 0f);
 
+    [Header("Scale-In Animation")]
+    [Tooltip("Duration of the scale-in animation when inspection opens (seconds).")]
+    [SerializeField] private float scaleInDuration = 0.45f;
+
     [Header("Idle Spin")]
-    [Tooltip("Duration of the opening spin animation in seconds.")]
-    [SerializeField] private float idleSpinDuration = 1.8f;
-    [Tooltip("Peak rotation speed at the start of the idle spin (degrees/sec).")]
-    [SerializeField] private float idleSpinSpeed = 80f;
+    [Tooltip("Continuous rotation speed while the player is not dragging (degrees/sec).")]
+    [SerializeField] private float idleSpinSpeed = 40f;
 
     [Header("Settings")]
     [SerializeField] private string inspectionLayerName = "Inspection";
@@ -50,11 +52,15 @@ public class ItemInspector : MonoBehaviour
     private GameObject _inspectionLight;
     private bool _isInspecting;
     private bool _ignoreInputThisFrame;
-    private float _idleSpinTimer;
+    private float _scaleInTimer;
 
     private const float DragThresholdPx = 8f;
     private Vector2 _mouseDownPos;
     private bool _mouseWasDragged;
+
+    // True when inspection was opened while LMB was already held (e.g. LMB pickup).
+    // Prevents the held click from immediately cancelling the idle spin or confirming pickup.
+    private bool _waitForMouseRelease;
 
     private void Awake()
     {
@@ -99,19 +105,44 @@ public class ItemInspector : MonoBehaviour
     {
         if (!_isInspecting || _inspectionPivot == null) return;
 
-        // Пропускаем первый кадр — та же кнопка E открыла инспекцию
+        // Пропускаем первый кадр — та же кнопка открыла инспекцию
         if (_ignoreInputThisFrame)
         {
             _ignoreInputThisFrame = false;
             return;
         }
 
+        // If inspection was opened while LMB was held, wait until the player releases it.
+        // This prevents the lingering click from cancelling the idle spin or confirming pickup.
+        if (_waitForMouseRelease)
+        {
+            if (Mouse.current.leftButton.isPressed)
+                return;
+
+            // LMB just released this frame — clear the flag but skip this frame entirely
+            // so wasReleasedThisFrame doesn't immediately trigger ConfirmPickup.
+            _waitForMouseRelease = false;
+            return;
+        }
+
         bool userDragging = Mouse.current.leftButton.isPressed;
+
+        // Scale-in: ease-out cubic from 0 → 1 over scaleInDuration.
+        if (_scaleInTimer > 0f)
+        {
+            float t     = 1f - (_scaleInTimer / scaleInDuration);
+            float eased = 1f - Mathf.Pow(1f - t, 3f);
+            _inspectionPivot.transform.localScale = Vector3.one * eased;
+            _scaleInTimer -= Time.deltaTime;
+
+            if (_scaleInTimer <= 0f)
+                _inspectionPivot.transform.localScale = Vector3.one;
+        }
 
         // Track click vs drag: record position on press, flag if moved beyond threshold.
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-            _mouseDownPos = Mouse.current.position.ReadValue();
+            _mouseDownPos    = Mouse.current.position.ReadValue();
             _mouseWasDragged = false;
         }
 
@@ -120,34 +151,29 @@ public class ItemInspector : MonoBehaviour
 
         // Short click (no drag) anywhere on screen → pick up.
         if (Mouse.current.leftButton.wasReleasedThisFrame && !_mouseWasDragged)
-            ConfirmPickup();
-
-        // Idle spin: плавно замедляется (ease-out cosine) и останавливается.
-        // Прерывается как только пользователь начинает крутить мышью.
-        if (_idleSpinTimer > 0f)
         {
-            if (userDragging)
-            {
-                _idleSpinTimer = 0f;
-            }
-            else
-            {
-                float t = 1f - (_idleSpinTimer / idleSpinDuration);          // 0 → 1
-                float easedSpeed = idleSpinSpeed * Mathf.Cos(t * Mathf.PI * 0.5f); // ease-out
-                _inspectionPivot.transform.Rotate(Vector3.up, easedSpeed * Time.deltaTime, Space.World);
-                _idleSpinTimer -= Time.deltaTime;
-            }
+            ConfirmPickup();
+            return;
         }
 
         if (userDragging)
         {
+            // Manual rotation while dragging.
             Vector2 delta = Mouse.current.delta.ReadValue();
             _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
             _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
         }
+        else
+        {
+            // Continuous idle spin when not dragging.
+            _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
+        }
 
         if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
             ConfirmPickup();
+            return;
+        }
     }
 
     private void OnDestroy()
@@ -218,9 +244,11 @@ public class ItemInspector : MonoBehaviour
 
         inspectionCamera.gameObject.SetActive(true);
         UIManager.Instance?.OpenPanel(inspectionPanel, CursorLockMode.Confined);
-        _isInspecting = true;
-        _idleSpinTimer = idleSpinDuration;
-        _ignoreInputThisFrame = true; // E использована для открытия — не закрываем в этом же кадре
+        _isInspecting      = true;
+        _scaleInTimer      = scaleInDuration;
+        _inspectionPivot.transform.localScale = Vector3.zero;
+        _ignoreInputThisFrame = true;
+        _waitForMouseRelease  = Mouse.current != null && Mouse.current.leftButton.isPressed;
     }
 
     /// <summary>Adds item to inventory and closes the inspection view.</summary>
