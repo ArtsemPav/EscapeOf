@@ -9,7 +9,7 @@ using UnityEngine;
 public class PhysicsDraggable : MonoBehaviour
 {
     [Tooltip("Hint shown in the interaction UI when the player looks at this object.")]
-    [SerializeField] private string dragHint = "[E] Тянуть";
+    [SerializeField] private string dragHint = "Тянуть";
 
     [Tooltip("When enabled, the object cannot be tipped over while dragging. X and Z rotation axes are frozen.")]
     [SerializeField] private bool preventTipping = false;

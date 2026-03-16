@@ -18,5 +18,6 @@ public class NoteInteraction : MonoBehaviour, IInteractable
 
     public string GetInteractText() => _interactText;
     public bool IsPickable() => false;
+    public bool UseLMBClick => true;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;
 }

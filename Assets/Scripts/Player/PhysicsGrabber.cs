@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Lets the player drag physics objects by holding the Interact key.
+/// Lets the player drag physics objects by holding LMB.
 /// Uses a spring-damper force: heavier Rigidbodies (higher mass) accelerate slower,
 /// giving the sensation of weight. Assign draggable objects to the "Draggable" layer.
 /// </summary>
@@ -44,7 +44,6 @@ public class PhysicsGrabber : MonoBehaviour
     [Tooltip("Gap at which the player is fully stopped to let the object catch up.")]
     [SerializeField] private float maxGap = 1.5f;
 
-    private PlayerInputActions _input;
     private FPSController _fpsController;
     private PhysicsDraggable _hoveredDraggable;
     private PhysicsDraggable _grabbedDraggable;
@@ -54,18 +53,11 @@ public class PhysicsGrabber : MonoBehaviour
 
     private void Awake()
     {
-        _input = new PlayerInputActions();
         _fpsController = GetComponent<FPSController>();
-    }
-
-    private void OnEnable()
-    {
-        _input.Player.Enable();
     }
 
     private void OnDisable()
     {
-        _input.Player.Disable();
         ReleaseObject();
     }
 
@@ -78,13 +70,16 @@ public class PhysicsGrabber : MonoBehaviour
             return;
         }
 
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+
         bool isRunning = _fpsController != null && _fpsController.IsRunning;
-        bool interactHeld = _input.Player.Interact.IsPressed();
+        bool lmbHeld = mouse.leftButton.isPressed;
 
         if (_grabbedDraggable != null)
         {
-            // Release if key up or player started running
-            if (!interactHeld || isRunning)
+            // Release if LMB released or player started running
+            if (!lmbHeld || isRunning)
             {
                 ReleaseObject();
             }
@@ -104,8 +99,8 @@ public class PhysicsGrabber : MonoBehaviour
             // Detection always runs so hint stays visible while running
             DetectHoveredDraggable();
 
-            // Grabbing only allowed when not running
-            if (!isRunning && interactHeld && _hoveredDraggable != null)
+            // Grabbing only allowed when not running and LMB just pressed
+            if (!isRunning && mouse.leftButton.wasPressedThisFrame && _hoveredDraggable != null)
                 GrabObject(_hoveredDraggable);
         }
     }
@@ -180,6 +175,7 @@ public class PhysicsGrabber : MonoBehaviour
         float t = Mathf.Clamp01(rb.mass / referenceHeavyMass);
         _massSpeedMultiplier = Mathf.Lerp(1f, minSpeedMultiplier, t);
 
+        _fpsController?.SetPhysicsGrabActive(true);
         InteractionUI.Instance?.SetHint(false);
     }
 
@@ -193,6 +189,7 @@ public class PhysicsGrabber : MonoBehaviour
         rb.constraints = _originalConstraints;
 
         _fpsController?.SetSpeedMultiplier(1f);
+        _fpsController?.SetPhysicsGrabActive(false);
 
         _grabbedDraggable = null;
     }

@@ -1,3 +1,22 @@
+using UnityEngine;
+
+/// <summary>
+/// Implemented by objects that respond to LMB hold + mouse movement.
+/// FPSController detects when the focused IInteractable also implements IDraggable,
+/// then routes mouse delta here instead of rotating the camera.
+/// </summary>
+public interface IDraggable
+{
+    /// <summary>Called once when the player presses LMB while looking at this object.</summary>
+    void OnDragStart();
+
+    /// <summary>Called every frame while LMB is held. mouseDelta is raw screen-space pixels.</summary>
+    void OnDrag(Vector2 mouseDelta);
+
+    /// <summary>Called once when the player releases LMB.</summary>
+    void OnDragEnd();
+}
+
 /// <summary>
 /// Defines how the player's crosshair changes when looking at an interactable object.
 /// </summary>
@@ -32,6 +51,13 @@ public interface IInteractable
 
     /// <summary>Returns true if the object can be picked up.</summary>
     bool IsPickable();
+
+    /// <summary>
+    /// When true, FPSController triggers Interact() on LMB click in addition to the E key.
+    /// Override to true for notes, pickups and other single-click interactions.
+    /// Drag-based objects (IDraggable) are handled separately and ignore this flag.
+    /// </summary>
+    bool UseLMBClick => false;
 
     /// <summary>Returns the crosshair mode to show when looking at this object.</summary>
     CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;

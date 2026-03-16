@@ -34,4 +34,5 @@ public class PickableItem : MonoBehaviour, IInteractable
     }
 
     public bool IsPickable() => true;
+    public bool UseLMBClick => true;
 }

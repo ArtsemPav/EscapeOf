@@ -31,6 +31,9 @@ public class FPSController : MonoBehaviour
     [SerializeField] private float pitchSmoothTime = 0.03f;
     [SerializeField] private float strafeTiltAngle = 2f;
     [SerializeField] private float tiltSmoothTime = 0.12f;
+    [Tooltip("Camera sensitivity multiplier applied while the player is dragging a drawer/door. " +
+             "Lower values let the mouse drive the object without spinning the view.")]
+    [SerializeField] [Range(0f, 1f)] private float _dragCameraSensitivityMultiplier = 0.25f;
 
     [Header("Head Bob")]
     [SerializeField] private float bobFrequency = 6f;
@@ -45,6 +48,7 @@ public class FPSController : MonoBehaviour
     private CharacterController _characterController;
     private PlayerInputActions _input;
     private IInteractable _currentInteractable;
+    private IDraggable _currentDraggable;
     private string _lastHintText;
     private CrosshairMode _lastCrosshairMode;
 
@@ -64,6 +68,9 @@ public class FPSController : MonoBehaviour
     // Position lock (used to prevent animated objects from pushing the player)
     private bool _positionLocked = false;
     private Vector3 _lockedPosition;
+
+    // Active drag states — used to scale camera sensitivity while interacting
+    private bool _isPhysicsGrabbing;
 
     // Camera look
     private float _targetPitch;
@@ -131,6 +138,7 @@ public class FPSController : MonoBehaviour
         HandleHeadBob();
         HandleCrouchTransition();
         HandleInteractionDetection();
+        HandleDragInteraction();
         ApplyCameraTransform();
     }
 
@@ -147,8 +155,9 @@ public class FPSController : MonoBehaviour
 
     private void HandleLook()
     {
-        float mouseX = _lookInput.x * mouseSensitivity;
-        float mouseY = _lookInput.y * mouseSensitivity;
+        float sensitivity = mouseSensitivity * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f);
+        float mouseX = _lookInput.x * sensitivity;
+        float mouseY = _lookInput.y * sensitivity;
 
         // Horizontal rotation is instant — standard FPS feel, preserves aim precision
         transform.Rotate(Vector3.up * mouseX);
@@ -258,7 +267,15 @@ public class FPSController : MonoBehaviour
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
         if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer))
         {
-            if (hit.collider.TryGetComponent(out IInteractable interactable))
+            // Prefer IDraggable over IInteractable when both are present on the same object
+            // so that DrawerDrag takes priority over a legacy DoorInteraction component.
+            IInteractable interactable = null;
+            if (hit.collider.TryGetComponent(out IDraggable draggable) && draggable is IInteractable draggableInteractable)
+                interactable = draggableInteractable;
+            else
+                hit.collider.TryGetComponent(out interactable);
+
+            if (interactable != null)
             {
                 string newText = interactable.GetInteractText();
                 CrosshairMode newMode = interactable.GetCrosshairMode();
@@ -375,6 +392,15 @@ public class FPSController : MonoBehaviour
     }
 
     /// <summary>
+    /// Called by PhysicsGrabber when a physics object is grabbed or released.
+    /// Reduces camera sensitivity while dragging for better control feel.
+    /// </summary>
+    public void SetPhysicsGrabActive(bool active)
+    {
+        _isPhysicsGrabbing = active;
+    }
+
+    /// <summary>
     /// Сбрасывает кеш обнаружения интерактивных объектов.
     /// Следующий кадр Update() заново определит на что смотрит игрок и обновит подсказку.
     /// </summary>
@@ -383,6 +409,49 @@ public class FPSController : MonoBehaviour
         _currentInteractable = null;
         _lastHintText = null;
         _lastCrosshairMode = CrosshairMode.Default;
+    }
+
+    /// <summary>
+    /// Handles LMB interactions: drag for IDraggable, single click Interact() for UseLMBClick objects.
+    /// </summary>
+    private void HandleDragInteraction()
+    {
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        if (mouse == null) return;
+
+        if (mouse.leftButton.wasPressedThisFrame && _currentDraggable == null)
+        {
+            if (_currentInteractable is IDraggable draggable)
+            {
+                // Start drag (drawer, door, etc.)
+                _currentDraggable = draggable;
+                _currentDraggable.OnDragStart();
+            }
+            else if (_currentInteractable != null && _currentInteractable.UseLMBClick)
+            {
+                // Single click: notes, pickups, etc.
+                _currentInteractable.Interact();
+                _currentInteractable = null;
+                _lastHintText = null;
+                _lastCrosshairMode = CrosshairMode.Default;
+                InteractionUI.Instance?.SetHint(false);
+            }
+        }
+
+        // While dragging: feed mouse delta to the drawer
+        if (_currentDraggable != null)
+        {
+            if (mouse.leftButton.isPressed)
+            {
+                _currentDraggable.OnDrag(mouse.delta.ReadValue());
+            }
+            else
+            {
+                // LMB released — end drag and snap
+                _currentDraggable.OnDragEnd();
+                _currentDraggable = null;
+            }
+        }
     }
 
     private void Interact(InputAction.CallbackContext ctx)
