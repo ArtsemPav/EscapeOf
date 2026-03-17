@@ -19,10 +19,12 @@ FPSController
 
 ### `IDraggable`
 ```csharp
-void OnDragStart();              // ЛКМ нажата
-void OnDrag(Vector2 mouseDelta); // каждый кадр пока ЛКМ зажата
-void OnDragEnd();                // ЛКМ отпущена
+void OnDragStart(Vector3 hitPoint); // ЛКМ нажата; hitPoint — мировая точка рейкаста
+void OnDrag(Vector2 mouseDelta);    // каждый кадр пока ЛКМ зажата
+void OnDragEnd();                   // ЛКМ отпущена
 ```
+
+`hitPoint` передаётся из `FPSController` как `RaycastHit.point` — реальная мировая позиция, на которую смотрит игрок. Объект сохраняет эту точку как **точку захвата** и использует её для вычисления правильного направления перетаскивания с любого ракурса.
 
 ### `IInteractable`
 Обязательные методы для работы с `FPSController`:
@@ -40,7 +42,7 @@ CrosshairMode GetCrosshairMode(); // иконка прицела
 Update()
  ├── HandleInteractionDetection()   // raycast → _currentInteractable
  └── HandleDragInteraction()
-       ├── ЛКМ нажата?   → OnDragStart()
+       ├── ЛКМ нажата?   → OnDragStart(hit.point)
        ├── ЛКМ зажата?   → OnDrag(mouse.delta)
        └── ЛКМ отпущена? → OnDragEnd()
 ```
@@ -64,9 +66,9 @@ Vector3 openLocalPos = _closedLocalPosition + _openDirection.normalized * _openD
 transform.localPosition = Vector3.Lerp(_closedLocalPosition, openLocalPos, _openAmount);
 ```
 
-### OnDragStart — вычисление направления
+### OnDragStart — вычисление точки захвата
 
-При нажатии ЛКМ скрипт проецирует мировые координаты закрытой и открытой позиции ящика на экран. Разница — вектор `_screenOpenDir` в пикселях, он показывает в какую сторону двигать мышь чтобы открыть ящик.
+При нажатии ЛКМ `FPSController` передаёт `hit.point` — мировую точку пересечения рейкаста с коллайдером. `DrawerDrag` использует её для вычисления `_screenOpenDir`:
 
 ```
 closedWorld ──────────────────► openWorld
@@ -140,28 +142,46 @@ e.y = _closedLocalEulerY + _openFraction * _maxOpenAngle;
 pivot.localEulerAngles = e;
 ```
 
-### OnDragStart — вычисление оси
+### OnDragStart — точка захвата и вычисление оси
 
-Тангент дуги двери (`Vector3.forward` в локальном пространстве шарнира) проецируется на экран — аналогично ящику, но для вращения.
+`hitPoint` переводится в локальное пространство шарнира (только XZ — дверь вращается вокруг Y) и сохраняется как `_grabOffsetLocal`:
+
+```csharp
+Vector3 offset = hitPoint - _pivot.position;
+offset.y = 0f;
+_grabOffsetLocal = _pivot.InverseTransformDirection(offset.normalized);
+```
+
+Это позволяет вычислять правильное экранное направление открытия **с любого ракурса**, в том числе с ребра двери.
 
 ### OnDrag — каждый кадр
 
-```csharp
-float input = Vector2.Dot(mouseDelta, _screenSwingDir);
-_velocity  += input * _dragSensitivity;
-_velocity   = Mathf.Clamp(_velocity, -_maxVelocity, _maxVelocity);
+Вместо CCW-тангента и знакового множителя используется прямая проекция движения точки захвата:
+
+```
+grabOffsetLocal  ──InverseTransformDirection──►  хранится при OnDragStart
+                                                       │
+                                             [кадр N]  ▼
+grabWorld = pivot.TransformDirection(grabOffsetLocal)  ← вращается вместе с дверью
+grabMore  = Quaternion.AngleAxis(+5°, up) * grabWorld  ← куда уйдёт точка при открытии
+
+screenCur  = cam.WorldToScreenPoint(pivot.pos + grabWorld)
+screenMore = cam.WorldToScreenPoint(pivot.pos + grabMore)
+openDir    = screenMore - screenCur                    ← экранное направление открытия
+
+input = Dot(mouseDelta, openDir.normalized)
+_velocity += input * _dragSensitivity
 ```
 
-Мышь накапливает скорость, а не напрямую задаёт позицию.
+Dot-произведение с `openDir` корректно работает при любом положении камеры: когда дверь смотрит торцом на игрока, `openDir` указывает вбок на экране; когда игрок стоит сбоку у ребра — `openDir` указывает в сторону открытия с учётом реального угла ракурса.
 
 ### Блокировка и ключи
 
 ```csharp
-// OnDragStart / OnDrag
-if (_isLocked && !_isOpen) return;
+_isLockedDrag = _isLocked && !_isOpen;  // устанавливается в OnDragStart
 ```
 
-Заблокированная закрытая дверь игнорирует все попытки потянуть. Разблокировка — через `Unlock()` или `UnlockAndOpen()` (например, от `CodeLock`).
+Если дверь заблокирована и закрыта, воспроизводится `_lockedClip` и `_targetFraction` сбрасывается в `0` при `OnDragEnd`. Разблокировка — через `Unlock()` или `UnlockAndOpen()` (например, от `CodeLock`).
 
 ### Параметры инспектора
 
@@ -185,6 +205,6 @@ if (_isLocked && !_isOpen) return;
 1. Создать скрипт, реализующий `MonoBehaviour`, `IInteractable`, `IDraggable`
 2. Поставить объект на слой **Interactable Layer**
 3. Добавить `BoxCollider` (или любой другой коллайдер)
-4. Реализовать `OnDragStart` / `OnDrag` / `OnDragEnd`
+4. Реализовать `OnDragStart(Vector3 hitPoint)` / `OnDrag` / `OnDragEnd`
 
 `FPSController` подхватит объект автоматически — никаких изменений в контроллере не нужно.

@@ -9,8 +9,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 400000}
-  - component: {fileID: 4716264007618459369}
-  - component: {fileID: 7410521151778560345}
   m_Layer: 0
   m_Name: doors_A
   m_TagString: Untagged
@@ -34,40 +32,6 @@ Transform:
   - {fileID: 3623173885355038829}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!95 &4716264007618459369
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100000}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 8e0d6c8db46c676488bf0544505ccce6, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
---- !u!114 &7410521151778560345
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100000}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9b4b8b3f66eb7734593e7c1378f655fd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorAnimator
 --- !u!1 &100002
 GameObject:
   m_ObjectHideFlags: 0
@@ -427,6 +391,18 @@ MonoBehaviour:
   _requiredKey: {fileID: 0}
   _lockedMessage: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
     \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _requirementHint: 
+  _lockedJiggleFraction: 0.05
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
-  _doorAnimator: {fileID: 7410521151778560345}
+  _pivot: {fileID: 0}
+  _maxOpenAngle: 90
+  _dragSensitivity: 0.4
+  _friction: 5
+  _maxVelocity: 1.2
+  _snapSpeed: 2
+  _snapThreshold: 0.35
+  _audioSource: {fileID: 0}
+  _openClip: {fileID: 0}
+  _closeClip: {fileID: 0}
+  _lockedClip: {fileID: 0}

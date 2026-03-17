@@ -7,8 +7,12 @@ using UnityEngine;
 /// </summary>
 public interface IDraggable
 {
-    /// <summary>Called once when the player presses LMB while looking at this object.</summary>
-    void OnDragStart();
+    /// <summary>
+    /// Called once when the player presses LMB while looking at this object.
+    /// <paramref name="hitPoint"/> is the world-space position of the raycast hit
+    /// used to determine the correct drag direction regardless of camera angle.
+    /// </summary>
+    void OnDragStart(Vector3 hitPoint);
 
     /// <summary>Called every frame while LMB is held. mouseDelta is raw screen-space pixels.</summary>
     void OnDrag(Vector2 mouseDelta);

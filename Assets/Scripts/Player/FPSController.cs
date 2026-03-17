@@ -423,9 +423,15 @@ public class FPSController : MonoBehaviour
         {
             if (_currentInteractable is IDraggable draggable)
             {
-                // Start drag (drawer, door, etc.)
+                // Start drag (drawer, door, etc.) — pass world hit point so the object
+                // can determine the correct drag direction from any camera angle.
+                Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
+                Vector3 hitPoint = Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer)
+                    ? hit.point
+                    : cameraTransform.position + cameraTransform.forward * interactDistance;
+
                 _currentDraggable = draggable;
-                _currentDraggable.OnDragStart();
+                _currentDraggable.OnDragStart(hitPoint);
             }
             else if (_currentInteractable != null && _currentInteractable.UseLMBClick)
             {

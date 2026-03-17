@@ -22,6 +22,7 @@ public class InteractionUI : MonoBehaviour
     [Header("Hint Icons")]
     [SerializeField] private Sprite handIcon;
     [SerializeField] private Sprite defaultIcon;
+    [SerializeField] private Sprite dragIcon;
 
     [Header("Crosshair")]
     [SerializeField] private Image crosshairImage;
@@ -69,8 +70,10 @@ public class InteractionUI : MonoBehaviour
 
             if (interactionIcon != null)
             {
-                interactionIcon.sprite = isPickable ? handIcon : defaultIcon;
-                interactionIcon.gameObject.SetActive(interactionIcon.sprite != null);
+                bool isDraggable = crosshairMode == CrosshairMode.Grab;
+                Sprite icon = isPickable ? handIcon : (isDraggable ? dragIcon : defaultIcon);
+                interactionIcon.sprite = icon;
+                interactionIcon.gameObject.SetActive(icon != null);
             }
         }
 

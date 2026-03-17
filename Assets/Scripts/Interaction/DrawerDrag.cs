@@ -68,7 +68,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     // ── IDraggable ──────────────────────────────────────────────────────────────
 
     /// <summary>Called by FPSController when LMB is pressed while the player looks at the drawer.</summary>
-    public void OnDragStart()
+    public void OnDragStart(Vector3 hitPoint)
     {
         _isDragging = true;
 
