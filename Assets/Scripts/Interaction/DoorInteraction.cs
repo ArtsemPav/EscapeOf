@@ -107,8 +107,10 @@ namespace Escape.Core {
             }
 
             if (Mathf.Abs(_velocity) > 0.0001f) {
+                float prev    = _openFraction;
                 _openFraction = Mathf.Clamp(_openFraction + _velocity * Time.deltaTime, 0f, 1f);
                 _velocity    *= Mathf.Clamp01(1f - _friction * Time.deltaTime);
+                PlayBoundaryClips(prev, _openFraction);
                 ApplyAngle();
             } else {
                 _velocity   = 0f;
@@ -128,6 +130,8 @@ namespace Escape.Core {
 
             if (_isLockedDrag)
                 PlayClip(_lockedClip);
+            else
+                PlayClip(_openClip);
 
             // Сохраняем offset в «закрытом» системе координат (pivot = 0°).
             // В OnDrag мы вращаем его на openFraction * maxAngle, получая правильное
@@ -188,6 +192,7 @@ namespace Escape.Core {
             float prev         = _openFraction;
             _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, maxFraction);
             _velocity     = (_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f);
+            if (!_isLockedDrag) PlayBoundaryClips(prev, _openFraction);
             ApplyAngle();
         }
 
@@ -278,6 +283,11 @@ namespace Escape.Core {
         private void PlayClip(AudioClip clip) {
             if (_audioSource == null || clip == null) return;
             _audioSource.PlayOneShot(clip);
+        }
+
+        /// <summary>Воспроизводит close клип когда дверь достигает закрытого положения.</summary>
+        private void PlayBoundaryClips(float prev, float current) {
+            if (prev > 0f && current <= 0f) PlayClip(_closeClip);
         }
     }
 }
