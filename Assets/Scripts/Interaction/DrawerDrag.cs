@@ -19,8 +19,9 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [SerializeField] private float _openDistance = 0.4f;
 
     [Header("Drag Feel")]
-    [Tooltip("How many units of open-fraction the drawer moves per pixel of mouse movement. Tune this to taste.")]
-    [SerializeField] private float _dragSensitivity = 0.003f;
+    [Tooltip("Sensitivity multiplier on top of auto-computed screen tracking. " +
+             "1 = drawer handle follows cursor exactly. 2 = twice as fast.")]
+    [SerializeField] private float _dragSensitivity = 1f;
     [Tooltip("Invert the drag axis if the drawer moves in the wrong direction.")]
     [SerializeField] private bool _invertAxis = false;
     [Tooltip("Speed at which the drawer snaps to fully open or closed after release.")]
@@ -41,6 +42,10 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     // Screen-space direction of the drawer's opening, computed once at drag start.
     // Projecting mouse delta onto this vector handles all approach angles correctly.
     private Vector2 _screenOpenDir;
+
+    // Pixels-per-full-open-fraction ratio, auto-computed from drawer's screen size at drag start.
+    // Ensures the drawer handle follows the cursor at 1:1 regardless of distance or FOV.
+    private float _computedSensitivity;
 
     // The Animator driving the parent (disabled while the player manually drags)
     private Animator _parentAnimator;
@@ -67,35 +72,52 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     {
         _isDragging = true;
 
-        // Project the drawer's world-space open direction onto screen space.
-        // This makes the drag gesture work correctly from any angle:
-        // moving the mouse in the direction the drawer visually moves = opening it.
-        Camera cam = Camera.main;
-        if (cam != null)
-        {
-            Vector3 worldOpenDir = transform.TransformDirection(_openDirection.normalized);
-            Vector3 screenOrigin = cam.WorldToScreenPoint(transform.position);
-            Vector3 screenTip    = cam.WorldToScreenPoint(transform.position + worldOpenDir * 0.5f);
+        if (_parentAnimator != null)
+            _parentAnimator.enabled = false;
 
-            Vector2 dir = new Vector2(screenTip.x - screenOrigin.x, screenTip.y - screenOrigin.y);
-            _screenOpenDir = dir.sqrMagnitude > 1f ? dir.normalized : Vector2.down;
+        Camera cam = Camera.main;
+        if (cam == null)
+        {
+            _screenOpenDir       = Vector2.right;
+            _computedSensitivity = _dragSensitivity * 0.003f;
+            return;
+        }
+
+        Vector3 openDirWorld = transform.TransformDirection(_openDirection.normalized);
+
+        // World positions of the closed and fully-open endpoints.
+        Vector3 closedWorld = transform.parent != null
+            ? transform.parent.TransformPoint(_closedLocalPosition)
+            : _closedLocalPosition;
+        Vector3 openWorld = closedWorld + openDirWorld * _openDistance;
+
+        // Project both endpoints onto screen → screen-space open direction + pixel length.
+        Vector3 screenA = cam.WorldToScreenPoint(closedWorld);
+        Vector3 screenB = cam.WorldToScreenPoint(openWorld);
+        Vector2 screenDelta = new Vector2(screenB.x - screenA.x, screenB.y - screenA.y);
+        float   screenLength = screenDelta.magnitude;
+
+        if (screenLength > 1f)
+        {
+            // Auto-sensitivity: 1 pixel moves the drawer by (1 / screenLength) of its full range.
+            // _dragSensitivity acts as a multiplier (1 = exact cursor tracking).
+            _screenOpenDir       = screenDelta / screenLength;
+            _computedSensitivity = _dragSensitivity / screenLength;
         }
         else
         {
-            _screenOpenDir = Vector2.down;
+            // Drawer axis is almost parallel to camera view — use a raw fallback.
+            _screenOpenDir       = Vector2.right;
+            _computedSensitivity = _dragSensitivity * 0.003f;
         }
-
-        if (_parentAnimator != null)
-            _parentAnimator.enabled = false;
     }
 
     /// <summary>Called every frame while LMB is held. Mouse delta is in screen-space pixels.</summary>
     public void OnDrag(Vector2 mouseDelta)
     {
-        // Dot product: mouse moving in the same direction the drawer visually opens → positive → opens.
         float input = Vector2.Dot(mouseDelta, _screenOpenDir);
         if (_invertAxis) input = -input;
-        _openAmount = Mathf.Clamp01(_openAmount + input * _dragSensitivity);
+        _openAmount = Mathf.Clamp01(_openAmount + input * _computedSensitivity);
         ApplyPosition();
     }
 
