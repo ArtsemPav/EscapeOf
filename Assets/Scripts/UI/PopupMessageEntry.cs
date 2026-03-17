@@ -12,7 +12,6 @@ public class PopupMessageEntry : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private TextMeshProUGUI messageText;
-    [SerializeField] private Image iconImage;
     [SerializeField] private Image backgroundImage;
 
     [Header("Type Colors")]
@@ -63,17 +62,6 @@ public class PopupMessageEntry : MonoBehaviour
 
         if (messageText != null)
             messageText.color = typeColor;
-
-        if (iconImage != null)
-        {
-            bool hasIcon = data.icon != null;
-            iconImage.gameObject.SetActive(hasIcon);
-            if (hasIcon)
-            {
-                iconImage.sprite = data.icon;
-                iconImage.color  = typeColor;
-            }
-        }
     }
 
     private IEnumerator LifecycleRoutine(float holdDuration, System.Action onComplete)

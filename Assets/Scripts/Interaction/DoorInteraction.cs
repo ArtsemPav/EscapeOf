@@ -231,7 +231,8 @@ namespace Escape.Core {
                 } else {
                     Debug.Log("<color=orange>Взаимодействие: " + _lockedMessage + "</color>");
                     if (!string.IsNullOrEmpty(_requirementHint))
-                        InteractionUI.Instance?.ShowBlockedHint(_requirementHint);
+                        //InteractionUI.Instance?.ShowBlockedHint(_requirementHint);
+                        PopupMessageSystem.Instance.Show("Нужен ключ от этой двери", PopupMessageType.Warning, 4f);
                 }
             }
         }

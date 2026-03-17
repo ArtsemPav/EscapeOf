@@ -287,10 +287,6 @@ public class FPSController : MonoBehaviour
                     _lastCrosshairMode = newMode;
 
                     InteractionUI.Instance?.SetHint(true, newText, interactable.IsPickable(), newMode);
-
-                    string blockedHint = interactable.GetBlockedHint();
-                    if (!string.IsNullOrEmpty(blockedHint))
-                        InteractionUI.Instance?.ShowBlockedHint(blockedHint);
                 }
                 return;
             }

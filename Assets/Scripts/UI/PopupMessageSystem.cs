@@ -42,6 +42,7 @@ public class PopupMessageSystem : MonoBehaviour
             return;
         }
         Instance = this;
+        DontDestroyOnLoad(this);
     }
 
     /// <summary>

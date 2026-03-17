@@ -15,10 +15,6 @@ public class InteractionUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI hintText;
     [SerializeField] private Image interactionIcon;
 
-    [Header("Blocked Hint")]
-    [SerializeField] private TextMeshProUGUI blockedHintText;
-    [SerializeField] private float blockedHintDuration = 3f;
-
     [Header("Hint Icons")]
     [SerializeField] private Sprite handIcon;
     [SerializeField] private Sprite defaultIcon;
@@ -46,9 +42,6 @@ public class InteractionUI : MonoBehaviour
 
         if (hintPanel != null)
             hintPanel.SetActive(false);
-
-        if (blockedHintText != null)
-            blockedHintText.gameObject.SetActive(false);
 
         SetCrosshair(CrosshairMode.Default);
     }
@@ -78,30 +71,6 @@ public class InteractionUI : MonoBehaviour
         }
 
         SetCrosshair(visible ? crosshairMode : CrosshairMode.Default);
-    }
-
-    /// <summary>
-    /// Shows a temporary hint explaining why an interaction is blocked.
-    /// Hides automatically after blockedHintDuration seconds.
-    /// </summary>
-    public void ShowBlockedHint(string hint)
-    {
-        if (blockedHintText == null || string.IsNullOrEmpty(hint)) return;
-
-        if (_blockedHintCoroutine != null)
-            StopCoroutine(_blockedHintCoroutine);
-
-        blockedHintText.text = hint;
-        blockedHintText.gameObject.SetActive(true);
-        _blockedHintCoroutine = StartCoroutine(HideBlockedHintAfter(blockedHintDuration));
-    }
-
-    private IEnumerator HideBlockedHintAfter(float duration)
-    {
-        yield return new WaitForSeconds(duration);
-        if (blockedHintText != null)
-            blockedHintText.gameObject.SetActive(false);
-        _blockedHintCoroutine = null;
     }
 
     /// <summary>
