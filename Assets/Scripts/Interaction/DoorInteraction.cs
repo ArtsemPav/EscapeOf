@@ -38,13 +38,8 @@ namespace Escape.Core {
         [SerializeField] private float _friction = 5f;
         [Tooltip("Max angular velocity (open-fraction / sec).")]
         [SerializeField] private float _maxVelocity = 1.2f;
-        [Tooltip("Speed at which door snaps to open/closed after releasing LMB.")]
-        [SerializeField] private float _snapSpeed = 8f;
-        [Tooltip("If open fraction exceeds this on release, door snaps fully open; otherwise closes.")]
-        [SerializeField] [Range(0f, 1f)] private float _snapThreshold = 0.35f;
-        [Tooltip("Min velocity at release to trigger a binary snap to open/close. " +
-                 "Below this threshold door stays wherever it naturally coasts to.")]
-        [SerializeField] private float _snapVelocityThreshold = 0.35f;
+        [Tooltip("Speed at which a locked door snaps back to closed after a jiggle attempt.")]
+        [SerializeField] private float _lockedSnapBackSpeed = 8f;
 
         [Header("Audio")]
         [SerializeField] private AudioSource _audioSource;
@@ -63,20 +58,18 @@ namespace Escape.Core {
 
         private float   _closedLocalEulerY;
         private float   _openFraction;        // 0 = closed, 1 = fully open
-        private float   _targetFraction;
         private float   _velocity;            // open-fraction per second
         private bool    _isDragging;
         private bool    _isLockedDrag;
         private bool    _dragActive;
-        // Grab point in pivot's local space (XZ only — door rotates around Y)
-        private Vector3 _grabOffsetLocal;
-        // Для защиты от тривиального клика без реального перетаскивания
-        private float   _dragStartFraction;
-        private float   _preDragTarget;
+        private bool    _snappingBack;        // true after locked jiggle — lerp back to 0
+        // Grab point offset from pivot in WORLD space XZ at drag start (not normalized — stores real distance).
+        // Stored in world coords to avoid InverseTransformDirection issues with negative-scale FBX meshes.
+        private Vector3 _grabOffsetWorld;
+        private float   _dragStartFraction;   // для trivial-drag guard
 
-        private const float MinScreenMoveSqr = 4f * 4f;   // px² — мин. движение экранной точки захвата
-        private const float MinDragFraction  = 0.04f;
-        private const float MinDragVelocity  = 0.08f;
+        private const float MinDragFraction = 0.04f;
+        private const float MinDragVelocity = 0.08f;
 
         // ── Unity ────────────────────────────────────────────────────────────────
 
@@ -86,7 +79,6 @@ namespace Escape.Core {
 
             _closedLocalEulerY = _pivot.localEulerAngles.y;
             _openFraction      = _isOpen ? 1f : 0f;
-            _targetFraction    = _openFraction;
 
             if (_isOpen) {
                 _dragActive = true;
@@ -99,21 +91,29 @@ namespace Escape.Core {
 
         private void Update() {
             if (!_dragActive) return;
+            if (_isDragging) return; // OnDrag напрямую двигает дверь — Update только после отпускания
 
-            // Apply velocity to open-fraction.
-            float maxFraction = _isLockedDrag ? _lockedJiggleFraction : 1f;
-            if (Mathf.Abs(_velocity) > 0.0001f) {
-                _openFraction = Mathf.Clamp(_openFraction + _velocity * Time.deltaTime, 0f, maxFraction);
-                _velocity    *= Mathf.Clamp01(1f - _friction * Time.deltaTime);
+            // ── Post-release inertia ─────────────────────────────────────────────
+            if (_snappingBack) {
+                _openFraction = Mathf.Lerp(_openFraction, 0f, _lockedSnapBackSpeed * Time.deltaTime);
                 ApplyAngle();
-                if (!_isDragging) return;
+                if (_openFraction < 0.001f) {
+                    _openFraction = 0f;
+                    _snappingBack = false;
+                    _dragActive   = false;
+                    ApplyAngle();
+                }
+                return;
             }
 
-            if (_isDragging) return;
-
-            // Velocity settled — smoothly snap to nearest rest position.
-            _openFraction = Mathf.Lerp(_openFraction, _targetFraction, _snapSpeed * Time.deltaTime);
-            ApplyAngle();
+            if (Mathf.Abs(_velocity) > 0.0001f) {
+                _openFraction = Mathf.Clamp(_openFraction + _velocity * Time.deltaTime, 0f, 1f);
+                _velocity    *= Mathf.Clamp01(1f - _friction * Time.deltaTime);
+                ApplyAngle();
+            } else {
+                _velocity   = 0f;
+                _dragActive = false;
+            }
         }
 
         // ── IDraggable ───────────────────────────────────────────────────────────
@@ -122,21 +122,25 @@ namespace Escape.Core {
         public void OnDragStart(Vector3 hitPoint) {
             _isDragging        = true;
             _dragActive        = true;
+            _snappingBack      = false;
             _isLockedDrag      = _isLocked && !_isOpen;
             _dragStartFraction = _openFraction;
-            _preDragTarget     = _targetFraction;
 
             if (_isLockedDrag)
                 PlayClip(_lockedClip);
 
-            // Сохраняем точку захвата в локальном пространстве шарнира (только XZ).
-            // Это позволяет вычислять правильное направление открытия с любого ракурса.
+            // Сохраняем offset в «закрытом» системе координат (pivot = 0°).
+            // В OnDrag мы вращаем его на openFraction * maxAngle, получая правильное
+            // мировое положение точки захвата при любом угле двери.
+            // Без обратного поворота здесь offset был бы уже в открытом положении,
+            // и дополнительный поворот в OnDrag давал бы двойную ротацию → инверсию.
             if (_pivot != null) {
                 Vector3 offset = hitPoint - _pivot.position;
                 offset.y = 0f;
-                _grabOffsetLocal = _pivot.InverseTransformDirection(offset.sqrMagnitude > 0.01f
-                    ? offset.normalized
-                    : _pivot.TransformDirection(Vector3.right));
+                if (offset.sqrMagnitude < 0.01f)
+                    offset = Vector3.right;
+                float currentOpenAngle = _dragStartFraction * _maxOpenAngle;
+                _grabOffsetWorld = Quaternion.AngleAxis(-currentOpenAngle, Vector3.up) * offset;
             }
         }
 
@@ -145,68 +149,71 @@ namespace Escape.Core {
             Camera cam = Camera.main;
             if (cam == null || _pivot == null) return;
 
-            // Текущий мировой вектор от шарнира к точке захвата (вращается вместе с дверью).
-            Vector3 grabWorld = _pivot.TransformDirection(_grabOffsetLocal);
+            // Текущее положение точки захвата в мире: вращаем начальный offset
+            // вместе с открытием двери (openFraction * maxAngle — точный угол поворота пивота).
+            float   openedAngle  = _openFraction * _maxOpenAngle;
+            Vector3 grabWorld    = Quaternion.AngleAxis(openedAngle, Vector3.up) * _grabOffsetWorld;
+            float   grabDist     = grabWorld.magnitude;
 
-            // Куда переместится точка захвата на экране, если дверь откроется ещё на 5°?
-            Quaternion openStep  = Quaternion.AngleAxis(Mathf.Sign(_maxOpenAngle) * 5f, Vector3.up);
-            Vector3    grabMore  = openStep * grabWorld;
+            if (grabDist < 0.001f) return;
 
-            Vector2 screenCur  = cam.WorldToScreenPoint(_pivot.position + grabWorld);
-            Vector2 screenMore = cam.WorldToScreenPoint(_pivot.position + grabMore);
-            Vector2 openDir    = screenMore - screenCur;
-            float   openDirMag = openDir.magnitude;
+            // Касательная к дуге вращения вокруг мировой оси Y.
+            // cross(up, grabDir) даёт направление движения точки при ПОЛОЖИТЕЛЬНОМ вращении;
+            // умножение на sign(maxOpenAngle) корректирует знак для дверей с отрицательным углом.
+            Vector3 swingTangent = Vector3.Cross(Vector3.up, grabWorld / grabDist)
+                                   * Mathf.Sign(_maxOpenAngle);
 
-            // Если экранное смещение достаточно велико — проецируем дельту мыши на него.
-            // Иначе дверь смотрит прямо в камеру (маловероятно, но защищаемся).
-            if (openDirMag >= 0.5f) {
-                float input = Vector2.Dot(mouseDelta, openDir / openDirMag);
-                _velocity += input * _dragSensitivity;
-            }
+            // Проецируем касательную на экран от реальной позиции точки захвата.
+            Vector3 grabWorldPos = _pivot.position + grabWorld;
+            Vector2 screenGrab   = cam.WorldToScreenPoint(grabWorldPos);
+            Vector2 screenAhead  = cam.WorldToScreenPoint(grabWorldPos + swingTangent * 0.5f);
+            Vector2 openDir      = screenAhead - screenGrab;
+            float   openDirMag   = openDir.magnitude;
 
-            _velocity = Mathf.Clamp(_velocity, -_maxVelocity, _maxVelocity);
+            if (openDirMag < 0.5f) return;
+
+            // Sensitivity: pixels mouse → fraction of door rotation.
+            // grabDist intentionally excluded — same swipe = same rotation angle
+            // regardless of where the player grabbed (game feel over physics).
+            // openDirMag / 0.5f accounts for perspective (camera distance).
+            float screenPerFraction = Mathf.Abs(_maxOpenAngle) * Mathf.Deg2Rad
+                                      * (openDirMag / 0.5f);
+
+            float input        = Vector2.Dot(mouseDelta, openDir / openDirMag);
+            float deltaFraction = input * _dragSensitivity / Mathf.Max(screenPerFraction, 0.01f);
+
+            // Phasmophobia style: напрямую двигаем дверь, без накопления скорости.
+            // Скорость отслеживаем для инерции после отпускания (fraction/sec).
+            float maxFraction = _isLockedDrag ? _lockedJiggleFraction : 1f;
+            float prev         = _openFraction;
+            _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, maxFraction);
+            _velocity     = (_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f);
+            ApplyAngle();
         }
 
-        /// <summary>Called when LMB is released. Door coasts then snaps.</summary>
+        /// <summary>Called when LMB is released. Door coasts via inertia to its natural stop.</summary>
         public void OnDragEnd() {
             bool wasLockedDrag = _isLockedDrag;
             _isDragging   = false;
-            _isLockedDrag = false;  // всегда сбрасываем — будет пересчитан в следующем OnDragStart
+            _isLockedDrag = false;
 
             if (wasLockedDrag) {
-                _targetFraction = 0f;
+                // Locked jiggle: return to closed via Update() lerp.
+                _snappingBack = true;
                 return;
             }
 
-            // Trivial drag guard: если перемещение и скорость малы, восстанавливаем pre-drag цель.
-            // Без этого guard'а любой случайный клик при открытой/приоткрытой двери
-            // пересчитывал _targetFraction и мог начать закрывать дверь.
+            // Trivial drag guard: случайный клик без движения — сбрасываем скорость и останавливаемся.
             bool trivial = Mathf.Abs(_openFraction - _dragStartFraction) < MinDragFraction
                         && Mathf.Abs(_velocity)                           < MinDragVelocity;
             if (trivial) {
-                _targetFraction = _preDragTarget;
+                _velocity   = 0f;
+                _dragActive = false;
                 return;
             }
 
-            // Прогнозируем куда дверь докатится после отпускания с текущей скоростью.
-            // При непрерывном затухании: Δx = v₀ / friction (аналитически точно).
-            float projected    = Mathf.Clamp01(_openFraction + _velocity / _friction);
-            bool  highVelocity = Mathf.Abs(_velocity) >= _snapVelocityThreshold;
-            bool  nearEndpoint = projected < 0.05f || projected > 0.95f;
-
-            bool wasOpen = _isOpen;
-            if (highVelocity || nearEndpoint) {
-                // Бросок с достаточной силой или почти у края — бинарный snap к 0 или 1.
-                _targetFraction = projected >= _snapThreshold ? 1f : 0f;
-                _isOpen         = _targetFraction > 0.5f;
-                if (_isOpen && !wasOpen)      PlayClip(_openClip);
-                else if (!_isOpen && wasOpen) PlayClip(_closeClip);
-            } else {
-                // Медленное отпускание — дверь остаётся там куда докатится.
-                // Звук не играем: дверь просто встаёт на промежуточной позиции.
-                _targetFraction = projected;
-                _isOpen         = projected > 0.5f;
-            }
+            // Door coasts to wherever velocity naturally takes it — no snap.
+            _isOpen = _openFraction > 0.5f;
         }
 
         // ── IInteractable ────────────────────────────────────────────────────────
@@ -246,12 +253,15 @@ namespace Escape.Core {
         /// <summary>Unlocks the door programmatically without opening it.</summary>
         public void Unlock() => _isLocked = false;
 
-        /// <summary>Unlocks and immediately snaps the door open. Wire to CodeLock.OnUnlocked.</summary>
+        /// <summary>Unlocks and immediately pushes the door ajar. Wire to CodeLock.OnUnlocked.</summary>
         public void UnlockAndOpen() {
-            _isLocked       = false;
-            _isLockedDrag   = false;      // сбрасываем на случай если последний drag был locked
-            _dragActive     = true;
-            _targetFraction = _unlockAjarFraction;
+            _isLocked     = false;
+            _isLockedDrag = false;
+            _dragActive   = true;
+            _snappingBack = false;
+            // Give the door an initial opening impulse equal to _unlockAjarFraction.
+            _openFraction = _unlockAjarFraction;
+            ApplyAngle();
             PlayClip(_unlockClip);
         }
 
