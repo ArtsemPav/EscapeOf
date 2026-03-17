@@ -5,9 +5,10 @@ using UnityEngine.Events;
 /// <summary>What causes this horror event to fire.</summary>
 public enum HorrorTriggerType
 {
-    OnItemPickup,   // Player picks up a specific ItemData
-    OnRoomEnter,    // Player enters a specific room (GameManager.OnRoomChanged index)
-    OnManual        // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
+    OnItemPickup,      // Player picks up a specific ItemData
+    OnRoomEnter,       // Player enters a specific room (GameManager.OnRoomChanged index)
+    OnManual,          // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
+    OnPlayerEnterZone  // Player enters the trigger collider on this GameObject (requires BoxCollider + isTrigger)
 }
 
 /// <summary>What happens to the target when the event fires.</summary>
@@ -15,7 +16,8 @@ public enum HorrorEffectType
 {
     AppearAndStay,                  // Activate target; it stays until manually hidden
     AppearThenDisappearOnLookAway,  // Activate target; hide it after player sees it and looks away
-    AppearThenDisappearAfterDelay   // Activate target; hide it automatically after a set delay
+    AppearThenDisappearAfterDelay,  // Activate target; hide it automatically after a set delay
+    DisappearOnTrigger              // Target starts visible; hides when the trigger fires
 }
 
 /// <summary>
@@ -40,6 +42,11 @@ public class HorrorEvent : MonoBehaviour
 
     [Tooltip("Room index to enter (OnRoomEnter only). Matches GameManager.CurrentRoomIndex.")]
     [SerializeField] private int _requiredRoomIndex = 1;
+
+    [Header("Zone Trigger")]
+    [Tooltip("Tag of the collider that triggers the event (OnPlayerEnterZone only). " +
+             "Requires a BoxCollider with Is Trigger enabled on this GameObject.")]
+    [SerializeField] private string _playerTag = "Player";
 
     [Tooltip("Seconds between trigger and effect start.")]
     [SerializeField] private float _activationDelay = 0f;
@@ -84,7 +91,9 @@ public class HorrorEvent : MonoBehaviour
 
     private void Start()
     {
-        if (_target != null)
+        // DisappearOnTrigger: target begins active — don't hide it at start.
+        // All other effect types: target must start hidden and is shown on Activate().
+        if (_target != null && _effectType != HorrorEffectType.DisappearOnTrigger)
             _target.SetActive(false);
 
         if (_playerCamera == null)
@@ -97,6 +106,13 @@ public class HorrorEvent : MonoBehaviour
     }
 
     private void OnDestroy() => HorrorSystem.Instance?.Unregister(this);
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (_triggerType != HorrorTriggerType.OnPlayerEnterZone) return;
+        if (!other.CompareTag(_playerTag)) return;
+        Activate();
+    }
 
     private void Update()
     {
@@ -150,6 +166,13 @@ public class HorrorEvent : MonoBehaviour
 
             case HorrorEffectType.AppearThenDisappearAfterDelay:
                 yield return new WaitForSeconds(_disappearDelay);
+                Deactivate();
+                break;
+
+            case HorrorEffectType.DisappearOnTrigger:
+                // Target was already visible — just hide it (with optional delay).
+                if (_activationDelay > 0f)
+                    yield return new WaitForSeconds(_activationDelay);
                 Deactivate();
                 break;
         }
