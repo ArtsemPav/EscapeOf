@@ -7,47 +7,55 @@ public class MenuScript : MonoBehaviour
     private PlayerInputActions _input;
     private bool _isPaused;
 
-    private void Awake() {
+    private void Awake()
+    {
         _input = new PlayerInputActions();
     }
 
-    private void OnEnable() {
+    private void OnEnable()
+    {
         _input.Enable();
     }
 
-    private void OnDisable() {
+    private void OnDisable()
+    {
         _input.Disable();
     }
 
-    private void Start() {
+    private void Start()
+    {
         _input.Player.Menu.performed += MenuInput;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
-    private void OnDestroy() {
+
+    private void OnDestroy()
+    {
         _input.Player.Menu.performed -= MenuInput;
     }
 
-    private void MenuInput(InputAction.CallbackContext context) {
+    private void MenuInput(InputAction.CallbackContext context)
+    {
+        // Не обрабатываем ESC если открыта другая панель (инвентарь, превью и т.д.) —
+        // ей принадлежит управление курсором, пусть закроется своим способом.
+        if (!_isPaused && UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
+            return;
+
         _isPaused = !_isPaused;
-        if (_isPaused) {
+
+        if (_isPaused)
             Pause();
-        } else {
+        else
             Resume();
-        }
-            
-    }
-    private void Pause() {
-        MenuIU.SetActive(true);
-        Time.timeScale = 0f;
-        Cursor.lockState = CursorLockMode.Confined;
-        Cursor.visible = true;
     }
 
-    private void Resume() {
-        MenuIU.SetActive(false);
+    private void Pause()
+    {
+        Time.timeScale = 0f;
+        UIManager.Instance?.OpenPanel(MenuIU);
+    }
+
+    private void Resume()
+    {
         Time.timeScale = 1f;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        UIManager.Instance?.ClosePanel(MenuIU);
     }
 }

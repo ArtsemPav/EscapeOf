@@ -78,7 +78,6 @@ public class FPSController : MonoBehaviour
     private float _pitchSmoothRef;
     private float _currentTilt;
     private float _tiltSmoothRef;
-    private bool _isPaused;
 
     // Head bob
     private float _bobTimer;
@@ -110,7 +109,6 @@ public class FPSController : MonoBehaviour
         _input.Player.Sprint.canceled += Sprint;
         _input.Player.Crouch.performed += Crouch;
         _input.Player.Crouch.canceled += Crouch;
-        _input.Player.Menu.performed += StopLookInput;
     }
 
     private void OnDisable()
@@ -126,14 +124,13 @@ public class FPSController : MonoBehaviour
         _input.Player.Sprint.canceled -= Sprint;
         _input.Player.Crouch.performed -= Crouch;
         _input.Player.Crouch.canceled -= Crouch;
-        _input.Player.Menu.performed -= StopLookInput;
     }
 
     private void Update()
     {
         _isGrounded = _characterController.isGrounded;
         HandleGravity();
-        if(!_isPaused) HandleLook();
+        HandleLook();
         HandleMovement();
         HandleHeadBob();
         HandleCrouchTransition();
@@ -314,11 +311,6 @@ public class FPSController : MonoBehaviour
     private void Jump(InputAction.CallbackContext context) {
         if (_isGrounded)
             _verticalVelocity = jumpForce;
-    }
-
-    private void StopLookInput(InputAction.CallbackContext context)
-    {
-        _isPaused = !_isPaused;
     }
 
     private void Crouch(InputAction.CallbackContext context) {

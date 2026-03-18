@@ -16,8 +16,9 @@ Assets/Scripts/Inventory/
 ├── PickableItem.cs        # Компонент на объекте в мире — подбор предмета
 └── UI/
     ├── InventoryUI.cs     # Открытие/закрытие панели, создание слотов
-    ├── InventorySlot.cs   # Один слот — отображение + drop-зона
-    └── DraggableItem.cs   # Иконка предмета — drag-and-drop поведение
+    ├── InventorySlot.cs   # Один слот — отображение + drop-зона + ПКМ-превью
+    ├── DraggableItem.cs   # Иконка предмета — drag-and-drop поведение
+    └── InventoryHints.cs  # Панель подсказок управления внизу инвентаря
 
 Assets/Data/Items/         # ItemData ассеты
 Assets/Data/Recipes/       # CraftingRecipe ассеты
@@ -88,6 +89,8 @@ public event Action OnInventoryChanged;
 
 **Открытие/закрытие** — кнопка `Player.Inventory` из Input System. При открытии снимает блокировку курсора и отключает ввод игрока (`FPSController.SetPlayerInputEnabled(false)`).
 
+При закрытии инвентаря автоматически завершает активный 3D-превью через `ItemInspector.CancelPreviewIfActive()` — чтобы 3D-объект не оставался в сцене.
+
 ### Инспектор
 
 | Поле | Назначение |
@@ -118,6 +121,33 @@ public event Action OnInventoryChanged;
 └── Один слот пуст  → SwapSlots (предмет переезжает)
 ```
 
+`OnPointerClick (ПКМ)` — открывает 3D-превью предмета через `ItemInspector.BeginPreview(item)`. Работает только если у предмета есть `inspectionPrefab`.
+
+---
+
+## UI — `InventoryHints`
+
+Компонент на объекте `HintsBar` внутри `InventoryPanel`. Отображает подсказки управления внизу инвентаря.
+
+### Сцена
+
+```
+InventoryPanel
+├── SlotsContainer      # Сетка слотов
+└── HintsBar            # Компонент InventoryHints
+    └── HintsText       # TextMeshProUGUI — итоговый текст подсказок
+```
+
+### Параметры Inspector
+
+| Поле | Описание |
+|---|---|
+| `Hints Label` | Ссылка на `TextMeshProUGUI` объекта `HintsText` |
+| `Hints` | Массив подсказок: каждая запись содержит `key` и `action` |
+| `Hints Per Row` | Сколько подсказок на одну строку (по умолчанию 2) |
+| `Separator` | Строка между клавишей и действием |
+| `Column Gap` | Отступ между подсказками в одной строке |
+
 ---
 
 ## UI — `DraggableItem`
@@ -135,7 +165,35 @@ public event Action OnInventoryChanged;
 ## Подбор предметов — `PickableItem`
 
 Компонент на любом GameObject в мире. Требует `Collider`. Реализует `IInteractable`.
-При взаимодействии вызывает `InventorySystem.Instance.AddItem(itemData)` и уничтожает себя.
+
+При взаимодействии вызывает `ItemInspector.BeginInspection(item, worldObject)`. Если `ItemInspector` недоступен — добавляет предмет напрямую и уничтожает себя.
+
+---
+
+## Инспекция предметов — `ItemInspector`
+
+Singleton на `InspectionSetup`. Поддерживает два режима:
+
+- **Режим подбора** — `BeginInspection(item, worldObject)`. Открывается из `PickableItem`. Показывает название и описание. Закрытие кладёт предмет в инвентарь.
+- **Режим превью** — `BeginPreview(item)`. Открывается по ПКМ на слоте инвентаря. Название и описание скрыты. Закрытие не меняет инвентарь.
+
+### Публичные методы
+
+| Метод | Описание |
+|---|---|
+| `BeginInspection(item, worldObject)` | Режим подбора |
+| `BeginPreview(item)` | Режим превью из инвентаря |
+| `ConfirmPickup()` | Добавляет предмет в инвентарь, закрывает панель |
+| `CancelPreviewIfActive()` | Закрывает превью без изменения инвентаря |
+
+### Управление
+
+| Режим | Действие | Результат |
+|---|---|---|
+| Подбор | ЛКМ + drag | Вращение модели |
+| Подбор | E / Escape | Подобрать предмет |
+| Превью | ЛКМ + drag | Вращение модели |
+| Превью | ПКМ / E / Escape | Закрыть превью |
 
 ---
 

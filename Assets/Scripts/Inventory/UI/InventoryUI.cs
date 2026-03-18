@@ -82,6 +82,11 @@ public class InventoryUI : MonoBehaviour
     {
         _isOpen = false;
         ItemTooltip.Instance?.Hide();
+
+        // Если в момент закрытия инвентаря активен 3D-превью — гасим его первым,
+        // иначе 3D объект и камера остаются висеть в сцене.
+        ItemInspector.Instance?.CancelPreviewIfActive();
+
         UIManager.Instance?.ClosePanel(inventoryPanel);
     }
 

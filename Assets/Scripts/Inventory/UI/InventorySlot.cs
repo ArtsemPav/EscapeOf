@@ -7,8 +7,9 @@ using UnityEngine.UI;
 /// Shows item icon when filled, hides icon when empty.
 /// Handles drag-and-drop: moves items between slots or tries crafting.
 /// Shows item tooltip on hover.
+/// Right-click opens a 3D item preview via ItemInspector.
 /// </summary>
-public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler
+public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     [SerializeField] private Image iconImage;
 
@@ -49,6 +50,17 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
     public void OnPointerExit(PointerEventData eventData)
     {
         ItemTooltip.Instance?.Hide();
+    }
+
+    /// <summary>Right-click opens a 3D preview of the item without removing it from the inventory.</summary>
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.button != PointerEventData.InputButton.Right) return;
+        if (IsEmpty) return;
+        if (Item.inspectionPrefab == null) return;
+
+        ItemTooltip.Instance?.Hide();
+        ItemInspector.Instance?.BeginPreview(Item);
     }
 
     public void OnDrop(PointerEventData eventData)

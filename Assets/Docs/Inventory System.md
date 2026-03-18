@@ -17,8 +17,9 @@ Assets/Scripts/Inventory/
 ├── ItemInspector.cs       # Singleton — управление инспекцией предмета
 └── UI/
     ├── InventoryUI.cs     # Открытие/закрытие панели, создание слотов
-    ├── InventorySlot.cs   # Один слот — отображение + drop-зона
-    └── DraggableItem.cs   # Иконка предмета — drag-and-drop поведение
+    ├── InventorySlot.cs   # Один слот — отображение + drop-зона + ПКМ-превью
+    ├── DraggableItem.cs   # Иконка предмета — drag-and-drop поведение
+    └── InventoryHints.cs  # Панель подсказок управления внизу инвентаря
 
 Assets/Scripts/Editor/
 └── MissingScriptCleaner.cs  # Утилита: Tools → Remove Missing Scripts
@@ -69,6 +70,8 @@ public event Action OnInventoryChanged;
 - Снимает блокировку курсора
 - Отключает ввод игрока (`FPSController.SetPlayerInputEnabled(false)`)
 
+При закрытии инвентаря автоматически завершает активный 3D-превью через `ItemInspector.CancelPreviewIfActive()` — чтобы 3D-объект не оставался в сцене.
+
 `RefreshSlots()` — вызывается при `OnInventoryChanged`. Проходит по всем слотам и вызывает `slot.Setup(GetItemAt(i))`.
 
 ---
@@ -86,6 +89,8 @@ public event Action OnInventoryChanged;
 │   └── Рецепта нет  → SwapSlots (предметы меняются местами)
 └── Один слот пуст  → SwapSlots (предмет переезжает)
 ```
+
+`OnPointerClick (ПКМ)` — открывает 3D-превью предмета через `ItemInspector.BeginPreview(item)`. Работает только если у предмета есть `inspectionPrefab`.
 
 ---
 
@@ -105,6 +110,31 @@ public event Action OnInventoryChanged;
 
 ---
 
+## UI — `InventoryHints`
+
+Компонент на объекте `HintsBar` внутри `InventoryPanel`. Отображает строку подсказок управления внизу инвентаря.
+
+### Сцена
+
+```
+InventoryPanel
+├── SlotsContainer      # Сетка слотов
+└── HintsBar            # Компонент InventoryHints
+    └── HintsText       # TextMeshProUGUI — итоговый текст подсказок
+```
+
+### Параметры Inspector
+
+| Поле | Описание |
+|---|---|
+| `Hints Label` | Ссылка на `TextMeshProUGUI` объекта `HintsText` |
+| `Hints` | Массив подсказок: каждая запись содержит `key` и `action` |
+| `Hints Per Row` | Сколько подсказок на одну строку (по умолчанию 2) |
+| `Separator` | Строка между клавишей и действием |
+| `Column Gap` | Отступ между подсказками в одной строке |
+
+---
+
 ## Подбор предметов — `PickableItem`
 
 Компонент на любом GameObject в мире. Требует `Collider`. Реализует `IInteractable`.
@@ -115,7 +145,10 @@ public event Action OnInventoryChanged;
 
 ## Инспекция предметов — `ItemInspector`
 
-Singleton на GameObject `InspectionSetup` в сцене. Показывает 3D-превью предмета перед добавлением в инвентарь. Использует выделенную камеру, рендерящую в `RenderTexture`, которая отображается через `RawImage` в UI.
+Singleton на GameObject `InspectionSetup` в сцене. Показывает 3D-превью предмета. Поддерживает два режима:
+
+- **Режим подбора** — открывается при взаимодействии с `PickableItem` в мире. Показывает название и описание. Закрытие кладёт предмет в инвентарь и уничтожает мировой объект.
+- **Режим превью** — открывается по ПКМ на слоте инвентаря. Название и описание скрыты. Закрытие не влияет на инвентарь.
 
 ### Сцена
 
@@ -127,11 +160,34 @@ Canvas/
     ├── HintText           # Подсказки управления
     ├── PreviewImage       # RawImage отображающий RenderTexture
     ├── InfoPanel
-    │   ├── ItemNameText
-    │   └── DescriptionText
+    │   ├── ItemNameText   # Скрыт в режиме превью
+    │   └── DescriptionText  # Скрыт в режиме превью
     ├── TakeButton         # → ItemInspector.ConfirmPickup()
     └── CancelButton       # → ItemInspector.CancelInspection()
 ```
+
+### Публичные методы
+
+| Метод | Описание |
+|---|---|
+| `BeginInspection(item, worldObject)` | Режим подбора. Вызывается из `PickableItem` |
+| `BeginPreview(item)` | Режим превью из инвентаря. ПКМ на слоте |
+| `ConfirmPickup()` | Добавляет предмет в инвентарь и закрывает панель |
+| `CancelPreviewIfActive()` | Закрывает превью без изменения инвентаря. Вызывается из `InventoryUI.CloseInventory` |
+
+### Управление в режиме подбора
+
+| Действие | Результат |
+|---|---|
+| ЛКМ + drag | Ручное вращение модели |
+| E / Escape | Подобрать предмет |
+
+### Управление в режиме превью (из инвентаря)
+
+| Действие | Результат |
+|---|---|
+| ЛКМ + drag | Ручное вращение модели |
+| ПКМ / E / Escape | Закрыть превью |
 
 ### Как работает
 
@@ -142,7 +198,6 @@ Canvas/
 5. К пивоту применяется `initialRotation` — начальный ракурс 3/4
 6. Камера настраивается orthographic, `orthographicSize = maxSize * framingMultiplier * 0.5`
 7. Запускается idle spin — модель плавно поворачивается с ease-out и останавливается
-8. `E` — подтвердить подбор, `Escape` — отмена; ЛКМ + drag — ручное вращение
 
 ### Параметры Inspector
 
@@ -163,6 +218,7 @@ Canvas/
 - Idle spin использует `Mathf.Cos(t * π/2)` для ease-out затухания
 - `worldPositionStays: true` при парентинге → `initialRotation` применяется после `SetParent`
 - При закрытии `_inspectionPivot` уничтожается вместе с дочерним instance
+- `ItemNameText` и `DescriptionText` восстанавливаются через `SetActive(true)` при закрытии
 
 ---
 

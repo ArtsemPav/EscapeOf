@@ -53,6 +53,8 @@ namespace Escape.Core {
         [SerializeField] private AudioClip _unlockClip;
         [Tooltip("Насколько дверь приоткрывается после разблокировки (доля от _maxOpenAngle). 0.1 ≈ 9°.")]
         [SerializeField] [Range(0f, 0.4f)] private float _unlockAjarFraction = 0.12f;
+        [Tooltip("Скорость плавного приоткрытия после разблокировки (fraction/sec). Больше — быстрее.")]
+        [SerializeField] private float _unlockAjarSpeed = 0.6f;
 
         // ── Runtime state ────────────────────────────────────────────────────────
 
@@ -63,13 +65,15 @@ namespace Escape.Core {
         private bool    _isLockedDrag;
         private bool    _dragActive;
         private bool    _snappingBack;        // true after locked jiggle — lerp back to 0
+        private bool    _isUnlockAnimating;   // true while smoothly swinging ajar after unlock
+        private float   _unlockAjarTarget;    // target fraction for the unlock swing
         // Grab point offset from pivot in WORLD space XZ at drag start (not normalized — stores real distance).
         // Stored in world coords to avoid InverseTransformDirection issues with negative-scale FBX meshes.
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;   // для trivial-drag guard
 
         private const float MinDragFraction = 0.04f;
-        private const float MinDragVelocity = 0.08f;
+        private const float MinDragVelocity  = 0.08f;
 
         // ── Unity ────────────────────────────────────────────────────────────────
 
@@ -92,6 +96,17 @@ namespace Escape.Core {
         private void Update() {
             if (!_dragActive) return;
             if (_isDragging) return; // OnDrag напрямую двигает дверь — Update только после отпускания
+
+            // ── Smooth unlock ajar ───────────────────────────────────────────────
+            if (_isUnlockAnimating) {
+                _openFraction = Mathf.MoveTowards(_openFraction, _unlockAjarTarget, _unlockAjarSpeed * Time.deltaTime);
+                ApplyAngle();
+                if (Mathf.Approximately(_openFraction, _unlockAjarTarget)) {
+                    _isUnlockAnimating = false;
+                    _dragActive        = false;
+                }
+                return;
+            }
 
             // ── Post-release inertia ─────────────────────────────────────────────
             if (_snappingBack) {
@@ -259,15 +274,14 @@ namespace Escape.Core {
         /// <summary>Unlocks the door programmatically without opening it.</summary>
         public void Unlock() => _isLocked = false;
 
-        /// <summary>Unlocks and immediately pushes the door ajar. Wire to CodeLock.OnUnlocked.</summary>
+        /// <summary>Unlocks and smoothly swings the door ajar. Wire to CodeLock.OnUnlocked.</summary>
         public void UnlockAndOpen() {
-            _isLocked     = false;
-            _isLockedDrag = false;
-            _dragActive   = true;
-            _snappingBack = false;
-            // Give the door an initial opening impulse equal to _unlockAjarFraction.
-            _openFraction = _unlockAjarFraction;
-            ApplyAngle();
+            _isLocked          = false;
+            _isLockedDrag      = false;
+            _snappingBack      = false;
+            _isUnlockAnimating = true;
+            _unlockAjarTarget  = _unlockAjarFraction;
+            _dragActive        = true;
             PlayClip(_unlockClip);
         }
 

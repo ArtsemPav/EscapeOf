@@ -54,6 +54,9 @@ public class ItemInspector : MonoBehaviour
     private bool _ignoreInputThisFrame;
     private float _scaleInTimer;
 
+    // True when the panel is open as a read-only preview from the inventory (no pickup).
+    private bool _isPreviewMode;
+
     private const float DragThresholdPx = 8f;
     private Vector2 _mouseDownPos;
     private bool _mouseWasDragged;
@@ -149,6 +152,29 @@ public class ItemInspector : MonoBehaviour
         if (userDragging && (Mouse.current.position.ReadValue() - _mouseDownPos).magnitude > DragThresholdPx)
             _mouseWasDragged = true;
 
+        if (_isPreviewMode)
+        {
+            // In preview mode: rotation only, close on RMB / Escape / E.
+            if (userDragging)
+            {
+                Vector2 delta = Mouse.current.delta.ReadValue();
+                _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
+                _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
+            }
+            else
+            {
+                _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
+            }
+
+            if (Keyboard.current.escapeKey.wasPressedThisFrame ||
+                Keyboard.current.eKey.wasPressedThisFrame ||
+                Mouse.current.rightButton.wasPressedThisFrame)
+            {
+                EndInspection();
+            }
+            return;
+        }
+
         // Short click (no drag) anywhere on screen → pick up.
         if (Mouse.current.leftButton.wasReleasedThisFrame && !_mouseWasDragged)
         {
@@ -201,7 +227,43 @@ public class ItemInspector : MonoBehaviour
 
         _currentItem = item;
         _worldObject = worldObject;
+        _isPreviewMode = false;
 
+        SpawnPreview(item);
+
+        UIManager.Instance?.OpenPanel(inspectionPanel, CursorLockMode.Confined);
+        _isInspecting         = true;
+        _scaleInTimer         = scaleInDuration;
+        _inspectionPivot.transform.localScale = Vector3.zero;
+        _ignoreInputThisFrame = true;
+        _waitForMouseRelease  = Mouse.current != null && Mouse.current.leftButton.isPressed;
+    }
+
+    /// <summary>
+    /// Opens a read-only 3D preview of an inventory item (no pickup, no world object).
+    /// Close with RMB, E, or Escape.
+    /// </summary>
+    public void BeginPreview(ItemData item)
+    {
+        if (item == null || item.inspectionPrefab == null) return;
+        if (_isInspecting) return;
+
+        _currentItem   = item;
+        _worldObject   = null;
+        _isPreviewMode = true;
+
+        SpawnPreview(item);
+
+        UIManager.Instance?.OpenPanel(inspectionPanel, CursorLockMode.Confined);
+        _isInspecting         = true;
+        _scaleInTimer         = scaleInDuration;
+        _inspectionPivot.transform.localScale = Vector3.zero;
+        _ignoreInputThisFrame = true;
+        _waitForMouseRelease  = false;
+    }
+
+    private void SpawnPreview(ItemData item)
+    {
         _inspectionInstance = Instantiate(item.inspectionPrefab, InspectionOrigin, Quaternion.identity);
         SetLayerRecursively(_inspectionInstance, _inspectionLayer);
 
@@ -236,27 +298,42 @@ public class ItemInspector : MonoBehaviour
         _inspectionLight.transform.position = itemCenter + new Vector3(0.5f, 1f, -1.5f);
 
         itemNameText.text = item.itemName;
-        descriptionText.text = item.description;
+        itemNameText.gameObject.SetActive(!_isPreviewMode);
+
+        // В режиме превью из инвентаря описание не показываем —
+        // игрок уже видел его в тултипе слота.
+        if (descriptionText != null)
+        {
+            descriptionText.text    = _isPreviewMode ? string.Empty : item.description;
+            descriptionText.gameObject.SetActive(!_isPreviewMode);
+        }
 
         // Переприсваиваем текстуру на случай если ссылка была сброшена
         inspectionCamera.targetTexture = _renderTexture;
-        previewImage.texture = _renderTexture;
-
+        previewImage.texture           = _renderTexture;
         inspectionCamera.gameObject.SetActive(true);
-        UIManager.Instance?.OpenPanel(inspectionPanel, CursorLockMode.Confined);
-        _isInspecting      = true;
-        _scaleInTimer      = scaleInDuration;
-        _inspectionPivot.transform.localScale = Vector3.zero;
-        _ignoreInputThisFrame = true;
-        _waitForMouseRelease  = Mouse.current != null && Mouse.current.leftButton.isPressed;
+    }
+
+    /// <summary>
+    /// Forcibly closes a preview-mode inspection without touching the inventory or world object.
+    /// Called by InventoryUI when the inventory is closed while preview is active.
+    /// Does nothing if not currently in preview mode.
+    /// </summary>
+    public void CancelPreviewIfActive()
+    {
+        if (_isInspecting && _isPreviewMode)
+            EndInspection();
     }
 
     /// <summary>Adds item to inventory and closes the inspection view.</summary>
     public void ConfirmPickup()
     {
         if (_currentItem == null) return;
-        InventorySystem.Instance.AddItem(_currentItem);
-        if (_worldObject != null) Destroy(_worldObject);
+        if (!_isPreviewMode)
+        {
+            InventorySystem.Instance.AddItem(_currentItem);
+            if (_worldObject != null) Destroy(_worldObject);
+        }
         EndInspection();
     }
 
@@ -269,7 +346,14 @@ public class ItemInspector : MonoBehaviour
 
     private void EndInspection()
     {
-        _isInspecting = false;
+        _isInspecting  = false;
+        _isPreviewMode = false;
+
+        // Восстанавливаем текстовые элементы — они могли быть скрыты в режиме превью
+        if (itemNameText != null)
+            itemNameText.gameObject.SetActive(true);
+        if (descriptionText != null)
+            descriptionText.gameObject.SetActive(true);
 
         // Уничтожаем пивот — instance уничтожится как дочерний объект
         if (_inspectionPivot != null)
