@@ -60,6 +60,11 @@ public class FPSController : MonoBehaviour
     private float _verticalVelocity;
     private float _targetHeight;
 
+    // Прыжок: true с момента нажатия пробела до реального приземления.
+    // Предотвращает повторный прыжок пока CharacterController.isGrounded
+    // ошибочно возвращает true при скольжении по стене.
+    private bool _isJumping;
+
     // Movement inertia
     private Vector3 _horizontalVelocity;
     private Vector3 _velocitySmoothRef;
@@ -302,15 +307,21 @@ public class FPSController : MonoBehaviour
     private void HandleGravity()
     {
         if (_isGrounded && _verticalVelocity < 0)
+        {
             _verticalVelocity = initialFallVelocity;
+            _isJumping = false; // персонаж реально приземлился — разрешаем следующий прыжок
+        }
         _verticalVelocity += gravity * Time.deltaTime;
     }
 
     private void StoreMovementInput(InputAction.CallbackContext context) => _moveInput = context.ReadValue<Vector2>();
     private void StoreLookInput(InputAction.CallbackContext context) => _lookInput = context.ReadValue<Vector2>();
     private void Jump(InputAction.CallbackContext context) {
-        if (_isGrounded)
+        if (_isGrounded && !_isJumping)
+        {
             _verticalVelocity = jumpForce;
+            _isJumping = true;
+        }
     }
 
     private void Crouch(InputAction.CallbackContext context) {
