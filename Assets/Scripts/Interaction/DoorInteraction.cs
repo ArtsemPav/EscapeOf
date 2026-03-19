@@ -234,16 +234,15 @@ namespace Escape.Core {
 
         // ── IInteractable ────────────────────────────────────────────────────────
 
-        /// <summary>E-key fallback: разблокировка если есть ключ.</summary>
+        /// <summary>E-key: использует ключ из инвентаря чтобы разблокировать и плавно приоткрыть дверь.</summary>
         public void Interact() {
             if (_isLocked && !_isOpen) {
                 if (_requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey)) {
-                    _isLocked = false;
+                    if (_requiredKey.consumeOnUse)
+                        InventorySystem.Instance.RemoveItem(_requiredKey);
+                    UnlockAndOpen();
                 } else {
-                    Debug.Log("<color=orange>Взаимодействие: " + _lockedMessage + "</color>");
-                    if (!string.IsNullOrEmpty(_requirementHint))
-                        //InteractionUI.Instance?.ShowBlockedHint(_requirementHint);
-                        PopupMessageSystem.Instance.Show("Нужен ключ от этой двери", PopupMessageType.Warning, 4f);
+                    PopupMessageSystem.Instance.Show("Нужен ключ от этой двери", PopupMessageType.Warning, 4f);
                 }
             }
         }

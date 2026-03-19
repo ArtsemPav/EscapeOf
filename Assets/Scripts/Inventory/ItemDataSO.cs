@@ -17,4 +17,8 @@ public class ItemData : ScriptableObject
     [Header("Inspection")]
     [Tooltip("3D prefab shown in the inspection view. If null, item is picked up directly.")]
     public GameObject inspectionPrefab;
+
+    [Header("Usage")]
+    [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
+    public bool consumeOnUse = true;
 }

@@ -79,7 +79,7 @@ public class CodeLock : MonoBehaviour, IInteractable
 
         IsUnlocked = true;
 
-        if (_requiredItem != null)
+        if (_requiredItem != null && _requiredItem.consumeOnUse)
             InventorySystem.Instance.RemoveItem(_requiredItem);
 
         _onUnlocked.Invoke();
