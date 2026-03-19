@@ -44,8 +44,21 @@ public class AudioManager : MonoBehaviour {
     }
 
     // Удобные методы-обертки
-    public void PlayMenuMusic() => StartCoroutine(FadeBetweenSources(_menuMusicSource, _gameMusicSource));
-    public void PlayGameMusic() => StartCoroutine(FadeBetweenSources(_gameMusicSource, _menuMusicSource));
+    public void PlayMenuMusic() {
+        // Перед началом плавного перехода перезапускаем музыку меню с нуля
+        if (_menuMusicSource != null) {
+            _menuMusicSource.Stop();
+            _menuMusicSource.time = 0; // Сброс времени воспроизведения
+            _menuMusicSource.Play();
+        }
+
+        // Запускаем плавный переход (игровая музыка просто затихнет, но продолжит играть)
+        StartCoroutine(FadeBetweenSources(_menuMusicSource, _gameMusicSource));
+    }
+    public void PlayGameMusic() {
+        // При возврате в игру просто плавно выводим громкость игрового источника
+        StartCoroutine(FadeBetweenSources(_gameMusicSource, _menuMusicSource));
+    }
 
     public void PlaySFX(AudioClip clip) {
         if (clip != null)
@@ -76,16 +89,26 @@ public class AudioManager : MonoBehaviour {
         float startCurrentVol = currentSource.volume;
 
         while (t < _fadeDuration) {
-            t += Time.unscaledDeltaTime; // Важно: unscaledDeltaTime для работы в паузе
+            t += Time.unscaledDeltaTime; // Работает даже при Time.timeScale = 0
             float normalizedTime = t / _fadeDuration;
 
-            targetSource.volume = Mathf.Lerp(startTargetVol, _backMusicVolume, normalizedTime);
-            currentSource.volume = Mathf.Lerp(startCurrentVol, 0.0f, normalizedTime);
+            if (targetSource != null)
+                targetSource.volume = Mathf.Lerp(startTargetVol, _backMusicVolume, normalizedTime);
+
+            if (currentSource != null)
+                currentSource.volume = Mathf.Lerp(startCurrentVol, 0.0f, normalizedTime);
+
             yield return null;
         }
 
-        targetSource.volume = _backMusicVolume;
-        currentSource.volume = 0.0f;
+        if (targetSource != null) targetSource.volume = _backMusicVolume;
+        if (currentSource != null) currentSource.volume = 0.0f;
+
+        // Опционально: полностью останавливаем источник меню, когда он затих в игре,
+        // чтобы не тратить ресурсы, так как при следующем открытии меню он все равно перезапустится.
+        if (currentSource == _menuMusicSource) {
+            currentSource.Stop();
+        }
     }
 
 }
