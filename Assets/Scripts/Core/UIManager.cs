@@ -53,18 +53,18 @@ public class UIManager : MonoBehaviour
     /// </summary>
     /// <param name="panel">Root GameObject of the panel to open.</param>
     /// <param name="cursorMode">Cursor lock mode while the panel is open. Defaults to None (free cursor).</param>
-    public void OpenPanel(GameObject panel, CursorLockMode cursorMode = CursorLockMode.None)
-    {
+    public void OpenPanel(GameObject panel, CursorLockMode cursorMode = CursorLockMode.None) {
         _openPanelCount++;
         panel.SetActive(true);
         Cursor.lockState = cursorMode;
         Cursor.visible = true;
-        _playerController?.SetPlayerInputEnabled(false);
 
-        // HandleInteractionDetection продолжает работать в Update() даже с отключённым
-        // инпутом, поэтому явно скрываем подсказку и сбрасываем кеш.
+        if (_playerController != null) {
+            _playerController.SetPlayerInputEnabled(false);
+            _playerController.ResetInteractionCache();
+        }
+
         InteractionUI.Instance?.SetHint(false);
-        _playerController?.ResetInteractionCache();
     }
 
     /// <summary>

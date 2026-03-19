@@ -42,7 +42,6 @@ namespace Escape.Core {
         [SerializeField] private float _lockedSnapBackSpeed = 8f;
 
         [Header("Audio")]
-        [SerializeField] private AudioSource _audioSource;
         [Tooltip("Звук воспроизводится когда дверь досылается в открытое положение.")]
         [SerializeField] private AudioClip _openClip;
         [Tooltip("Звук воспроизводится когда дверь закрывается.")]
@@ -88,9 +87,6 @@ namespace Escape.Core {
                 _dragActive = true;
                 ApplyAngle();
             }
-
-            if (_audioSource == null)
-                _audioSource = GetComponent<AudioSource>();
         }
 
         private void Update() {
@@ -144,9 +140,9 @@ namespace Escape.Core {
             _dragStartFraction = _openFraction;
 
             if (_isLockedDrag)
-                PlayClip(_lockedClip);
+                AudioManager.Instance.PlaySFX(_lockedClip);
             else
-                PlayClip(_openClip);
+                AudioManager.Instance.PlaySFX(_openClip);
 
             // Сохраняем offset в «закрытом» системе координат (pivot = 0°).
             // В OnDrag мы вращаем его на openFraction * maxAngle, получая правильное
@@ -282,7 +278,7 @@ namespace Escape.Core {
             _isUnlockAnimating = true;
             _unlockAjarTarget  = _unlockAjarFraction;
             _dragActive        = true;
-            PlayClip(_unlockClip);
+            AudioManager.Instance.PlaySFX(_unlockClip);
         }
 
         // ── Private helpers ──────────────────────────────────────────────────────
@@ -296,13 +292,12 @@ namespace Escape.Core {
 
         /// <summary>Воспроизводит клип если AudioSource и клип назначены.</summary>
         private void PlayClip(AudioClip clip) {
-            if (_audioSource == null || clip == null) return;
-            _audioSource.PlayOneShot(clip);
+            AudioManager.Instance.PlaySFX(clip);
         }
 
         /// <summary>Воспроизводит close клип когда дверь достигает закрытого положения.</summary>
         private void PlayBoundaryClips(float prev, float current) {
-            if (prev > 0f && current <= 0f) PlayClip(_closeClip);
+            if (prev > 0f && current <= 0f) AudioManager.Instance.PlaySFX(_closeClip);
         }
     }
 }

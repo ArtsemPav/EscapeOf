@@ -25,6 +25,8 @@ public class MenuScript : MonoBehaviour
     private void Start()
     {
         _input.Player.Menu.performed += MenuInput;
+        _isPaused = true;
+        Pause();
     }
 
     private void OnDestroy()
@@ -51,11 +53,13 @@ public class MenuScript : MonoBehaviour
     {
         Time.timeScale = 0f;
         UIManager.Instance?.OpenPanel(MenuIU);
+        AudioManager.Instance.PlayMenuMusic();
     }
 
-    private void Resume()
+    public void Resume()
     {
         Time.timeScale = 1f;
         UIManager.Instance?.ClosePanel(MenuIU);
+        AudioManager.Instance.PlayGameMusic();
     }
 }
