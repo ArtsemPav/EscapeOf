@@ -26,7 +26,7 @@ public class AudioManager : MonoBehaviour {
             return;
         }
     }
-
+    
     public void PlayMusic(AudioClip newClip) {
         if (newClip == null) return;
 
@@ -39,6 +39,33 @@ public class AudioManager : MonoBehaviour {
 
         // Запускаем плавную смену трека
         _fadeCoroutine = StartCoroutine(FadeMusic(newClip));
+    }
+
+    // Удобные методы-обертки
+    public void PlayMenuMusic() => PlayMusic(_menuMusic);
+    public void PlayGameMusic() => PlayMusic(_gameMusic);
+
+    public void PlaySFX(AudioClip clip) {
+        if (clip != null)
+            _sfxSource.PlayOneShot(clip);
+    }
+
+    public AudioSource Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance) {
+        GameObject sfxObj = new GameObject("3D_Loop_SFX");
+        sfxObj.transform.position = target.position;
+        sfxObj.transform.SetParent(target);
+
+        AudioSource source = sfxObj.AddComponent<AudioSource>();
+        source.clip = clip;
+        source.volume = volume;
+        source.spatialBlend = 1f; // Полное 3D
+        source.minDistance = minDistance;
+        source.maxDistance = maxDistance;
+        source.loop = true;
+        source.playOnAwake = false;
+        source.Play();
+
+        return source;
     }
 
     private IEnumerator FadeMusic(AudioClip newClip) {
@@ -63,12 +90,4 @@ public class AudioManager : MonoBehaviour {
         _musicSource.volume = startVolume;
     }
 
-    // Удобные методы-обертки
-    public void PlayMenuMusic() => PlayMusic(_menuMusic);
-    public void PlayGameMusic() => PlayMusic(_gameMusic);
-
-    public void PlaySFX(AudioClip clip) {
-        if (clip != null)
-            _sfxSource.PlayOneShot(clip);
-    }
 }
