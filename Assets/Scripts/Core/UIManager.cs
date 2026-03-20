@@ -56,8 +56,8 @@ public class UIManager : MonoBehaviour
     public void OpenPanel(GameObject panel, CursorLockMode cursorMode = CursorLockMode.None) {
         _openPanelCount++;
         panel.SetActive(true);
-        Cursor.lockState = cursorMode;
-        Cursor.visible = true;
+        
+        GameManager.Instance?.UpdateCursorState();
 
         if (_playerController != null) {
             _playerController.SetPlayerInputEnabled(false);
@@ -78,10 +78,10 @@ public class UIManager : MonoBehaviour
         _openPanelCount = Mathf.Max(0, _openPanelCount - 1);
         panel.SetActive(false);
 
+        GameManager.Instance?.UpdateCursorState();
+
         if (!IsAnyPanelOpen)
         {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
             _playerController?.SetPlayerInputEnabled(true);
 
             // Сбрасываем кеш — следующий кадр Update() переопределит объект под прицелом
@@ -97,8 +97,7 @@ public class UIManager : MonoBehaviour
     public void CloseAll()
     {
         _openPanelCount = 0;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        GameManager.Instance?.UpdateCursorState();
         _playerController?.SetPlayerInputEnabled(true);
         _playerController?.ResetInteractionCache();
     }

@@ -13,29 +13,101 @@ public class GameManager : MonoBehaviour
     [Tooltip("Assign RoomController components in order Room_01..Room_05.")]
     [SerializeField] private RoomController[] rooms;
 
+    [Header("Menu UI")]
+    [SerializeField] private GameObject menuUI;
+
     private int _currentRoomIndex = 0;
+    private bool _isPaused;
 
     public int CurrentRoomIndex => _currentRoomIndex;
     public int TotalRooms => rooms.Length;
+    public bool IsPaused => _isPaused;
 
     public event Action<int> OnRoomChanged;
     public event Action OnGameCompleted;
+    public event Action<bool> OnPauseStateChanged;
 
     private void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
+        if (Instance == null) {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        } else {
             Destroy(gameObject);
             return;
         }
-
-        Instance = this;
         InitializeRooms();
+    }
+
+    private void Start() {
+        UpdateCursorState();
+        // Начальное состояние паузы при старте
+        SetPause(true);
+        if (InputManager.Instance != null) {
+            InputManager.Instance.OnMenuPerformed += OnToggleMenu;
+        }
+    }
+
+    private void OnDisable() {
+        if (InputManager.Instance != null) {
+            InputManager.Instance.OnMenuPerformed -= OnToggleMenu;
+        }
+    }
+
+    private void OnToggleMenu()
+    {
+        // Не обрабатываем ESC если открыта другая панель (инвентарь, превью и т.д.)
+        if (!_isPaused && UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
+            return;
+
+        TogglePause();
+    }
+
+    /// <summary>
+    /// Toggles the game pause state.
+    /// </summary>
+    public void TogglePause()
+    {
+        SetPause(!_isPaused);
+    }
+
+    /// <summary>
+    /// Sets the pause state and updates time scale and cursor.
+    /// </summary>
+    public void SetPause(bool pause)
+    {
+        _isPaused = pause;
+        Time.timeScale = _isPaused ? 0f : 1f;
+
+        if (_isPaused)
+        {
+            UIManager.Instance?.OpenPanel(menuUI);
+            AudioManager.Instance?.PlayMenuMusic();
+        }
+        else
+        {
+            UIManager.Instance?.ClosePanel(menuUI);
+            AudioManager.Instance?.PlayGameMusic();
+        }
+
+        UpdateCursorState();
+        OnPauseStateChanged?.Invoke(_isPaused);
+    }
+
+    /// <summary>
+    /// Updates the cursor lock and visibility based on pause state and UI panels.
+    /// </summary>
+    public void UpdateCursorState()
+    {
+        bool shouldUnlock = _isPaused || (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen);
+        
+        Cursor.lockState = shouldUnlock ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = shouldUnlock;
     }
 
     /// <summary>
     /// Locks all rooms except the first one.
-    /// Locking disables interaction colliders � room geometry stays visible.
+    /// Locking disables interaction colliders � room geometry stays visible.
     /// </summary>
     private void InitializeRooms()
     {

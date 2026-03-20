@@ -4,46 +4,35 @@ using UnityEngine.InputSystem;
 public class MenuScript : MonoBehaviour
 {
     [SerializeField] private GameObject MenuIU;
-    private PlayerInputActions _input;
-    private bool _isPaused;
-
-    private void Awake()
-    {
-        _input = new PlayerInputActions();
-    }
-
-    private void OnEnable()
-    {
-        _input.Enable();
-    }
-
-    private void OnDisable()
-    {
-        _input.Disable();
-    }
+  
 
     private void Start()
     {
-        _input.UI.Menu.performed += MenuInput;
-        _isPaused = true;
+        // Начальное состояние паузы при старте (если нужно)
+        GameManager.Instance.SetPause(true);
         Pause();
     }
-
-    private void OnDestroy()
-    {
-        _input.UI.Menu.performed -= MenuInput;
+    private void OnEnable() {
+        if (InputManager.Instance != null) {
+            InputManager.Instance.OnMenuPerformed += OnToggleMenu;
+        }
     }
 
-    private void MenuInput(InputAction.CallbackContext context)
+    private void OnDisable() {
+        if (InputManager.Instance != null) {
+            InputManager.Instance.OnMenuPerformed -= OnToggleMenu;
+        }
+    }
+
+    private void OnToggleMenu()
     {
-        // Не обрабатываем ESC если открыта другая панель (инвентарь, превью и т.д.) —
-        // ей принадлежит управление курсором, пусть закроется своим способом.
-        if (!_isPaused && UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
+        // Не обрабатываем ESC если открыта другая панель (инвентарь, превью и т.д.)
+        if (!GameManager.Instance.IsPaused && UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
             return;
 
-        _isPaused = !_isPaused;
+        GameManager.Instance.TogglePause();
 
-        if (_isPaused)
+        if (GameManager.Instance.IsPaused)
             Pause();
         else
             Resume();
@@ -51,14 +40,12 @@ public class MenuScript : MonoBehaviour
 
     private void Pause()
     {
-        Time.timeScale = 0f;
         UIManager.Instance?.OpenPanel(MenuIU);
         AudioManager.Instance.PlayMenuMusic();
     }
 
     public void Resume()
     {
-        Time.timeScale = 1f;
         UIManager.Instance?.ClosePanel(MenuIU);
         AudioManager.Instance.PlayGameMusic();
     }
