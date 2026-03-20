@@ -148,14 +148,14 @@ public class DustEmitter : MonoBehaviour
         tsa.startFrame = new ParticleSystem.MinMaxCurve(0f);
         tsa.cycleCount = 1;
 
-        // Clear existing sprites and add ours
-        tsa.RemoveSprite(0);
-        for (int i = 0; i < _dustSprites.Length; i++)
+        // Clear all existing sprites before adding new ones
+        for (int i = tsa.spriteCount - 1; i >= 0; i--)
+            tsa.RemoveSprite(i);
+
+        foreach (Sprite sprite in _dustSprites)
         {
-            if (i == 0)
-                tsa.AddSprite(_dustSprites[i]);
-            else
-                tsa.AddSprite(_dustSprites[i]);
+            if (sprite != null)
+                tsa.AddSprite(sprite);
         }
     }
 }
