@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
@@ -46,14 +45,11 @@ public class FPSController : MonoBehaviour
     public LayerMask interactableLayer;
 
     private CharacterController _characterController;
-    private PlayerInputActions _input;
     private IInteractable _currentInteractable;
     private IDraggable _currentDraggable;
     private string _lastHintText;
     private CrosshairMode _lastCrosshairMode;
 
-    private Vector2 _moveInput;
-    private Vector2 _lookInput;
     private bool _isGrounded;
     private bool _isCrouching;
     private bool _isRunning;
@@ -96,39 +92,37 @@ public class FPSController : MonoBehaviour
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
-        _input = new PlayerInputActions();
         _targetHeight = standingHeight;
         _baseCameraLocalY = cameraTransform.localPosition.y;
     }
 
     private void OnEnable()
     {
-        _input.Player.Enable();
-        _input.Player.Move.performed += StoreMovementInput;
-        _input.Player.Move.canceled += StoreMovementInput;
-        _input.Player.Look.performed += StoreLookInput;
-        _input.Player.Look.canceled += StoreLookInput;
-        _input.Player.Interact.performed += Interact;
-        _input.Player.Jump.performed += Jump;
-        _input.Player.Sprint.performed += Sprint;
-        _input.Player.Sprint.canceled += Sprint;
-        _input.Player.Crouch.performed += Crouch;
-        _input.Player.Crouch.canceled += Crouch;
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnInteractPerformed += OnInteract;
+            InputManager.Instance.OnJumpPerformed += OnJump;
+            InputManager.Instance.OnSprintToggled += OnSprint;
+            InputManager.Instance.OnCrouchToggled += OnCrouch;
+            InputManager.Instance.OnMenuPerformed += OnMenuPressed;
+        }
     }
 
     private void OnDisable()
     {
-        _input.Player.Disable();
-        _input.Player.Move.performed -= StoreMovementInput;
-        _input.Player.Move.canceled -= StoreMovementInput;
-        _input.Player.Look.performed -= StoreLookInput;
-        _input.Player.Look.canceled -= StoreLookInput;
-        _input.Player.Interact.performed -= Interact;
-        _input.Player.Jump.performed -= Jump;
-        _input.Player.Sprint.performed -= Sprint;
-        _input.Player.Sprint.canceled -= Sprint;
-        _input.Player.Crouch.performed -= Crouch;
-        _input.Player.Crouch.canceled -= Crouch;
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnInteractPerformed -= OnInteract;
+            InputManager.Instance.OnJumpPerformed -= OnJump;
+            InputManager.Instance.OnSprintToggled -= OnSprint;
+            InputManager.Instance.OnCrouchToggled -= OnCrouch;
+            InputManager.Instance.OnMenuPerformed -= OnMenuPressed;
+        }
+    }
+
+    private void OnMenuPressed()
+    {
+     //   UIManager.Instance?.TogglePanel(Escape.UI.PanelType.PauseMenu);
     }
 
     private void Update()
@@ -146,20 +140,15 @@ public class FPSController : MonoBehaviour
 
     /// <summary>Enables or disables all player input. Called by InventoryUI when opening/closing inventory.</summary>
     public void SetPlayerInputEnabled(bool enabled) {
-        if (enabled) {
-            _input.Player.Enable();
-        } else {
-            _lookInput = Vector2.zero;
-            _moveInput = Vector2.zero;
-            _input.Player.Disable();
-        }
+        InputManager.Instance?.SetPlayerInputEnabled(enabled);
     }
 
     private void HandleLook()
     {
+        Vector2 lookInput = InputManager.Instance != null ? InputManager.Instance.LookInput : Vector2.zero;
         float sensitivity = mouseSensitivity * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f);
-        float mouseX = _lookInput.x * sensitivity;
-        float mouseY = _lookInput.y * sensitivity;
+        float mouseX = lookInput.x * sensitivity;
+        float mouseY = lookInput.y * sensitivity;
 
         // Horizontal rotation is instant — standard FPS feel, preserves aim precision
         transform.Rotate(Vector3.up * mouseX);
@@ -170,7 +159,8 @@ public class FPSController : MonoBehaviour
         _smoothedPitch = Mathf.SmoothDamp(_smoothedPitch, _targetPitch, ref _pitchSmoothRef, pitchSmoothTime);
 
         // Subtle camera roll when strafing — body leans into sideways movement
-        float targetTilt = -_moveInput.x * strafeTiltAngle;
+        Vector2 moveInput = InputManager.Instance != null ? InputManager.Instance.MoveInput : Vector2.zero;
+        float targetTilt = -moveInput.x * strafeTiltAngle;
         _currentTilt = Mathf.SmoothDamp(_currentTilt, targetTilt, ref _tiltSmoothRef, tiltSmoothTime);
 
         cameraTransform.localRotation = Quaternion.Euler(_smoothedPitch, 0f, _currentTilt);
@@ -178,11 +168,12 @@ public class FPSController : MonoBehaviour
 
     private void HandleMovement()
     {
+        Vector2 moveInput = InputManager.Instance != null ? InputManager.Instance.MoveInput : Vector2.zero;
         float currentSpeed = (_isCrouching ? crouchSpeed : _isRunning ? runSpeed : walkSpeed) * _speedMultiplier;
-        Vector3 targetVelocity = (transform.right * _moveInput.x + transform.forward * _moveInput.y) * currentSpeed;
+        Vector3 targetVelocity = (transform.right * moveInput.x + transform.forward * moveInput.y) * currentSpeed;
 
         // Separate smooth times: quicker deceleration for snappy stops, gradual acceleration for weight
-        float smoothTime = _moveInput.magnitude > 0.01f ? accelerationTime : decelerationTime;
+        float smoothTime = moveInput.magnitude > 0.01f ? accelerationTime : decelerationTime;
         _horizontalVelocity = Vector3.SmoothDamp(_horizontalVelocity, targetVelocity, ref _velocitySmoothRef, smoothTime);
 
         Vector3 finalMove = _horizontalVelocity;
@@ -314,9 +305,7 @@ public class FPSController : MonoBehaviour
         _verticalVelocity += gravity * Time.deltaTime;
     }
 
-    private void StoreMovementInput(InputAction.CallbackContext context) => _moveInput = context.ReadValue<Vector2>();
-    private void StoreLookInput(InputAction.CallbackContext context) => _lookInput = context.ReadValue<Vector2>();
-    private void Jump(InputAction.CallbackContext context) {
+    private void OnJump() {
         if (_isGrounded && !_isJumping)
         {
             _verticalVelocity = jumpForce;
@@ -324,13 +313,13 @@ public class FPSController : MonoBehaviour
         }
     }
 
-    private void Crouch(InputAction.CallbackContext context) {
-        if (context.performed) {
+    private void OnCrouch(bool performed) {
+        if (performed) {
             // Нажали на кнопку приседания - приседаем
             _isCrouching = true;
             _targetHeight = crouchingHeight;
             _wantsToStand = false;
-        } else if (context.canceled) {
+        } else {
             // Отпустили кнопку - хотим встать
             _wantsToStand = true;
 
@@ -357,7 +346,7 @@ public class FPSController : MonoBehaviour
         return _canStandUp;
     }
 
-    private void Sprint(InputAction.CallbackContext context) => _isRunning = context.performed;
+    private void OnSprint(bool performed) => _isRunning = performed;
 
     /// <summary>
     /// Locks the player's XZ position for the given duration so animated objects
@@ -459,7 +448,7 @@ public class FPSController : MonoBehaviour
         }
     }
 
-    private void Interact(InputAction.CallbackContext ctx)
+    private void OnInteract()
     {
         if (_currentInteractable != null)
         {
@@ -471,5 +460,5 @@ public class FPSController : MonoBehaviour
             InteractionUI.Instance?.SetHint(false);
         }
     }
-}    
+}
 

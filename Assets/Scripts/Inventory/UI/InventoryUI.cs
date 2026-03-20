@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 /// <summary>
 /// Controls the inventory panel visibility.
@@ -12,13 +11,11 @@ public class InventoryUI : MonoBehaviour
     [SerializeField] private InventorySlot slotPrefab;
     [SerializeField] private Transform slotsContainer;
 
-    private PlayerInputActions _input;
     private bool _isOpen;
     private InventorySlot[] _slots;
 
     private void Awake()
     {
-        _input = new PlayerInputActions();
         inventoryPanel.SetActive(false);
     }
 
@@ -36,14 +33,18 @@ public class InventoryUI : MonoBehaviour
 
     private void OnEnable()
     {
-        _input.Player.Enable();
-        _input.Player.Inventory.performed += OnToggleInventory;
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnInventoryPerformed += OnToggleInventory;
+        }
     }
 
     private void OnDisable()
     {
-        _input.Player.Inventory.performed -= OnToggleInventory;
-        _input.Player.Disable();
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnInventoryPerformed -= OnToggleInventory;
+        }
 
         if (InventorySystem.Instance != null)
             InventorySystem.Instance.OnInventoryChanged -= RefreshSlots;
@@ -63,7 +64,7 @@ public class InventoryUI : MonoBehaviour
         }
     }
 
-    private void OnToggleInventory(InputAction.CallbackContext ctx)
+    private void OnToggleInventory()
     {
         if (_isOpen)
             CloseInventory();

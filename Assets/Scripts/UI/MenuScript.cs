@@ -24,14 +24,14 @@ public class MenuScript : MonoBehaviour
 
     private void Start()
     {
-        _input.Player.Menu.performed += MenuInput;
+        _input.UI.Menu.performed += MenuInput;
         _isPaused = true;
         Pause();
     }
 
     private void OnDestroy()
     {
-        _input.Player.Menu.performed -= MenuInput;
+        _input.UI.Menu.performed -= MenuInput;
     }
 
     private void MenuInput(InputAction.CallbackContext context)
