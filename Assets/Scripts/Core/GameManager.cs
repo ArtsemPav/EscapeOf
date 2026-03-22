@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Tracks room progression and unlocks interaction in the next room.
@@ -18,6 +19,7 @@ public class GameManager : MonoBehaviour
 
     private int _currentRoomIndex = 0;
     private bool _isPaused;
+    private Volume _postProcessVolume;
 
     public int CurrentRoomIndex => _currentRoomIndex;
     public int TotalRooms => rooms.Length;
@@ -41,6 +43,7 @@ public class GameManager : MonoBehaviour
 
     private void Start() {
         UpdateCursorState();
+        _postProcessVolume = FindFirstObjectByType<Volume>();
         // Начальное состояние паузы при старте
         SetPause(true);
         if (InputManager.Instance != null) {
@@ -83,11 +86,13 @@ public class GameManager : MonoBehaviour
         {
             UIManager.Instance?.OpenPanel(menuUI);
             AudioManager.Instance?.PlayMenuMusic();
+            if (_postProcessVolume != null) _postProcessVolume.enabled = false;
         }
         else
         {
             UIManager.Instance?.ClosePanel(menuUI);
             AudioManager.Instance?.PlayGameMusic();
+            if (_postProcessVolume != null) _postProcessVolume.enabled = true;
         }
 
         UpdateCursorState();
