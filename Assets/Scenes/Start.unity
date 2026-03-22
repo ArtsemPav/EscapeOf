@@ -272,7 +272,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 41307413}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -280,7 +280,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 244.7, y: 47.4}
+  m_AnchoredPosition: {x: 175, y: 8}
   m_SizeDelta: {x: 104.3, y: 32.5}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &41307415
@@ -6935,7 +6935,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e42666ef35221e04dbead6c634bcbe4c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UIPerspectiveRotation
-  _yRotation: 30
+  _yRotation: 15
 --- !u!1 &711766685
 GameObject:
   m_ObjectHideFlags: 0
@@ -8292,7 +8292,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -158.1, y: 164}
+  m_AnchoredPosition: {x: -158.1, y: 11}
   m_SizeDelta: {x: 140.8, y: 43.9}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1094637436
@@ -8459,7 +8459,7 @@ RectTransform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1129475504}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0, z: -0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8467,7 +8467,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 219.4, y: 137.4}
+  m_AnchoredPosition: {x: -212, y: -242}
   m_SizeDelta: {x: 56.1, y: 56.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1129475506
@@ -9575,6 +9575,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1719802236}
   - component: {fileID: 1719802237}
+  - component: {fileID: 1719802238}
   m_Layer: 0
   m_Name: VerticalLayout
   m_TagString: Untagged
@@ -9630,6 +9631,26 @@ MonoBehaviour:
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
+--- !u!114 &1719802238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1719802235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4ac43ccb8f84494a93e5b936a841120, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MenuHoverEffect
+  _slideDistance: 55
+  _animationSpeed: 12
+  _topFrameElements: []
+  _bottomFrameElements:
+  - {fileID: 1129475505}
+  _floatingElements:
+  - {fileID: 1094637435}
+  - {fileID: 41307414}
 --- !u!1 &1731706410
 GameObject:
   m_ObjectHideFlags: 0
