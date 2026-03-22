@@ -15,7 +15,6 @@ namespace Escape.Core {
 
         [Header("Lock Settings")]
         [SerializeField] private ItemData _requiredKey;
-        [SerializeField] private string _lockedMessage = "Дверь заперта. Нужен ключ.";
         [Tooltip("Shown below the action hint when the door is locked and the player doesn't have the key.")]
         [SerializeField] private string _requirementHint = "";
         [Tooltip("Максимальный угол подёргивания при попытке открыть запертую дверь (доля от _maxOpenAngle).")]
@@ -202,7 +201,7 @@ namespace Escape.Core {
             float maxFraction = _isLockedDrag ? _lockedJiggleFraction : 1f;
             float prev         = _openFraction;
             _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, maxFraction);
-            _velocity     = (_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f);
+            _velocity     = Mathf.Clamp((_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f), -_maxVelocity, _maxVelocity);
             if (!_isLockedDrag) PlayBoundaryClips(prev, _openFraction);
             ApplyAngle();
         }

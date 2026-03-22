@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 
 public class AudioManager : MonoBehaviour {
@@ -48,7 +48,6 @@ public class AudioManager : MonoBehaviour {
         // Перед началом плавного перехода перезапускаем музыку меню с нуля
         if (_menuMusicSource != null) {
             _menuMusicSource.Stop();
-            _menuMusicSource.time = 0; // Сброс времени воспроизведения
             _menuMusicSource.Play();
         }
 
