@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Tracks room progression and unlocks interaction in the next room.
@@ -17,9 +18,12 @@ public class GameManager : MonoBehaviour
     [Header("Menu UI")]
     [SerializeField] private GameObject menuUI;
 
+    [Header("Post Processing")]
+    [Tooltip("Post-processing Volume to disable when the menu is open. If not assigned, it will be found automatically on each scene load.")]
+    [SerializeField] private Volume _postProcessVolume;
+
     private int _currentRoomIndex = 0;
     private bool _isPaused;
-    private Volume _postProcessVolume;
 
     public int CurrentRoomIndex => _currentRoomIndex;
     public int TotalRooms => rooms.Length;
@@ -43,7 +47,9 @@ public class GameManager : MonoBehaviour
 
     private void Start() {
         UpdateCursorState();
-        _postProcessVolume = FindFirstObjectByType<Volume>();
+        if (_postProcessVolume == null)
+            _postProcessVolume = FindFirstObjectByType<Volume>();
+        SceneManager.sceneLoaded += OnSceneLoaded;
         // Начальное состояние паузы при старте
         SetPause(true);
         if (InputManager.Instance != null) {
@@ -51,7 +57,17 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Re-acquires the post-processing Volume when a new scene is loaded,
+    /// since the previous scene's Volume is destroyed on scene transition.
+    /// </summary>
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        _postProcessVolume = FindFirstObjectByType<Volume>();
+    }
+
     private void OnDisable() {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
         if (InputManager.Instance != null) {
             InputManager.Instance.OnMenuPerformed -= OnToggleMenu;
         }
