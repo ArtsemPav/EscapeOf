@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Tracks room progression and unlocks interaction in the next room.
@@ -18,16 +17,21 @@ public class GameManager : MonoBehaviour
     [Header("Menu UI")]
     [SerializeField] private GameObject menuUI;
 
-    [Header("Post Processing")]
-    [Tooltip("Post-processing Volume to disable when the menu is open. If not assigned, it will be found automatically on each scene load.")]
-    [SerializeField] private Volume _postProcessVolume;
-
     private int _currentRoomIndex = 0;
     private bool _isPaused;
 
     public int CurrentRoomIndex => _currentRoomIndex;
     public int TotalRooms => rooms.Length;
     public bool IsPaused => _isPaused;
+
+    /// <summary>
+    /// Returns the local Volume of the currently active room, or null if not assigned.
+    /// Used by SetPause to enable/disable post-processing per room.
+    /// </summary>
+    private Volume CurrentVolume =>
+        rooms != null && _currentRoomIndex < rooms.Length && rooms[_currentRoomIndex] != null
+            ? rooms[_currentRoomIndex].LocalVolume
+            : null;
 
     public event Action<int> OnRoomChanged;
     public event Action OnGameCompleted;
@@ -47,27 +51,13 @@ public class GameManager : MonoBehaviour
 
     private void Start() {
         UpdateCursorState();
-        if (_postProcessVolume == null)
-            _postProcessVolume = FindFirstObjectByType<Volume>();
-        SceneManager.sceneLoaded += OnSceneLoaded;
-        // Начальное состояние паузы при старте
         SetPause(true);
         if (InputManager.Instance != null) {
             InputManager.Instance.OnMenuPerformed += OnToggleMenu;
         }
     }
 
-    /// <summary>
-    /// Re-acquires the post-processing Volume when a new scene is loaded,
-    /// since the previous scene's Volume is destroyed on scene transition.
-    /// </summary>
-    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
-    {
-        _postProcessVolume = FindFirstObjectByType<Volume>();
-    }
-
     private void OnDisable() {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
         if (InputManager.Instance != null) {
             InputManager.Instance.OnMenuPerformed -= OnToggleMenu;
         }
@@ -98,17 +88,19 @@ public class GameManager : MonoBehaviour
         _isPaused = pause;
         Time.timeScale = _isPaused ? 0f : 1f;
 
+        Volume volume = CurrentVolume;
+
         if (_isPaused)
         {
             UIManager.Instance?.OpenPanel(menuUI);
             AudioManager.Instance?.PlayMenuMusic();
-            if (_postProcessVolume != null) _postProcessVolume.enabled = false;
+            if (volume != null) volume.enabled = false;
         }
         else
         {
             UIManager.Instance?.ClosePanel(menuUI);
             AudioManager.Instance?.PlayGameMusic();
-            if (_postProcessVolume != null) _postProcessVolume.enabled = true;
+            if (volume != null) volume.enabled = true;
         }
 
         UpdateCursorState();

@@ -1,12 +1,20 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Manages the interactive state of a single room.
 /// Lock/Unlock controls whether the player can interact with objects inside.
+/// Optionally holds a local post-processing Volume that GameManager enables/disables on pause.
 /// </summary>
 public class RoomController : MonoBehaviour
 {
+    [Tooltip("Local post-processing Volume for this room. Leave empty if the room uses no post-processing.")]
+    [SerializeField] private Volume _localVolume;
+
     public bool IsUnlocked { get; private set; }
+
+    /// <summary>The local post-processing Volume assigned to this room. May be null.</summary>
+    public Volume LocalVolume => _localVolume;
 
     private Collider[] _interactableColliders;
 

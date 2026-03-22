@@ -201,14 +201,16 @@ GameManager.Instance.SetPause(false);  // закрыть меню, возобн�
 GameManager.Instance.TogglePause();    // переключить состояние
 ```
 
-При паузе: `Time.timeScale = 0`, открывается `menuUI`, отключается `_postProcessVolume`, играет музыка меню.  
+При паузе: `Time.timeScale = 0`, открывается `menuUI`, отключается Volume текущей комнаты, играет музыка меню.  
 При возобновлении: всё возвращается обратно.
 
 Нажатие **Escape** обрабатывается внутри `GameManager` через `InputManager.OnMenuPerformed`. Если в момент нажатия открыта другая панель (инвентарь, записка и т.д.) — меню паузы не открывается.
 
 ### Пост-процессинг
 
-`_postProcessVolume` — `[SerializeField]` на объекте `GameManager` в сцене. В Inspector назначен `Global Volume`. При смене сцены ссылка обновляется автоматически через `SceneManager.sceneLoaded`, так как `GameManager` помечен `DontDestroyOnLoad`.
+Каждая комната управляет своим постпроцессингом через локальный `Volume` на `RoomController`. `GameManager` не хранит ссылку на Volume напрямую — он обращается к `rooms[_currentRoomIndex].LocalVolume` в момент вызова `SetPause`. При смене комнаты через `OnRoomExited` индекс обновляется автоматически.
+
+Если у комнаты нет локального Volume — поле оставляется пустым, постпроцессинг при паузе не трогается.
 
 ### Настройка в Inspector
 
@@ -216,7 +218,6 @@ GameManager.Instance.TogglePause();    // переключить состоян�
 |---|---|
 | `Rooms` | `RoomController`-объекты в нужном порядке |
 | `Menu UI` | GameObject панели паузы |
-| `Post Process Volume` | `Global Volume` из сцены |
 
 ---
 
@@ -864,10 +865,23 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera)
 Компонент на корневом объекте комнаты. При блокировке отключает коллайдеры у всех `IInteractable` дочерних объектов — геометрия остаётся видимой, но взаимодействие невозможно.
 
 ```csharp
-room.Unlock(); // разрешить взаимодействие
-room.Lock();   // запретить взаимодействие
-bool IsUnlocked; // текущее состояние
+room.Unlock();        // разрешить взаимодействие
+room.Lock();          // запретить взаимодействие
+bool IsUnlocked;      // текущее состояние
+Volume LocalVolume;   // локальный Volume этой комнаты (read-only)
 ```
+
+### Пост-процессинг на комнату
+
+Каждая комната может иметь собственный локальный `Volume`. `GameManager` отключает его при паузе и включает при возобновлении — через свойство `CurrentVolume`, которое всегда указывает на Volume активной комнаты.
+
+Если у комнаты нет своего постпроцессинга — поле `Local Volume` оставляется пустым, пауза не трогает Volume вообще.
+
+### Настройка в Inspector
+
+| Поле | Что назначить |
+|---|---|
+| `Local Volume` | Локальный `Volume` этой комнаты (необязательно) |
 
 ---
 
