@@ -35,5 +35,5 @@ To add a looping 3D sound (like a humming lamp or ventilation):
 
 ### Handling Pause
 The `AudioManager` and `NeonLightFlicker` scripts are designed to respect the game's pause state:
-- **BGM:** Handled via volume fades in `MenuScript`.
+- **BGM:** Handled via volume fades triggered by `GameManager.SetPause(bool)`. `AudioManager.PlayMenuMusic()` and `AudioManager.PlayGameMusic()` are called directly from `GameManager`.
 - **Environmental Sounds:** `NeonLightFlicker` explicitly calls `_audioSource.Pause()` when `Time.timeScale == 0` to prevent environmental "noise" during menu navigation.

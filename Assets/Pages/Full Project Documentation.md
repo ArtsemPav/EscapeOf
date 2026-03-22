@@ -26,8 +26,9 @@
 18. [Фонарик — FlashlightController](#фонарик--flashlightcontroller)
 19. [Хоррор-система](#хоррор-система)
 20. [UI-системы](#ui-системы)
-21. [Комнаты — RoomController](#комнаты--roomcontroller)
-22. [Структура файлов](#структура-файлов)
+21. [Сцена Start — главное меню](#сцена-start--главное-меню)
+22. [Комнаты — RoomController](#комнаты--roomcontroller)
+23. [Структура файлов](#структура-файлов)
 
 ---
 
@@ -190,9 +191,32 @@ event Action OnGameCompleted;       // все комнаты пройдены
 
 HorrorSystem автоматически подписывается на `OnRoomChanged`.
 
+### Пауза и меню
+
+`GameManager` управляет паузой и меню — `MenuScript` упразднён.
+
+```csharp
+GameManager.Instance.SetPause(true);   // открыть меню, остановить время
+GameManager.Instance.SetPause(false);  // закрыть меню, возобновить время
+GameManager.Instance.TogglePause();    // переключить состояние
+```
+
+При паузе: `Time.timeScale = 0`, открывается `menuUI`, отключается `_postProcessVolume`, играет музыка меню.  
+При возобновлении: всё возвращается обратно.
+
+Нажатие **Escape** обрабатывается внутри `GameManager` через `InputManager.OnMenuPerformed`. Если в момент нажатия открыта другая панель (инвентарь, записка и т.д.) — меню паузы не открывается.
+
+### Пост-процессинг
+
+`_postProcessVolume` — `[SerializeField]` на объекте `GameManager` в сцене. В Inspector назначен `Global Volume`. При смене сцены ссылка обновляется автоматически через `SceneManager.sceneLoaded`, так как `GameManager` помечен `DontDestroyOnLoad`.
+
 ### Настройка в Inspector
 
-Массив `Rooms` — перетащи `RoomController`-объекты в нужном порядке.
+| Поле | Что назначить |
+|---|---|
+| `Rooms` | `RoomController`-объекты в нужном порядке |
+| `Menu UI` | GameObject панели паузы |
+| `Post Process Volume` | `Global Volume` из сцены |
 
 ---
 
@@ -744,13 +768,7 @@ PopupMessageSystem.Instance.Show("Дверь открыта!", PopupMessageType.
 
 ### MenuScript
 
-**Файл:** `Assets/Scripts/UI/MenuScript.cs`
-
-Меню паузы. Открывается клавишей **Escape**.
-
-Важно: `MenuScript` не управляет курсором напрямую. Всё делается через `UIManager.OpenPanel` / `ClosePanel`. Это исключает конфликты с инвентарём и другими панелями.
-
-Если в момент нажатия Escape открыта другая панель — меню паузы не открывается.
+~~`Assets/Scripts/UI/MenuScript.cs`~~ — **упразднён.** Вся логика паузы, открытия меню и подписки на Escape перенесена в `GameManager`. Компонент можно удалить из сцены.
 
 ### NoteUI
 
@@ -763,6 +781,79 @@ PopupMessageSystem.Instance.Show("Дверь открыта!", PopupMessageType.
 **Файл:** `Assets/Scripts/UI/CodeLockUI.cs`
 
 Панель цифровой клавиатуры. Открывается из `CodeLock.Interact()`.
+
+---
+
+## Сцена Start — главное меню
+
+**Сцена:** `Assets/Scenes/Start.unity`
+
+Отдельная сцена, которая загружается первой. Показывает главное меню поверх фонового рендера через `MainMenuCanvas` в режиме `ScreenSpaceCamera`.
+
+### Иерархия объектов
+
+```
+MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera)
+└── MAIN                    Панель меню — анимация WindowPopUpBig + UIPerspectiveRotation
+    ├── VerticalLayout      Раскладка кнопок — MenuHoverEffect
+    │   ├── Btn_NewGame     Button
+    │   ├── Btn_Settings    Button
+    │   └── Btn_Exit        Button
+    ├── Corner_Detail       Угловой декор — Bottom Frame Element
+    ├── Corner_Line1        Декоративная линия — Floating Element
+    └── Corner_Line2        Декоративная линия — Floating Element
+```
+
+### UIPerspectiveRotation
+
+**Файл:** `Assets/Scripts/UI/UIPerspectiveRotation.cs`  
+Находится на `MAIN`. В каждом `LateUpdate` применяет фиксированный поворот по оси Y, создавая эффект перспективного сжатия панели. Запускается после аниматора `WindowPopUpBig`, поэтому не конфликтует с анимацией появления.
+
+| Поле | Описание |
+|---|---|
+| `_yRotation` | Угол поворота по Y в градусах |
+
+### MenuHoverEffect
+
+**Файл:** `Assets/Scripts/UI/MenuHoverEffect.cs`  
+Находится на `VerticalLayout`. Управляет hover-анимацией кнопок и декоративных элементов рамки.
+
+**Инициализация** происходит в `Start` с задержкой `WaitForEndOfFrame` — ждёт пока `VerticalLayoutGroup` расставит кнопки, сохраняет их исходные позиции, добавляет `EventTrigger` к каждой кнопке через код, затем **отключает `VerticalLayoutGroup`** и берёт управление позициями на себя.
+
+**При наведении на кнопку с индексом `i`:**
+- Кнопки выше (`< i`) → смещаются вверх на `_slideDistance`
+- Кнопки ниже (`> i`) → смещаются вниз на `_slideDistance`
+- `_bottomFrameElements` → смещаются вниз вместе с нижней кнопкой
+- `_floatingElements` → получают тот же сдвиг, что и ближайшая к ним по Y кнопка
+
+Каждый кадр позиции интерполируются через `Vector2.Lerp` с `Time.unscaledDeltaTime` — анимация работает при `Time.timeScale = 0`.
+
+| Поле | Описание |
+|---|---|
+| `_slideDistance` | Расстояние смещения кнопок в пикселях |
+| `_animationSpeed` | Скорость Lerp-интерполяции |
+| `_topFrameElements` | Декор верхней границы рамки — уезжает вверх с верхней кнопкой |
+| `_bottomFrameElements` | Декор нижней границы рамки — уезжает вниз с нижней кнопкой |
+| `_floatingElements` | Декор, привязанный к ближайшей кнопке — двигается вместе с ней |
+
+**Текущие назначения:**
+
+| Слот | Объекты |
+|---|---|
+| `_bottomFrameElements` | `Corner_Detail` |
+| `_floatingElements` | `Corner_Line1`, `Corner_Line2` |
+
+### Добавление новой кнопки
+
+Добавь дочерний объект с компонентом `Button` в `VerticalLayout` — `MenuHoverEffect` обнаружит её автоматически при следующем запуске.
+
+### Добавление нового декоративного элемента
+
+| Нужное поведение | Слот |
+|---|---|
+| Двигается вверх с верхней кнопкой | `Top Frame Elements` |
+| Двигается вниз с нижней кнопкой | `Bottom Frame Elements` |
+| Двигается вместе с ближайшей кнопкой | `Floating Elements` |
 
 ---
 
@@ -839,7 +930,9 @@ Assets/
 │   │
 │   ├── UI/
 │   │   ├── InteractionUI.cs        # Подсказка взаимодействия + прицел
-│   │   ├── MenuScript.cs           # Меню паузы (Escape)
+│   │   ├── MenuScript.cs           # Упразднён — логика в GameManager
+│   │   ├── MenuHoverEffect.cs      # Hover-анимация кнопок главного меню
+│   │   ├── UIPerspectiveRotation.cs # 3D-поворот панели меню
 │   │   ├── NoteUI.cs               # Панель чтения записок
 │   │   ├── CodeLockUI.cs           # Панель кодового замка
 │   │   ├── CodeHintDisplay.cs      # Отображение кода замка в сцене
