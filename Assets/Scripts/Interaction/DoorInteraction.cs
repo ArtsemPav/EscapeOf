@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,8 +7,9 @@ namespace Escape.Core {
     /// Обрабатывает логику взаимодействия, проверку ключей и состояние двери.
     /// Поддерживает физическое перетаскивание (IDraggable): удерживай LMB и двигай мышью.
     /// Заперта дверь — слегка поддаётся при попытке потянуть и возвращается назад.
+    /// Implements ISaveable: persists isOpen, isLocked and openFraction across sessions.
     /// </summary>
-    public class DoorInteraction : MonoBehaviour, IInteractable, IDraggable {
+    public class DoorInteraction : MonoBehaviour, IInteractable, IDraggable, ISaveable {
 
         [Header("Door State")]
         [SerializeField] private bool _isOpen = false;
@@ -54,6 +56,10 @@ namespace Escape.Core {
         [Tooltip("Скорость плавного приоткрытия после разблокировки (fraction/sec). Больше — быстрее.")]
         [SerializeField] private float _unlockAjarSpeed = 0.6f;
 
+        [Header("Save")]
+        [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
+        [SerializeField] private string _saveId;
+
         // ── Runtime state ────────────────────────────────────────────────────────
 
         private float   _closedLocalEulerY;
@@ -65,27 +71,96 @@ namespace Escape.Core {
         private bool    _snappingBack;        // true after locked jiggle — lerp back to 0
         private bool    _isUnlockAnimating;   // true while smoothly swinging ajar after unlock
         private float   _unlockAjarTarget;    // target fraction for the unlock swing
-        // Grab point offset from pivot in WORLD space XZ at drag start (not normalized — stores real distance).
-        // Stored in world coords to avoid InverseTransformDirection issues with negative-scale FBX meshes.
         private Vector3 _grabOffsetWorld;
-        private float   _dragStartFraction;   // для trivial-drag guard
+        private float   _dragStartFraction;
+
+        // Pending load state: applied in Start() after _closedLocalEulerY is initialized
+        private bool    _hasPendingLoad;
+        private bool    _pendingIsOpen;
+        private bool    _pendingIsLocked;
+        private float   _pendingOpenFraction;
+        private bool    _pendingWasUnlocked; // door was unlocked via CodeLock but openFraction not yet written
 
         private const float MinDragFraction = 0.04f;
         private const float MinDragVelocity  = 0.08f;
 
+        // ── ISaveable ────────────────────────────────────────────────────────────
+
+        public string SaveId => _saveId;
+
+        /// <summary>Serializes door state: open fraction, locked state, open state.</summary>
+        public string GetSaveData() => JsonUtility.ToJson(new DoorSaveData
+        {
+            isOpen       = _isOpen || _openFraction > 0f,
+            isLocked     = _isLocked,
+            openFraction = _openFraction,
+            wasUnlocked  = !_isLocked && (_isOpen || _openFraction > 0f || _isUnlockAnimating),
+        });
+
+        /// <summary>Stores pending state. Applied in Start() after pivot is initialized.</summary>
+        public void LoadSaveData(string json)
+        {
+            var data             = JsonUtility.FromJson<DoorSaveData>(json);
+            _hasPendingLoad      = true;
+            _pendingIsOpen       = data.isOpen;
+            _pendingIsLocked     = data.isLocked;
+            _pendingOpenFraction = data.openFraction;
+            _pendingWasUnlocked  = data.wasUnlocked;
+        }
+
+        [Serializable]
+        private struct DoorSaveData
+        {
+            public bool  isOpen;
+            public bool  isLocked;
+            public float openFraction;
+            // True when the door was unlocked via CodeLock but the save fired before openFraction settled.
+            // On load this triggers UnlockAndOpen() so the door swings open visually.
+            public bool  wasUnlocked;
+        }
+
         // ── Unity ────────────────────────────────────────────────────────────────
+
+        private void Awake()
+        {
+            SaveManager.Instance?.Register(this);
+        }
+
+        private void OnDestroy()
+        {
+            SaveManager.Instance?.Unregister(this);
+        }
 
         private void Start() {
             if (_pivot == null)
                 _pivot = transform.parent != null ? transform.parent : transform;
 
             _closedLocalEulerY = _pivot.localEulerAngles.y;
-            _openFraction      = _isOpen ? 1f : 0f;
 
-            if (_isOpen) {
-                _dragActive = true;
-                ApplyAngle();
+            // Apply loaded state if available, otherwise use serialized defaults
+            if (_hasPendingLoad)
+            {
+                _isOpen       = _pendingIsOpen;
+                _isLocked     = _pendingIsLocked;
+                _openFraction = _pendingOpenFraction;
+                _hasPendingLoad = false;
+
+                // Door was unlocked by CodeLock but openFraction may be near 0.
+                // Trigger the visual unlock swing so it doesn't just sit closed.
+                if (_pendingWasUnlocked && _openFraction < _unlockAjarFraction)
+                {
+                    _isUnlockAnimating = true;
+                    _unlockAjarTarget  = _unlockAjarFraction;
+                    _dragActive        = true;
+                }
             }
+            else
+            {
+                _openFraction = _isOpen ? 1f : 0f;
+            }
+
+            _dragActive = _openFraction > 0f || _isOpen;
+            if (_dragActive) ApplyAngle();
         }
 
         private void Update() {
@@ -296,6 +371,15 @@ namespace Escape.Core {
         /// <summary>Воспроизводит close клип когда дверь достигает закрытого положения.</summary>
         private void PlayBoundaryClips(float prev, float current) {
             if (prev > 0f && current <= 0f) AudioManager.Instance.PlaySFX(_closeClip);
+        }
+        [ContextMenu("Generate Save ID")]
+        private void GenerateSaveId()
+        {
+            if (!string.IsNullOrEmpty(_saveId)) return;
+            _saveId = System.Guid.NewGuid().ToString();
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
         }
     }
 }

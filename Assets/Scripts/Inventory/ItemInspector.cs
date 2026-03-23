@@ -221,6 +221,8 @@ public class ItemInspector : MonoBehaviour
         if (item.inspectionPrefab == null)
         {
             InventorySystem.Instance.AddItem(item);
+            if (worldObject != null && worldObject.TryGetComponent(out PickableItem directPickable))
+                directPickable.NotifyPickedUp();
             Destroy(worldObject);
             return;
         }
@@ -332,6 +334,8 @@ public class ItemInspector : MonoBehaviour
         if (!_isPreviewMode)
         {
             InventorySystem.Instance.AddItem(_currentItem);
+            if (_worldObject != null && _worldObject.TryGetComponent(out PickableItem pickable))
+                pickable.NotifyPickedUp();
             if (_worldObject != null) Destroy(_worldObject);
         }
         EndInspection();

@@ -1,8 +1,9 @@
 using UnityEngine;
+using System;
 using System.Collections;
 
 [RequireComponent(typeof(CharacterController))]
-public class FPSController : MonoBehaviour
+public class FPSController : MonoBehaviour, ISaveable
 {
     [Header("Speed")]
     [SerializeField] private float walkSpeed = 5f;
@@ -89,11 +90,64 @@ public class FPSController : MonoBehaviour
     //Croach
     private bool _wantsToStand;
 
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    public string SaveId => "player";
+
+    private Vector3? _pendingPosition;
+    private float    _pendingYaw;
+
+    /// <summary>Serializes player world position and horizontal rotation.</summary>
+    public string GetSaveData() => JsonUtility.ToJson(new PlayerSaveData
+    {
+        x   = transform.position.x,
+        y   = transform.position.y,
+        z   = transform.position.z,
+        yaw = transform.eulerAngles.y,
+    });
+
+    /// <summary>Stores pending position. Applied in Start() after CharacterController is ready.</summary>
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<PlayerSaveData>(json);
+        _pendingPosition = new Vector3(data.x, data.y, data.z);
+        _pendingYaw = data.yaw;
+    }
+
+    /// <summary>Instantly moves the player to the given position and yaw without physics interaction.</summary>
+    public void Teleport(Vector3 position, float yaw)
+    {
+        _characterController.enabled = false;
+        transform.position = position;
+        transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        _targetPitch  = 0f;
+        _smoothedPitch = 0f;
+        _characterController.enabled = true;
+    }
+
+    [Serializable]
+    private struct PlayerSaveData
+    {
+        public float x, y, z, yaw;
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     private void Awake()
     {
         _characterController = GetComponent<CharacterController>();
         _targetHeight = standingHeight;
         _baseCameraLocalY = cameraTransform.localPosition.y;
+        SaveManager.Instance?.Register(this);
+    }
+
+    private void Start()
+    {
+        if (_pendingPosition.HasValue)
+        {
+            Teleport(_pendingPosition.Value, _pendingYaw);
+            _pendingPosition = null;
+        }
     }
 
     private void OnEnable()
@@ -118,6 +172,7 @@ public class FPSController : MonoBehaviour
             InputManager.Instance.OnCrouchToggled -= OnCrouch;
             InputManager.Instance.OnMenuPerformed -= OnMenuPressed;
         }
+        SaveManager.Instance?.Unregister(this);
     }
 
     private void OnMenuPressed()

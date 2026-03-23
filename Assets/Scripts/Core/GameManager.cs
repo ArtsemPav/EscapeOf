@@ -5,8 +5,9 @@ using UnityEngine.Rendering;
 /// <summary>
 /// Tracks room progression and unlocks interaction in the next room.
 /// All rooms remain active in the scene at all times.
+/// Implements ISaveable: persists current room index across sessions.
 /// </summary>
-public class GameManager : MonoBehaviour
+public class GameManager : MonoBehaviour, ISaveable
 {
     public static GameManager Instance { get; private set; }
 
@@ -37,11 +38,37 @@ public class GameManager : MonoBehaviour
     public event Action OnGameCompleted;
     public event Action<bool> OnPauseStateChanged;
 
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    public string SaveId => "game_manager";
+
+    /// <summary>Serializes current room index.</summary>
+    public string GetSaveData() => JsonUtility.ToJson(new GameManagerSaveData
+    {
+        currentRoom = _currentRoomIndex,
+    });
+
+    /// <summary>Restores room index before InitializeRooms() is called in Start().</summary>
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<GameManagerSaveData>(json);
+        _currentRoomIndex = data.currentRoom;
+    }
+
+    [Serializable]
+    private struct GameManagerSaveData
+    {
+        public int currentRoom;
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
     private void Awake()
     {
         if (Instance == null) {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SaveManager.Instance?.Register(this);
         } else {
             Destroy(gameObject);
             return;
@@ -62,6 +89,7 @@ public class GameManager : MonoBehaviour
         if (InputManager.Instance != null) {
             InputManager.Instance.OnMenuPerformed -= OnToggleMenu;
         }
+        SaveManager.Instance?.Unregister(this);
     }
 
     private void OnToggleMenu()
@@ -116,8 +144,9 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Locks all rooms except the first one.
-    /// Locking disables interaction colliders � room geometry stays visible.
+    /// Locks all rooms except those up to and including _currentRoomIndex.
+    /// On fresh start _currentRoomIndex = 0, so only room 0 is unlocked.
+    /// On load, _currentRoomIndex is restored by ISaveable before Start() calls this.
     /// </summary>
     private void InitializeRooms()
     {
@@ -131,7 +160,7 @@ public class GameManager : MonoBehaviour
         {
             if (rooms[i] == null) continue;
 
-            if (i == 0)
+            if (i <= _currentRoomIndex)
                 rooms[i].Unlock();
             else
                 rooms[i].Lock();
@@ -155,5 +184,6 @@ public class GameManager : MonoBehaviour
         rooms[nextIndex].Unlock();
         _currentRoomIndex = nextIndex;
         OnRoomChanged?.Invoke(_currentRoomIndex);
+        SaveManager.Instance?.Save(); // checkpoint: room progression
     }
 }

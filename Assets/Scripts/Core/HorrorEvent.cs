@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
@@ -27,8 +28,9 @@ public enum HorrorEffectType
 /// Place this component on any always-active GameObject.
 /// The _target object is what gets shown/hidden — it can be anywhere in the scene.
 /// All HorrorEvents register automatically with HorrorSystem on Start.
+/// Implements ISaveable: persists HasFired state so events don't replay after load.
 /// </summary>
-public class HorrorEvent : MonoBehaviour
+public class HorrorEvent : MonoBehaviour, ISaveable
 {
     [Header("Identity")]
     [Tooltip("Unique string ID. Used to fire this event manually:\n  HorrorSystem.Instance.Trigger(\"id\")")]
@@ -89,12 +91,53 @@ public class HorrorEvent : MonoBehaviour
     private bool _targetVisible;
     private bool _hasSeenTarget;
 
+    // True when loaded state requires showing the target after Start() hides it
+    private bool _pendingActivation;
+
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    /// <summary>Uses _eventId as the stable save key. Must be unique across all HorrorEvents.</summary>
+    public string SaveId => string.IsNullOrEmpty(_eventId) ? string.Empty : "horror_" + _eventId;
+
+    /// <summary>Serializes whether this event has already fired.</summary>
+    public string GetSaveData() => JsonUtility.ToJson(new HorrorEventSaveData { hasFired = HasFired });
+
+    /// <summary>
+    /// Restores HasFired state. For AppearAndStay effects, marks the target to be shown in Start().
+    /// </summary>
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<HorrorEventSaveData>(json);
+        if (!data.hasFired) return;
+        HasFired = true;
+        _pendingActivation = _effectType == HorrorEffectType.AppearAndStay;
+    }
+
+    [Serializable]
+    private struct HorrorEventSaveData
+    {
+        public bool hasFired;
+    }
+
+    private void Awake()
+    {
+        // Register before SaveManager.Start() distributes loaded data
+        if (!string.IsNullOrEmpty(_eventId))
+            SaveManager.Instance?.Register(this);
+    }
+
     private void Start()
     {
-        // DisappearOnTrigger: target begins active — don't hide it at start.
-        // All other effect types: target must start hidden and is shown on Activate().
-        if (_target != null && _effectType != HorrorEffectType.DisappearOnTrigger)
-            _target.SetActive(false);
+        // For AppearAndStay events that already fired: keep target visible.
+        // For all other cases: hide target at start (or leave DisappearOnTrigger visible).
+        if (_target != null)
+        {
+            if (_effectType == HorrorEffectType.DisappearOnTrigger)
+                _target.SetActive(!HasFired); // already disappeared if fired
+            else
+                _target.SetActive(_pendingActivation); // true only for AppearAndStay
+        }
+        _pendingActivation = false;
 
         if (_playerCamera == null)
             _playerCamera = Camera.main;
@@ -105,7 +148,11 @@ public class HorrorEvent : MonoBehaviour
             Debug.LogWarning($"[HorrorEvent '{_eventId}'] HorrorSystem not found. Make sure HorrorSystem is in the scene.", this);
     }
 
-    private void OnDestroy() => HorrorSystem.Instance?.Unregister(this);
+    private void OnDestroy()
+    {
+        SaveManager.Instance?.Unregister(this);
+        HorrorSystem.Instance?.Unregister(this);
+    }
 
     private void OnTriggerEnter(Collider other)
     {
