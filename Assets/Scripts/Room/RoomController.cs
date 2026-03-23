@@ -49,6 +49,7 @@ public class RoomController : MonoBehaviour
 
     private void SetCollidersEnabled(bool enabled)
     {
+        if (_interactableColliders == null) return;
         foreach (var col in _interactableColliders)
         {
             if (col != null)

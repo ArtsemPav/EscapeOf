@@ -21,7 +21,7 @@ public class GameManager : MonoBehaviour
     private bool _isPaused;
 
     public int CurrentRoomIndex => _currentRoomIndex;
-    public int TotalRooms => rooms.Length;
+    public int TotalRooms => rooms != null ? rooms.Length : 0;
     public bool IsPaused => _isPaused;
 
     /// <summary>
@@ -46,10 +46,11 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-        InitializeRooms();
+        // InitializeRooms вызывается в Start — все RoomController.Awake() к этому моменту уже выполнены
     }
 
     private void Start() {
+        InitializeRooms();
         UpdateCursorState();
         SetPause(true);
         if (InputManager.Instance != null) {
@@ -88,19 +89,15 @@ public class GameManager : MonoBehaviour
         _isPaused = pause;
         Time.timeScale = _isPaused ? 0f : 1f;
 
-        Volume volume = CurrentVolume;
-
         if (_isPaused)
         {
             UIManager.Instance?.OpenPanel(menuUI);
             AudioManager.Instance?.PlayMenuMusic();
-            if (volume != null) volume.enabled = false;
         }
         else
         {
             UIManager.Instance?.ClosePanel(menuUI);
             AudioManager.Instance?.PlayGameMusic();
-            if (volume != null) volume.enabled = true;
         }
 
         UpdateCursorState();
@@ -124,6 +121,12 @@ public class GameManager : MonoBehaviour
     /// </summary>
     private void InitializeRooms()
     {
+        if (rooms == null || rooms.Length == 0)
+        {
+            Debug.LogWarning("GameManager: Rooms array is empty or not assigned.", this);
+            return;
+        }
+
         for (int i = 0; i < rooms.Length; i++)
         {
             if (rooms[i] == null) continue;
