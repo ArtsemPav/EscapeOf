@@ -44,8 +44,6 @@ public class FPSController : MonoBehaviour, ISaveable
     [Header("Interaction")]
     public float interactDistance = 2.5f;
     public LayerMask interactableLayer;
-    [Tooltip("Layers that block interaction — walls, furniture, props. Interactable Layer must NOT be included here.")]
-    public LayerMask occlusionMask;
 
     private CharacterController _characterController;
     private IInteractable _currentInteractable;
@@ -315,20 +313,23 @@ public class FPSController : MonoBehaviour, ISaveable
             return;
 
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
-        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer))
+
+        // Cast against every layer except "Ignore Raycast" (layer 2) — Unity excludes it
+        // by default, but explicit ~0 masks re-include it, hitting invisible colliders.
+        // If the closest object is not on the interactable layer, something blocks the way.
+        const int ignoreRaycastLayer = 2;
+        int allButIgnoreRaycast = ~(1 << ignoreRaycastLayer);
+        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, allButIgnoreRaycast, QueryTriggerInteraction.Ignore))
         {
-            // Check that no solid obstacle sits between the camera and the interactable.
-            // Cast against occlusionMask only — if something is closer, the item is blocked.
-            float distanceToHit = hit.distance;
-            if (occlusionMask != 0 &&
-                Physics.Raycast(ray, out RaycastHit occluder, distanceToHit - 0.01f, occlusionMask))
+            bool isInteractableLayer = (interactableLayer.value & (1 << hit.collider.gameObject.layer)) != 0;
+            if (!isInteractableLayer)
             {
-                // An obstacle is in the way — clear current interactable and bail out.
+                // Obstacle in front of any interactable — clear hint and bail.
                 if (_currentInteractable != null)
                 {
-                    _currentInteractable = null;
-                    _lastHintText = null;
-                    _lastCrosshairMode = CrosshairMode.Default;
+                    _currentInteractable   = null;
+                    _lastHintText          = null;
+                    _lastCrosshairMode     = CrosshairMode.Default;
                     InteractionUI.Instance?.SetHint(false);
                 }
                 return;
@@ -350,8 +351,8 @@ public class FPSController : MonoBehaviour, ISaveable
                 if (_currentInteractable != interactable || newText != _lastHintText || newMode != _lastCrosshairMode)
                 {
                     _currentInteractable = interactable;
-                    _lastHintText = newText;
-                    _lastCrosshairMode = newMode;
+                    _lastHintText        = newText;
+                    _lastCrosshairMode   = newMode;
 
                     InteractionUI.Instance?.SetHint(true, newText, interactable.IsPickable(), newMode);
                 }
@@ -361,9 +362,9 @@ public class FPSController : MonoBehaviour, ISaveable
 
         if (_currentInteractable != null)
         {
-            _currentInteractable = null;
-            _lastHintText = null;
-            _lastCrosshairMode = CrosshairMode.Default;
+            _currentInteractable   = null;
+            _lastHintText          = null;
+            _lastCrosshairMode     = CrosshairMode.Default;
 
             InteractionUI.Instance?.SetHint(false);
         }

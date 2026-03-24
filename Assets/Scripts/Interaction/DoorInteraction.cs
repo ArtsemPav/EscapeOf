@@ -159,12 +159,14 @@ namespace Escape.Core {
                 _openFraction = _isOpen ? 1f : 0f;
             }
 
-            _dragActive = _openFraction > 0f || _isOpen;
+            // Do not overwrite _dragActive when an unlock animation is already pending —
+            // it was set to true above. Only derive from position for normal loads.
+            if (!_isUnlockAnimating)
+                _dragActive = _openFraction > 0f || _isOpen;
             if (_dragActive) ApplyAngle();
         }
 
         private void Update() {
-            if (!_dragActive) return;
             if (_isDragging) return; // OnDrag напрямую двигает дверь — Update только после отпускания
 
             // ── Smooth unlock ajar ───────────────────────────────────────────────
@@ -210,6 +212,7 @@ namespace Escape.Core {
             _isDragging        = true;
             _dragActive        = true;
             _snappingBack      = false;
+            _isUnlockAnimating = false; // Player takes manual control — cancel pending ajar animation.
             _isLockedDrag      = _isLocked && !_isOpen;
             _dragStartFraction = _openFraction;
 
@@ -315,6 +318,9 @@ namespace Escape.Core {
                     if (_requiredKey.consumeOnUse)
                         InventorySystem.Instance.RemoveItem(_requiredKey);
                     UnlockAndOpen();
+                    // Snapshot must be taken AFTER both RemoveItem and UnlockAndOpen so the
+                    // save captures the correct state: key gone + door unlocked simultaneously.
+                    SaveManager.Instance?.Save();
                 } else {
                     PopupMessageSystem.Instance.Show("Нужен ключ от этой двери", PopupMessageType.Warning, 4f);
                 }
