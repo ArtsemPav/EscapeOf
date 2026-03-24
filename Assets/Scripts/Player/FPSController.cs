@@ -44,6 +44,8 @@ public class FPSController : MonoBehaviour, ISaveable
     [Header("Interaction")]
     public float interactDistance = 2.5f;
     public LayerMask interactableLayer;
+    [Tooltip("Layers that block interaction — walls, furniture, props. Interactable Layer must NOT be included here.")]
+    public LayerMask occlusionMask;
 
     private CharacterController _characterController;
     private IInteractable _currentInteractable;
@@ -315,6 +317,23 @@ public class FPSController : MonoBehaviour, ISaveable
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
         if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, interactableLayer))
         {
+            // Check that no solid obstacle sits between the camera and the interactable.
+            // Cast against occlusionMask only — if something is closer, the item is blocked.
+            float distanceToHit = hit.distance;
+            if (occlusionMask != 0 &&
+                Physics.Raycast(ray, out RaycastHit occluder, distanceToHit - 0.01f, occlusionMask))
+            {
+                // An obstacle is in the way — clear current interactable and bail out.
+                if (_currentInteractable != null)
+                {
+                    _currentInteractable = null;
+                    _lastHintText = null;
+                    _lastCrosshairMode = CrosshairMode.Default;
+                    InteractionUI.Instance?.SetHint(false);
+                }
+                return;
+            }
+
             // Prefer IDraggable over IInteractable when both are present on the same object
             // so that DrawerDrag takes priority over a legacy DoorInteraction component.
             IInteractable interactable = null;
