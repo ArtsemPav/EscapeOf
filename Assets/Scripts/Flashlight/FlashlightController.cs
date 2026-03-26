@@ -12,7 +12,15 @@ public class FlashlightController : MonoBehaviour
 {
     [SerializeField] private FlashlightConfig config;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip toggleClip;
+    [SerializeField] [Range(0f, 1f)] private float toggleVolume = 0.8f;
+    [Tooltip("Condition to play the click sound. Should include all flashlight variants (charged and uncharged). " +
+             "If not set, sound only plays when the light actually toggles.")]
+    [SerializeField] private InventoryCondition soundCondition;
+
     private Light _light;
+    private AudioSource _audioSource;
     private bool _isOn;
     private float _targetIntensity;
 
@@ -20,6 +28,11 @@ public class FlashlightController : MonoBehaviour
     {
         _light = GetComponent<Light>();
         ApplyStateImmediate(config.offState);
+
+        _audioSource = gameObject.AddComponent<AudioSource>();
+        _audioSource.playOnAwake  = false;
+        _audioSource.spatialBlend = 0f;
+        _audioSource.loop         = false;
     }
 
     private void Start()
@@ -49,7 +62,13 @@ public class FlashlightController : MonoBehaviour
     /// <summary>Attempts to toggle the flashlight. Requires the operating condition to be met.</summary>
     public void TryToggle()
     {
-        if (!_isOn && !config.operatingCondition.IsMet())
+        bool canOperate = config.operatingCondition.IsMet();
+        bool hasAnyFlashlight = soundCondition != null ? soundCondition.IsMet() : canOperate;
+
+        if (hasAnyFlashlight)
+            PlayToggleSound();
+
+        if (!_isOn && !canOperate)
             return;
 
         SetState(!_isOn);
@@ -73,6 +92,12 @@ public class FlashlightController : MonoBehaviour
         _light.spotAngle = state.spotAngle;
         _light.color     = state.color;
         _targetIntensity = state.intensity;
+    }
+
+    private void PlayToggleSound()
+    {
+        if (toggleClip != null)
+            _audioSource.PlayOneShot(toggleClip, toggleVolume);
     }
 
     // Automatically turns off the flashlight if the inventory condition is no longer met

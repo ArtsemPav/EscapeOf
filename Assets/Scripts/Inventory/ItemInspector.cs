@@ -40,6 +40,9 @@ public class ItemInspector : MonoBehaviour
     [Tooltip("Multiplier for camera distance from model. Higher = model appears smaller.")]
     [SerializeField] private float framingMultiplier = 2.2f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip pickupClip;
+
     private static readonly Vector3 InspectionOrigin = new Vector3(0f, -1000f, 0f);
     private const float InspectionDistance = 1.5f;
 
@@ -154,7 +157,7 @@ public class ItemInspector : MonoBehaviour
 
         if (_isPreviewMode)
         {
-            // In preview mode: rotation only, close on RMB / Escape / E.
+            // In preview mode: rotation only, close on LMB click / RMB / Escape / E.
             if (userDragging)
             {
                 Vector2 delta = Mouse.current.delta.ReadValue();
@@ -166,8 +169,13 @@ public class ItemInspector : MonoBehaviour
                 _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
             }
 
+            if (Mouse.current.leftButton.wasReleasedThisFrame && !_mouseWasDragged)
+            {
+                EndInspection();
+                return;
+            }
+
             if (Keyboard.current.escapeKey.wasPressedThisFrame ||
-                Keyboard.current.eKey.wasPressedThisFrame ||
                 Mouse.current.rightButton.wasPressedThisFrame)
             {
                 EndInspection();
@@ -195,7 +203,7 @@ public class ItemInspector : MonoBehaviour
             _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
         }
 
-        if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             ConfirmPickup();
             return;
@@ -337,6 +345,7 @@ public class ItemInspector : MonoBehaviour
             if (_worldObject != null && _worldObject.TryGetComponent(out PickableItem pickable))
                 pickable.NotifyPickedUp();
             if (_worldObject != null) Destroy(_worldObject);
+            AudioManager.Instance?.PlaySFX(pickupClip);
         }
         EndInspection();
     }

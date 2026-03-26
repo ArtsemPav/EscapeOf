@@ -29,6 +29,10 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [Tooltip("If open fraction exceeds this on release, drawer snaps fully open; otherwise it closes.")]
     [SerializeField] [Range(0f, 1f)] private float _snapThreshold = 0.5f;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip _openClip;
+    [SerializeField] [Range(0f, 1f)] private float _openVolume = 0.8f;
+
     [Header("Interaction")]
     [SerializeField] private string _interactText = "Потянуть";
 
@@ -38,6 +42,13 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     private float _openAmount;
     private float _targetOpenAmount;
     private bool _isDragging;
+    private bool _wasOpen;
+
+    // Direction tracking for mid-drag sound retrigger
+    private int   _lastDragSign;
+    private float _directionChangeCooldown;
+    private const float DirectionChangeCooldownDuration = 0.4f;
+    private const float DragInputThreshold = 0.5f;
 
     // Screen-space direction of the drawer's opening, computed once at drag start.
     // Projecting mouse delta onto this vector handles all approach angles correctly.
@@ -49,15 +60,24 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
 
     // The Animator driving the parent (disabled while the player manually drags)
     private Animator _parentAnimator;
+    private AudioSource _audioSource;
 
     private void Start()
     {
         _closedLocalPosition = transform.localPosition;
         _parentAnimator = GetComponentInParent<Animator>();
+
+        _audioSource = gameObject.AddComponent<AudioSource>();
+        _audioSource.playOnAwake  = false;
+        _audioSource.spatialBlend = 1f;
+        _audioSource.loop         = false;
     }
 
     private void Update()
     {
+        if (_directionChangeCooldown > 0f)
+            _directionChangeCooldown -= Time.deltaTime;
+
         if (_isDragging) return;
 
         // Smoothly snap to fully open or closed after the player releases LMB.
@@ -70,7 +90,12 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// <summary>Called by FPSController when LMB is pressed while the player looks at the drawer.</summary>
     public void OnDragStart(Vector3 hitPoint)
     {
-        _isDragging = true;
+        _isDragging  = true;
+        _lastDragSign = 0;
+        _directionChangeCooldown = 0f;
+
+        if (_openClip != null)
+            _audioSource.PlayOneShot(_openClip, _openVolume);
 
         if (_parentAnimator != null)
             _parentAnimator.enabled = false;
@@ -119,6 +144,19 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         if (_invertAxis) input = -input;
         _openAmount = Mathf.Clamp01(_openAmount + input * _computedSensitivity);
         ApplyPosition();
+
+        // Detect direction reversal and retrigger sound with cooldown.
+        if (Mathf.Abs(input) > DragInputThreshold)
+        {
+            int currentSign = input > 0f ? 1 : -1;
+            if (_lastDragSign != 0 && currentSign != _lastDragSign && _directionChangeCooldown <= 0f)
+            {
+                if (_openClip != null)
+                    _audioSource.PlayOneShot(_openClip, _openVolume);
+                _directionChangeCooldown = DirectionChangeCooldownDuration;
+            }
+            _lastDragSign = currentSign;
+        }
     }
 
     /// <summary>Called by FPSController when LMB is released. Snaps to nearest rest position.</summary>
@@ -126,6 +164,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     {
         _isDragging       = false;
         _targetOpenAmount = _openAmount >= _snapThreshold ? 1f : 0f;
+        _wasOpen          = _targetOpenAmount == 1f;
     }
 
     // ── IInteractable ───────────────────────────────────────────────────────────

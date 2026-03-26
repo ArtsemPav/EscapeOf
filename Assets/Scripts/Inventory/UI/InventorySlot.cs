@@ -73,8 +73,12 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
 
         if (!IsEmpty && !sourceSlot.IsEmpty)
         {
-            if (InventorySystem.Instance.TryCombine(sourceSlot.SlotIndex, SlotIndex, out _))
+            if (InventorySystem.Instance.TryCombine(sourceSlot.SlotIndex, SlotIndex, out ItemData craftedItem))
+            {
+                if (craftedItem != null && craftedItem.inspectionPrefab != null)
+                    ItemInspector.Instance?.BeginPreview(craftedItem);
                 return;
+            }
         }
 
         InventorySystem.Instance.SwapSlots(sourceSlot.SlotIndex, SlotIndex);

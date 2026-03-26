@@ -87,6 +87,16 @@ public class FPSController : MonoBehaviour, ISaveable
     private Vector3 _bobOffsetSmoothRef;
     private float _baseCameraLocalY;
 
+    // ── Public state for FootstepController ───────────────────────────────────
+    /// <summary>Running value of the head-bob timer (grows with movement).</summary>
+    public float BobTimer        => _bobTimer;
+    /// <summary>Whether the character is currently touching the ground.</summary>
+    public bool  IsGrounded      => _isGrounded;
+    /// <summary>Horizontal movement speed this frame.</summary>
+    public float HorizontalSpeed => _horizontalVelocity.magnitude;
+    /// <summary>Whether the player is in a crouched state.</summary>
+    public bool  IsCrouching     => _isCrouching;
+
     //Croach
     private bool _wantsToStand;
 

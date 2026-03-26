@@ -73,6 +73,7 @@ namespace Escape.Core {
         private float   _unlockAjarTarget;    // target fraction for the unlock swing
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
+        private bool    _dragSoundPlayed;     // ensures open/close sound fires only once per drag
 
         // Pending load state: applied in Start() after _closedLocalEulerY is initialized
         private bool    _hasPendingLoad;
@@ -81,8 +82,9 @@ namespace Escape.Core {
         private float   _pendingOpenFraction;
         private bool    _pendingWasUnlocked; // door was unlocked via CodeLock but openFraction not yet written
 
-        private const float MinDragFraction = 0.04f;
-        private const float MinDragVelocity  = 0.08f;
+        private const float MinDragFraction    = 0.04f;
+        private const float MinDragVelocity    = 0.08f;
+        private const float DragSoundThreshold = 0.015f; // min fraction moved before direction sound fires
 
         // ── ISaveable ────────────────────────────────────────────────────────────
 
@@ -212,14 +214,13 @@ namespace Escape.Core {
             _isDragging        = true;
             _dragActive        = true;
             _snappingBack      = false;
-            _isUnlockAnimating = false; // Player takes manual control — cancel pending ajar animation.
+            _isUnlockAnimating = false;
             _isLockedDrag      = _isLocked && !_isOpen;
             _dragStartFraction = _openFraction;
+            _dragSoundPlayed   = false;
 
             if (_isLockedDrag)
                 AudioManager.Instance.PlaySFX(_lockedClip);
-            else
-                AudioManager.Instance.PlaySFX(_openClip);
 
             // Сохраняем offset в «закрытом» системе координат (pivot = 0°).
             // В OnDrag мы вращаем его на openFraction * maxAngle, получая правильное
@@ -280,6 +281,18 @@ namespace Escape.Core {
             float prev         = _openFraction;
             _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, maxFraction);
             _velocity     = Mathf.Clamp((_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f), -_maxVelocity, _maxVelocity);
+
+            // Play open or close sound once, determined by the first significant drag direction.
+            if (!_isLockedDrag && !_dragSoundPlayed)
+            {
+                float moved = _openFraction - _dragStartFraction;
+                if (Mathf.Abs(moved) >= DragSoundThreshold)
+                {
+                    AudioManager.Instance.PlaySFX(moved > 0f ? _openClip : _closeClip);
+                    _dragSoundPlayed = true;
+                }
+            }
+
             if (!_isLockedDrag) PlayBoundaryClips(prev, _openFraction);
             ApplyAngle();
         }

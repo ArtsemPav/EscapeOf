@@ -18,6 +18,9 @@ public class NoteUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _titleText;
     [SerializeField] private TextMeshProUGUI _contentText;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip _openClip;
+
     private bool _justOpened;
 
     private void Awake()
@@ -30,24 +33,23 @@ public class NoteUI : MonoBehaviour
     {
         if (!_panel.activeSelf) return;
 
-        // Skip the frame the panel was opened on — the same E keypress would
-        // immediately close it without this guard.
         if (_justOpened) { _justOpened = false; return; }
 
         var kb = Keyboard.current;
         if (kb == null) return;
 
-        if (kb.escapeKey.wasPressedThisFrame || kb.eKey.wasPressedThisFrame)
+        if (kb.escapeKey.wasPressedThisFrame)
             Close();
     }
 
     /// <summary>Opens the panel and displays the given note.</summary>
     public void Open(NoteData noteData)
     {
-        _titleText.text = noteData.title;
+        _titleText.text   = noteData.title;
         _contentText.text = noteData.content;
-        _justOpened = true;
+        _justOpened       = true;
         UIManager.Instance?.OpenPanel(_panel);
+        AudioManager.Instance?.PlaySFX(_openClip);
     }
 
     /// <summary>Closes the panel and restores player control.</summary>
