@@ -1878,12 +1878,14 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
-  _openClip: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
-  _closeClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+  _openLoopClip: {fileID: 8300000, guid: a111e6603bdd0564db0de000cd7910db, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
+  _latchClip: {fileID: 8300000, guid: 27b6608a752842a4f99541fbb96b15f5, type: 3}
   _lockedClip: {fileID: 0}
   _unlockClip: {fileID: 0}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
   _saveId: door_locker_bot_left
 --- !u!1 &191430518
 GameObject:
@@ -3090,12 +3092,14 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
-  _openClip: {fileID: 8300000, guid: a72b1781b957d4d43b5ae61c5d1896b4, type: 3}
-  _closeClip: {fileID: 8300000, guid: e6591fa135fba5c4d93d23c21d104827, type: 3}
+  _openLoopClip: {fileID: 0}
+  _closeLoopClip: {fileID: 0}
+  _latchClip: {fileID: 0}
   _lockedClip: {fileID: 8300000, guid: e6591fa135fba5c4d93d23c21d104827, type: 3}
   _unlockClip: {fileID: 8300000, guid: 18e8d0d7e6ea0434e9dbab1214e74a26, type: 3}
   _unlockAjarFraction: 0.35
   _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
   _saveId: door_secondroom_main
 --- !u!4 &319375208 stripped
 Transform:
@@ -7911,9 +7915,9 @@ MonoBehaviour:
   _flickerSounds:
   - {fileID: 8300000, guid: c46b54ea05b2023428810fa5c0b9340f, type: 3}
   - {fileID: 8300000, guid: 67e9ce6cd415b234c91f7276ac05f972, type: 3}
-  _soundVolume: 0.8
-  _minDistance: 5
-  _maxDistance: 8
+  _soundVolume: 0.446
+  _minDistance: 1
+  _maxDistance: 4
   _sampleSize: 64
   _sensitivity: 80
   _minIntensity: 0
@@ -8283,10 +8287,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2127876394}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 50, y: -20.055}
-  m_SizeDelta: {x: 76, y: 20.11}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &787217277
 MonoBehaviour:
@@ -8557,12 +8561,14 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
-  _openClip: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
-  _closeClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+  _openLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
+  _latchClip: {fileID: 8300000, guid: 5dfe0488f509574449df570724cca748, type: 3}
   _lockedClip: {fileID: 0}
   _unlockClip: {fileID: 0}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
   _saveId: door_desk
 --- !u!1001 &818677612
 PrefabInstance:
@@ -8689,6 +8695,10 @@ PrefabInstance:
     - target: {fileID: 4369005094392084, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.01
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.y
@@ -14169,12 +14179,14 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
-  _openClip: {fileID: 8300000, guid: 7c33de985d364964593d9a7f3c8f3b41, type: 3}
-  _closeClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+  _openLoopClip: {fileID: 0}
+  _closeLoopClip: {fileID: 0}
+  _latchClip: {fileID: 0}
   _lockedClip: {fileID: 0}
   _unlockClip: {fileID: 0}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
   _saveId: door_locker_top_left
 --- !u!1 &1462157114
 GameObject:
@@ -16121,10 +16133,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2127876394}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 1}
-  m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 50, y: -41.935}
-  m_SizeDelta: {x: 76, y: 15.65}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1817190393
 MonoBehaviour:
@@ -17360,12 +17372,14 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
-  _openClip: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
-  _closeClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+  _openLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _latchClip: {fileID: 8300000, guid: 5dfe0488f509574449df570724cca748, type: 3}
   _lockedClip: {fileID: 0}
   _unlockClip: {fileID: 0}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
   _saveId: door_locker_bot_right
 --- !u!1001 &1969700233
 PrefabInstance:
@@ -18280,12 +18294,14 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
-  _openClip: {fileID: 8300000, guid: 7c33de985d364964593d9a7f3c8f3b41, type: 3}
-  _closeClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+  _openLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _latchClip: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
   _lockedClip: {fileID: 0}
   _unlockClip: {fileID: 0}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
   _saveId: door_locker_top_right
 --- !u!1 &2074379134
 GameObject:
@@ -19043,7 +19059,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 59.760002}
+  m_SizeDelta: {x: 100, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2127876395
 MonoBehaviour:

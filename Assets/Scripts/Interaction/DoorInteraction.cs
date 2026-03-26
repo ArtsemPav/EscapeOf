@@ -43,10 +43,12 @@ namespace Escape.Core {
         [SerializeField] private float _lockedSnapBackSpeed = 8f;
 
         [Header("Audio")]
-        [Tooltip("Звук воспроизводится когда дверь досылается в открытое положение.")]
-        [SerializeField] private AudioClip _openClip;
-        [Tooltip("Звук воспроизводится когда дверь закрывается.")]
-        [SerializeField] private AudioClip _closeClip;
+        [Tooltip("Зацикленный звук — играет пока дверь движется в сторону открытия.")]
+        [SerializeField] private AudioClip _openLoopClip;
+        [Tooltip("Зацикленный звук — играет пока дверь движется в сторону закрытия.")]
+        [SerializeField] private AudioClip _closeLoopClip;
+        [Tooltip("Одиночный удар — играет когда дверь достигает полностью закрытого положения.")]
+        [SerializeField] private AudioClip _latchClip;
         [Tooltip("Звук подёргивания запертой двери.")]
         [SerializeField] private AudioClip _lockedClip;
         [Tooltip("Звук щелчка замка при вводе правильного кода. Дверь приоткрывается на _unlockAjarFraction.")]
@@ -55,6 +57,8 @@ namespace Escape.Core {
         [SerializeField] [Range(0f, 0.4f)] private float _unlockAjarFraction = 0.12f;
         [Tooltip("Скорость плавного приоткрытия после разблокировки (fraction/sec). Больше — быстрее.")]
         [SerializeField] private float _unlockAjarSpeed = 0.6f;
+        [Tooltip("Громкость звуков движения двери.")]
+        [SerializeField] [Range(0f, 1f)] private float _motionVolume = 0.7f;
 
         [Header("Save")]
         [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
@@ -73,18 +77,25 @@ namespace Escape.Core {
         private float   _unlockAjarTarget;    // target fraction for the unlock swing
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
-        private bool    _dragSoundPlayed;     // ensures open/close sound fires only once per drag
 
         // Pending load state: applied in Start() after _closedLocalEulerY is initialized
         private bool    _hasPendingLoad;
         private bool    _pendingIsOpen;
         private bool    _pendingIsLocked;
         private float   _pendingOpenFraction;
-        private bool    _pendingWasUnlocked; // door was unlocked via CodeLock but openFraction not yet written
+        private bool    _pendingWasUnlocked;
 
-        private const float MinDragFraction    = 0.04f;
-        private const float MinDragVelocity    = 0.08f;
-        private const float DragSoundThreshold = 0.015f; // min fraction moved before direction sound fires
+        // ── Audio runtime ─────────────────────────────────────────────────────────
+        // Dedicated AudioSources for looping motion sounds, spawned on first use.
+        private AudioSource _openLoopSource;
+        private AudioSource _closeLoopSource;
+        // Tracks which loop is currently active to avoid redundant Play/Stop calls.
+        private enum LoopState { None, Opening, Closing }
+        private LoopState _currentLoop = LoopState.None;
+
+        private const float MinDragFraction     = 0.04f;
+        private const float MinDragVelocity     = 0.08f;
+        private const float MotionLoopThreshold = 0.02f; // min |velocity| to keep loop alive
 
         // ── ISaveable ────────────────────────────────────────────────────────────
 
@@ -169,7 +180,7 @@ namespace Escape.Core {
         }
 
         private void Update() {
-            if (_isDragging) return; // OnDrag напрямую двигает дверь — Update только после отпускания
+            if (_isDragging) return;
 
             // ── Smooth unlock ajar ───────────────────────────────────────────────
             if (_isUnlockAnimating) {
@@ -199,11 +210,19 @@ namespace Escape.Core {
                 float prev    = _openFraction;
                 _openFraction = Mathf.Clamp(_openFraction + _velocity * Time.deltaTime, 0f, 1f);
                 _velocity    *= Mathf.Clamp01(1f - _friction * Time.deltaTime);
-                PlayBoundaryClips(prev, _openFraction);
+                CheckLatch(prev, _openFraction);
                 ApplyAngle();
+
+                // Kill velocity and stop loops once it fades below threshold
+                if (Mathf.Abs(_velocity) < MotionLoopThreshold)
+                {
+                    _velocity = 0f;
+                    StopMotionLoops();
+                }
             } else {
                 _velocity   = 0f;
                 _dragActive = false;
+                StopMotionLoops();
             }
         }
 
@@ -217,16 +236,10 @@ namespace Escape.Core {
             _isUnlockAnimating = false;
             _isLockedDrag      = _isLocked && !_isOpen;
             _dragStartFraction = _openFraction;
-            _dragSoundPlayed   = false;
 
             if (_isLockedDrag)
                 AudioManager.Instance.PlaySFX(_lockedClip);
 
-            // Сохраняем offset в «закрытом» системе координат (pivot = 0°).
-            // В OnDrag мы вращаем его на openFraction * maxAngle, получая правильное
-            // мировое положение точки захвата при любом угле двери.
-            // Без обратного поворота здесь offset был бы уже в открытом положении,
-            // и дополнительный поворот в OnDrag давал бы двойную ротацию → инверсию.
             if (_pivot != null) {
                 Vector3 offset = hitPoint - _pivot.position;
                 offset.y = 0f;
@@ -242,21 +255,15 @@ namespace Escape.Core {
             Camera cam = Camera.main;
             if (cam == null || _pivot == null) return;
 
-            // Текущее положение точки захвата в мире: вращаем начальный offset
-            // вместе с открытием двери (openFraction * maxAngle — точный угол поворота пивота).
             float   openedAngle  = _openFraction * _maxOpenAngle;
             Vector3 grabWorld    = Quaternion.AngleAxis(openedAngle, Vector3.up) * _grabOffsetWorld;
             float   grabDist     = grabWorld.magnitude;
 
             if (grabDist < 0.001f) return;
 
-            // Касательная к дуге вращения вокруг мировой оси Y.
-            // cross(up, grabDir) даёт направление движения точки при ПОЛОЖИТЕЛЬНОМ вращении;
-            // умножение на sign(maxOpenAngle) корректирует знак для дверей с отрицательным углом.
             Vector3 swingTangent = Vector3.Cross(Vector3.up, grabWorld / grabDist)
                                    * Mathf.Sign(_maxOpenAngle);
 
-            // Проецируем касательную на экран от реальной позиции точки захвата.
             Vector3 grabWorldPos = _pivot.position + grabWorld;
             Vector2 screenGrab   = cam.WorldToScreenPoint(grabWorldPos);
             Vector2 screenAhead  = cam.WorldToScreenPoint(grabWorldPos + swingTangent * 0.5f);
@@ -265,35 +272,23 @@ namespace Escape.Core {
 
             if (openDirMag < 0.5f) return;
 
-            // Sensitivity: pixels mouse → fraction of door rotation.
-            // grabDist intentionally excluded — same swipe = same rotation angle
-            // regardless of where the player grabbed (game feel over physics).
-            // openDirMag / 0.5f accounts for perspective (camera distance).
             float screenPerFraction = Mathf.Abs(_maxOpenAngle) * Mathf.Deg2Rad
                                       * (openDirMag / 0.5f);
 
             float input        = Vector2.Dot(mouseDelta, openDir / openDirMag);
             float deltaFraction = input * _dragSensitivity / Mathf.Max(screenPerFraction, 0.01f);
 
-            // Phasmophobia style: напрямую двигаем дверь, без накопления скорости.
-            // Скорость отслеживаем для инерции после отпускания (fraction/sec).
             float maxFraction = _isLockedDrag ? _lockedJiggleFraction : 1f;
             float prev         = _openFraction;
             _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, maxFraction);
             _velocity     = Mathf.Clamp((_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f), -_maxVelocity, _maxVelocity);
 
-            // Play open or close sound once, determined by the first significant drag direction.
-            if (!_isLockedDrag && !_dragSoundPlayed)
+            if (!_isLockedDrag)
             {
-                float moved = _openFraction - _dragStartFraction;
-                if (Mathf.Abs(moved) >= DragSoundThreshold)
-                {
-                    AudioManager.Instance.PlaySFX(moved > 0f ? _openClip : _closeClip);
-                    _dragSoundPlayed = true;
-                }
+                UpdateMotionLoop();
+                CheckLatch(prev, _openFraction);
             }
 
-            if (!_isLockedDrag) PlayBoundaryClips(prev, _openFraction);
             ApplyAngle();
         }
 
@@ -303,13 +298,13 @@ namespace Escape.Core {
             _isDragging   = false;
             _isLockedDrag = false;
 
+            StopMotionLoops();
+
             if (wasLockedDrag) {
-                // Locked jiggle: return to closed via Update() lerp.
                 _snappingBack = true;
                 return;
             }
 
-            // Trivial drag guard: случайный клик без движения — сбрасываем скорость и останавливаемся.
             bool trivial = Mathf.Abs(_openFraction - _dragStartFraction) < MinDragFraction
                         && Mathf.Abs(_velocity)                           < MinDragVelocity;
             if (trivial) {
@@ -318,7 +313,6 @@ namespace Escape.Core {
                 return;
             }
 
-            // Door coasts to wherever velocity naturally takes it — no snap.
             _isOpen = _openFraction > 0.5f;
         }
 
@@ -382,14 +376,83 @@ namespace Escape.Core {
             _pivot.localEulerAngles = e;
         }
 
-        /// <summary>Воспроизводит клип если AudioSource и клип назначены.</summary>
-        private void PlayClip(AudioClip clip) {
-            AudioManager.Instance.PlaySFX(clip);
+        /// <summary>Gets or lazily creates a looping AudioSource for the given clip.</summary>
+        private AudioSource GetLoopSource(ref AudioSource source, AudioClip clip)
+        {
+            if (source != null) return source;
+            GameObject obj = new GameObject("DoorLoop");
+            obj.transform.SetParent(transform);
+            obj.transform.localPosition = Vector3.zero;
+            source            = obj.AddComponent<AudioSource>();
+            source.clip       = clip;
+            source.loop       = true;
+            source.spatialBlend = 1f;
+            source.minDistance  = 0.5f;
+            source.maxDistance  = 6f;
+            source.volume     = _motionVolume;
+            source.playOnAwake = false;
+            return source;
         }
 
-        /// <summary>Воспроизводит close клип когда дверь достигает закрытого положения.</summary>
-        private void PlayBoundaryClips(float prev, float current) {
-            if (prev > 0f && current <= 0f) AudioManager.Instance.PlaySFX(_closeClip);
+        /// <summary>Starts the correct motion loop based on current velocity, stops the other.</summary>
+        private void UpdateMotionLoop()
+        {
+            if (_velocity > MotionLoopThreshold)
+            {
+                // Opening
+                if (_currentLoop != LoopState.Opening)
+                {
+                    StopLoop(ref _closeLoopSource);
+                    if (_openLoopClip != null)
+                    {
+                        var src = GetLoopSource(ref _openLoopSource, _openLoopClip);
+                        if (!src.isPlaying) src.Play();
+                    }
+                    _currentLoop = LoopState.Opening;
+                }
+            }
+            else if (_velocity < -MotionLoopThreshold)
+            {
+                // Closing
+                if (_currentLoop != LoopState.Closing)
+                {
+                    StopLoop(ref _openLoopSource);
+                    if (_closeLoopClip != null)
+                    {
+                        var src = GetLoopSource(ref _closeLoopSource, _closeLoopClip);
+                        if (!src.isPlaying) src.Play();
+                    }
+                    _currentLoop = LoopState.Closing;
+                }
+            }
+            else
+            {
+                StopMotionLoops();
+            }
+        }
+
+        /// <summary>Stops both motion loops immediately.</summary>
+        private void StopMotionLoops()
+        {
+            StopLoop(ref _openLoopSource);
+            StopLoop(ref _closeLoopSource);
+            _currentLoop = LoopState.None;
+        }
+
+        private static void StopLoop(ref AudioSource source)
+        {
+            if (source != null && source.isPlaying)
+                source.Stop();
+        }
+
+        /// <summary>Fires the latch clip when door crosses fully closed (openFraction → 0).</summary>
+        private void CheckLatch(float prev, float current)
+        {
+            if (prev > 0f && current <= 0f)
+            {
+                StopMotionLoops();
+                AudioManager.Instance.PlaySFX(_latchClip);
+            }
         }
         [ContextMenu("Generate Save ID")]
         private void GenerateSaveId()
