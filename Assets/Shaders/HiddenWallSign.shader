@@ -106,10 +106,13 @@ Shader "Custom/HiddenWallSign"
                 float radialT    = saturate((cosAngle - _SpotAngleCos) / (1.0 - _SpotAngleCos + 1e-5));
                 float radialFade = pow(radialT, _RadialFalloff);
 
-                // ── Distance fade: full visibility near, barely visible at MaxDist ─
-                // Transition: from MaxDist/2 (full) to MaxDist (MinDistAlpha)
-                float distT    = saturate(dist / (_MaxVisibleDist * 0.5) - 1.0);
-                float distFade = lerp(1.0, _MinDistAlpha, distT);
+                // ── Distance fade: two-stage ──────────────────────────────────────
+                // Stage 1: 1.0 → _MinDistAlpha between [MaxDist*0.5 .. MaxDist*0.85]
+                float t1      = smoothstep(_MaxVisibleDist * 0.5, _MaxVisibleDist * 0.85, dist);
+                float midFade = lerp(1.0, _MinDistAlpha, t1);
+                // Stage 2: _MinDistAlpha → 0 between [MaxDist*0.85 .. MaxDist]
+                float t2       = smoothstep(_MaxVisibleDist * 0.85, _MaxVisibleDist, dist);
+                float distFade = lerp(midFade, 0.0, t2);
 
                 // Combined visibility mask (alpha only)
                 float mask = coneMask * radialFade * distFade;
