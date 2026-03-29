@@ -496,7 +496,11 @@ public class FPSController : MonoBehaviour, ISaveable
         var mouse = UnityEngine.InputSystem.Mouse.current;
         if (mouse == null) return;
 
-        if (mouse.leftButton.wasPressedThisFrame && _currentDraggable == null)
+        // Do not start new interactions while any UI panel is open.
+        // Active drags are still allowed to finish so release events are not lost.
+        bool panelOpen = UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen;
+
+        if (mouse.leftButton.wasPressedThisFrame && _currentDraggable == null && !panelOpen)
         {
             if (_currentInteractable is IDraggable draggable)
             {

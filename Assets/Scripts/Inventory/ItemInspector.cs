@@ -6,7 +6,7 @@ using UnityEngine.UI;
 /// <summary>
 /// Singleton. Shows a 3D inspection view of a world item before adding it to inventory.
 /// Uses a dedicated camera rendering to a runtime RenderTexture displayed via RawImage.
-/// Left mouse drag rotates the item. E — take, Escape — cancel.
+/// Left mouse drag rotates the item. Click to take, Escape to cancel.
 /// </summary>
 public class ItemInspector : MonoBehaviour
 {
@@ -60,7 +60,7 @@ public class ItemInspector : MonoBehaviour
     // True when the panel is open as a read-only preview from the inventory (no pickup).
     private bool _isPreviewMode;
 
-    private const float DragThresholdPx = 8f;
+    private const float DragThresholdPx = 25f;
     private Vector2 _mouseDownPos;
     private bool _mouseWasDragged;
 
@@ -78,16 +78,16 @@ public class ItemInspector : MonoBehaviour
             if (_inspectionLayer == -1)
                 Debug.LogError($"ItemInspector: Layer '{inspectionLayerName}' not found.", this);
 
-            // RenderTexture в размерах экрана — точное совпадение с aspect ratio PreviewImage
-            int rtWidth  = Mathf.Max(Screen.width,  128);
-            int rtHeight = Mathf.Max(Screen.height, 128);
-            _renderTexture = new RenderTexture(rtWidth, rtHeight, 16);
+            // Fixed square RT — camera aspect matches 1:1 regardless of screen resolution.
+            // PreviewImage must have an AspectRatioFitter (FitInParent, ratio=1) to display correctly.
+            _renderTexture = new RenderTexture(512, 512, 16);
             _renderTexture.Create();
 
             if (inspectionCamera != null)
             {
                 inspectionCamera.allowHDR        = false;
-                inspectionCamera.orthographic    = true;   // нет перспективного искажения
+                inspectionCamera.orthographic    = true;
+                inspectionCamera.aspect          = 1.0f; // match the square RenderTexture
                 inspectionCamera.clearFlags      = CameraClearFlags.SolidColor;
                 inspectionCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
                 inspectionCamera.targetTexture   = _renderTexture;
@@ -110,6 +110,15 @@ public class ItemInspector : MonoBehaviour
     private void Update()
     {
         if (!_isInspecting || _inspectionPivot == null) return;
+
+        // Always track LMB press first — before any early returns — so _mouseDownPos
+        // is never missed when the press coincides with _ignoreInputThisFrame or
+        // _waitForMouseRelease clearing in the same frame.
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            _mouseDownPos    = Mouse.current.position.ReadValue();
+            _mouseWasDragged = false;
+        }
 
         // Пропускаем первый кадр — та же кнопка открыла инспекцию
         if (_ignoreInputThisFrame)
@@ -145,13 +154,6 @@ public class ItemInspector : MonoBehaviour
                 _inspectionPivot.transform.localScale = Vector3.one;
         }
 
-        // Track click vs drag: record position on press, flag if moved beyond threshold.
-        if (Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            _mouseDownPos    = Mouse.current.position.ReadValue();
-            _mouseWasDragged = false;
-        }
-
         if (userDragging && (Mouse.current.position.ReadValue() - _mouseDownPos).magnitude > DragThresholdPx)
             _mouseWasDragged = true;
 
@@ -183,7 +185,9 @@ public class ItemInspector : MonoBehaviour
             return;
         }
 
-        // Short click (no drag) anywhere on screen → pick up.
+        // LMB release without significant mouse movement = pick up.
+        // Holding LMB and dragging the mouse rotates the model; releasing after
+        // a drag is intentionally ignored so the item doesn't vanish mid-rotation.
         if (Mouse.current.leftButton.wasReleasedThisFrame && !_mouseWasDragged)
         {
             ConfirmPickup();
@@ -205,7 +209,7 @@ public class ItemInspector : MonoBehaviour
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            ConfirmPickup();
+            EndInspection();
             return;
         }
     }
@@ -238,6 +242,7 @@ public class ItemInspector : MonoBehaviour
         _currentItem = item;
         _worldObject = worldObject;
         _isPreviewMode = false;
+        _mouseWasDragged = false;
 
         SpawnPreview(item);
 
@@ -251,7 +256,7 @@ public class ItemInspector : MonoBehaviour
 
     /// <summary>
     /// Opens a read-only 3D preview of an inventory item (no pickup, no world object).
-    /// Close with RMB, E, or Escape.
+    /// Close with RMB or Escape.
     /// </summary>
     public void BeginPreview(ItemData item)
     {
