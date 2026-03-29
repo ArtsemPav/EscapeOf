@@ -10,16 +10,18 @@
 
 ```
 Assets/Scripts/Inventory/
-├── ItemDataSO.cs          # ScriptableObject — описание одного предмета
-├── CraftingRecipe.cs      # ScriptableObject — правило крафта
-├── InventorySystem.cs     # Singleton — вся логика инвентаря
-├── PickableItem.cs        # Компонент на объекте в мире — подбор предмета
-├── ItemInspector.cs       # Singleton — управление инспекцией предмета
+├── ItemDataSO.cs               # ScriptableObject — описание одного предмета
+├── CraftingRecipe.cs           # ScriptableObject — правило крафта
+├── InventorySystem.cs          # Singleton — вся логика инвентаря
+├── PickableItem.cs             # Компонент на объекте в мире — подбор предмета
+├── ItemInspector.cs            # Singleton — управление инспекцией предмета (мировые объекты)
 └── UI/
-    ├── InventoryUI.cs     # Открытие/закрытие панели, создание слотов
-    ├── InventorySlot.cs   # Один слот — отображение + drop-зона + ПКМ-превью
-    ├── DraggableItem.cs   # Иконка предмета — drag-and-drop поведение
-    └── InventoryHints.cs  # Панель подсказок управления внизу инвентаря
+    ├── InventoryUI.cs          # Singleton — открытие/закрытие панели, создание слотов
+    ├── InventorySlot.cs        # Один слот — отображение + drop-зона + ЛКМ-превью
+    ├── DraggableItem.cs        # Иконка предмета — drag-and-drop поведение
+    ├── InventoryHints.cs       # Панель подсказок управления внизу инвентаря
+    ├── InventoryItemPreview.cs # Встроенный 3D-превью в правой части инвентаря
+    └── InventoryBackdrop.cs    # Закрытие инвентаря кликом вне панели
 
 Assets/Scripts/Editor/
 └── MissingScriptCleaner.cs  # Утилита: Tools → Remove Missing Scripts
@@ -75,17 +77,52 @@ public event Action OnInventoryChanged;
 
 ## UI — `InventoryUI`
 
-Управляет панелью инвентаря. Создаёт слоты один раз в `Start`, потом только обновляет их содержимое. Количество слотов берётся из `InventorySystem.Instance.MaxSlots`.
+Singleton (`Instance`). Управляет панелью инвентаря и связанными объектами. Создаёт слоты один раз в `Start`, потом только обновляет их содержимое. Количество слотов берётся из `InventorySystem.Instance.MaxSlots`.
 
 **Открытие/закрытие** — кнопка из Input System (`Player.Inventory`). При открытии:
 
+- Активирует `inventoryBackdrop` (прозрачный экран за панелью — закрытие кликом вне панели)
 - Показывает `inventoryPanel`
 - Снимает блокировку курсора
 - Отключает ввод игрока (`FPSController.SetPlayerInputEnabled(false)`)
+- Автоматически показывает первый предмет инвентаря во встроенном 3D-превью (`InventoryItemPreview.Show`)
 
-При закрытии инвентаря автоматически завершает активный 3D-превью через `ItemInspector.CancelPreviewIfActive()` — чтобы 3D-объект не оставался в сцене.
+При закрытии:
+- Деактивирует `inventoryBackdrop`
+- Очищает встроенное превью (`InventoryItemPreview.Clear`)
+- Завершает активный `ItemInspector.CancelPreviewIfActive()` (защита от рассинхрона счётчика панелей)
+
+`CloseInventory()` — **публичный** метод. Вызывается из `InventoryBackdrop` и других внешних источников. Безопасно игнорирует повторный вызов если инвентарь уже закрыт.
 
 `RefreshSlots()` — вызывается при `OnInventoryChanged`. Проходит по всем слотам и вызывает `slot.Setup(GetItemAt(i))`.
+
+### Инспектор
+
+| Поле | Описание |
+|---|---|
+| `Inventory Panel` | GameObject панели инвентаря |
+| `Inventory Backdrop` | GameObject полноэкранного backdrop'а (`InventoryBackdrop`) |
+| `Slot Prefab` | Префаб одного слота |
+| `Slots Container` | Transform сетки слотов |
+
+---
+
+## UI — `InventoryBackdrop`
+
+Полноэкранный прозрачный overlay, размещённый в Canvas **перед** `InventoryPanel` в иерархии (рендерится позади неё). Реализует `IPointerClickHandler`.
+
+Клик ЛКМ на backdrop (т.е. вне области панели инвентаря) → вызывает `InventoryUI.Instance.CloseInventory()`.
+
+`InventoryUI` активирует backdrop при открытии инвентаря и деактивирует при закрытии.
+
+### Иерархия в сцене
+
+```
+Canvas
+├── InventoryBackdrop     # Image alpha=0.4, raycastTarget=true; InventoryBackdrop.cs
+│                         # RectTransform: anchors (0,0)→(1,1) — полный экран
+└── InventoryPanel        # блокирует raycast на себя — клики внутри до backdrop не доходят
+```
 
 ---
 
@@ -99,11 +136,65 @@ public event Action OnInventoryChanged;
 Предмет брошен на слот
 ├── Оба слота заняты → TryCombine(source, target)
 │   ├── Рецепт найден → результат в target, source очищается
+│   │                   InventoryItemPreview.Show(craftedItem) — превью обновляется сразу
 │   └── Рецепта нет  → SwapSlots (предметы меняются местами)
 └── Один слот пуст  → SwapSlots (предмет переезжает)
 ```
 
-`OnPointerClick (ПКМ)` — открывает 3D-превью предмета через `ItemInspector.BeginPreview(item)`. Работает только если у предмета есть `inspectionPrefab`.
+`OnPointerClick (ЛКМ)` — показывает встроенный 3D-превью предмета через `InventoryItemPreview.Show(item)`. Перед открытием скрывает тултип.
+
+---
+
+## UI — `InventoryItemPreview`
+
+Встроенный 3D-превью в правой части инвентаря. Singleton (`Instance`). Крепится на `RawImage` (`PreviewImage`) и рендерит `RenderTexture` от выделенной камеры.
+
+### Как работает
+
+1. В `Awake` создаётся квадратный `RenderTexture 512×512` — без искажений независимо от размера панели
+2. `InventoryPreviewCamera` настраивается как `Orthographic`, `aspect = 1.0`, culling mask = слой `Inspection`
+3. `Show(item)` — инстанциирует `item.inspectionPrefab` в точке `(500, -1000, 0)`, вычисляет bounds, создаёт пивот, применяет `initialRotation`, включает камеру
+4. Модель автоматически вращается (`idleSpinSpeed`). Drag по `RawImage` — ручное вращение мышью
+5. `Clear()` — уничтожает пивот и свет, отключает камеру
+
+`AspectRatioFitter` на `PreviewImage` обязателен — без него квадратный `RenderTexture` растянется по форме панели.
+
+### Иерархия в сцене
+
+```
+Canvas/InventoryPanel/
+├── LeftPanel
+│   ├── TitleText           # Заголовок инвентаря
+│   └── SlotsContainer      # GridLayoutGroup — сетка слотов
+├── RightPanel
+│   ├── PreviewImage        # RawImage + AspectRatioFitter(FitInParent, 1:1) + InventoryItemPreview
+│   ├── ItemNameText        # TextMeshProUGUI — название предмета
+│   └── DescriptionText     # TextMeshProUGUI — описание предмета
+└── HintsBar                # Полная ширина, внизу панели; компонент InventoryHints
+    └── HintsText           # TextMeshProUGUI — итоговый текст подсказок
+
+InspectionSetup/
+└── InventoryPreviewCamera  # Camera, изначально отключена; управляется скриптом
+```
+
+### Параметры Inspector
+
+| Поле | По умолчанию | Описание |
+|---|---|---|
+| `Preview Camera` | — | Ссылка на `InventoryPreviewCamera` |
+| `Item Name Text` | — | `TextMeshProUGUI` для названия |
+| `Description Text` | — | `TextMeshProUGUI` для описания |
+| `Idle Spin Speed` | `30` | Скорость автовращения (°/сек) |
+| `Drag Rotation Speed` | `0.4` | Чувствительность ручного вращения |
+| `Initial Rotation` | `(15, -35, 0)` | Начальный поворот модели (Euler) |
+| `Framing Multiplier` | `2.2` | Масштаб кадрирования — больше значение, меньше модель в кадре |
+
+### Управление
+
+| Действие | Результат |
+|---|---|
+| ЛКМ на слоте инвентаря | Показать предмет во встроенном превью |
+| ЛКМ + drag по области превью | Ручное вращение модели |
 
 ---
 
@@ -146,6 +237,15 @@ InventoryPanel
 | `Separator` | Строка между клавишей и действием |
 | `Column Gap` | Отступ между подсказками в одной строке |
 
+Актуальные подсказки:
+
+| Key | Action |
+|---|---|
+| ЛКМ | Выбрать предмет |
+| ЛКМ + тащить | Переместить предмет |
+| Перетащить на слот | Объединить / крафт |
+| Tab / I | Закрыть инвентарь |
+
 ---
 
 ## Подбор предметов — `PickableItem`
@@ -184,9 +284,8 @@ Canvas/
 | Метод | Описание |
 |---|---|
 | `BeginInspection(item, worldObject)` | Режим подбора. Вызывается из `PickableItem` |
-| `BeginPreview(item)` | Режим превью из инвентаря. ПКМ на слоте |
 | `ConfirmPickup()` | Добавляет предмет в инвентарь и закрывает панель |
-| `CancelPreviewIfActive()` | Закрывает превью без изменения инвентаря. Вызывается из `InventoryUI.CloseInventory` |
+| `CancelPreviewIfActive()` | Закрывает превью без изменения инвентаря. Вызывается из `InventoryUI.CloseInventory` как защитный вызов |
 
 ### Управление в режиме подбора
 
@@ -194,13 +293,6 @@ Canvas/
 |---|---|
 | ЛКМ + drag | Ручное вращение модели |
 | E / Escape | Подобрать предмет |
-
-### Управление в режиме превью (из инвентаря)
-
-| Действие | Результат |
-|---|---|
-| ЛКМ + drag | Ручное вращение модели |
-| ПКМ / E / Escape | Закрыть превью |
 
 ### Как работает
 

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 /// Shows item icon when filled, hides icon when empty.
 /// Handles drag-and-drop: moves items between slots or tries crafting.
 /// Shows item tooltip on hover.
-/// Right-click opens a 3D item preview via ItemInspector.
+/// Left-click shows the item's 3D preview in the embedded InventoryItemPreview panel.
 /// </summary>
 public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
@@ -52,15 +52,14 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
         ItemTooltip.Instance?.Hide();
     }
 
-    /// <summary>Right-click opens a 3D preview of the item without removing it from the inventory.</summary>
+    /// <summary>Left-click shows the item's 3D preview in the embedded preview panel.</summary>
     public void OnPointerClick(PointerEventData eventData)
     {
-        if (eventData.button != PointerEventData.InputButton.Right) return;
+        if (eventData.button != PointerEventData.InputButton.Left) return;
         if (IsEmpty) return;
-        if (Item.inspectionPrefab == null) return;
 
         ItemTooltip.Instance?.Hide();
-        ItemInspector.Instance?.BeginPreview(Item);
+        InventoryItemPreview.Instance?.Show(Item);
     }
 
     public void OnDrop(PointerEventData eventData)
@@ -75,8 +74,8 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
         {
             if (InventorySystem.Instance.TryCombine(sourceSlot.SlotIndex, SlotIndex, out ItemData craftedItem))
             {
-                if (craftedItem != null && craftedItem.inspectionPrefab != null)
-                    ItemInspector.Instance?.BeginPreview(craftedItem);
+                // Immediately show the crafted item in the embedded preview panel.
+                InventoryItemPreview.Instance?.Show(craftedItem);
                 return;
             }
         }

@@ -83,11 +83,12 @@ HorrorSystem         — координирует хоррор-события
 
 ### Шаг 3 — Prefab для инспекции (опционально)
 
-Если хочешь чтобы при подборе/ПКМ показывался 3D-вид предмета:
+Если хочешь чтобы при подборе показывался 3D-вид предмета:
 
 1. Создай отдельный Prefab с моделью предмета
 2. Укажи его в поле `Inspection Prefab` у `ItemData`
 3. Prefab будет автоматически помещён на слой `Inspection` — основная камера его не видит
+4. После подбора в инвентарь — тот же Prefab используется для встроенного превью в инвентаре (`InventoryItemPreview`)
 
 ### Шаг 4 — Рецепт крафта (опционально)
 
@@ -267,6 +268,8 @@ ScriptableObject с текстами и цветами используемым�
 | `Strafe Tilt Angle` | 2 | Наклон камеры при стрейфе (градусы) |
 | `Drag Camera Sensitivity Multiplier` | 0.25 | Множитель чувствительности во время перетаскивания |
 
+Чувствительность мыши автоматически снижается при активном `CameraZoom` — множитель равен `zoomedFOV / defaultFOV`.
+
 ### Приседание
 
 Зажать — присесть, отпустить — встать. Если над головой препятствие — персонаж ждёт пока место освободится.
@@ -274,6 +277,8 @@ ScriptableObject с текстами и цветами используемым�
 ### Хэд-боб
 
 Плавное покачивание камеры при ходьбе. Амплитуда масштабируется от скорости. При остановке плавно возвращается в нейтраль.
+
+Вертикальный боб (`Sin(_bobTimer * 2f)`) имеет период π — одно полное колебание на каждый шаг. Горизонтальный боб (`Sin(_bobTimer)`) — вдвое медленнее, один цикл качания на два шага. Это обеспечивает правильную синхронизацию с `FootstepController` который срабатывает каждые π радиан таймера.
 
 | Параметр | Описание |
 |---|---|
@@ -317,9 +322,32 @@ ResetInteractionCache();
 | Пробел | Прыжок |
 | E | Взаимодействие |
 | ЛКМ | Взаимодействие (записки, предметы) / Перетаскивание (двери, ящики) |
+| ПКМ (удерживать) | Зум камеры (`CameraZoom`) |
 | F | Фонарик |
 | I / Tab | Инвентарь |
 | Escape | Меню паузы |
+
+---
+
+## Игрок — CameraZoom
+
+**Файл:** `Assets/Scripts/Player/CameraZoom.cs`
+
+Плавный зум камеры по удержанию ПКМ. Компонент размещается на `PlayerCamera` (объект с `CinemachineCamera`). Модифицирует `CinemachineCamera.Lens.FieldOfView` — `CinemachineBrain` на `Main Camera` применяет изменение автоматически.
+
+### Как работает
+
+- `_defaultFOV` читается из `CinemachineCamera.Lens.FieldOfView` при старте — дублирования значений нет
+- Каждый кадр: `Mathf.Lerp(_currentFOV, targetFOV, Time.deltaTime * zoomSpeed)`
+- Зум подавляется когда `UIManager.IsAnyPanelOpen = true`
+- `SensitivityMultiplier = zoomedFOV / defaultFOV` — передаётся в `FPSController.HandleLook()` для пропорционального снижения чувствительности мыши
+
+### Параметры Inspector
+
+| Поле | По умолчанию | Описание |
+|---|---|---|
+| `Zoomed FOV` | 40 | FOV при зуме. Меньше = сильнее зум |
+| `Zoom Speed` | 10 | Скорость перехода. 5 — плавнее, 15 — резче |
 
 ---
 
@@ -427,18 +455,13 @@ event Action OnInventoryChanged;
 
 **Файл:** `Assets/Scripts/Inventory/ItemInspector.cs`
 
-Singleton. Показывает 3D-модель предмета через отдельную камеру → `RenderTexture` → `RawImage` в UI.
+Singleton. Показывает 3D-модель предмета через отдельную камеру → `RenderTexture` → `RawImage` в UI. Используется **только для подбора предметов из мира**. Для просмотра предметов из инвентаря — см. `InventoryItemPreview`.
 
-### Два режима
+### Режим подбора
 
-**Режим подбора** — открывается когда игрок нажимает E/ЛКМ на предмете в мире:
+Открывается когда игрок нажимает E/ЛКМ на предмете в мире:
 - Показывает название и описание
 - Закрытие = предмет в инвентарь + мировой объект уничтожается
-
-**Режим превью** — открывается по ПКМ на слоте инвентаря:
-- Название и описание скрыты
-- Закрытие = только закрывается панель, инвентарь не меняется
-- Закрывается: ПКМ / E / Escape
 
 ### Публичные методы
 
@@ -446,13 +469,10 @@ Singleton. Показывает 3D-модель предмета через от
 // Режим подбора. Вызывается из PickableItem.
 BeginInspection(ItemData item, GameObject worldObject);
 
-// Режим превью. Вызывается по ПКМ из InventorySlot.
-BeginPreview(ItemData item);
-
 // Подобрать и закрыть. Привязан к кнопке Take в UI.
 ConfirmPickup();
 
-// Закрыть превью без изменения инвентаря. Вызывается из InventoryUI.CloseInventory.
+// Закрыть без изменения инвентаря. Вызывается из InventoryUI.CloseInventory как защитный вызов.
 CancelPreviewIfActive();
 ```
 
@@ -467,27 +487,19 @@ CancelPreviewIfActive();
 | `Idle Spin Duration` | 1.8 | Длительность вступительного spin (сек) |
 | `Idle Spin Speed` | 80 | Скорость idle spin (градусы/сек) |
 
-### Как работает технически
-
-1. Prefab инстанциируется в точке Y = -1000 (вне видимости основной камеры)
-2. По bounds всех Renderer вычисляется геометрический центр модели
-3. Создаётся `InspectionPivot` в этом центре — вращение без смещения модели
-4. Камера настраивается Orthographic, размер = `maxSize * framingMultiplier * 0.5`
-5. Idle spin плавно затухает через `Mathf.Cos`
-6. При закрытии Pivot уничтожается вместе с дочерним объектом
-
 ### Настройка сцены
 
 ```
-InspectionSetup         (компонент ItemInspector)
-└── InspectionCamera    (Orthographic, слой Inspection, → RenderTexture)
+InspectionSetup             (компонент ItemInspector)
+├── InspectionCamera        (Orthographic, слой Inspection, → RenderTexture)
+└── InventoryPreviewCamera  (управляется InventoryItemPreview, изначально отключена)
 
 Canvas/InspectionPanel
 ├── HintText            (подсказки управления)
 ├── PreviewImage        (RawImage ← RenderTexture)
 ├── InfoPanel
-│   ├── ItemNameText    (скрыт в режиме превью)
-│   └── DescriptionText (скрыт в режиме превью)
+│   ├── ItemNameText
+│   └── DescriptionText
 ├── TakeButton          (→ ConfirmPickup)
 └── CancelButton        (→ CancelInspection)
 ```
@@ -500,10 +512,30 @@ Canvas/InspectionPanel
 
 **Файл:** `Assets/Scripts/Inventory/UI/InventoryUI.cs`
 
-Управляет панелью инвентаря. Слоты создаются один раз в `Start`, затем только обновляются.
+Singleton (`Instance`). Управляет панелью инвентаря и связанными объектами. Слоты создаются один раз в `Start`, затем только обновляются через `RefreshSlots()`.
 
-Открывается: **I** или **Tab**. При открытии — курсор свободен, ввод игрока отключён.
-При закрытии: сначала гасится активный 3D-превью (`CancelPreviewIfActive`), затем закрывается панель.
+Открывается: **I** или **Tab**. При открытии — активируется backdrop, курсор свободен, ввод игрока отключён, первый предмет показывается в `InventoryItemPreview`.
+
+`CloseInventory()` — публичный метод. При закрытии: деактивирует backdrop, очищает 3D-превью, вызывает `CancelPreviewIfActive()` как защитный вызов.
+
+| Поле Inspector | Описание |
+|---|---|
+| `Inventory Panel` | GameObject панели инвентаря |
+| `Inventory Backdrop` | GameObject полноэкранного backdrop'а |
+| `Slot Prefab` | Префаб одного слота |
+| `Slots Container` | Transform сетки слотов |
+
+### InventoryBackdrop
+
+**Файл:** `Assets/Scripts/Inventory/UI/InventoryBackdrop.cs`
+
+Полноэкранный прозрачный overlay (`Image alpha=0.4, raycastTarget=true`). Размещается в Canvas **перед** `InventoryPanel` в иерархии — рендерится позади неё. Клик ЛКМ вне панели → `InventoryUI.Instance.CloseInventory()`.
+
+```
+Canvas
+├── InventoryBackdrop     # anchors (0,0)→(1,1), полный экран
+└── InventoryPanel        # блокирует клики на себя
+```
 
 ### InventorySlot
 
@@ -511,8 +543,52 @@ Canvas/InspectionPanel
 
 Один слот в сетке. Иконка скрывается через `Image.enabled = false` — GameObject остаётся активным чтобы drag-and-drop работал всегда.
 
-**ЛКМ + тащить** → переместить предмет или скрафтить (если оба слота заняты).
-**ПКМ** → открыть 3D-превью через `ItemInspector.BeginPreview`.
+**ЛКМ на слоте** → `InventoryItemPreview.Show(item)` — показать 3D-превью в правой панели инвентаря.
+**ЛКМ + тащить** → переместить предмет или скрафтить. При успешном крафте превью автоматически переключается на результат.
+
+### InventoryItemPreview
+
+**Файл:** `Assets/Scripts/Inventory/UI/InventoryItemPreview.cs`
+
+Singleton. Встроенный 3D-превью в правой части инвентаря. Компонент крепится на `RawImage` (`PreviewImage`). Рендерит в квадратный `RenderTexture 512×512` через `InventoryPreviewCamera` (`CinemachineCamera` не используется — отдельная Orthographic Camera).
+
+`AspectRatioFitter (FitInParent, ratio=1:1)` на `PreviewImage` обязателен — без него текстура растянется по форме панели.
+
+```
+Canvas/InventoryPanel/
+├── LeftPanel
+│   ├── TitleText           # Заголовок
+│   └── SlotsContainer      # GridLayoutGroup — сетка слотов
+├── RightPanel
+│   ├── PreviewImage        # RawImage + AspectRatioFitter + InventoryItemPreview
+│   ├── ItemNameText        # Название предмета
+│   └── DescriptionText     # Описание
+└── HintsBar                # Полная ширина, внизу; InventoryHints
+    └── HintsText
+
+InspectionSetup/
+└── InventoryPreviewCamera  # Camera, отключена по умолчанию
+```
+
+| Параметр | По умолчанию | Описание |
+|---|---|---|
+| `Preview Camera` | — | Ссылка на `InventoryPreviewCamera` |
+| `Item Name Text` | — | TextMeshProUGUI для названия |
+| `Description Text` | — | TextMeshProUGUI для описания |
+| `Idle Spin Speed` | 30 | Автовращение (°/сек) |
+| `Drag Rotation Speed` | 0.4 | Ручное вращение мышью |
+| `Initial Rotation` | (15, -35, 0) | Начальный угол |
+| `Framing Multiplier` | 2.2 | Масштаб кадрирования |
+
+### Управление инвентарём
+
+| Действие | Результат |
+|---|---|
+| I / Tab | Открыть / закрыть |
+| ЛКМ на слоте | Показать предмет в превью |
+| ЛКМ + drag по превью | Вращение модели |
+| ЛКМ + drag слот→слот | Переместить / скрафтить |
+| ЛКМ вне панели | Закрыть (InventoryBackdrop) |
 
 ### DraggableItem
 
@@ -532,17 +608,12 @@ Canvas/InspectionPanel
 
 Панель подсказок внизу инвентаря. Строит текст из массива подсказок в Inspector.
 
-```
-InventoryPanel
-├── SlotsContainer      (сетка слотов)
-└── HintsBar            (компонент InventoryHints)
-    └── HintsText       (TextMeshProUGUI)
-```
-
 | Параметр | Описание |
 |---|---|
 | `Hints Per Row` | Сколько подсказок на строку (по умолчанию 2) |
 | `Hints` | Массив пар: клавиша + действие |
+
+Актуальные подсказки: `ЛКМ` — Выбрать предмет, `ЛКМ + тащить` — Переместить, `Перетащить на слот` — Крафт, `Tab / I` — Закрыть.
 
 ---
 
@@ -911,6 +982,7 @@ Assets/
 │   │
 │   ├── Player/
 │   │   ├── FPSController.cs        # Весь контроль персонажа
+│   │   ├── CameraZoom.cs           # Зум камеры по ПКМ (CinemachineCamera.Lens.FieldOfView)
 │   │   ├── PhysicsGrabber.cs       # Физическое перетаскивание
 │   │   └── PlayerInputActions.cs   # Авто-генерация Input System
 │   │
@@ -922,11 +994,13 @@ Assets/
 │   │   ├── ItemInspector.cs        # 3D-просмотр предметов
 │   │   ├── InventoryCondition.cs   # Условие наличия предмета
 │   │   └── UI/
-│   │       ├── InventoryUI.cs      # Открытие/закрытие панели
-│   │       ├── InventorySlot.cs    # Один слот
+│   │       ├── InventoryUI.cs      # Singleton — открытие/закрытие панели
+│   │       ├── InventorySlot.cs    # Один слот (ЛКМ → превью, drag → перемещение/крафт)
 │   │       ├── DraggableItem.cs    # Drag-and-drop иконки
 │   │       ├── ItemTooltip.cs      # Тултип при наведении
-│   │       └── InventoryHints.cs   # Подсказки внизу панели
+│   │       ├── InventoryHints.cs   # Подсказки внизу панели
+│   │       ├── InventoryItemPreview.cs  # Встроенный 3D-превью в правой панели
+│   │       └── InventoryBackdrop.cs     # Закрытие инвентаря кликом вне панели
 │   │
 │   ├── Interaction/
 │   │   ├── IInteractable.cs        # Интерфейс взаимодействия + IDraggable

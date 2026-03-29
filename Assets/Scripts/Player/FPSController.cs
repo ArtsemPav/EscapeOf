@@ -211,7 +211,9 @@ public class FPSController : MonoBehaviour, ISaveable
     private void HandleLook()
     {
         Vector2 lookInput = InputManager.Instance != null ? InputManager.Instance.LookInput : Vector2.zero;
-        float sensitivity = mouseSensitivity * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f);
+        float sensitivity = mouseSensitivity
+            * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f)
+            * (CameraZoom.Instance != null ? CameraZoom.Instance.SensitivityMultiplier : 1f);
         float mouseX = lookInput.x * sensitivity;
         float mouseY = lookInput.y * sensitivity;
 
@@ -265,9 +267,11 @@ public class FPSController : MonoBehaviour, ISaveable
             float speedFactor = _horizontalVelocity.magnitude / walkSpeed;
             _bobTimer += Time.deltaTime * bobFrequency * speedFactor;
 
+            // Y frequency is doubled so one full vertical bob matches one footstep (period = π).
+            // X frequency keeps the classic 2:1 ratio (left-right sway per two steps).
             Vector3 targetBob = new Vector3(
-                Mathf.Sin(_bobTimer * 0.5f) * bobAmplitudeX,
-                Mathf.Sin(_bobTimer) * bobAmplitudeY,
+                Mathf.Sin(_bobTimer)        * bobAmplitudeX,
+                Mathf.Sin(_bobTimer * 2f)   * bobAmplitudeY,
                 0f
             );
             _bobOffset = Vector3.SmoothDamp(_bobOffset, targetBob, ref _bobOffsetSmoothRef, 0.05f);
