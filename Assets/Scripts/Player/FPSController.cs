@@ -321,6 +321,27 @@ public class FPSController : MonoBehaviour, ISaveable
         );
     }
 
+    /// <summary>
+    /// Two-pass raycast for interaction detection.
+    ///
+    /// Ray 1 (interactableLayer only): finds the nearest object the player can interact with.
+    /// Ray 2 (all layers except interactableLayer and IgnoreRaycast): checks for solid
+    ///        obstacles between the camera and the found object. Blocked = no interaction.
+    ///
+    /// Component resolution order on the hit object:
+    ///   1. GetComponent&lt;IDraggable&gt;()             — drawers, doors (direct object only, NO GetComponentInParent
+    ///                                                 to avoid claiming child items as part of the parent drawer)
+    ///   2. TryGetComponent&lt;IInteractable&gt;()       — PickableItem, code locks, etc.
+    ///   3. GetComponentInParent&lt;IInteractable&gt;()  — levers / gauges whose collider lives on a child
+    ///
+    /// Layer rules:
+    ///   • Interactable objects (drawers, doors, pickables, levers) → Interactable Layer
+    ///   • Furniture bodies, walls, shelves                         → Default
+    ///   • Triggers / zones that must be ignored                    → Ignore Raycast
+    ///
+    /// WARNING: never put a furniture body (e.g. desk mesh) on Interactable Layer — Ray 2
+    /// skips that layer entirely, so the body won't block interaction through closed panels.
+    /// </summary>
     private void HandleInteractionDetection()
     {
         if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
@@ -328,62 +349,59 @@ public class FPSController : MonoBehaviour, ISaveable
 
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
 
-        // Cast against every layer except "Ignore Raycast" (layer 2) — Unity excludes it
-        // by default, but explicit ~0 masks re-include it, hitting invisible colliders.
-        // If the closest object is not on the interactable layer, something blocks the way.
-        const int ignoreRaycastLayer = 2;
-        int allButIgnoreRaycast = ~(1 << ignoreRaycastLayer);
-        if (Physics.Raycast(ray, out RaycastHit hit, interactDistance, allButIgnoreRaycast, QueryTriggerInteraction.Ignore))
+        // Ray 1 — find the nearest object on the Interactable Layer.
+        if (!Physics.Raycast(ray, out RaycastHit interactHit, interactDistance, interactableLayer, QueryTriggerInteraction.Ignore))
         {
-            bool isInteractableLayer = (interactableLayer.value & (1 << hit.collider.gameObject.layer)) != 0;
-            if (!isInteractableLayer)
-            {
-                // Obstacle in front of any interactable — clear hint and bail.
-                if (_currentInteractable != null)
-                {
-                    _currentInteractable   = null;
-                    _lastHintText          = null;
-                    _lastCrosshairMode     = CrosshairMode.Default;
-                    InteractionUI.Instance?.SetHint(false);
-                }
-                return;
-            }
-
-            // Prefer IDraggable over IInteractable when both are present on the same object
-            // so that DrawerDrag takes priority over a legacy DoorInteraction component.
-            // Falls back to GetComponentInParent so scripts on parent objects (e.g. levers)
-            // are detected even when the raycast hits a child collider.
-            IInteractable interactable = null;
-            IDraggable draggable = hit.collider.GetComponent<IDraggable>()
-                                ?? hit.collider.GetComponentInParent<IDraggable>();
-            if (draggable is IInteractable draggableInteractable)
-                interactable = draggableInteractable;
-            else if (!hit.collider.TryGetComponent(out interactable))
-                interactable = hit.collider.GetComponentInParent<IInteractable>();
-
-            if (interactable != null)
-            {
-                string newText = interactable.GetInteractText();
-                CrosshairMode newMode = interactable.GetCrosshairMode();
-
-                if (_currentInteractable != interactable || newText != _lastHintText || newMode != _lastCrosshairMode)
-                {
-                    _currentInteractable = interactable;
-                    _lastHintText        = newText;
-                    _lastCrosshairMode   = newMode;
-
-                    InteractionUI.Instance?.SetHint(true, newText, interactable.IsPickable(), newMode);
-                }
-                return;
-            }
+            ClearCurrentInteractable();
+            return;
         }
 
+        // Ray 2 — obstacle check: any solid non-interactable geometry between the camera
+        // and the hit point blocks interaction (e.g. closed shelf, locked door body).
+        int obstacleMask = ~interactableLayer.value & ~(1 << 2); // all except interactable layer and IgnoreRaycast
+        if (Physics.Raycast(ray, out RaycastHit _, interactHit.distance, obstacleMask, QueryTriggerInteraction.Ignore))
+        {
+            ClearCurrentInteractable();
+            return;
+        }
+
+        // Path is clear — resolve the IInteractable / IDraggable component.
+        // IDraggable is checked only on the directly hit object so that DrawerDrag on a
+        // parent drawer is NOT wrongly claimed when the ray hits a child (e.g. FlashLight).
+        // IInteractable uses GetComponentInParent so levers/gauges whose collider is a
+        // child still resolve to the script on the parent.
+        IInteractable interactable = null;
+        IDraggable draggable = interactHit.collider.GetComponent<IDraggable>();
+        if (draggable is IInteractable draggableInteractable)
+            interactable = draggableInteractable;
+        else if (!interactHit.collider.TryGetComponent(out interactable))
+            interactable = interactHit.collider.GetComponentInParent<IInteractable>();
+
+        if (interactable != null)
+        {
+            string newText      = interactable.GetInteractText();
+            CrosshairMode newMode = interactable.GetCrosshairMode();
+
+            if (_currentInteractable != interactable || newText != _lastHintText || newMode != _lastCrosshairMode)
+            {
+                _currentInteractable = interactable;
+                _lastHintText        = newText;
+                _lastCrosshairMode   = newMode;
+                InteractionUI.Instance?.SetHint(true, newText, interactable.IsPickable(), newMode);
+            }
+            return;
+        }
+
+        ClearCurrentInteractable();
+    }
+
+    private void ClearCurrentInteractable()
+    {
         if (_currentInteractable != null)
         {
-            _currentInteractable   = null;
-            _lastHintText          = null;
-            _lastCrosshairMode     = CrosshairMode.Default;
-
+            _currentInteractable = null;
+            _lastHintText        = null;
+            _lastCrosshairMode   = CrosshairMode.Default;
             InteractionUI.Instance?.SetHint(false);
         }
     }
