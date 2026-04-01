@@ -119,6 +119,7 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 | `HorrorEvent` | `horror_mannequin_appears` | Сработало ли событие |
 | `GameManager` | `game_manager` | Текущая комната |
 | `FPSController` | `player` | Позиция и угол камеры |
+| `PressurePuzzle` | `pressure_puzzle_boilerroom` | Решена ли загадка (`isSolved`) |
 
 ---
 

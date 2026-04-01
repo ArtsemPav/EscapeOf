@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -20,13 +21,17 @@ using UnityEngine.Events;
 ///     screen
 ///       arrow               ← assign to _arrow field
 /// </summary>
-public class PressurePuzzle : MonoBehaviour
+public class PressurePuzzle : MonoBehaviour, ISaveable
 {
     // ── References ────────────────────────────────────────────────────────────
 
     [Header("References")]
     [Tooltip("Transform of the arrow inside the dial (child of 'screen').")]
     [SerializeField] private Transform _arrow;
+
+    [Header("Save")]
+    [Tooltip("Unique identifier for the save system. Must be unique across the entire game.")]
+    [SerializeField] private string _saveId = "pressure_puzzle";
 
     [Header("Dial Settings")]
     [Tooltip("Arrow local X angle when total pressure is at its minimum (all levers at their minimum value).")]
@@ -72,8 +77,19 @@ public class PressurePuzzle : MonoBehaviour
     private float _arrowVelocity;     // required by SmoothDamp
     private float _arrowBaseEulerY;   // cached once — never read from the transform again
     private float _arrowBaseEulerZ;
+    private bool  _loadedIsSolved;    // set by LoadSaveData before Start() runs
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        SaveManager.Instance?.Register(this);
+    }
+
+    private void OnDestroy()
+    {
+        SaveManager.Instance?.Unregister(this);
+    }
 
     private void Start()
     {
@@ -94,18 +110,23 @@ public class PressurePuzzle : MonoBehaviour
             _maxTotal += 1f;
         }
 
-        RandomizeLevers();
-
-        // Cache the arrow's Y and Z euler once so ApplyArrow never reads them back.
-        // Reading localEulerAngles causes Quaternion→Euler conversion which becomes
-        // unstable when X passes through ±90° (gimbal lock), making Y/Z flip between
-        // two valid representations and causing the arrow to visually jitter.
+        // Cache Y/Z euler of the arrow once to avoid gimbal lock jitter.
         if (_arrow != null)
         {
-            Vector3 baseEuler  = _arrow.localEulerAngles;
-            _arrowBaseEulerY   = baseEuler.y;
-            _arrowBaseEulerZ   = baseEuler.z;
+            Vector3 baseEuler = _arrow.localEulerAngles;
+            _arrowBaseEulerY  = baseEuler.y;
+            _arrowBaseEulerZ  = baseEuler.z;
         }
+
+        // If the save system already marked this puzzle as solved, restore state
+        // directly without randomizing or animating — the player has already won.
+        if (_loadedIsSolved)
+        {
+            RestoreSolvedState();
+            return;
+        }
+
+        RandomizeLevers();
 
         float initial      = GetCurrentTotal();
         _currentArrowAngle = PressureToAngle(initial);
@@ -131,7 +152,7 @@ public class PressurePuzzle : MonoBehaviour
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             foreach (var lever in _levers)
-                lever.SetStateQuiet(Random.value > 0.5f);
+                lever.SetStateQuiet(UnityEngine.Random.value > 0.5f);
 
             float angle = PressureToAngle(GetCurrentTotal());
             if (Mathf.Abs(angle) >= minDistance)
@@ -241,6 +262,50 @@ public class PressurePuzzle : MonoBehaviour
             if (obj != null) obj.SetActive(true);
 
         _onSolved.Invoke();
+        SaveManager.Instance?.Save();
         Debug.Log("[PressurePuzzle] Solved!");
+    }
+
+    /// <summary>
+    /// Applies the solved visual state instantly without invoking events.
+    /// Called on load when the save data shows the puzzle was already solved.
+    /// </summary>
+    private void RestoreSolvedState()
+    {
+        IsSolved           = true;
+        _targetArrowAngle  = 0f;
+        _currentArrowAngle = 0f;
+        ApplyArrow(0f);
+
+        foreach (var obj in _rewardObjects)
+            if (obj != null) obj.SetActive(true);
+
+        Debug.Log("[PressurePuzzle] Restored solved state from save.");
+    }
+
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    public string SaveId => _saveId;
+
+    /// <summary>Serializes the solved state to JSON.</summary>
+    public string GetSaveData()
+    {
+        return JsonUtility.ToJson(new SaveData { isSolved = IsSolved });
+    }
+
+    /// <summary>
+    /// Restores state from JSON. Called by SaveManager before Start(),
+    /// so only the flag is set here — Start() applies the actual state.
+    /// </summary>
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<SaveData>(json);
+        _loadedIsSolved = data.isSolved;
+    }
+
+    [Serializable]
+    private struct SaveData
+    {
+        public bool isSolved;
     }
 }
