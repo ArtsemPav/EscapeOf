@@ -351,11 +351,15 @@ public class FPSController : MonoBehaviour, ISaveable
 
             // Prefer IDraggable over IInteractable when both are present on the same object
             // so that DrawerDrag takes priority over a legacy DoorInteraction component.
+            // Falls back to GetComponentInParent so scripts on parent objects (e.g. levers)
+            // are detected even when the raycast hits a child collider.
             IInteractable interactable = null;
-            if (hit.collider.TryGetComponent(out IDraggable draggable) && draggable is IInteractable draggableInteractable)
+            IDraggable draggable = hit.collider.GetComponent<IDraggable>()
+                                ?? hit.collider.GetComponentInParent<IDraggable>();
+            if (draggable is IInteractable draggableInteractable)
                 interactable = draggableInteractable;
-            else
-                hit.collider.TryGetComponent(out interactable);
+            else if (!hit.collider.TryGetComponent(out interactable))
+                interactable = hit.collider.GetComponentInParent<IInteractable>();
 
             if (interactable != null)
             {
