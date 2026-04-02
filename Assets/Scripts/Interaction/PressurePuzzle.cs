@@ -51,6 +51,27 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
              "Prevents the puzzle from starting already solved or trivially close.")]
     [SerializeField] [Range(0f, 1f)] private float _minStartDistanceFraction = 0.35f;
 
+    [Tooltip("Minimum number of levers the player must flip to reach the solution. " +
+             "Prevents trivially easy starts where only 1–2 levers need changing. " +
+             "Must be ≤ total lever count.")]
+    [SerializeField] [Range(1, 10)] private int _minFlipsFromSolution = 3;
+
+    [Header("Solution")]
+    [Tooltip("Minimum number of levers that must be ON in the randomly chosen solution. " +
+             "Also enforces the same minimum for OFF levers, preventing trivial single-lever solutions. " +
+             "Requires at least 2 × this value levers in total.")]
+    [SerializeField] [Range(1, 5)] private int _minLeversOnInSolution = 2;
+
+    [Header("Lever Value Generation")]
+    [Tooltip("Contribution magnitude for the lever with the smallest impact. " +
+             "Every lever gets offValue = –magnitude and onValue = +magnitude. " +
+             "Magnitudes are evenly spaced starting from this value.")]
+    [SerializeField] [Min(1f)] private float _leverValueBase = 5f;
+
+    [Tooltip("Spacing between consecutive lever magnitudes. " +
+             "With 6 levers, base = 5 and step = 5 → magnitudes: 5, 10, 15, 20, 25, 30 (shuffled per session).")]
+    [SerializeField] [Min(1f)] private float _leverValueStep = 5f;
+
     [Header("Difficulty")]
     [Tooltip("When enabled, the arrow only updates when the player interacts with the gauge — " +
              "not after each lever toggle. Removes real-time feedback and forces mental calculation.")]
@@ -70,14 +91,18 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     public bool IsSolved { get; private set; }
 
     private readonly List<PressureLever> _levers = new();
+    private readonly List<int> _validSolutionMasks = new(); // all combinations within _solveAngleTolerance
     private float _minTotal;
     private float _maxTotal;
+    private int   _solutionMask;     // bitmask: bit i = lever i is ON in the solution
+    private float _solutionTotal;    // total that maps to 0° — chosen randomly each session
     private float _currentArrowAngle;
     private float _targetArrowAngle;
-    private float _arrowVelocity;     // required by SmoothDamp
-    private float _arrowBaseEulerY;   // cached once — never read from the transform again
+    private float _arrowVelocity;    // required by SmoothDamp
+    private float _arrowBaseEulerY;  // cached once — never read from the transform again
     private float _arrowBaseEulerZ;
-    private bool  _loadedIsSolved;    // set by LoadSaveData before Start() runs
+    private bool  _loadedIsSolved;   // set by LoadSaveData before Start() runs
+    private bool[] _loadedLeverStates; // lever IsOn per index, restored from save
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
@@ -96,6 +121,25 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         _levers.Clear();
         GetComponentsInChildren(includeInactive: false, _levers);
 
+        // Cache Y/Z euler of the arrow once to avoid gimbal lock jitter.
+        if (_arrow != null)
+        {
+            Vector3 baseEuler = _arrow.localEulerAngles;
+            _arrowBaseEulerY  = baseEuler.y;
+            _arrowBaseEulerZ  = baseEuler.z;
+        }
+
+        // If the save system already marked this puzzle as solved, restore lever
+        // visual states and arrow position — skip randomization and value generation.
+        if (_loadedIsSolved)
+        {
+            RestoreSolvedState();
+            return;
+        }
+
+        // Assign lever values before computing the total range.
+        GenerateAndAssignLeverValues();
+
         _minTotal = 0f;
         _maxTotal = 0f;
         foreach (var lever in _levers)
@@ -110,22 +154,8 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             _maxTotal += 1f;
         }
 
-        // Cache Y/Z euler of the arrow once to avoid gimbal lock jitter.
-        if (_arrow != null)
-        {
-            Vector3 baseEuler = _arrow.localEulerAngles;
-            _arrowBaseEulerY  = baseEuler.y;
-            _arrowBaseEulerZ  = baseEuler.z;
-        }
-
-        // If the save system already marked this puzzle as solved, restore state
-        // directly without randomizing or animating — the player has already won.
-        if (_loadedIsSolved)
-        {
-            RestoreSolvedState();
-            return;
-        }
-
+        PickRandomSolution();
+        FindAllValidSolutions();
         RandomizeLevers();
 
         float initial      = GetCurrentTotal();
@@ -134,33 +164,187 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         ApplyArrow(_currentArrowAngle);
 
         Debug.Log($"[PressurePuzzle] {_levers.Count} levers. " +
-                  $"Range [{_minTotal}…{_maxTotal}]. Solve at 0° ±{_solveAngleTolerance}°. " +
-                  $"Start angle: {_currentArrowAngle:F1}°");
+                  $"Range [{_minTotal}…{_maxTotal}]. Solution total: {_solutionTotal}. " +
+                  $"Solve at 0° ±{_solveAngleTolerance}°. Start angle: {_currentArrowAngle:F1}°");
     }
 
     /// <summary>
-    /// Randomises lever states, re-rolling until the starting total is at least
-    /// _minStartDistanceFraction of the full range away from the target.
-    /// This prevents the puzzle from beginning in (or near) the solved state.
+    /// Generates a unique magnitude per lever using a linear series starting at
+    /// _leverValueBase with _leverValueStep spacing, then Fisher-Yates shuffles the
+    /// assignment order so no lever is predictably the "strongest" or "weakest".
+    ///
+    /// Each lever receives: offValue = –magnitude, onValue = +magnitude.
+    ///
+    /// Called every session before PickRandomSolution() and RandomizeLevers(),
+    /// so values differ each run even for the same scene setup.
+    /// </summary>
+    private void GenerateAndAssignLeverValues()
+    {
+        int n = _levers.Count;
+        if (n == 0) return;
+
+        // Build sorted magnitudes: base, base+step, base+2·step, …
+        float[] magnitudes = new float[n];
+        for (int i = 0; i < n; i++)
+            magnitudes[i] = _leverValueBase + _leverValueStep * i;
+
+        // Fisher-Yates shuffle — assign magnitudes in random order to levers.
+        for (int i = n - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            (magnitudes[i], magnitudes[j]) = (magnitudes[j], magnitudes[i]);
+        }
+
+        for (int i = 0; i < n; i++)
+            _levers[i].AssignValues(-magnitudes[i], magnitudes[i]);
+
+        Debug.Log($"[PressurePuzzle] Lever magnitudes assigned: [{string.Join(", ", magnitudes)}]");
+    }
+
+    /// <summary>
+    /// Brute-forces all 2^N lever combinations and records every mask whose arrow angle
+    /// falls within _solveAngleTolerance. Called once after PickRandomSolution() so that
+    /// RandomizeLevers() can measure the true minimum distance to ANY winning state,
+    /// not only the primary solution mask.
+    /// </summary>
+    private void FindAllValidSolutions()
+    {
+        _validSolutionMasks.Clear();
+        int n = _levers.Count;
+
+        for (int mask = 0; mask < (1 << n); mask++)
+        {
+            float total = 0f;
+            for (int i = 0; i < n; i++)
+                total += ((mask & (1 << i)) != 0) ? _levers[i].OnValue : _levers[i].OffValue;
+
+            if (Mathf.Abs(PressureToAngle(total)) <= _solveAngleTolerance)
+                _validSolutionMasks.Add(mask);
+        }
+
+        Debug.Log($"[PressurePuzzle] {_validSolutionMasks.Count} valid solution combination(s) found " +
+                  $"within ±{_solveAngleTolerance}°.");
+    }
+
+    /// <summary>
+    /// Returns the minimum number of lever flips needed to reach ANY valid solution
+    /// from the given starting mask. This is the true lower bound the player must
+    /// overcome, regardless of which winning combination they aim for.
+    /// </summary>
+    private int MinFlipsToAnySolution(int startMask)
+    {
+        int min = int.MaxValue;
+        foreach (int sol in _validSolutionMasks)
+            min = Mathf.Min(min, CountBits(startMask ^ sol));
+        return min;
+    }
+
+    /// <summary>
+    /// Picks a random lever combination as the session's goal state and stores its total
+    /// in _solutionTotal. PressureToAngle() then shifts the dial so that this total maps
+    /// to exactly 0° — making the puzzle solvable by construction every run.
+    ///
+    /// The combination must have at least _minLeversOnInSolution levers ON and the same
+    /// minimum OFF, preventing trivially easy single-lever solutions.
+    /// </summary>
+    private void PickRandomSolution()
+    {
+        int n      = _levers.Count;
+        int minOn  = _minLeversOnInSolution;
+        int maxOn  = n - minOn;
+
+        if (maxOn < minOn)
+        {
+            // Not enough levers — fall back to midpoint so play can still proceed.
+            _solutionTotal = (_minTotal + _maxTotal) * 0.5f;
+            Debug.LogWarning($"[PressurePuzzle] Not enough levers ({n}) for " +
+                             $"_minLeversOnInSolution = {minOn}. Using midpoint as solution.");
+            return;
+        }
+
+        const int maxAttempts = 300;
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            int mask    = UnityEngine.Random.Range(0, 1 << n);
+            int onCount = 0;
+            for (int i = 0; i < n; i++)
+                if ((mask & (1 << i)) != 0) onCount++;
+
+            if (onCount < minOn || onCount > maxOn) continue;
+
+            float total = 0f;
+            for (int i = 0; i < n; i++)
+                total += ((mask & (1 << i)) != 0) ? _levers[i].OnValue : _levers[i].OffValue;
+
+            _solutionMask  = mask;
+            _solutionTotal = total;
+            Debug.Log($"[PressurePuzzle] Solution chosen: {onCount}/{n} levers ON, total = {total}, mask = {Convert.ToString(mask, 2).PadLeft(n, '0')}");
+            return;
+        }
+
+        _solutionTotal = (_minTotal + _maxTotal) * 0.5f;
+        Debug.LogWarning("[PressurePuzzle] Could not find valid solution combination. Using midpoint.");
+    }
+
+    /// <summary>
+    /// Randomises lever states, re-rolling until both conditions are met:
+    ///   1. The arrow angle is at least _minStartDistanceFraction of the full range from 0°.
+    ///   2. The minimum flips to reach ANY valid solution is at least _minFlipsFromSolution.
+    ///      This uses MinFlipsToAnySolution() which checks against all winning combinations,
+    ///      not only the primary solution mask — preventing trivial 1-flip paths.
+    /// Falls back to satisfying only condition 2 if both cannot be met simultaneously.
     /// </summary>
     private void RandomizeLevers()
     {
         float angleRange  = Mathf.Abs(_arrowAngleAtMax - _arrowAngleAtMin);
         float minDistance = angleRange * _minStartDistanceFraction;
+        int   minFlips    = Mathf.Clamp(_minFlipsFromSolution, 1, _levers.Count);
 
         const int maxAttempts = 500;
+
+        // Pass 1: satisfy both the angle distance AND the minimum flips to any solution.
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            foreach (var lever in _levers)
-                lever.SetStateQuiet(UnityEngine.Random.value > 0.5f);
-
-            float angle = PressureToAngle(GetCurrentTotal());
-            if (Mathf.Abs(angle) >= minDistance)
-                return;
+            int startMask = BuildRandomMask();
+            if (Mathf.Abs(PressureToAngle(GetCurrentTotal())) < minDistance) continue;
+            if (MinFlipsToAnySolution(startMask) >= minFlips) return;
         }
 
-        Debug.LogWarning("[PressurePuzzle] Could not randomize far enough from 0°. " +
-                         "Check lever values and angle range.");
+        // Pass 2: angle condition is relaxed — guarantee only the minimum flip count.
+        Debug.LogWarning("[PressurePuzzle] Could not satisfy angle + flip constraints together. " +
+                         $"Relaxing angle condition — start guaranteed ≥{minFlips} flips from any solution.");
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            int startMask = BuildRandomMask();
+            if (MinFlipsToAnySolution(startMask) >= minFlips) return;
+        }
+
+        Debug.LogError("[PressurePuzzle] Could not satisfy even the minimum flip constraint. " +
+                       "Reduce _minFlipsFromSolution or add more levers.");
+    }
+
+    /// <summary>
+    /// Randomises all levers to independent coin-flip states and returns the resulting bitmask.
+    /// </summary>
+    private int BuildRandomMask()
+    {
+        int mask = 0;
+        for (int i = 0; i < _levers.Count; i++)
+        {
+            bool on = UnityEngine.Random.value > 0.5f;
+            _levers[i].SetStateQuiet(on);
+            if (on) mask |= (1 << i);
+        }
+        return mask;
+    }
+
+    /// <summary>Counts the number of set bits (population count) in an integer.</summary>
+    private static int CountBits(int n)
+    {
+        int count = 0;
+        while (n != 0) { count += n & 1; n >>= 1; }
+        return count;
     }
 
     private void Update()
@@ -237,8 +421,16 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
 
     private float PressureToAngle(float pressure)
     {
-        float t = Mathf.InverseLerp(_minTotal, _maxTotal, pressure);
-        return Mathf.Lerp(_arrowAngleAtMin, _arrowAngleAtMax, t);
+        // Raw angle from the configured min→max mapping.
+        float t        = Mathf.InverseLerp(_minTotal, _maxTotal, pressure);
+        float raw      = Mathf.Lerp(_arrowAngleAtMin, _arrowAngleAtMax, t);
+
+        // Shift so that _solutionTotal maps to exactly 0°.
+        // Every other combination is shown relative to the solution.
+        float tSol     = Mathf.InverseLerp(_minTotal, _maxTotal, _solutionTotal);
+        float solAngle = Mathf.Lerp(_arrowAngleAtMin, _arrowAngleAtMax, tSol);
+
+        return raw - solAngle;
     }
 
     private void ApplyArrow(float angle)
@@ -262,16 +454,25 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             if (obj != null) obj.SetActive(true);
 
         _onSolved.Invoke();
-        SaveManager.Instance?.Save();
+        SaveManager.Instance?.Save(); // GetSaveData() captures lever states at this point.
         Debug.Log("[PressurePuzzle] Solved!");
     }
 
     /// <summary>
     /// Applies the solved visual state instantly without invoking events.
     /// Called on load when the save data shows the puzzle was already solved.
+    /// Lever states from the winning combination are restored from save so the
+    /// player sees the exact configuration they used to solve the puzzle.
     /// </summary>
     private void RestoreSolvedState()
     {
+        // Restore lever visual states from save so they show the winning combination.
+        if (_loadedLeverStates != null && _loadedLeverStates.Length == _levers.Count)
+        {
+            for (int i = 0; i < _levers.Count; i++)
+                _levers[i].SetStateQuiet(_loadedLeverStates[i]);
+        }
+
         IsSolved           = true;
         _targetArrowAngle  = 0f;
         _currentArrowAngle = 0f;
@@ -287,25 +488,106 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
 
     public string SaveId => _saveId;
 
-    /// <summary>Serializes the solved state to JSON.</summary>
+    /// <summary>
+    /// Serializes the solved state and the current lever positions to JSON.
+    /// Lever states are captured here (called from SaveManager right after Solve()),
+    /// so they always reflect the winning combination.
+    /// </summary>
     public string GetSaveData()
     {
-        return JsonUtility.ToJson(new SaveData { isSolved = IsSolved });
+        var states = new bool[_levers.Count];
+        for (int i = 0; i < _levers.Count; i++)
+            states[i] = _levers[i].IsOn;
+
+        return JsonUtility.ToJson(new SaveData { isSolved = IsSolved, leverStates = states });
     }
 
     /// <summary>
     /// Restores state from JSON. Called by SaveManager before Start(),
-    /// so only the flag is set here — Start() applies the actual state.
+    /// so only flags are set here — Start() applies the actual visual state.
     /// </summary>
     public void LoadSaveData(string json)
     {
-        var data = JsonUtility.FromJson<SaveData>(json);
-        _loadedIsSolved = data.isSolved;
+        var data            = JsonUtility.FromJson<SaveData>(json);
+        _loadedIsSolved     = data.isSolved;
+        _loadedLeverStates  = data.leverStates;
     }
 
     [Serializable]
     private struct SaveData
     {
-        public bool isSolved;
+        public bool   isSolved;
+        /// <summary>IsOn state per lever at the moment the puzzle was solved.</summary>
+        public bool[] leverStates;
     }
+
+    // ── Editor validation ─────────────────────────────────────────────────────
+#if UNITY_EDITOR
+    /// <summary>
+    /// Result of the editor-time solvability check.
+    /// Populated by <see cref="GetEditorValidation"/> and consumed by PressurePuzzleEditor.
+    /// </summary>
+    public struct EditorValidation
+    {
+        /// <summary>Number of levers found as children.</summary>
+        public int LeverCount;
+        /// <summary>Minimum levers ON required in the solution.</summary>
+        public int MinLeversOn;
+        /// <summary>True when enough levers exist to satisfy the MinLeversOn constraint.</summary>
+        public bool CanPickSolution;
+        /// <summary>Number of valid solution combinations that satisfy the constraint.</summary>
+        public int ValidCombinationCount;
+        /// <summary>Magnitudes that will be generated (sorted, before shuffle).</summary>
+        public float[] Magnitudes;
+        /// <summary>Sum of all magnitudes — equals both |minTotal| and maxTotal.</summary>
+        public float TotalRange;
+    }
+
+    /// <summary>
+    /// Computes validation data using current inspector values.
+    /// Lever values are not yet assigned at edit time, so magnitudes are derived
+    /// directly from _leverValueBase and _leverValueStep.
+    /// Called from PressurePuzzleEditor every OnInspectorGUI frame.
+    /// </summary>
+    public EditorValidation GetEditorValidation()
+    {
+        var levers = GetComponentsInChildren<PressureLever>(includeInactive: false);
+        int n      = levers.Length;
+        int minOn  = _minLeversOnInSolution;
+        int maxOn  = n - minOn;
+
+        // Count how many combinations satisfy the ON-count constraint.
+        int validCount = 0;
+        if (maxOn >= minOn)
+        {
+            for (int mask = 0; mask < (1 << n); mask++)
+            {
+                int onCount = 0;
+                for (int i = 0; i < n; i++)
+                    if ((mask & (1 << i)) != 0) onCount++;
+                if (onCount >= minOn && onCount <= maxOn)
+                    validCount++;
+            }
+        }
+
+        // Compute the magnitudes that would be generated (sorted order, before shuffle).
+        float[] magnitudes  = new float[n];
+        float   totalRange  = 0f;
+        for (int i = 0; i < n; i++)
+        {
+            magnitudes[i] = _leverValueBase + _leverValueStep * i;
+            totalRange    += magnitudes[i];
+        }
+
+        return new EditorValidation
+        {
+            LeverCount            = n,
+            MinLeversOn           = minOn,
+            CanPickSolution       = validCount > 0,
+            ValidCombinationCount = validCount,
+            Magnitudes            = magnitudes,
+            TotalRange            = totalRange
+        };
+    }
+#endif
 }

@@ -99,4 +99,4 @@ CrosshairMode GetCrosshairMode();   // crosshair icon
 | `DrawerDrag` | `IDraggable`, `IInteractable` | `cupboard_drawer` |
 | `DoorInteraction` | `IDraggable`, `IInteractable` | `desk_door`, `locker` doors |
 | `PickableItem` | `IInteractable` | All pickable world items |
-| `PressureLever` | `IInteractable` | Levers (collider on child) |
+| `PressureLever` | `IInteractable` | Levers (collider on child) — see Pressure Puzzle docs |

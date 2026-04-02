@@ -17,11 +17,10 @@ public class PressureLever : MonoBehaviour, IInteractable
 {
     // ── Settings ──────────────────────────────────────────────────────────────
 
-    [Header("Pressure Values")]
-    [Tooltip("Pressure contribution when the lever is OFF (down position).")]
-    [SerializeField] private float _offValue = -15f;
-    [Tooltip("Pressure contribution when the lever is ON (up position).")]
-    [SerializeField] private float _onValue = 15f;
+    // _offValue / _onValue are assigned at runtime by PressurePuzzle.GenerateAndAssignLeverValues().
+    // They are NOT serialized — never set them manually in the Inspector.
+    private float _offValue = -10f;
+    private float _onValue  =  10f;
 
     [Header("Visual Rotation")]
     [Tooltip("Z-axis rotation delta applied to the stick when switched ON. " +
@@ -119,6 +118,16 @@ public class PressureLever : MonoBehaviour, IInteractable
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by PressurePuzzle.GenerateAndAssignLeverValues() before Start().
+    /// Sets the pressure contribution this lever makes in each state.
+    /// </summary>
+    public void AssignValues(float offValue, float onValue)
+    {
+        _offValue = offValue;
+        _onValue  = onValue;
+    }
 
     private void ApplyRotation(float delta)
     {
