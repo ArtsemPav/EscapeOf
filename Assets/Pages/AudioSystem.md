@@ -1,39 +1,45 @@
-## Overview
+# Pressure Puzzle System
 
-The Audio System in Escape is designed to handle ambient music, sound effects (SFX), and environmental audio with a focus on immersive transitions and synchronization with visual effects.
+Загадка на давление: игрок переключает рычаги чтобы выровнять стрелку циферблата в нейтральную позицию (0°). Каждая сессия — новая случайная выигрышная комбинация. Загадка всегда решаема по построению.
 
-## Core Components
+---
 
-### AudioManager.cs
-The central hub for all audio operations. It manages:
-- **Background Music (BGM):** Seamless transitions between Menu and Gameplay music.
-- **3D Sound Loops:** Dynamic creation of 3D audio sources for environmental sounds.
-- **Global Volume Control:** (Ready for implementation via Audio Mixer).
+## Компоненты
 
-### NeonLightFlicker.cs
-A specialized script for audio-visual synchronization. It:
-- Requests a 3D loop from `AudioManager`.
-- Analyzes the audio waveform (RMS) in real-time.
-- Maps audio amplitude to light intensity and material emission.
+### `PressureLever`
+Ставится на каждый рычаг. Значения давления назначаются в рантайме.
+- `_angleOnDelta`: Поворот при включении.
+- `_rotationSpeed`: Скорость анимации.
 
-## Music Management
+### `PressurePuzzle`
+Управляет логикой, генерирует значения, фиксирует победу.
+- `_arrow`: Трансформ стрелки.
+- `_solveAngleTolerance`: Допуск от 0° для решения (обычно 1–5°).
+- `_confirmOnInteract`: Если включено, результат проверяется только при нажатии на манометр.
+- `_minFlipsFromSolution`: Минимальное число ходов от старта до решения.
 
-The system uses a dual-source approach to manage background music transitions:
+### `PressureGauge`
+Коллайдер манометра. При нажатии вызывает `Confirm()` в пазле (если включен режим подтверждения).
 
-1.  **Gameplay Music:** Plays continuously in the background. When paused, its volume fades to 0 but the playback continues, allowing it to resume from the exact same point when returning to the game.
-2.  **Menu Music:** Always restarts from the beginning when the menu is opened to provide a consistent "entry" experience.
+---
 
-### Transition Logic
-Transitions are handled via `FadeBetweenSources` using `Time.unscaledDeltaTime`, ensuring that audio fades work correctly even when `Time.timeScale` is set to 0 (Pause).
+## Жизненный цикл сессии
 
-## Integration Guide
+1.  **Генерация**: Создаются случайные величины для рычагов (`base` + `step`).
+2.  **Решение**: Выбирается случайная маска рычагов, которая даст 0°. Маппинг стрелки сдвигается под это решение.
+3.  **Рандомизация**: Рычаги переключаются в состояние, которое находится на расстоянии `_minFlipsFromSolution` от любого валидного решения.
 
-### Adding New Environmental Sounds
-To add a looping 3D sound (like a humming lamp or ventilation):
-1. Use `AudioManager.Instance.Play3DLoop(clip, transform, volume, minDistance, maxDistance)`.
-2. This creates a managed child GameObject with an `AudioSource` configured for 3D spatialization.
+---
 
-### Handling Pause
-The `AudioManager` and `NeonLightFlicker` scripts are designed to respect the game's pause state:
-- **BGM:** Handled via volume fades triggered by `GameManager.SetPause(bool)`. `AudioManager.PlayMenuMusic()` and `AudioManager.PlayGameMusic()` are called directly from `GameManager`.
-- **Environmental Sounds:** `NeonLightFlicker` explicitly calls `_audioSource.Pause()` when `Time.timeScale == 0` to prevent environmental "noise" during menu navigation.
+## Система сохранений
+`PressurePuzzle` сохраняет `isSolved` и состояния рычагов. При загрузке восстанавливается именно та комбинация, которую составил игрок.
+
+---
+
+## Настройка
+1. Добавь `PressurePuzzle` на корень.
+2. Добавь рычаги с `PressureLever` (Interactable Layer).
+3. Назначь `arrow` в пазл.
+4. Добавь `PressureGauge` на экран манометра.
+5. Настрой `_leverValueBase` / `_step` и `_saveId`.
+6. Настрой `_arrowAngleAtMin` / `Max` по виду циферблата.
