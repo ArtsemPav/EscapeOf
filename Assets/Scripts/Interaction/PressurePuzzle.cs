@@ -90,6 +90,9 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     /// <summary>True once the puzzle has been solved.</summary>
     public bool IsSolved { get; private set; }
 
+    /// <summary>Whether the gauge must be interacted with to commit lever state and check for a solution.</summary>
+    public bool ConfirmOnInteract => _confirmOnInteract;
+
     private readonly List<PressureLever> _levers = new();
     private readonly List<int> _validSolutionMasks = new(); // all combinations within _solveAngleTolerance
     private float _minTotal;
@@ -162,6 +165,11 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         _currentArrowAngle = PressureToAngle(initial);
         _targetArrowAngle  = _currentArrowAngle;
         ApplyArrow(_currentArrowAngle);
+
+        // Final snap — ensures lever visuals match their randomized IsOn state
+        // regardless of script execution order during scene initialization.
+        foreach (var lever in _levers)
+            lever.SnapVisual();
 
         Debug.Log($"[PressurePuzzle] {_levers.Count} levers. " +
                   $"Range [{_minTotal}…{_maxTotal}]. Solution total: {_solutionTotal}. " +
@@ -356,6 +364,9 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
                 _currentArrowAngle = _targetArrowAngle;
                 _arrowVelocity     = 0f;
                 ApplyArrow(_currentArrowAngle);
+
+                if (!IsSolved && Mathf.Abs(_currentArrowAngle) <= _solveAngleTolerance)
+                    Solve();
             }
             return;
         }
@@ -369,6 +380,19 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             1f / _arrowSmoothSpeed
         );
         ApplyArrow(_currentArrowAngle);
+
+        // Fire solve the moment the arrow visually enters the tolerance zone while
+        // heading to a valid target — avoids the perceived pause of waiting for the
+        // full SmoothDamp asymptotic settle before checking.
+        if (!IsSolved
+            && Mathf.Abs(_targetArrowAngle) <= _solveAngleTolerance
+            && Mathf.Abs(_currentArrowAngle) <= _solveAngleTolerance)
+        {
+            _currentArrowAngle = _targetArrowAngle;
+            _arrowVelocity     = 0f;
+            ApplyArrow(_currentArrowAngle);
+            Solve();
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -388,7 +412,7 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
 
     /// <summary>
     /// Called when the player interacts with the gauge itself.
-    /// Moves the arrow to the current total and checks for a solution.
+    /// Moves the arrow to the current total — solve is deferred until the arrow settles.
     /// In real-time mode this is a no-op (arrow already tracks live).
     /// </summary>
     public void Confirm()
@@ -396,9 +420,6 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         if (IsSolved) return;
 
         UpdateArrowTarget();
-
-        if (Mathf.Abs(_targetArrowAngle) <= _solveAngleTolerance)
-            Solve();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -406,9 +427,7 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     private void UpdateArrowTarget()
     {
         _targetArrowAngle = PressureToAngle(GetCurrentTotal());
-
-        if (!_confirmOnInteract && Mathf.Abs(_targetArrowAngle) <= _solveAngleTolerance)
-            Solve();
+        // Solve check is deferred to Update() — triggers only when the arrow finishes animating.
     }
 
     private float GetCurrentTotal()

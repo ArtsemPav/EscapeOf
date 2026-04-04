@@ -94,6 +94,9 @@ public class PressureLever : MonoBehaviour, IInteractable
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
+    /// <summary>Disables interaction once the puzzle is solved.</summary>
+    public bool CanInteract() => _puzzle == null || !_puzzle.IsSolved;
+
     /// <summary>Toggles the lever and notifies the puzzle controller.</summary>
     public void Interact()
     {
@@ -145,6 +148,18 @@ public class PressureLever : MonoBehaviour, IInteractable
         IsOn          = on;
         _currentDelta = on ? _angleOnDelta : 0f;
         _targetDelta  = _currentDelta;
+        ApplyRotation(_currentDelta);
+    }
+
+    /// <summary>
+    /// Forces the visual rotation to immediately match the current IsOn state.
+    /// Called by PressurePuzzle at the end of Start() to guarantee correct visuals
+    /// regardless of script execution order during initialization.
+    /// </summary>
+    public void SnapVisual()
+    {
+        _targetDelta  = IsOn ? _angleOnDelta : 0f;
+        _currentDelta = _targetDelta;
         ApplyRotation(_currentDelta);
     }
 }

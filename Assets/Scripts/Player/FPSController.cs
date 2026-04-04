@@ -379,6 +379,14 @@ public class FPSController : MonoBehaviour, ISaveable
 
         if (interactable != null)
         {
+            // If the object signals it cannot currently be interacted with, treat it as
+            // non-interactable — clear hint and skip setting _currentInteractable.
+            if (!interactable.CanInteract())
+            {
+                ClearCurrentInteractable();
+                return;
+            }
+
             string newText      = interactable.GetInteractText();
             CrosshairMode newMode = interactable.GetCrosshairMode();
 

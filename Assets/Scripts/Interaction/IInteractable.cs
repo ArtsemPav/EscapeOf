@@ -47,6 +47,14 @@ public enum CrosshairMode
 
 public interface IInteractable
 {
+    /// <summary>
+    /// Returns true when the object is ready to be interacted with.
+    /// When false, FPSController skips this object entirely — no hint, no crosshair
+    /// change, and Interact() will not be called.
+    /// Default is true; override to add contextual blocking logic.
+    /// </summary>
+    bool CanInteract() => true;
+
     /// <summary>Called when the player interacts with this object.</summary>
     void Interact();
 
