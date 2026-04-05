@@ -16,24 +16,90 @@ namespace PuzzleGame
         [SerializeField] private float spacing = 0.22f; // Distance between tile centers
 
         [Header("Setup")]
-        [SerializeField] private List<PuzzleElement> elements = new List<PuzzleElement>();
-        
+        [SerializeField] private GameObject elementPrefab; // Prefab for tiles
+        [SerializeField] private GameObject lastElementPrefab; // The last tile to show on win
+
         [Header("Visual Settings")]
         [SerializeField] private bool useImageAtlas = true;
         [SerializeField] private Material puzzleMaterial;
 
+        private List<PuzzleElement> elements = new List<PuzzleElement>();
         private PuzzleElement[,] grid;
         private Vector2Int emptyPosition;
         private bool isShuffling;
+        private GameObject spawnedLastElement;
 
         private void Start()
         {
-            InitializeGrid();
+            GeneratePuzzle();
             if (useImageAtlas && puzzleMaterial != null)
             {
                 ApplyAtlasToElements();
             }
+            PrepareLastElement();
             StartCoroutine(DelayedShuffle());
+        }
+
+        private void GeneratePuzzle()
+        {
+            // Clear list
+            elements.Clear();
+            grid = new PuzzleElement[width, height];
+            int totalElements = width * height - 1;
+
+            for (int i = 0; i < totalElements; i++)
+            {
+                int x = i % width;
+                int y = i / width;
+
+                GameObject go = Instantiate(elementPrefab, transform);
+                go.name = $"Element ({i + 1})";
+                go.layer = LayerMask.NameToLayer("Interactable Layer");
+                
+                PuzzleElement element = go.GetComponent<PuzzleElement>();
+                if (element == null) element = go.AddComponent<PuzzleElement>();
+
+                element.Initialize(this, new Vector2Int(x, y), i);
+                grid[x, y] = element;
+                
+                // Set initial position based on grid
+                element.transform.localPosition = GetWorldPosition(x, y);
+                elements.Add(element);
+            }
+
+            // Set empty position to the last slot (bottom-right)
+            emptyPosition = new Vector2Int(width - 1, height - 1);
+            grid[emptyPosition.x, emptyPosition.y] = null;
+        }
+
+        private void PrepareLastElement()
+        {
+            if (lastElementPrefab == null) return;
+
+            // Instantiate the last element but keep it hidden initially
+            spawnedLastElement = Instantiate(lastElementPrefab, transform);
+            spawnedLastElement.SetActive(false);
+
+            // Set its position to the empty slot's initial world position
+            spawnedLastElement.transform.localPosition = GetWorldPosition(emptyPosition.x, emptyPosition.y);
+            
+            // Apply atlas if needed
+            if (useImageAtlas && puzzleMaterial != null)
+            {
+                MeshRenderer renderer = spawnedLastElement.GetComponent<MeshRenderer>();
+                if (renderer != null)
+                {
+                    float uvWidth = 1f / width;
+                    float uvHeight = 1f / height;
+                    Material instanceMaterial = new Material(puzzleMaterial);
+                    renderer.material = instanceMaterial;
+
+                    // Last element is always the last index (bottom-right)
+                    instanceMaterial.mainTextureScale = new Vector2(uvWidth, uvHeight);
+                    // Bottom-right corner UV: X starts at (1 - width), Y starts at 0
+                    instanceMaterial.mainTextureOffset = new Vector2(1f - uvWidth, 0); 
+                }
+            }
         }
 
         private void ApplyAtlasToElements()
@@ -209,7 +275,21 @@ namespace PuzzleGame
                     index++;
                 }
             }
-            Debug.Log("Puzzle Solved!");
+            
+            OnPuzzleSolved();
+        }
+
+        private void OnPuzzleSolved()
+        {
+            Debug.LogError("Puzzle Solved!");
+            
+            // Show the last element to complete the image
+            if (spawnedLastElement != null)
+            {
+                // Ensure it's in the correct final position (the empty slot)
+                spawnedLastElement.transform.localPosition = GetWorldPosition(emptyPosition.x, emptyPosition.y);
+                spawnedLastElement.SetActive(true);
+            }
         }
     }
 }
