@@ -253,5 +253,50 @@ namespace PuzzleGame
                 spawnedLastElement.SetActive(true);
             }
         }
+
+        /// <summary>
+        /// Automatically solves the puzzle by placing all tiles in their target positions.
+        /// </summary>
+        public void AutoSolve()
+        {
+            if (isPuzzleSolved) return;
+
+            // Stop any ongoing shuffle
+            StopAllCoroutines();
+            isShuffling = false;
+
+            // Sort elements by their target index to easily place them
+            elements.Sort((a, b) => a.TargetIndex.CompareTo(b.TargetIndex));
+
+            // Reset the grid
+            grid = new PuzzleElement[width, height];
+            int index = 0;
+
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (index < elements.Count)
+                    {
+                        PuzzleElement element = elements[index];
+                        element.GridPosition = new Vector2Int(x, y);
+                        grid[x, y] = element;
+                        
+                        // Instantly move to the correct local position
+                        element.transform.localPosition = GetWorldPosition(x, y);
+                        index++;
+                    }
+                    else
+                    {
+                        // The last cell is empty
+                        emptyPosition = new Vector2Int(x, y);
+                        grid[x, y] = null;
+                    }
+                }
+            }
+
+            CheckWinCondition();
+        }
+
     }
 }
