@@ -52,24 +52,6 @@ namespace PuzzleGame
 
             // Set its position to the empty slot's initial world position
             spawnedLastElement.transform.localPosition = GetWorldPosition(width - 1, height - 1);
-            
-            // Apply atlas if needed
-            if (useImageAtlas && puzzleMaterial != null)
-            {
-                MeshRenderer renderer = spawnedLastElement.GetComponent<MeshRenderer>();
-                if (renderer != null)
-                {
-                    float uvWidth = 1f / width;
-                    float uvHeight = 1f / height;
-                    Material instanceMaterial = new Material(puzzleMaterial);
-                    renderer.material = instanceMaterial;
-
-                    // Last element is always the last index (bottom-right)
-                    instanceMaterial.mainTextureScale = new Vector2(uvWidth, uvHeight);
-                    // Bottom-right corner UV: X starts at (1 - width), Y starts at 0
-                    instanceMaterial.mainTextureOffset = new Vector2(1f - uvWidth, 0); 
-                }
-            }
         }
 
         private void ApplyAtlasToElements()
