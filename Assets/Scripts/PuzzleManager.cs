@@ -16,60 +16,30 @@ namespace PuzzleGame
         [SerializeField] private float spacing = 0.22f; // Distance between tile centers
 
         [Header("Setup")]
-        [SerializeField] private GameObject elementPrefab; // Prefab for tiles
+        [SerializeField] private List<PuzzleElement> elements = new List<PuzzleElement>();
         [SerializeField] private GameObject lastElementPrefab; // The last tile to show on win
 
         [Header("Visual Settings")]
         [SerializeField] private bool useImageAtlas = true;
         [SerializeField] private Material puzzleMaterial;
 
-        private List<PuzzleElement> elements = new List<PuzzleElement>();
         private PuzzleElement[,] grid;
         private Vector2Int emptyPosition;
         private bool isShuffling;
         private GameObject spawnedLastElement;
 
+        private bool isPuzzleSolved;
+
         private void Start()
         {
-            GeneratePuzzle();
+            isPuzzleSolved = false;
+            InitializeGrid();
             if (useImageAtlas && puzzleMaterial != null)
             {
                 ApplyAtlasToElements();
             }
             PrepareLastElement();
             StartCoroutine(DelayedShuffle());
-        }
-
-        private void GeneratePuzzle()
-        {
-            // Clear list
-            elements.Clear();
-            grid = new PuzzleElement[width, height];
-            int totalElements = width * height - 1;
-
-            for (int i = 0; i < totalElements; i++)
-            {
-                int x = i % width;
-                int y = i / width;
-
-                GameObject go = Instantiate(elementPrefab, transform);
-                go.name = $"Element ({i + 1})";
-                go.layer = LayerMask.NameToLayer("Interactable Layer");
-                
-                PuzzleElement element = go.GetComponent<PuzzleElement>();
-                if (element == null) element = go.AddComponent<PuzzleElement>();
-
-                element.Initialize(this, new Vector2Int(x, y), i);
-                grid[x, y] = element;
-                
-                // Set initial position based on grid
-                element.transform.localPosition = GetWorldPosition(x, y);
-                elements.Add(element);
-            }
-
-            // Set empty position to the last slot (bottom-right)
-            emptyPosition = new Vector2Int(width - 1, height - 1);
-            grid[emptyPosition.x, emptyPosition.y] = null;
         }
 
         private void PrepareLastElement()
@@ -81,7 +51,7 @@ namespace PuzzleGame
             spawnedLastElement.SetActive(false);
 
             // Set its position to the empty slot's initial world position
-            spawnedLastElement.transform.localPosition = GetWorldPosition(emptyPosition.x, emptyPosition.y);
+            spawnedLastElement.transform.localPosition = GetWorldPosition(width - 1, height - 1);
             
             // Apply atlas if needed
             if (useImageAtlas && puzzleMaterial != null)
@@ -179,7 +149,7 @@ namespace PuzzleGame
         /// </summary>
         public bool TryMoveElement(PuzzleElement element)
         {
-            if (isShuffling) return false;
+            if (isShuffling || isPuzzleSolved) return false;
 
             Vector2Int pos = element.GridPosition;
             if (IsAdjacent(pos, emptyPosition))
@@ -275,13 +245,23 @@ namespace PuzzleGame
                     index++;
                 }
             }
-            
             OnPuzzleSolved();
         }
 
         private void OnPuzzleSolved()
         {
-            Debug.LogError("Puzzle Solved!");
+            Debug.Log("Puzzle Solved!");
+            isPuzzleSolved = true;
+            
+            // Disable interaction for all elements
+            foreach (var element in elements)
+            {
+                if (element != null)
+                {
+                    Collider col = element.GetComponent<Collider>();
+                    if (col != null) col.enabled = false;
+                }
+            }
             
             // Show the last element to complete the image
             if (spawnedLastElement != null)

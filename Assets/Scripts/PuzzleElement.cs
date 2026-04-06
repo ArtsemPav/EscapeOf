@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 
 namespace PuzzleGame
 {
@@ -13,6 +14,10 @@ namespace PuzzleGame
     {
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 10f;
+
+        [Header("Debug Settings")]
+        [SerializeField] private TextMeshPro numberText;
+        [SerializeField] private bool showDebugText = false;
         
         private PuzzleManager manager;
         private Vector2Int gridPosition;
@@ -36,6 +41,13 @@ namespace PuzzleGame
             manager = puzzleManager;
             gridPosition = startPos;
             targetIndex = index;
+
+            // Update and show/hide debug text if assigned
+            if (numberText != null)
+            {
+                numberText.text = (targetIndex + 1).ToString();
+                numberText.gameObject.SetActive(showDebugText);
+            }
         }
 
         #region IInteractable Implementation

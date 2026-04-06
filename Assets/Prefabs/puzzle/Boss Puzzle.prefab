@@ -29,7 +29,8 @@ Transform:
   m_LocalPosition: {x: 0.26147, y: 1.73, z: 8.41328}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 8951802873724254671}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2038358334981280195
@@ -44,10 +45,72 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24550645612cb954daf208b8db36ccd7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleGame.PuzzleManager
-  width: 2
-  height: 2
+  width: 3
+  height: 3
   spacing: 0.22
-  elementPrefab: {fileID: 8072072764262130084, guid: 33095a66f3e78d9468901505f60e9e81, type: 3}
+  elements: []
   lastElementPrefab: {fileID: 8072072764262130084, guid: 33095a66f3e78d9468901505f60e9e81, type: 3}
   useImageAtlas: 1
   puzzleMaterial: {fileID: 2100000, guid: 6d1d0144745da9b4981021438a3d3002, type: 2}
+--- !u!1001 &914668171414260253
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 5396697070105607586}
+    m_Modifications:
+    - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_Name
+      value: BossPuzzeElement (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.049999237
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+--- !u!4 &8951802873724254671 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+  m_PrefabInstance: {fileID: 914668171414260253}
+  m_PrefabAsset: {fileID: 0}
