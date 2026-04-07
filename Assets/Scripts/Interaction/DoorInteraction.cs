@@ -3,6 +3,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace Escape.Core {
+    /// <summary>Ось вращения пивота двери в локальном пространстве.</summary>
+    public enum DoorRotationAxis { X, Y, Z }
+
     /// <summary>
     /// Обрабатывает логику взаимодействия, проверку ключей и состояние двери.
     /// Поддерживает физическое перетаскивание (IDraggable): удерживай LMB и двигай мышью.
@@ -29,6 +32,8 @@ namespace Escape.Core {
         [Header("Pivot")]
         [Tooltip("Transform двери, который физически вращается. Обычно — родительский объект с петлёй.")]
         [SerializeField] private Transform _pivot;
+        [Tooltip("Ось вращения двери в локальном пространстве пивота. Y — стандартная петля, X/Z — для нестандартных объектов.")]
+        [SerializeField] private DoorRotationAxis _rotationAxis = DoorRotationAxis.Y;
 
         [Header("Drag Physics")]
         [Tooltip("How far the door swings when fully open (degrees). Negative = swings the other way.")]
@@ -66,7 +71,7 @@ namespace Escape.Core {
 
         // ── Runtime state ────────────────────────────────────────────────────────
 
-        private float   _closedLocalEulerY;
+        private float   _closedAngle;         // initial euler angle along the chosen axis
         private float   _openFraction;        // 0 = closed, 1 = fully open
         private float   _velocity;            // open-fraction per second
         private bool    _isDragging;
@@ -148,7 +153,7 @@ namespace Escape.Core {
             if (_pivot == null)
                 _pivot = transform.parent != null ? transform.parent : transform;
 
-            _closedLocalEulerY = _pivot.localEulerAngles.y;
+            _closedAngle = GetClosedAngle();
 
             // Apply loaded state if available, otherwise use serialized defaults
             if (_hasPendingLoad)
@@ -242,11 +247,11 @@ namespace Escape.Core {
 
             if (_pivot != null) {
                 Vector3 offset = hitPoint - _pivot.position;
-                offset.y = 0f;
+                offset = FlattenOffsetForAxis(offset);
                 if (offset.sqrMagnitude < 0.01f)
-                    offset = Vector3.right;
+                    offset = GetLocalAxisVector() == Vector3.up ? Vector3.right : Vector3.up;
                 float currentOpenAngle = _dragStartFraction * _maxOpenAngle;
-                _grabOffsetWorld = Quaternion.AngleAxis(-currentOpenAngle, Vector3.up) * offset;
+                _grabOffsetWorld = Quaternion.AngleAxis(-currentOpenAngle, GetWorldAxisVector()) * offset;
             }
         }
 
@@ -261,7 +266,7 @@ namespace Escape.Core {
 
             if (grabDist < 0.001f) return;
 
-            Vector3 swingTangent = Vector3.Cross(Vector3.up, grabWorld / grabDist)
+            Vector3 swingTangent = Vector3.Cross(GetWorldAxisVector(), grabWorld / grabDist)
                                    * Mathf.Sign(_maxOpenAngle);
 
             Vector3 grabWorldPos = _pivot.position + grabWorld;
@@ -372,9 +377,47 @@ namespace Escape.Core {
         private void ApplyAngle() {
             if (_pivot == null) return;
             Vector3 e = _pivot.localEulerAngles;
-            e.y = _closedLocalEulerY + _openFraction * _maxOpenAngle;
+            float targetAngle = _closedAngle + _openFraction * _maxOpenAngle;
+            switch (_rotationAxis)
+            {
+                case DoorRotationAxis.X: e.x = targetAngle; break;
+                case DoorRotationAxis.Z: e.z = targetAngle; break;
+                default:                 e.y = targetAngle; break;
+            }
             _pivot.localEulerAngles = e;
         }
+
+        /// <summary>Returns the initial euler angle of the pivot along the configured axis.</summary>
+        private float GetClosedAngle()
+        {
+            Vector3 angles = _pivot.localEulerAngles;
+            return _rotationAxis switch
+            {
+                DoorRotationAxis.X => angles.x,
+                DoorRotationAxis.Z => angles.z,
+                _                  => angles.y,
+            };
+        }
+
+        /// <summary>Returns the rotation axis direction in pivot's local space.</summary>
+        private Vector3 GetLocalAxisVector() => _rotationAxis switch
+        {
+            DoorRotationAxis.X => Vector3.right,
+            DoorRotationAxis.Z => Vector3.forward,
+            _                  => Vector3.up,
+        };
+
+        /// <summary>Returns the rotation axis direction in world space.</summary>
+        private Vector3 GetWorldAxisVector() =>
+            _pivot != null ? _pivot.TransformDirection(GetLocalAxisVector()) : GetLocalAxisVector();
+
+        /// <summary>Zeroes out the component along the rotation axis so the grab offset stays on the swing plane.</summary>
+        private Vector3 FlattenOffsetForAxis(Vector3 offset) => _rotationAxis switch
+        {
+            DoorRotationAxis.X => new Vector3(0f, offset.y, offset.z),
+            DoorRotationAxis.Z => new Vector3(offset.x, offset.y, 0f),
+            _                  => new Vector3(offset.x, 0f, offset.z),
+        };
 
         /// <summary>Gets or lazily creates a looping AudioSource for the given clip.</summary>
         private AudioSource GetLoopSource(ref AudioSource source, AudioClip clip)
