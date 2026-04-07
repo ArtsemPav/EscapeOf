@@ -8,8 +8,11 @@ namespace PuzzleGame
     /// <summary>
     /// Manages the sliding puzzle logic, including grid generation, shuffling, and win conditions.
     /// </summary>
-    public class PuzzleManager : MonoBehaviour
+    public class PuzzleManager : MonoBehaviour, ISaveable
     {
+        [Header("Save")]
+        [SerializeField] private string _saveId = "boss_puzzle";
+
         [Header("Grid Settings")]
         [SerializeField] private int width = 3;
         [SerializeField] private int height = 3;
@@ -18,6 +21,7 @@ namespace PuzzleGame
         [Header("Setup")]
         [SerializeField] private List<PuzzleElement> elements = new List<PuzzleElement>();
         [SerializeField] private GameObject lastElementPrefab; // The last tile to show on win
+        [SerializeField] private ItemData rewardItemData;      // Item to add to inventory on restore (skips LastElement spawn)
 
         [Header("Visual Settings")]
         [SerializeField] private bool useImageAtlas = true;
@@ -29,17 +33,77 @@ namespace PuzzleGame
         private GameObject spawnedLastElement;
 
         private bool isPuzzleSolved;
+        private bool isLoadedAsSolved;
+
+        private void Awake()
+        {
+            SaveManager.Instance?.Register(this);
+        }
+
+        private void OnDestroy()
+        {
+            SaveManager.Instance?.Unregister(this);
+        }
 
         private void Start()
         {
             isPuzzleSolved = false;
+
+            // InitializeGrid always runs so elements are properly set up
             InitializeGrid();
+
             if (useImageAtlas && puzzleMaterial != null)
             {
                 ApplyAtlasToElements();
             }
+
             PrepareLastElement();
-            StartCoroutine(DelayedShuffle());
+
+            if (isLoadedAsSolved)
+            {
+                RestoreSolvedState();
+            }
+            else
+            {
+                StartCoroutine(DelayedShuffle());
+            }
+        }
+
+        private void RestoreSolvedState()
+        {
+            isPuzzleSolved = true;
+
+            // Place each element at its target (solved) position without shuffling
+            elements.Sort((a, b) => a.TargetIndex.CompareTo(b.TargetIndex));
+            for (int i = 0; i < elements.Count; i++)
+            {
+                int targetX = elements[i].TargetIndex % width;
+                int targetY = elements[i].TargetIndex / width;
+
+                // Update logical grid
+                grid[targetX, targetY] = elements[i];
+                elements[i].GridPosition = new Vector2Int(targetX, targetY);
+                elements[i].transform.localPosition = GetWorldPosition(targetX, targetY);
+
+                Collider col = elements[i].GetComponent<Collider>();
+                if (col != null) col.enabled = false;
+            }
+
+            // The last grid cell (bottom-right) is always the empty slot after solving
+            emptyPosition = new Vector2Int(width - 1, height - 1);
+            grid[emptyPosition.x, emptyPosition.y] = null;
+
+            // Do NOT spawn LastElement — its PickableItem would be immediately destroyed by
+            // the save system (collected=true). Instead, add the reward item directly to the
+            // inventory if it is not already there.
+            if (rewardItemData != null && InventorySystem.Instance != null
+                && !InventorySystem.Instance.HasItem(rewardItemData))
+            {
+                InventorySystem.Instance.AddItem(rewardItemData);
+                Debug.Log($"[PuzzleManager] Restored: added '{rewardItemData.itemName}' to inventory.");
+            }
+
+            Debug.Log("[PuzzleManager] Restored solved state from save.");
         }
 
         private void PrepareLastElement()
@@ -252,6 +316,29 @@ namespace PuzzleGame
                 spawnedLastElement.transform.localPosition = GetWorldPosition(emptyPosition.x, emptyPosition.y);
                 spawnedLastElement.SetActive(true);
             }
+
+            SaveManager.Instance?.Save();
+        }
+
+        // ── ISaveable ─────────────────────────────────────────────────────────────
+
+        public string SaveId => _saveId;
+
+        public string GetSaveData()
+        {
+            return JsonUtility.ToJson(new SaveData { isSolved = isPuzzleSolved });
+        }
+
+        public void LoadSaveData(string json)
+        {
+            var data = JsonUtility.FromJson<SaveData>(json);
+            isLoadedAsSolved = data.isSolved;
+        }
+
+        [System.Serializable]
+        private struct SaveData
+        {
+            public bool isSolved;
         }
 
         /// <summary>
