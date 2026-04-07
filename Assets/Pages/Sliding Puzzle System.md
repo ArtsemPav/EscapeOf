@@ -1,6 +1,6 @@
-## Overview
+## Sliding Puzzle System
 
-The Sliding Puzzle system is a dynamic 3D implementation of the classic "15 puzzle" game. It features automatic grid generation, shuffle logic, and full integration with the project's interaction system.
+Dynamic 3D implementation of the classic "15 puzzle". Automatic grid generation, shuffle logic, full integration with the interaction system.
 
 ## Components
 
@@ -36,3 +36,12 @@ Attached to each individual tile.
 | **Width / Height** | Dimensions of the puzzle grid (e.g., 3x3, 4x4). |
 | **Spacing** | Distance between the centers of the tiles. |
 | **Move Speed** | How fast the tiles slide into the empty spot. |
+
+
+## Editor Tools
+
+### Solve Boss Puzzle
+A utility is available in the Unity Editor to automatically solve the sliding puzzle in the current scene.
+- **Path**: `Tools > Solve Boss Puzzle`
+- **Functionality**: Instantly moves all tiles to their correct target positions and triggers the win condition. Works both in **Play Mode** and during **Edit Mode**.
+- **Undo**: Supports Unity's Undo system (`Ctrl+Z`).
