@@ -120,6 +120,8 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 | `GameManager` | `game_manager` | Текущая комната |
 | `FPSController` | `player` | Позиция и угол камеры |
 | `PressurePuzzle` | `pressure_puzzle_boilerroom` | Решена ли загадка (`isSolved`) |
+| `MedallionBoxInteraction` | `medallion_puzzle` | Solved-флаг + ItemId в каждой из 5 лунок |
+| `MedallionCollectionTracker` | `medallion_collection` | Порядок подбора медальонов |
 
 ---
 
@@ -138,10 +140,18 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 
 ## Сброс прогресса
 
+### Из меню паузы в игре
+
 В меню паузы есть кнопка **Сбросить прогресс**. Она:
 1. Вызывает `SaveManager.Instance.DeleteSave()` — удаляет файл и все бэкапы
 2. Вызывает `SaveManager.Instance.ClearRegistry()` — очищает реестр объектов
 3. Перезагружает сцену
+
+### Из редактора Unity (без запуска игры)
+
+**Tools → Escape → Reset Save Progress**
+
+Скрипт `SaveProgressEditor` — редакторский инструмент для быстрого сброса в процессе разработки. Недоступен во время Play Mode. Показывает диалог с путём к файлу и подтверждением, затем удаляет основной файл и оба бэкапа.
 
 ---
 
@@ -158,6 +168,9 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 **Предмет появляется в сцене после загрузки (был подобран)**
 - Убедись что `_saveId` заполнен у `PickableItem` в Inspector
 - Убедись что перед `Destroy(gameObject)` вызывается `NotifyPickedUp()` — именно он помечает предмет как собранный и вызывает `Save()`
+
+**После подбора предмета инвентарь пустой при перезагрузке**
+- Убедись что `ItemData` этого предмета есть в массиве `_allItems` у компонента `InventorySystem`. `FindItemById()` ищет только внутри этого массива — если `ItemData` там нет, слот при загрузке вернёт `null`.
 
 **Состояние не сохраняется при резком закрытии**
 - При штатном закрытии (`OnApplicationQuit`) снимок всегда сбрасывается на диск

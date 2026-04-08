@@ -108,6 +108,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             if (_slots[i] != null) continue;
             _slots[i] = item;
             OnInventoryChanged?.Invoke();
+            SaveManager.Instance?.Save();
             return;
         }
 
@@ -122,6 +123,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             if (_slots[i] != item) continue;
             _slots[i] = null;
             OnInventoryChanged?.Invoke();
+            SaveManager.Instance?.Save();
             return true;
         }
         return false;
