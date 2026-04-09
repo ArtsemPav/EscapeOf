@@ -295,8 +295,9 @@ public class ItemInspector : MonoBehaviour
         _inspectionPivot = new GameObject("InspectionPivot");
         _inspectionPivot.transform.position = itemCenter;
         _inspectionInstance.transform.SetParent(_inspectionPivot.transform, worldPositionStays: true);
-        // Применяем начальный поворот после парентинга — иначе worldPositionStays компенсирует его
-        _inspectionPivot.transform.rotation = Quaternion.Euler(initialRotation);
+        // Per-item override takes priority over the global initialRotation setting.
+        var startRotation = item.useCustomPreviewRotation ? item.previewRotation : initialRotation;
+        _inspectionPivot.transform.rotation = Quaternion.Euler(startRotation);
 
         // Orthographic: размер вида = половина maxSize × множитель
         inspectionCamera.orthographicSize = maxSize * framingMultiplier * 0.5f;

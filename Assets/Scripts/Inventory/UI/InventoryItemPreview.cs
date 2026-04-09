@@ -108,7 +108,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
         if (descriptionText != null) descriptionText.text = item.description;
 
         if (item.inspectionPrefab != null)
-            SpawnModel(item.inspectionPrefab);
+            SpawnModel(item.inspectionPrefab, item.useCustomPreviewRotation ? item.previewRotation : initialRotation);
     }
 
     /// <summary>Destroys the 3D model and clears all text.</summary>
@@ -142,7 +142,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
         previewCamera.gameObject.SetActive(false);
     }
 
-    private void SpawnModel(GameObject prefab)
+    private void SpawnModel(GameObject prefab, Vector3 startRotation)
     {
         var instance  = Instantiate(prefab, PreviewOrigin, Quaternion.identity);
         SetLayerRecursively(instance, _previewLayer);
@@ -157,7 +157,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
         _previewPivot = new GameObject("InventoryPreviewPivot");
         _previewPivot.transform.position = center;
         instance.transform.SetParent(_previewPivot.transform, worldPositionStays: true);
-        _previewPivot.transform.rotation = Quaternion.Euler(initialRotation);
+        _previewPivot.transform.rotation = Quaternion.Euler(startRotation);
 
         if (previewCamera != null)
         {

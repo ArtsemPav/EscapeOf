@@ -24,7 +24,8 @@ Assets/Scripts/Inventory/
     └── InventoryBackdrop.cs    # Закрытие инвентаря кликом вне панели
 
 Assets/Scripts/Editor/
-└── MissingScriptCleaner.cs  # Утилита: Tools → Remove Missing Scripts
+├── MissingScriptCleaner.cs  # Утилита: Tools → Remove Missing Scripts
+└── ItemDataEditor.cs        # Кастомный Inspector для ItemData — интерактивный 3D-превью
 
 Assets/Data/Items/         # ItemData ассеты
 Assets/Data/Recipes/       # CraftingRecipe ассеты
@@ -43,8 +44,10 @@ Assets/Data/Recipes/       # CraftingRecipe ассеты
 | `itemName` | Название предмета |
 | `description` | Описание (показывается в тултипе) |
 | `icon` | Иконка для слота инвентаря |
-| `inspectionPrefab` | Prefab для 3D-просмотра. Если пустое — предмет подбирается напрямую без инспекции |
+| `inspectionPrefab` | Prefab для 3D-просмотра. Если пустое — предмет подбирается напрямую без инспекции. Также используется как 3D-модель монеты в лунках шкатулки |
 | `consumeOnUse` | Если включено — предмет удаляется из инвентаря после использования (дверь, замок). По умолчанию `true` |
+| `useCustomPreviewRotation` | Если включено — начальный ракурс превью берётся из `previewRotation` вместо глобального `initialRotation` |
+| `previewRotation` | Euler-углы начального поворота в 3D-превью (инспекция и инвентарь). Активно только при `useCustomPreviewRotation = true`. По умолчанию `(15, -35, 0)` |
 
 Флаг `consumeOnUse` проверяется в `DoorInteraction.Interact()` и `CodeLock.TryUnlock()`. Примеры настройки:
 
@@ -52,6 +55,13 @@ Assets/Data/Recipes/       # CraftingRecipe ассеты
 |---|---|---|
 | Ключ от конкретной двери | `true` | Исчезает после открытия |
 | Мастер-ключ / карта доступа | `false` | Остаётся в инвентаре, работает многократно |
+
+**Настройка ракурса превью через редакторский виджет**
+
+При наличии `inspectionPrefab` в Inspector появляется встроенный 3D-виджет предмета:
+- Drag внутри виджета — вращение по X/Y
+- Shift + Drag горизонтально — вращение по Z
+- При первом drag автоматически устанавливается `useCustomPreviewRotation = true` и углы сохраняются в `previewRotation`
 
 ### `CraftingRecipe` (ScriptableObject)
 
@@ -186,7 +196,7 @@ InspectionSetup/
 | `Description Text` | — | `TextMeshProUGUI` для описания |
 | `Idle Spin Speed` | `30` | Скорость автовращения (°/сек) |
 | `Drag Rotation Speed` | `0.4` | Чувствительность ручного вращения |
-| `Initial Rotation` | `(15, -35, 0)` | Начальный поворот модели (Euler) |
+| `Initial Rotation` | `(15, -35, 0)` | Глобальный начальный поворот. Применяется если у `ItemData` не включён `useCustomPreviewRotation` |
 | `Framing Multiplier` | `2.2` | Масштаб кадрирования — больше значение, меньше модель в кадре |
 
 ### Управление
@@ -311,7 +321,7 @@ Canvas/
 | `inspectionCamera` | — | Ссылка на камеру инспекции |
 | `framingMultiplier` | `2.2` | Чем больше — тем меньше модель в кадре |
 | `rotationSpeed` | `180` | Скорость ручного вращения (градус/сек) |
-| `initialRotation` | `(15, -35, 0)` | Начальный поворот при открытии, Euler |
+| `initialRotation` | `(15, -35, 0)` | Глобальный начальный поворот. Применяется если у `ItemData` не включён `useCustomPreviewRotation` |
 | `idleSpinDuration` | `1.8` | Длительность вступительной анимации (сек) |
 | `idleSpinSpeed` | `80` | Пиковая скорость idle spin (градус/сек) |
 
@@ -337,8 +347,9 @@ Editor-only скрипт. Меню: **Tools → Remove Missing Scripts**.
 
 ## Как добавить новый предмет
 
-1. **Assets > Create > Inventory > Item Data** — заполнить поля, назначить иконку и `inspectionPrefab`
-2. Создать GameObject в сцене, добавить `PickableItem`, назначить новый `ItemData`
+1. **Assets > Create > Inventory > Item Data** — заполнить `itemName`, `icon`, `inspectionPrefab`
+2. Открыть созданный `ItemData` в Inspector — появится 3D-виджет. Drag внутри виджета, чтобы повернуть модель к читаемому ракурсу; углы запишутся автоматически
+3. Создать GameObject в сцене, добавить `PickableItem`, назначить новый `ItemData`
 
 ## Как добавить рецепт крафта
 

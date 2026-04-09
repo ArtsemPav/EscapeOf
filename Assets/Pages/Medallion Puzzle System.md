@@ -66,9 +66,9 @@ PickableItem × 5           ← на каждой монете в сцене (IS
 |---|---|
 | `_holes` | Массив `MedallionHole` в порядке 0=Fire..4=Wood |
 | `_holeLayer` | LayerMask коллайдеров лунок (для Physics.Raycast) |
-| `_coinPrefab` | Prefab монеты, которая инстанциируется в лунку |
-| `_dropHeight` | Высота начала анимации падения монеты (метры) |
-| `_dropDuration` | Длительность падения (секунды) |
+| `_coinPrefab` | Запасной prefab монеты — используется только если у `ItemData` не заполнен `inspectionPrefab` |
+| `_dropHeight` | Высота начала анимации падения / подъёма монеты (метры) |
+| `_dropDuration` | Длительность падения / подъёма (секунды) |
 | `_ghostSize` | Размер иконки-призрака при перетаскивании (пиксели) |
 
 **Событие:** `OnPuzzleSolved` — Action без аргументов, подписывается `MedallionBoxInteraction`.
@@ -91,9 +91,9 @@ PickableItem × 5           ← на каждой монете в сцене (IS
 |---|---|
 | `IsFilled` | `true` если лунка занята |
 | `PlacedItem` | `ItemData` монеты в лунке, или `null` |
-| `Fill(item, prefab, height, duration)` | Разместить монету с анимацией падения |
-| `FillImmediate(item, prefab)` | Разместить монету мгновенно — используется при восстановлении из сохранения |
-| `Retrieve()` | Извлечь монету из лунки, возвращает `ItemData` |
+| `Fill(item, fallbackPrefab, height, duration)` | Разместить монету с анимацией падения (ease-in). Использует `item.inspectionPrefab`; если он `null` — `fallbackPrefab` |
+| `FillImmediate(item, fallbackPrefab)` | Разместить монету мгновенно — при восстановлении из сохранения. Та же логика выбора prefab |
+| `Retrieve(riseHeight, riseDuration)` | Извлечь монету: возвращает `ItemData` немедленно, монета поднимается вверх с анимацией ease-out и уничтожается в верхней точке |
 
 ---
 
@@ -166,8 +166,9 @@ MedallionCollectionTracker               ← отдельный GameObject с к
        └─ CheckVictory() — если всё верно → OnPuzzleSolved
 
 ЛКМ по занятой лунке → монета возвращается в инвентарь
-  └─ MedallionHole.Retrieve()
-  └─ InventorySystem.AddItem() → Save()
+  └─ MedallionHole.Retrieve(riseHeight, riseDuration)
+       ├─ Возвращает ItemData немедленно → InventorySystem.AddItem() → Save()
+       └─ RiseRoutine: монета поднимается вверх (ease-out) и уничтожается
 
 Загадка решена
   └─ _solvedObject.SetActive(true)
@@ -231,6 +232,9 @@ MedallionCollectionTracker               ← отдельный GameObject с к
 ---
 
 ## Часто встречающиеся ошибки
+
+**В лунке всегда отображается одна и та же монета (например, Iron)**
+- `Fill()` и `FillImmediate()` используют `item.inspectionPrefab` для 3D-модели в лунке. Убедись что `inspectionPrefab` заполнен у каждого из 5 `ItemData` медальонов. Если поле пустое — используется общий `_coinPrefab` из `MedallionBoxUI`.
 
 **Монета не исчезает из сцены после подбора при перезагрузке**
 - Пустой `_saveId` у `PickableItem`. Задай его вручную в Inspector.

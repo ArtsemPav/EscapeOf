@@ -25,6 +25,12 @@ public class ItemData : ScriptableObject
     [Tooltip("3D prefab shown in the inspection view. If null, item is picked up directly.")]
     public GameObject inspectionPrefab;
 
+    [Tooltip("When enabled, overrides the global initial rotation used in all 3D previews for this item specifically.")]
+    public bool useCustomPreviewRotation;
+
+    [Tooltip("Euler angles for the initial rotation in the inspection / inventory preview. Active only when useCustomPreviewRotation is true.")]
+    public Vector3 previewRotation = new Vector3(15f, -35f, 0f);
+
     [Header("Usage")]
     [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
     public bool consumeOnUse = true;
