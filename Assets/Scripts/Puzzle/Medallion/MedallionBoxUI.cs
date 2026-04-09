@@ -11,6 +11,8 @@ using UnityEngine.UI;
 ///   - On drop: raycasts into 3D scene to find a MedallionHole (any hole accepts any medallion).
 ///   - On LMB click on a filled hole: retrieves the medallion back to the UI and inventory.
 ///   - Validates the ORDER of placed medallions — fires <see cref="OnPuzzleSolved"/> when correct.
+///   - Each frame raycasts the hole layer for hover: calls <see cref="MedallionHole.Highlight"/>
+///     on the hovered filled hole so the player can tell the coin is clickable.
 /// Attach to MedallionBoxPanel.
 /// </summary>
 public class MedallionBoxUI : MonoBehaviour
@@ -46,6 +48,9 @@ public class MedallionBoxUI : MonoBehaviour
     private ItemData _dragItem;
     private bool _isDragging;
 
+    // Hover state — tracks which filled hole the cursor is currently over
+    private MedallionHole _hoveredHole;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Awake()
@@ -56,12 +61,23 @@ public class MedallionBoxUI : MonoBehaviour
 
     private void Update()
     {
+        if (Mouse.current == null) return;
+
+        var mousePos = Mouse.current.position.ReadValue();
+        bool overUI  = EventSystem.current.IsPointerOverGameObject();
+
+        // Hover highlight — runs every frame regardless of drag state
+        if (!_isDragging)
+            UpdateHoverHighlight(overUI ? null : mousePos);
+
         // Click (not drag) on a filled hole → retrieve medallion back to UI
-        if (!_isDragging && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
-        {
-            if (!EventSystem.current.IsPointerOverGameObject())
-                TryRetrieveFromHole(Mouse.current.position.ReadValue());
-        }
+        if (!_isDragging && Mouse.current.leftButton.wasPressedThisFrame && !overUI)
+            TryRetrieveFromHole(mousePos);
+    }
+
+    private void OnDisable()
+    {
+        ClearHover();
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -149,6 +165,42 @@ public class MedallionBoxUI : MonoBehaviour
         _dragItem = null;
     }
 
+    // ── Hover highlight ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Raycasts from <paramref name="screenPos"/> into the hole layer each frame.
+    /// Highlights the hovered filled hole and clears the previous one.
+    /// Pass <c>null</c> to clear all highlights (e.g. when cursor is over UI).
+    /// </summary>
+    private void UpdateHoverHighlight(Vector2? screenPos)
+    {
+        MedallionHole hit = null;
+
+        if (screenPos.HasValue && Camera.main != null)
+        {
+            var ray = Camera.main.ScreenPointToRay(screenPos.Value);
+            if (Physics.Raycast(ray, out var hitInfo, 50f, _holeLayer, QueryTriggerInteraction.Collide))
+            {
+                var hole = hitInfo.collider.GetComponent<MedallionHole>();
+                if (hole != null && hole.IsFilled)
+                    hit = hole;
+            }
+        }
+
+        if (hit == _hoveredHole) return;
+
+        _hoveredHole?.Highlight(false);
+        _hoveredHole = hit;
+        _hoveredHole?.Highlight(true);
+    }
+
+    /// <summary>Removes highlight from the currently hovered hole and resets tracking.</summary>
+    private void ClearHover()
+    {
+        _hoveredHole?.Highlight(false);
+        _hoveredHole = null;
+    }
+
     // ── Placement ─────────────────────────────────────────────────────────────
 
     private bool TryPlaceOnHole(Vector2 screenPos)
@@ -186,6 +238,9 @@ public class MedallionBoxUI : MonoBehaviour
 
         var item = hole.Retrieve(_dropHeight, _dropDuration);
         if (item == null) return;
+
+        // Hole is now empty — clear hover so the highlight is not stuck
+        ClearHover();
 
         // Restore to inventory and refresh UI slots
         InventorySystem.Instance?.AddItem(item);

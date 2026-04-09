@@ -6,6 +6,12 @@ using UnityEngine;
 /// Tracks the order in which the player collects medallions.
 /// Registers with SaveManager so the collection order persists across sessions.
 /// MedallionBoxUI queries CollectionOrder to display slots in the correct sequence.
+///
+/// <para><b>Execution order: -5.</b> Runs after SaveManager (-10) and MedallionBoxInteraction (-7).
+/// This guarantees that when <c>Start</c> calls <see cref="OnInventoryChanged"/> for the startup
+/// sync, all holes have already been restored via <c>ApplyPendingLoad</c>. The <c>_isReady</c>
+/// flag prevents that startup sync from triggering a premature <c>Save()</c> that would
+/// overwrite the correct hole state with an empty snapshot.</para>
 /// </summary>
 [DefaultExecutionOrder(-5)] // After SaveManager (-10), before default scripts (0)
 public class MedallionCollectionTracker : MonoBehaviour, ISaveable
@@ -20,6 +26,12 @@ public class MedallionCollectionTracker : MonoBehaviour, ISaveable
     public IReadOnlyList<ItemData> CollectionOrder => _collectionOrder;
 
     private readonly List<ItemData> _collectionOrder = new();
+
+    // Guards against a premature Save() during the startup sync in Start().
+    // MedallionBoxInteraction.ApplyPendingLoad() runs at order -7 (before this component at -5),
+    // but setting _isReady only after the sync call gives an additional safety net: even if
+    // execution orders are ever changed, no snapshot is taken until all ISaveables are ready.
+    private bool _isReady;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -75,8 +87,11 @@ public class MedallionCollectionTracker : MonoBehaviour, ISaveable
         if (InventorySystem.Instance != null)
             InventorySystem.Instance.OnInventoryChanged += OnInventoryChanged;
 
-        // Sync in case items were already in inventory at load time
+        // Sync in case items were already in inventory at load time.
+        // _isReady stays false here so no Save() fires during this startup catch-up —
+        // all ISaveables must finish ApplyPendingLoad() before the first snapshot is taken.
         OnInventoryChanged();
+        _isReady = true;
     }
 
     private void OnDestroy()
@@ -109,7 +124,10 @@ public class MedallionCollectionTracker : MonoBehaviour, ISaveable
         }
 
         if (addedNew)
-            SaveManager.Instance?.Save();
+        {
+            if (_isReady)
+                SaveManager.Instance?.Save();
+        }
     }
 
     private ItemData FindById(string id)

@@ -14,7 +14,13 @@ using UnityEngine.UI;
 /// Player input is restored only after the camera blend-back animation finishes.
 /// Fires <see cref="OnPuzzleSolved"/> (UnityEvent) when all medallions are correctly placed.
 /// Implements ISaveable to persist puzzle state (which holes are filled, solved flag).
+///
+/// <para><b>Execution order: -7.</b> Must run after SaveManager (-10) so <see cref="LoadSaveData"/>
+/// is called before <c>Start</c>, and before MedallionCollectionTracker (-5) so
+/// <see cref="ApplyPendingLoad"/> fills the holes before the tracker's startup sync can
+/// trigger a <c>Save()</c> that would snapshot the holes as empty.</para>
 /// </summary>
+[DefaultExecutionOrder(-7)] // After SaveManager (-10), before MedallionCollectionTracker (-5)
 [RequireComponent(typeof(Collider))]
 public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
 {
@@ -174,7 +180,9 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
         var load = _pendingLoad.Value;
         _pendingLoad = null;
 
-        // Restore coin visuals in holes
+        // Restore coin visuals in holes.
+        // Called in Start() at order -7, before MedallionCollectionTracker.Start() (-5),
+        // so any Save() triggered by the tracker's startup sync captures the correct hole state.
         if (load.placedItemIds != null && load.placedItemIds.Length > 0)
         {
             var boxUI = _panel?.GetComponent<MedallionBoxUI>();

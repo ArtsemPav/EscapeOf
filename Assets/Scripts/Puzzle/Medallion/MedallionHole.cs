@@ -5,12 +5,22 @@ using UnityEngine;
 /// Represents one hole in the medallion box.
 /// Accepts any medallion — correct order is validated externally by MedallionBoxUI.
 /// Supports retrieval: the placed medallion can be taken back out.
+///
+/// <para><b>Hover highlight:</b> when a coin is placed, its <c>Renderer</c> is cached and the
+/// <c>_EMISSION</c> keyword is enabled on a per-instance material copy. <see cref="Highlight"/>
+/// then drives <c>_EmissionColor</c> via <see cref="MaterialPropertyBlock"/> (zero GC).
+/// MedallionBoxUI calls <see cref="Highlight"/> every frame based on cursor raycast results.</para>
 /// </summary>
 public class MedallionHole : MonoBehaviour
 {
     [Header("Coin Animation")]
     [Tooltip("Optional material override for the spawned coin. Leave null to use prefab default.")]
     [SerializeField] private Material _coinMaterial;
+
+    [Header("Hover Highlight")]
+    [Tooltip("HDR emission colour applied to the coin when the cursor hovers over it.")]
+    [ColorUsage(false, true)]
+    [SerializeField] private Color _highlightEmission = new Color(0.55f, 0.42f, 0.08f);
 
     /// <summary>The medallion currently placed in this hole, or null if empty.</summary>
     public ItemData PlacedItem { get; private set; }
@@ -19,6 +29,8 @@ public class MedallionHole : MonoBehaviour
     public bool IsFilled => PlacedItem != null;
 
     private GameObject _placedCoin;
+    private Renderer _placedRenderer;
+    private MaterialPropertyBlock _propBlock;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -51,6 +63,7 @@ public class MedallionHole : MonoBehaviour
 
         var coin = Instantiate(prefab, transform.position, transform.rotation, transform);
         _placedCoin = coin;
+        CacheRenderer(coin);
 
         if (_coinMaterial != null)
         {
@@ -71,6 +84,8 @@ public class MedallionHole : MonoBehaviour
 
         var item = PlacedItem;
         PlacedItem = null;
+        Highlight(false);
+        _placedRenderer = null;
 
         if (_placedCoin != null)
             StartCoroutine(RiseRoutine(_placedCoin, riseHeight, riseDuration));
@@ -78,7 +93,35 @@ public class MedallionHole : MonoBehaviour
         return item;
     }
 
+    /// <summary>
+    /// Applies or removes a hover highlight on the placed coin using emission.
+    /// Has no effect when the hole is empty.
+    /// </summary>
+    public void Highlight(bool on)
+    {
+        if (_placedRenderer == null) return;
+
+        _propBlock ??= new MaterialPropertyBlock();
+        _placedRenderer.GetPropertyBlock(_propBlock);
+        _propBlock.SetColor("_EmissionColor", on ? _highlightEmission : Color.black);
+        _placedRenderer.SetPropertyBlock(_propBlock);
+    }
+
     // ── Private ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Caches the renderer of a freshly instantiated coin and enables the emission keyword
+    /// on its material instance so <see cref="Highlight"/> can drive emission via property block.
+    /// </summary>
+    private void CacheRenderer(GameObject coin)
+    {
+        _placedRenderer = coin.GetComponentInChildren<Renderer>();
+        if (_placedRenderer == null) return;
+
+        // Create a per-instance material so enabling emission does not affect the shared asset.
+        // EnableKeyword is required for URP/Lit to evaluate _EmissionColor at runtime.
+        _placedRenderer.material.EnableKeyword("_EMISSION");
+    }
 
     private IEnumerator DropRoutine(GameObject prefab, float dropHeight, float dropDuration)
     {
@@ -87,6 +130,8 @@ public class MedallionHole : MonoBehaviour
 
         var coin = Instantiate(prefab, startPos, transform.rotation, transform);
         _placedCoin = coin;
+        CacheRenderer(coin);
+
         if (_coinMaterial != null)
         {
             var rend = coin.GetComponentInChildren<Renderer>();
