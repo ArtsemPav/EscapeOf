@@ -24,25 +24,32 @@ public class MedallionHole : MonoBehaviour
 
     /// <summary>
     /// Places <paramref name="item"/> into this hole and plays a drop animation.
-    /// <paramref name="dropHeight"/> and <paramref name="dropDuration"/> come from MedallionBoxUI.
+    /// Uses <paramref name="item"/>.inspectionPrefab if assigned, otherwise falls back to <paramref name="fallbackPrefab"/>.
     /// </summary>
-    public void Fill(ItemData item, GameObject coinPrefab, float dropHeight, float dropDuration)
+    public void Fill(ItemData item, GameObject fallbackPrefab, float dropHeight, float dropDuration)
     {
-        if (IsFilled || coinPrefab == null || item == null) return;
+        if (IsFilled || item == null) return;
+        var prefab = item.inspectionPrefab != null ? item.inspectionPrefab : fallbackPrefab;
+        if (prefab == null) return;
+
         PlacedItem = item;
-        StartCoroutine(DropRoutine(coinPrefab, dropHeight, dropDuration));
+        StartCoroutine(DropRoutine(prefab, dropHeight, dropDuration));
     }
 
     /// <summary>
     /// Places <paramref name="item"/> immediately without animation.
+    /// Uses <paramref name="item"/>.inspectionPrefab if assigned, otherwise falls back to <paramref name="fallbackPrefab"/>.
     /// Used when restoring puzzle state on load.
     /// </summary>
-    public void FillImmediate(ItemData item, GameObject coinPrefab)
+    public void FillImmediate(ItemData item, GameObject fallbackPrefab)
     {
-        if (IsFilled || coinPrefab == null || item == null) return;
+        if (IsFilled || item == null) return;
+        var prefab = item.inspectionPrefab != null ? item.inspectionPrefab : fallbackPrefab;
+        if (prefab == null) return;
+
         PlacedItem = item;
 
-        var coin = Instantiate(coinPrefab, transform.position, transform.rotation, transform);
+        var coin = Instantiate(prefab, transform.position, transform.rotation, transform);
         _placedCoin = coin;
 
         if (_coinMaterial != null)
@@ -54,10 +61,11 @@ public class MedallionHole : MonoBehaviour
     }
 
     /// <summary>
-    /// Removes the medallion from this hole, destroys the coin GameObject,
-    /// and returns the item so the caller can restore it to the inventory and UI.
+    /// Removes the medallion from this hole and returns the item immediately so the caller
+    /// can restore it to the inventory. The coin GameObject plays a rise animation and is
+    /// destroyed at the top — mirroring the drop animation in reverse.
     /// </summary>
-    public ItemData Retrieve()
+    public ItemData Retrieve(float riseHeight, float riseDuration)
     {
         if (!IsFilled) return null;
 
@@ -65,10 +73,7 @@ public class MedallionHole : MonoBehaviour
         PlacedItem = null;
 
         if (_placedCoin != null)
-        {
-            Destroy(_placedCoin);
-            _placedCoin = null;
-        }
+            StartCoroutine(RiseRoutine(_placedCoin, riseHeight, riseDuration));
 
         return item;
     }
@@ -77,12 +82,11 @@ public class MedallionHole : MonoBehaviour
 
     private IEnumerator DropRoutine(GameObject prefab, float dropHeight, float dropDuration)
     {
-        Vector3 endPos = transform.position;
+        Vector3 endPos   = transform.position;
         Vector3 startPos = endPos + Vector3.up * dropHeight;
 
         var coin = Instantiate(prefab, startPos, transform.rotation, transform);
         _placedCoin = coin;
-
         if (_coinMaterial != null)
         {
             var rend = coin.GetComponentInChildren<Renderer>();
@@ -100,5 +104,25 @@ public class MedallionHole : MonoBehaviour
         }
 
         coin.transform.position = endPos;
+    }
+
+    private IEnumerator RiseRoutine(GameObject coin, float riseHeight, float riseDuration)
+    {
+        Vector3 startPos = coin.transform.position;
+        Vector3 endPos   = startPos + Vector3.up * riseHeight;
+
+        float elapsed = 0f;
+        while (elapsed < riseDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t      = Mathf.Clamp01(elapsed / riseDuration);
+            float eased  = t * (2f - t); // ease-out: fast start, slow finish
+            coin.transform.position = Vector3.Lerp(startPos, endPos, eased);
+            yield return null;
+        }
+
+        coin.transform.position = endPos;
+        Destroy(coin);
+        _placedCoin = null;
     }
 }

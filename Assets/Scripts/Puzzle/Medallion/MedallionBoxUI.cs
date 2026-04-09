@@ -184,7 +184,7 @@ public class MedallionBoxUI : MonoBehaviour
         var hole = hit.collider.GetComponent<MedallionHole>();
         if (hole == null || !hole.IsFilled) return;
 
-        var item = hole.Retrieve();
+        var item = hole.Retrieve(_dropHeight, _dropDuration);
         if (item == null) return;
 
         // Restore to inventory and refresh UI slots
