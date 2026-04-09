@@ -11,6 +11,8 @@ GameObject:
   - component: {fileID: 8518958583516803724}
   - component: {fileID: 2368969286282942243}
   - component: {fileID: 5668073463708335404}
+  - component: {fileID: 5489214858463960451}
+  - component: {fileID: 291710274545404986}
   m_Layer: 6
   m_Name: Lock
   m_TagString: Untagged
@@ -90,6 +92,57 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &5489214858463960451
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4956244186293029507}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.0036281405, y: 0.0021323042, z: 0.0036281417}
+  m_Center: {x: -0.0000000024447218, y: 0.00091994635, z: 0.000000003608875}
+--- !u!114 &291710274545404986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4956244186293029507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1dafff9cf9a82e44bcc85480ab21065, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LockDial
+  _stepAngle: 22.5
+  _rotationAxis: {x: 0, y: 1, z: 0}
+  _rotationSpeed: 360
+  _checkTargetStep: 0
+  _targetStep: 0
+  _inspectionCamera: {fileID: 4380350430016505632}
+  _activePriority: 20
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0437\u0430\u043C\u043E\u043A"
+  _activeInteractText: "\u041A\u0440\u0443\u0442\u0438\u0442\u044C: \u041B\u041A\u041C
+    / \u041F\u041A\u041C  \u2022  \u0412\u044B\u0445\u043E\u0434: Esc"
+  _unlockedInteractText: "\u041E\u0442\u043A\u0440\u044B\u0442\u043E"
+  _onUnlocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onRotated:
+    m_PersistentCalls:
+      m_Calls: []
+  _saveId: 
 --- !u!1 &6090692009834697390
 GameObject:
   m_ObjectHideFlags: 0
@@ -180,6 +233,81 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &6611998366577913405
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6054910154117019593}
+  - component: {fileID: 4380350430016505632}
+  m_Layer: 0
+  m_Name: SafeCamera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6054910154117019593
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6611998366577913405}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
+  m_LocalPosition: {x: -0.0027, y: 0.0152, z: 0.017}
+  m_LocalScale: {x: 0.0139999995, y: 0.0139999995, z: 0.014}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2214866158993990392}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+--- !u!114 &4380350430016505632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6611998366577913405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 8518958583516803724}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 60
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
 --- !u!1 &7530728405779481166
 GameObject:
   m_ObjectHideFlags: 0
@@ -209,6 +337,7 @@ Transform:
   m_LocalScale: {x: 50, y: 50, z: 50}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 6054910154117019593}
   - {fileID: 500705088446703722}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -225,7 +354,7 @@ GameObject:
   - component: {fileID: 23826807734068438}
   - component: {fileID: 271244214132305612}
   - component: {fileID: 5504881251143862351}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Door
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -320,7 +449,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
-  _isLocked: 1
+  _isLocked: 0
   _requiredKey: {fileID: 11400000, guid: b7ae1d248de487e49822c0fa3c192d3a, type: 2}
   _requirementHint: "\u043D\u0443\u0436\u0435\u043D \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0439
     \u043B\u044E\u0447 \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C
@@ -343,7 +472,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_firstroom_main
+  _saveId: safe_door
 --- !u!65 &5504881251143862351
 BoxCollider:
   m_ObjectHideFlags: 0
