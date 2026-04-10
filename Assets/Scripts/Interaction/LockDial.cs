@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
@@ -44,9 +45,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("The CinemachineCamera that focuses on the Lock during inspection.")]
     [SerializeField] private CinemachineCamera _inspectionCamera;
 
-    [Tooltip("Priority value used when the inspection camera is active.")]
-    [SerializeField] private int _activePriority = 20;
-
     [Header("Interaction Text")]
     [SerializeField] private string _interactText = "Осмотреть замок";
     [SerializeField] private string _activeInteractText = "Крутить: ЛКМ / ПКМ  •  Выход: Esc";
@@ -73,6 +71,8 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private bool _isAnimating;
 
     private int _stepsPerRevolution;
+
+    private bool _menuSubscribed;
 
     // ── Public Properties ──────────────────────────────────────────────────────
 
@@ -119,11 +119,34 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _stepsPerRevolution = Mathf.RoundToInt(360f / _stepAngle);
         _targetRotation     = transform.localRotation;
 
-        // Ensure inspection camera starts with priority disabled.
+        // Ensure inspection camera starts inactive.
         if (_inspectionCamera != null)
-            _inspectionCamera.Priority = new PrioritySettings { Enabled = false };
+            _inspectionCamera.gameObject.SetActive(false);
 
         SaveManager.Instance?.Register(this);
+    }
+
+    private void Start()
+    {
+        // Defer subscription to Start so InputManager.Instance is guaranteed to be initialized.
+        if (InputManager.Instance != null)
+        {
+            InputManager.Instance.OnMenuPerformed += OnMenuPerformed;
+            _menuSubscribed = true;
+        }
+        else
+        {
+            Debug.LogWarning("LockDial: InputManager.Instance is null in Start. Esc will not exit inspection mode.", this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (_menuSubscribed && InputManager.Instance != null)
+        {
+            InputManager.Instance.OnMenuPerformed -= OnMenuPerformed;
+            _menuSubscribed = false;
+        }
     }
 
     private void OnDestroy()
@@ -170,14 +193,14 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private void EnterInspectionMode()
     {
         _isInspecting = true;
+        Debug.Log($"[LockDial] EnterInspectionMode. InputManager={InputManager.Instance != null}, subscribed={_menuSubscribed}", this);
 
-        // Activate inspection camera via priority.
+        // Activate inspection camera.
         if (_inspectionCamera != null)
-            _inspectionCamera.Priority = new PrioritySettings { Enabled = true, Value = _activePriority };
+            _inspectionCamera.gameObject.SetActive(true);
 
-        // Disable player movement and camera look.
-        UIManager.Instance?.PlayerController?.SetPlayerInputEnabled(false);
-        UIManager.Instance?.PlayerController?.ResetInteractionCache();
+        // Block player input and increment panel counter so GameManager skips pause on Esc.
+        UIManager.Instance?.PushModalState();
 
         // Show cursor for click input.
         Cursor.lockState = CursorLockMode.None;
@@ -191,13 +214,12 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     {
         _isInspecting = false;
 
-        // Deactivate inspection camera.
+        // Deactivate inspection camera — Brain falls back to PlayerCamera.
         if (_inspectionCamera != null)
-            _inspectionCamera.Priority = new PrioritySettings { Enabled = false };
+            _inspectionCamera.gameObject.SetActive(false);
 
-        // Restore player input and cursor lock.
-        UIManager.Instance?.PlayerController?.SetPlayerInputEnabled(true);
-        UIManager.Instance?.PlayerController?.ResetInteractionCache();
+        // Decrement panel counter and restore player input.
+        UIManager.Instance?.PopModalState();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible   = false;
@@ -207,24 +229,35 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     // ── Input Handling ─────────────────────────────────────────────────────────
 
-    /// <summary>Handles LMB / RMB rotation and Esc exit while in inspection mode.</summary>
+    /// <summary>Handles LMB / RMB rotation while in inspection mode.</summary>
     private void HandleInspectionInput()
     {
-        var keyboard = Keyboard.current;
-        var mouse    = Mouse.current;
-
-        if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-        {
-            ExitInspectionMode();
-            return;
-        }
-
+        var mouse = Mouse.current;
         if (mouse == null) return;
 
         if (mouse.leftButton.wasPressedThisFrame)
             RotateStep(-1); // counter-clockwise
         else if (mouse.rightButton.wasPressedThisFrame)
             RotateStep(1);  // clockwise
+    }
+
+    /// <summary>
+    /// Called by InputManager when the Menu action fires (Esc).
+    /// Exits inspection mode on the next frame so that GameManager.OnToggleMenu still sees
+    /// IsAnyPanelOpen == true when it runs in the same event dispatch and skips the pause.
+    /// </summary>
+    private void OnMenuPerformed()
+    {
+        Debug.Log($"[LockDial] OnMenuPerformed called. _isInspecting={_isInspecting}", this);
+        if (!_isInspecting) return;
+        StartCoroutine(ExitNextFrame());
+    }
+
+    private IEnumerator ExitNextFrame()
+    {
+        yield return null;
+        Debug.Log("[LockDial] ExitNextFrame — calling ExitInspectionMode", this);
+        ExitInspectionMode();
     }
 
     // ── Rotation ───────────────────────────────────────────────────────────────
