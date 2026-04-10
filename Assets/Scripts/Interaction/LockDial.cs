@@ -1,23 +1,22 @@
 using System;
-using System.Collections;
-using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Rotary dial on a Lock object.
+/// Rotary dial on a Lock object. Delegates camera switching, cursor management,
+/// and Esc handling to a sibling <see cref="PuzzleModeController"/>.
 ///
 /// Flow:
-///   1. Player presses E while looking at the Lock — the SafeCamera activates via Cinemachine
-///      priority, player input is disabled, and cursor becomes visible.
-///   2. While in inspection mode:
+///   1. Player presses E while looking at the Lock — PuzzleModeController activates
+///      the puzzle camera, blocks FPS input, and frees the cursor.
+///   2. While in puzzle mode:
 ///      • LMB  — rotate the dial one step counter-clockwise.
 ///      • RMB  — rotate the dial one step clockwise.
-///      • Esc  — exit inspection mode and restore player camera and input.
+///      • Esc  — PuzzleModeController exits puzzle mode automatically.
 ///   3. Optionally checks a target step and fires _onUnlocked when reached.
 ///
-/// Requires a <see cref="CinemachineCamera"/> assigned as the inspection camera (e.g. SafeCamera).
+/// Requires a sibling <see cref="PuzzleModeController"/> on the same or parent GameObject.
 /// Implements ISaveable to persist current step and unlock state across sessions.
 /// </summary>
 public class LockDial : MonoBehaviour, IInteractable, ISaveable
@@ -41,13 +40,8 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Step index (0-based) that unlocks the dial. Total steps = 360 / Step Angle.")]
     [SerializeField] private int _targetStep = 0;
 
-    [Header("Camera")]
-    [Tooltip("The CinemachineCamera that focuses on the Lock during inspection.")]
-    [SerializeField] private CinemachineCamera _inspectionCamera;
-
     [Header("Interaction Text")]
     [SerializeField] private string _interactText = "Осмотреть замок";
-    [SerializeField] private string _activeInteractText = "Крутить: ЛКМ / ПКМ  •  Выход: Esc";
     [SerializeField] private string _unlockedInteractText = "Открыто";
 
     [Header("Events")]
@@ -65,14 +59,13 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     private int _currentStep;
     private bool _isUnlocked;
-    private bool _isInspecting;
 
     private Quaternion _targetRotation;
     private bool _isAnimating;
 
     private int _stepsPerRevolution;
 
-    private bool _menuSubscribed;
+    private PuzzleModeController _puzzleMode;
 
     // ── Public Properties ──────────────────────────────────────────────────────
 
@@ -119,42 +112,15 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _stepsPerRevolution = Mathf.RoundToInt(360f / _stepAngle);
         _targetRotation     = transform.localRotation;
 
-        // Ensure inspection camera starts inactive.
-        if (_inspectionCamera != null)
-            _inspectionCamera.gameObject.SetActive(false);
+        _puzzleMode = GetComponent<PuzzleModeController>();
+        if (_puzzleMode == null)
+            Debug.LogWarning("[LockDial] No PuzzleModeController found in parent hierarchy.", this);
 
         SaveManager.Instance?.Register(this);
     }
 
-    private void Start()
-    {
-        // Defer subscription to Start so InputManager.Instance is guaranteed to be initialized.
-        if (InputManager.Instance != null)
-        {
-            InputManager.Instance.OnMenuPerformed += OnMenuPerformed;
-            _menuSubscribed = true;
-        }
-        else
-        {
-            Debug.LogWarning("LockDial: InputManager.Instance is null in Start. Esc will not exit inspection mode.", this);
-        }
-    }
-
-    private void OnDisable()
-    {
-        if (_menuSubscribed && InputManager.Instance != null)
-        {
-            InputManager.Instance.OnMenuPerformed -= OnMenuPerformed;
-            _menuSubscribed = false;
-        }
-    }
-
     private void OnDestroy()
     {
-        // Guarantee player is restored if the object is destroyed mid-inspection.
-        if (_isInspecting)
-            ExitInspectionMode();
-
         SaveManager.Instance?.Unregister(this);
     }
 
@@ -163,74 +129,30 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         if (_isAnimating)
             AnimateRotation();
 
-        if (_isInspecting)
-            HandleInspectionInput();
+        if (_puzzleMode != null && _puzzleMode.IsActive)
+            HandleDialInput();
     }
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
-    public bool CanInteract() => !_isUnlocked && !_isInspecting;
+    public bool CanInteract() => !_isUnlocked && (_puzzleMode == null || !_puzzleMode.IsActive);
 
-    /// <summary>First interaction: enters inspection mode and activates the SafeCamera.</summary>
+    /// <summary>Enters puzzle mode via PuzzleModeController on player interaction.</summary>
     public void Interact()
     {
-        if (_isUnlocked || _isInspecting) return;
-        EnterInspectionMode();
+        if (_isUnlocked || (_puzzleMode != null && _puzzleMode.IsActive)) return;
+        _puzzleMode?.EnterPuzzleMode();
     }
 
-    public string GetInteractText()
-    {
-        if (_isUnlocked)   return _unlockedInteractText;
-        if (_isInspecting) return _activeInteractText;
-        return _interactText;
-    }
+    public string GetInteractText() => _isUnlocked ? _unlockedInteractText : _interactText;
 
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
 
-    // ── Inspection Mode ────────────────────────────────────────────────────────
-
-    private void EnterInspectionMode()
-    {
-        _isInspecting = true;
-        Debug.Log($"[LockDial] EnterInspectionMode. InputManager={InputManager.Instance != null}, subscribed={_menuSubscribed}", this);
-
-        // Activate inspection camera.
-        if (_inspectionCamera != null)
-            _inspectionCamera.gameObject.SetActive(true);
-
-        // Block player input and increment panel counter so GameManager skips pause on Esc.
-        UIManager.Instance?.PushModalState();
-
-        // Show cursor for click input.
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
-
-        InteractionUI.Instance?.SetHint(true, _activeInteractText, false, CrosshairMode.Hand);
-    }
-
-    /// <summary>Exits inspection mode and restores the player camera and input.</summary>
-    private void ExitInspectionMode()
-    {
-        _isInspecting = false;
-
-        // Deactivate inspection camera — Brain falls back to PlayerCamera.
-        if (_inspectionCamera != null)
-            _inspectionCamera.gameObject.SetActive(false);
-
-        // Decrement panel counter and restore player input.
-        UIManager.Instance?.PopModalState();
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible   = false;
-
-        InteractionUI.Instance?.SetHint(false);
-    }
-
     // ── Input Handling ─────────────────────────────────────────────────────────
 
-    /// <summary>Handles LMB / RMB rotation while in inspection mode.</summary>
-    private void HandleInspectionInput()
+    /// <summary>Handles LMB / RMB rotation while puzzle mode is active.</summary>
+    private void HandleDialInput()
     {
         var mouse = Mouse.current;
         if (mouse == null) return;
@@ -239,25 +161,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
             RotateStep(-1); // counter-clockwise
         else if (mouse.rightButton.wasPressedThisFrame)
             RotateStep(1);  // clockwise
-    }
-
-    /// <summary>
-    /// Called by InputManager when the Menu action fires (Esc).
-    /// Exits inspection mode on the next frame so that GameManager.OnToggleMenu still sees
-    /// IsAnyPanelOpen == true when it runs in the same event dispatch and skips the pause.
-    /// </summary>
-    private void OnMenuPerformed()
-    {
-        Debug.Log($"[LockDial] OnMenuPerformed called. _isInspecting={_isInspecting}", this);
-        if (!_isInspecting) return;
-        StartCoroutine(ExitNextFrame());
-    }
-
-    private IEnumerator ExitNextFrame()
-    {
-        yield return null;
-        Debug.Log("[LockDial] ExitNextFrame — calling ExitInspectionMode", this);
-        ExitInspectionMode();
     }
 
     // ── Rotation ───────────────────────────────────────────────────────────────
@@ -307,7 +210,7 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private void Unlock()
     {
         _isUnlocked = true;
-        ExitInspectionMode();
+        _puzzleMode?.ExitPuzzleMode();
         _onUnlocked.Invoke();
         SaveManager.Instance?.Save();
     }
