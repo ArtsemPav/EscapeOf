@@ -48,6 +48,10 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Sequence of 4 steps to unlock.")]
     [SerializeField] private ComboStep[] _combination = new ComboStep[4];
 
+
+    [Tooltip("If true, combination target values will be randomized on start.")]
+    [SerializeField] private bool _randomizeOnStart = true;
+
     [Header("Interaction Text")]
     [SerializeField] private string _interactText         = "Осмотреть замок";
     [SerializeField] private string _unlockedInteractText = "Открыто";
@@ -121,6 +125,10 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _targetRotation     = transform.localRotation;
         _puzzleMode         = GetComponentInParent<PuzzleModeController>();
         _mainCamera         = Camera.main;
+
+        if (_randomizeOnStart && !_isUnlocked)
+            RandomizeCombination();
+
 
         if (_puzzleMode == null)
             Debug.LogWarning("[LockDial] PuzzleModeController not found in parent hierarchy.", this);
@@ -300,6 +308,33 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _puzzleMode?.ExitPuzzleMode();
         _onUnlocked.Invoke();
         SaveManager.Instance?.Save();
+    }
+
+    /// <summary>
+    /// Randomizes the TargetValue and RequiredDirection of each step in the combination.
+    /// Ensures each subsequent step has a different rotation direction.
+    /// </summary>
+    private void RandomizeCombination()
+    {
+        if (_combination == null || _combination.Length == 0) return;
+
+        // Choose a random starting direction for the first step
+        RotationDirection currentDir = (UnityEngine.Random.value > 0.5f) 
+            ? RotationDirection.Clockwise 
+            : RotationDirection.CounterClockwise;
+
+        for (int i = 0; i < _combination.Length; i++)
+        {
+            _combination[i].TargetValue = UnityEngine.Random.Range(0, _stepsPerRevolution);
+            _combination[i].RequiredDirection = currentDir;
+            
+            // Flip direction for the next step
+            currentDir = (currentDir == RotationDirection.Clockwise) 
+                ? RotationDirection.CounterClockwise 
+                : RotationDirection.Clockwise;
+        }
+        
+        Debug.Log($"[LockDial] {name}: Combination and directions randomized.");
     }
 
     // ── Editor Utilities ───────────────────────────────────────────────────────
