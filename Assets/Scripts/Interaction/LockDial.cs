@@ -4,20 +4,25 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
+/// Direction of dial rotation.
+/// </summary>
+public enum RotationDirection { Clockwise, CounterClockwise }
+
+/// <summary>
+/// Represents one step in a combination lock sequence.
+/// </summary>
+[Serializable]
+public struct ComboStep
+{
+    [Tooltip("Value from 0 to 99 (if step angle is 3.6).")]
+    public int TargetValue;
+    [Tooltip("Required direction of rotation to reach this value.")]
+    public RotationDirection RequiredDirection;
+}
+
+/// <summary>
 /// Rotary combination dial. Delegates camera switching, cursor management,
 /// and Esc handling to a sibling <see cref="PuzzleModeController"/>.
-///
-/// Flow:
-///   1. Player presses E → PuzzleModeController activates the puzzle camera,
-///      blocks FPS input, and frees the cursor.
-///   2. While in puzzle mode:
-///      • Hold LMB and move the mouse — the dial follows the cursor angle
-///        relative to its screen-space centre.
-///      • Esc — PuzzleModeController exits puzzle mode automatically.
-///   3. Optionally checks a target step and fires OnUnlocked when reached.
-///
-/// Requires a <see cref="PuzzleModeController"/> on the same or a parent GameObject.
-/// Implements <see cref="ISaveable"/> to persist state across sessions.
 /// </summary>
 public class LockDial : MonoBehaviour, IInteractable, ISaveable
 {
@@ -39,19 +44,16 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Speed of the smooth rotation tween in degrees per second.")]
     [SerializeField] private float _rotationSpeed = 360f;
 
-    [Header("Unlock Condition")]
-    [Tooltip("Fire OnUnlocked when the dial reaches Target Step.")]
-    [SerializeField] private bool _checkTargetStep;
-
-    [Tooltip("Step index (0-based) that unlocks the dial.")]
-    [SerializeField] private int _targetStep;
+    [Header("Combination Settings")]
+    [Tooltip("Sequence of 4 steps to unlock.")]
+    [SerializeField] private ComboStep[] _combination = new ComboStep[4];
 
     [Header("Interaction Text")]
     [SerializeField] private string _interactText         = "Осмотреть замок";
     [SerializeField] private string _unlockedInteractText = "Открыто";
 
     [Header("Events")]
-    [Tooltip("Fired when the dial reaches the target step (requires Check Target Step).")]
+    [Tooltip("Fired when the entire combination is correctly entered.")]
     [SerializeField] private UnityEvent _onUnlocked;
 
     [Tooltip("Fired on every discrete step rotation.")]
@@ -72,33 +74,30 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private bool  _isDragging;
     private float _previousMouseAngle;
     private float _angleAccumulator;
+    private float _sessionRotationDelta; // Суммарный поворот за текущий клик
+    
+    private int               _comboIndex; 
+    private RotationDirection _lastDirection;
 
     private Camera               _mainCamera;
     private PuzzleModeController _puzzleMode;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
-    /// <summary>Current step index within a revolution (0 to StepsPerRevolution - 1).</summary>
     public int CurrentStep => _currentStep;
-
-    /// <summary>Total number of discrete positions per full revolution.</summary>
     public int StepsPerRevolution => _stepsPerRevolution;
-
-    /// <summary>True after the dial has been successfully unlocked.</summary>
     public bool IsUnlocked => _isUnlocked;
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
 
-    /// <summary>Serializes current step and unlock state to JSON.</summary>
     public string GetSaveData() => JsonUtility.ToJson(new SaveData
     {
         currentStep = _currentStep,
         isUnlocked  = _isUnlocked,
     });
 
-    /// <summary>Restores state from JSON and snaps the transform without animation.</summary>
     public void LoadSaveData(string json)
     {
         var data     = JsonUtility.FromJson<SaveData>(json);
@@ -144,10 +143,8 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
-    /// <summary>Returns true when the dial is interactive and puzzle mode is not yet active.</summary>
     public bool CanInteract() => !_isUnlocked && (_puzzleMode == null || !_puzzleMode.IsActive);
 
-    /// <summary>Enters puzzle mode on player interaction.</summary>
     public void Interact()
     {
         if (!CanInteract()) return;
@@ -160,10 +157,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     // ── Input ──────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Tracks the angle of the cursor relative to the dial's screen-space centre.
-    /// Converts angular delta into discrete rotation steps while LMB is held.
-    /// </summary>
     private void HandleMouseInput()
     {
         var mouse = Mouse.current;
@@ -173,7 +166,15 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         {
             if (_isDragging)
             {
-                Debug.Log($"[LockDial] {name}: Выбрано число {_currentStep}");
+                // Направление фиксируется в момент отпускания по суммарному смещению
+                if (Mathf.Abs(_sessionRotationDelta) > 0.01f)
+                {
+                    _lastDirection = _sessionRotationDelta > 0 
+                        ? RotationDirection.Clockwise 
+                        : RotationDirection.CounterClockwise;
+                }
+                
+                CheckCurrentComboStep();
                 ResetDragState();
             }
             return;
@@ -194,14 +195,17 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
         if (!_isDragging)
         {
-            _previousMouseAngle = currentAngle;
-            _isDragging         = true;
+            _previousMouseAngle   = currentAngle;
+            _isDragging           = true;
+            _sessionRotationDelta = 0f; // Начали новую сессию — "отсчет от 0"
             return;
         }
 
-        float angleDelta    = Mathf.DeltaAngle(_previousMouseAngle, currentAngle);
-        _previousMouseAngle = currentAngle;
-        _angleAccumulator  += angleDelta;
+        float angleDelta       = Mathf.DeltaAngle(_previousMouseAngle, currentAngle);
+        _previousMouseAngle    = currentAngle;
+        _sessionRotationDelta += angleDelta; // Копим общее смещение
+
+        _angleAccumulator += angleDelta;
 
         while (_angleAccumulator >= _stepAngle)
         {
@@ -218,22 +222,46 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     private void ResetDragState()
     {
-        _isDragging       = false;
-        _angleAccumulator = 0f;
+        _isDragging           = false;
+        _angleAccumulator     = 0f;
+        _sessionRotationDelta = 0f;
+    }
+
+    // ── Combination Logic ──────────────────────────────────────────────────────
+
+    private void CheckCurrentComboStep()
+    {
+        if (_combination == null || _combination.Length == 0) return;
+        if (_comboIndex >= _combination.Length) return;
+
+        ComboStep target = _combination[_comboIndex];
+
+        // Логируем результат всего действия: число и результирующее направление
+        string dirStr = _lastDirection == RotationDirection.Clockwise ? "Вправо (CW)" : "Влево (CCW)";
+        Debug.Log($"[LockDial] {name}: Число {_currentStep}, Результирующее направление: {dirStr}");
+
+        if (_currentStep == target.TargetValue && _lastDirection == target.RequiredDirection)
+        {
+            _comboIndex++;
+            Debug.Log($"<color=green>[LockDial] Шаг {_comboIndex} из {_combination.Length} пройден!</color>");
+
+            if (_comboIndex >= _combination.Length)
+                Unlock();
+        }
+        else
+        {
+            _comboIndex = 0;
+            Debug.Log("<color=red>[LockDial] Ошибка! Комбинация сброшена.</color>");
+        }
     }
 
     // ── Rotation ───────────────────────────────────────────────────────────────
 
-    /// <summary>Advances the dial by one discrete step. +1 = clockwise, -1 = counter-clockwise.</summary>
     private void ApplyStep(int direction)
     {
         _currentStep    = WrapStep(_currentStep + direction);
         _targetRotation = StepToRotation(_currentStep);
-
         _onRotated.Invoke();
-
-        if (_checkTargetStep && _currentStep == _targetStep)
-            Unlock();
     }
 
     private void TweenRotation()
@@ -251,7 +279,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         );
     }
 
-    /// <summary>Instantly snaps the transform to the given step without animation.</summary>
     private void SnapToStep(int step)
     {
         _targetRotation         = StepToRotation(step);

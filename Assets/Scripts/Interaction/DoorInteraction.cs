@@ -334,7 +334,7 @@ namespace Escape.Core {
                     // save captures the correct state: key gone + door unlocked simultaneously.
                     SaveManager.Instance?.Save();
                 } else {
-                    PopupMessageSystem.Instance.Show("Нужен ключ от этой двери", PopupMessageType.Warning, 4f);
+                    PopupMessageSystem.Instance.Show(_requirementHint, PopupMessageType.Warning, 4f);
                 }
             }
         }
