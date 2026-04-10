@@ -30,8 +30,8 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     // ── Inspector ──────────────────────────────────────────────────────────────
 
     [Header("Rotation")]
-    [Tooltip("Degrees per discrete step. 22.5° gives 16 positions per revolution.")]
-    [SerializeField] private float _stepAngle = 22.5f;
+    [Tooltip("Degrees per discrete step. 3.6° gives 100 positions per revolution.")]
+    [SerializeField] private float _stepAngle = 3.6f;
 
     [Tooltip("Local axis to rotate around (e.g. Z for a front-facing dial).")]
     [SerializeField] private Vector3 _rotationAxis = Vector3.forward;
@@ -171,7 +171,11 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
         if (!mouse.leftButton.isPressed)
         {
-            ResetDragState();
+            if (_isDragging)
+            {
+                Debug.Log($"[LockDial] {name}: Выбрано число {_currentStep}");
+                ResetDragState();
+            }
             return;
         }
 
