@@ -68,8 +68,12 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     private int _stepsPerRevolution;
 
-    /// <summary>Accumulated horizontal mouse delta while LMB is held.</summary>
-    private float _dragAccumulator;
+    /// <summary>Angle (degrees) of the mouse relative to dial center on the previous frame while LMB was held.</summary>
+    private float _previousMouseAngle;
+    private bool _isDragging;
+    private float _angleAccumulator;
+
+    private Camera _mainCamera;
 
     private PuzzleModeController _puzzleMode;
 
@@ -118,7 +122,9 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _stepsPerRevolution = Mathf.RoundToInt(360f / _stepAngle);
         _targetRotation     = transform.localRotation;
 
-        _puzzleMode = GetComponentInParent<PuzzleModeController>();
+        _puzzleMode  = GetComponentInParent<PuzzleModeController>();
+        _mainCamera  = Camera.main;
+
         if (_puzzleMode == null)
             Debug.LogWarning("[LockDial] No PuzzleModeController found in parent hierarchy.", this);
 
@@ -158,8 +164,9 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     // ── Input Handling ─────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Accumulates horizontal mouse delta while LMB is held and converts it to discrete steps.
-    /// Drag right = clockwise; drag left = counter-clockwise.
+    /// While LMB is held, computes the angle of the mouse cursor relative to the
+    /// dial's screen-space centre and converts the angular delta into discrete steps.
+    /// Clockwise mouse movement → positive step; counter-clockwise → negative step.
     /// </summary>
     private void HandleDialInput()
     {
@@ -168,22 +175,49 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
         if (!mouse.leftButton.isPressed)
         {
-            _dragAccumulator = 0f;
+            _isDragging = false;
             return;
         }
 
-        _dragAccumulator += mouse.delta.x.ReadValue();
-
-        while (_dragAccumulator >= _pixelsPerStep)
+        if (_mainCamera == null)
         {
-            _dragAccumulator -= _pixelsPerStep;
-            RotateStep(1); // drag right → clockwise
+            _mainCamera = Camera.main;
+            if (_mainCamera == null) return;
         }
 
-        while (_dragAccumulator <= -_pixelsPerStep)
+        Vector2 screenCenter = _mainCamera.WorldToScreenPoint(transform.position);
+        Vector2 mousePos     = mouse.position.ReadValue();
+        Vector2 toMouse      = mousePos - screenCenter;
+
+        if (toMouse.sqrMagnitude < 1f) return;
+
+        float currentAngle = Mathf.Atan2(toMouse.y, toMouse.x) * Mathf.Rad2Deg;
+
+        if (!_isDragging)
         {
-            _dragAccumulator += _pixelsPerStep;
-            RotateStep(-1); // drag left → counter-clockwise
+            _previousMouseAngle = currentAngle;
+            _isDragging         = true;
+            return;
+        }
+
+        float delta = Mathf.DeltaAngle(_previousMouseAngle, currentAngle);
+        _previousMouseAngle = currentAngle;
+
+        // Accumulate angle delta and fire steps when threshold is crossed.
+        // Positive delta = counter-clockwise in screen space = we map to -1 step.
+        // Negative delta = clockwise in screen space = we map to +1 step.
+        _angleAccumulator += delta;
+
+        while (_angleAccumulator >= _stepAngle)
+        {
+            _angleAccumulator -= _stepAngle;
+            RotateStep(1);
+        }
+
+        while (_angleAccumulator <= -_stepAngle)
+        {
+            _angleAccumulator += _stepAngle;
+            RotateStep(-1);
         }
     }
 
@@ -233,8 +267,9 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     private void Unlock()
     {
-        _isUnlocked = true;
-        _dragAccumulator = 0f;
+        _isUnlocked       = true;
+        _angleAccumulator = 0f;
+        _isDragging       = false;
         _puzzleMode?.ExitPuzzleMode();
         _onUnlocked.Invoke();
         SaveManager.Instance?.Save();
