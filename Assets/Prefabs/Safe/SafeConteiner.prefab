@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5668073463708335404}
   - component: {fileID: 5489214858463960451}
   - component: {fileID: 8387500329981131426}
+  - component: {fileID: 7856941105817215566}
   m_Layer: 6
   m_Name: Lock
   m_TagString: Untagged
@@ -126,7 +127,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
   _puzzleCamera: {fileID: 4380350430016505632}
-  _interactText: "\u0412\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C"
   _activeText: "\u0412\u044B\u0445\u043E\u0434: Esc"
   OnPuzzleModeEntered:
     m_PersistentCalls:
@@ -134,6 +134,33 @@ MonoBehaviour:
   OnPuzzleModeExited:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &7856941105817215566
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4956244186293029507}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1dafff9cf9a82e44bcc85480ab21065, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LockDial
+  _stepAngle: 22.5
+  _rotationAxis: {x: 0, y: 1, z: 0}
+  _rotationSpeed: 360
+  _pixelsPerStep: 30
+  _checkTargetStep: 0
+  _targetStep: 0
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0437\u0430\u043C\u043E\u043A"
+  _unlockedInteractText: "\u041E\u0442\u043A\u0440\u044B\u0442\u043E"
+  _onUnlocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onRotated:
+    m_PersistentCalls:
+      m_Calls: []
+  _saveId: 
 --- !u!1 &6090692009834697390
 GameObject:
   m_ObjectHideFlags: 0

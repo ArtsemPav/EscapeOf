@@ -24,7 +24,7 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     // ── Inspector ──────────────────────────────────────────────────────────────
 
     [Header("Rotation Settings")]
-    [Tooltip("Degrees per interaction step. 22.5° gives 16 discrete positions per revolution.")]
+    [Tooltip("Degrees per discrete step. 22.5° gives 16 positions per revolution.")]
     [SerializeField] private float _stepAngle = 22.5f;
 
     [Tooltip("Local axis to rotate around (e.g. Y for a front-facing combination dial).")]
@@ -32,6 +32,9 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     [Tooltip("Speed of the smooth rotation animation in degrees per second.")]
     [SerializeField] private float _rotationSpeed = 360f;
+
+    [Tooltip("How many pixels of horizontal mouse drag equal one rotation step.")]
+    [SerializeField] private float _pixelsPerStep = 30f;
 
     [Header("Unlock Condition (optional)")]
     [Tooltip("Enable to fire OnUnlocked when the dial reaches the Target Step.")]
@@ -64,6 +67,9 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private bool _isAnimating;
 
     private int _stepsPerRevolution;
+
+    /// <summary>Accumulated horizontal mouse delta while LMB is held.</summary>
+    private float _dragAccumulator;
 
     private PuzzleModeController _puzzleMode;
 
@@ -112,7 +118,7 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _stepsPerRevolution = Mathf.RoundToInt(360f / _stepAngle);
         _targetRotation     = transform.localRotation;
 
-        _puzzleMode = GetComponent<PuzzleModeController>();
+        _puzzleMode = GetComponentInParent<PuzzleModeController>();
         if (_puzzleMode == null)
             Debug.LogWarning("[LockDial] No PuzzleModeController found in parent hierarchy.", this);
 
@@ -129,7 +135,7 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         if (_isAnimating)
             AnimateRotation();
 
-        if (_puzzleMode != null && _puzzleMode.IsActive)
+        if (_puzzleMode != null && _puzzleMode.IsActive && !_isUnlocked)
             HandleDialInput();
     }
 
@@ -151,23 +157,41 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     // ── Input Handling ─────────────────────────────────────────────────────────
 
-    /// <summary>Handles LMB / RMB rotation while puzzle mode is active.</summary>
+    /// <summary>
+    /// Accumulates horizontal mouse delta while LMB is held and converts it to discrete steps.
+    /// Drag right = clockwise; drag left = counter-clockwise.
+    /// </summary>
     private void HandleDialInput()
     {
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        if (mouse.leftButton.wasPressedThisFrame)
-            RotateStep(-1); // counter-clockwise
-        else if (mouse.rightButton.wasPressedThisFrame)
-            RotateStep(1);  // clockwise
+        if (!mouse.leftButton.isPressed)
+        {
+            _dragAccumulator = 0f;
+            return;
+        }
+
+        _dragAccumulator += mouse.delta.x.ReadValue();
+
+        while (_dragAccumulator >= _pixelsPerStep)
+        {
+            _dragAccumulator -= _pixelsPerStep;
+            RotateStep(1); // drag right → clockwise
+        }
+
+        while (_dragAccumulator <= -_pixelsPerStep)
+        {
+            _dragAccumulator += _pixelsPerStep;
+            RotateStep(-1); // drag left → counter-clockwise
+        }
     }
 
     // ── Rotation ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Rotates the dial by one step.
-    /// <paramref name="direction"/> +1 for clockwise, -1 for counter-clockwise.
+    /// Advances the dial by one discrete step.
+    /// +1 = clockwise, -1 = counter-clockwise.
     /// </summary>
     private void RotateStep(int direction)
     {
@@ -210,6 +234,7 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private void Unlock()
     {
         _isUnlocked = true;
+        _dragAccumulator = 0f;
         _puzzleMode?.ExitPuzzleMode();
         _onUnlocked.Invoke();
         SaveManager.Instance?.Save();

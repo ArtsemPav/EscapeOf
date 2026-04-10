@@ -4,20 +4,17 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Attaches to a puzzle GameObject and handles entering / exiting puzzle mode.
+/// Service component that handles entering / exiting puzzle mode for a puzzle GameObject.
+/// Manages the puzzle camera, FPS input blocking, and Esc handling.
 ///
-/// Flow:
-///   1. Player presses E while looking at the puzzle — the puzzle camera activates,
-///      FPS input is blocked, and the cursor becomes free.
-///   2. Press Esc — exits puzzle mode, restores the player camera and FPS input.
-///
-/// Setup:
-///   • Add this component to the puzzle's root GameObject.
-///   • Assign <see cref="_puzzleCamera"/> — a CinemachineCamera pointing at the puzzle.
-///   • (Optional) Handle <see cref="OnPuzzleModeEntered"/> and <see cref="OnPuzzleModeExited"/>
-///     in other systems that need to react to mode changes.
+/// Usage:
+///   • Add to the same GameObject as the puzzle script (e.g. LockDial).
+///   • The puzzle script calls <see cref="EnterPuzzleMode"/> from its own Interact() method.
+///   • Esc is handled automatically — no wiring required.
+///   • Listen to <see cref="OnPuzzleModeEntered"/> / <see cref="OnPuzzleModeExited"/> if
+///     other systems need to react to mode changes.
 /// </summary>
-public class PuzzleModeController : MonoBehaviour, IInteractable
+public class PuzzleModeController : MonoBehaviour
 {
     // ── Inspector ──────────────────────────────────────────────────────────────
 
@@ -25,9 +22,9 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
     [Tooltip("CinemachineCamera that frames the puzzle. Starts inactive and activates on Interact.")]
     [SerializeField] private CinemachineCamera _puzzleCamera;
 
-    [Header("Interaction Text")]
-    [SerializeField] private string _interactText = "Взаимодействовать";
-    [SerializeField] private string _activeText   = "Выход: Esc";
+    [Header("Hint")]
+    [Tooltip("Text shown in InteractionUI while puzzle mode is active.")]
+    [SerializeField] private string _activeText = "Выход: Esc";
 
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
@@ -84,26 +81,12 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
             ExitPuzzleMode();
     }
 
-    // ── IInteractable ──────────────────────────────────────────────────────────
-
-    /// <summary>Puzzle can only be interacted with when not already active.</summary>
-    public bool CanInteract() => !_isActive;
-
-    /// <summary>Entering puzzle mode on player interaction.</summary>
-    public void Interact()
-    {
-        if (_isActive) return;
-        EnterPuzzleMode();
-    }
-
-    public string GetInteractText() => _isActive ? _activeText : _interactText;
-    public bool IsPickable() => false;
-    public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
-
     // ── Puzzle Mode ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Activates the puzzle camera, blocks FPS input, and frees the cursor.
+    /// Activates the puzzle camera and blocks FPS input.
+    /// Cursor is kept locked so that Mouse.delta returns valid per-frame delta
+    /// for drag-based puzzle interactions (e.g. LockDial).
     /// </summary>
     public void EnterPuzzleMode()
     {
@@ -115,7 +98,7 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
         // Block FPS input and prevent GameManager from opening the pause menu on Esc.
         UIManager.Instance?.PushModalState();
 
-        // Free the cursor for mouse interaction with the puzzle UI.
+        // Free the cursor for drag interaction within the puzzle.
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible   = true;
 
