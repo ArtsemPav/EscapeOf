@@ -150,23 +150,17 @@ MonoBehaviour:
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotationSpeed: 360
   _combination:
-  - TargetValue: 6
-    RequiredDirection: 0
-  - TargetValue: 10
-    RequiredDirection: 1
   - TargetValue: 10
     RequiredDirection: 0
-  - TargetValue: 10
-    RequiredDirection: 1
-  _randomizeOnStart: 1
+  _randomizeOnStart: 0
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0437\u0430\u043C\u043E\u043A"
   _unlockedInteractText: "\u041E\u0442\u043A\u0440\u044B\u0442\u043E"
   _onUnlocked:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 271244214132305612}
-        m_TargetAssemblyTypeName: Escape.Core.DoorInteraction, Assembly-CSharp
-        m_MethodName: UnlockAndOpen
+      - m_Target: {fileID: 3473876111231531262}
+        m_TargetAssemblyTypeName: SafeUnlockSequence, Assembly-CSharp
+        m_MethodName: StartSequence
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -191,6 +185,7 @@ GameObject:
   - component: {fileID: 3237136902907198378}
   - component: {fileID: 2768946116413669349}
   - component: {fileID: 3957353909726801387}
+  - component: {fileID: 6894371154135444524}
   m_Layer: 6
   m_Name: 'Handle '
   m_TagString: Untagged
@@ -270,6 +265,21 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &6894371154135444524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6090692009834697390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b2255d8785952e4f8f36c7f3b5959e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RotateOnTrigger
+  _rotationAxis: {x: 0, y: 1, z: 0}
+  _targetAngle: 90
+  _rotationSpeed: 180
 --- !u!1 &6611998366577913405
 GameObject:
   m_ObjectHideFlags: 0
@@ -508,7 +518,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: safe_door
+  _saveId: 
 --- !u!65 &5504881251143862351
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -542,6 +552,7 @@ GameObject:
   - component: {fileID: 8510112389657111084}
   - component: {fileID: 4539360932526338675}
   - component: {fileID: 8156858943078473375}
+  - component: {fileID: 3473876111231531262}
   m_Layer: 0
   m_Name: Safe
   m_TagString: Untagged
@@ -644,3 +655,20 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -4692317238045009761, guid: 7f115c1abdd1f7b40acc82d1017b242a, type: 3}
+--- !u!114 &3473876111231531262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8131441352662286998}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07f34774380ccac418e08c172bff40e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SafeUnlockSequence
+  _handleRotate: {fileID: 6894371154135444524}
+  _door: {fileID: 271244214132305612}
+  _puzzleMode: {fileID: 8387500329981131426}
+  _delayBeforeHandle: 0.5
+  _delayBeforeDoor: 1

@@ -175,14 +175,15 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
             if (_isDragging)
             {
                 // Направление фиксируется в момент отпускания по суммарному смещению
-                if (Mathf.Abs(_sessionRotationDelta) > 0.01f)
+                if (Mathf.Abs(_sessionRotationDelta) > 0.05f) 
                 {
                     _lastDirection = _sessionRotationDelta > 0 
                         ? RotationDirection.Clockwise 
                         : RotationDirection.CounterClockwise;
+                    
+                    CheckCurrentComboStep();
                 }
                 
-                CheckCurrentComboStep();
                 ResetDragState();
             }
             return;
@@ -243,6 +244,8 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         if (_comboIndex >= _combination.Length) return;
 
         ComboStep target = _combination[_comboIndex];
+
+        if (Mathf.Abs(_sessionRotationDelta) < _stepAngle * 0.5f) return;
 
         // Логируем результат всего действия: число и результирующее направление
         string dirStr = _lastDirection == RotationDirection.Clockwise ? "Вправо (CW)" : "Влево (CCW)";
