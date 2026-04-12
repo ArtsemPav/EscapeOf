@@ -6,37 +6,34 @@ using UnityEngine.Events;
 /// <summary>
 /// Service component that handles entering / exiting puzzle mode for a puzzle GameObject.
 /// Manages the puzzle camera, FPS input blocking, and Esc handling.
-///
-/// Usage:
-///   • Add to the same GameObject as the puzzle script (e.g. LockDial).
-///   • The puzzle script calls <see cref="EnterPuzzleMode"/> from its own Interact() method.
-///   • Esc is handled automatically — no wiring required.
-///   • Listen to <see cref="OnPuzzleModeEntered"/> / <see cref="OnPuzzleModeExited"/> if
-///     other systems need to react to mode changes.
 /// </summary>
-public class PuzzleModeController : MonoBehaviour
+public class PuzzleModeController : MonoBehaviour, IInteractable
 {
     // ── Inspector ──────────────────────────────────────────────────────────────
+
+    [Header("Interaction Settings")]
+    [SerializeField] private string _interactText = "Осмотреть";
+    [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
     [Header("Camera")]
     [Tooltip("CinemachineCamera that frames the puzzle. Starts inactive and activates on Interact.")]
     [SerializeField] private CinemachineCamera _puzzleCamera;
 
-    [Header("Hint")]
+    [Header("UI & Feedback")]
     [Tooltip("Text shown in InteractionUI while puzzle mode is active.")]
     [SerializeField] private string _activeText = "Выход: Esc";
 
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
-    [SerializeField] private UnityEvent OnPuzzleModeEntered;
+    [SerializeField] public UnityEvent OnPuzzleModeEntered;
 
     [Tooltip("Fired when the player exits puzzle mode.")]
-    [SerializeField] private UnityEvent OnPuzzleModeExited;
+    [SerializeField] public UnityEvent OnPuzzleModeExited;
 
     // ── State ──────────────────────────────────────────────────────────────────
 
     private bool _isActive;
-    private bool _menuSubscribed;
+    private bool _isSubscribed;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -48,100 +45,142 @@ public class PuzzleModeController : MonoBehaviour
     private void Awake()
     {
         if (_puzzleCamera != null)
+        {
             _puzzleCamera.gameObject.SetActive(false);
+        }
         else
-            Debug.LogWarning("[PuzzleModeController] Puzzle camera is not assigned.", this);
+        {
+            Debug.LogWarning($"[{nameof(PuzzleModeController)}] Puzzle camera is not assigned on {gameObject.name}.", this);
+        }
     }
 
     private void Start()
     {
-        if (InputManager.Instance != null)
-        {
-            InputManager.Instance.OnMenuPerformed += OnMenuPerformed;
-            _menuSubscribed = true;
-        }
-        else
-        {
-            Debug.LogWarning("[PuzzleModeController] InputManager.Instance is null in Start. Esc will not exit puzzle mode.", this);
-        }
+        SubscribeToInput();
+    }
+
+    private void OnEnable()
+    {
+        SubscribeToInput();
     }
 
     private void OnDisable()
     {
-        if (_menuSubscribed && InputManager.Instance != null)
-        {
-            InputManager.Instance.OnMenuPerformed -= OnMenuPerformed;
-            _menuSubscribed = false;
-        }
+        UnsubscribeFromInput();
     }
 
     private void OnDestroy()
     {
         if (_isActive)
+        {
             ExitPuzzleMode();
+        }
+        UnsubscribeFromInput();
     }
 
     // ── Puzzle Mode ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Activates the puzzle camera and blocks FPS input.
-    /// Cursor is kept locked so that Mouse.delta returns valid per-frame delta
-    /// for drag-based puzzle interactions (e.g. LockDial).
+    /// Activates the puzzle mode: enables camera, blocks player input, and shows cursor.
     /// </summary>
     public void EnterPuzzleMode()
     {
+        if (_isActive) return;
+
         _isActive = true;
 
         if (_puzzleCamera != null)
+        {
             _puzzleCamera.gameObject.SetActive(true);
+        }
 
         // Block FPS input and prevent GameManager from opening the pause menu on Esc.
         UIManager.Instance?.PushModalState();
 
-        // Free the cursor for drag interaction within the puzzle.
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible   = true;
+        // Show cursor for puzzle interaction.
+        SetCursorState(true);
 
-        InteractionUI.Instance?.SetHint(true, _activeText, false, CrosshairMode.Default);
+        if (PopupMessageSystem.Instance != null)
+        {
+            PopupMessageSystem.Instance.Show(_activeText, PopupMessageType.Warning, 4f);
+        }
 
         OnPuzzleModeEntered?.Invoke();
     }
 
     /// <summary>
-    /// Deactivates the puzzle camera and restores FPS input and the locked cursor.
+    /// Deactivates the puzzle mode: restores camera, player input, and hides cursor.
     /// </summary>
     public void ExitPuzzleMode()
     {
+        if (!_isActive) return;
+
         _isActive = false;
 
         if (_puzzleCamera != null)
+        {
             _puzzleCamera.gameObject.SetActive(false);
+        }
 
         // Restore FPS input and decrement the modal panel counter.
         UIManager.Instance?.PopModalState();
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible   = false;
-
-        InteractionUI.Instance?.SetHint(false);
+        // Restore FPS cursor state.
+        SetCursorState(false);
 
         OnPuzzleModeExited?.Invoke();
     }
 
-    // ── Input ──────────────────────────────────────────────────────────────────
+    // ── IInteractable ──────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Handles the Menu action (Esc). Exits puzzle mode on the next frame so that
-    /// GameManager.OnToggleMenu still sees IsAnyPanelOpen == true during the same
-    /// event dispatch and skips opening the pause menu.
-    /// </summary>
+    public bool CanInteract() => !_isActive;
+
+    public void Interact()
+    {
+        if (CanInteract())
+        {
+            EnterPuzzleMode();
+        }
+    }
+
+    public string GetInteractText() => _interactText;
+    public bool IsPickable() => false;
+    public CrosshairMode GetCrosshairMode() => _crosshairMode;
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private void SetCursorState(bool visible)
+    {
+        Cursor.lockState = visible ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = visible;
+    }
+
+    private void SubscribeToInput()
+    {
+        if (_isSubscribed || InputManager.Instance == null) return;
+
+        InputManager.Instance.OnMenuPerformed += OnMenuPerformed;
+        _isSubscribed = true;
+    }
+
+    private void UnsubscribeFromInput()
+    {
+        if (!_isSubscribed || InputManager.Instance == null) return;
+
+        InputManager.Instance.OnMenuPerformed -= OnMenuPerformed;
+        _isSubscribed = false;
+    }
+
     private void OnMenuPerformed()
     {
         if (!_isActive) return;
-        StartCoroutine(ExitNextFrame());
+
+        // Use a coroutine to ensure the input event finishes before changing state,
+        // preventing the Pause menu from immediately opening.
+        StartCoroutine(ExitNextFrameRoutine());
     }
 
-    private IEnumerator ExitNextFrame()
+    private IEnumerator ExitNextFrameRoutine()
     {
         yield return null;
         ExitPuzzleMode();

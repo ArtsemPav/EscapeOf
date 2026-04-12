@@ -126,6 +126,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 5
   _puzzleCamera: {fileID: 4380350430016505632}
   _activeText: "\u0412\u044B\u0445\u043E\u0434: Esc"
   OnPuzzleModeEntered:
@@ -153,8 +155,11 @@ MonoBehaviour:
   - TargetValue: 10
     RequiredDirection: 0
   _randomizeOnStart: 0
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0437\u0430\u043C\u043E\u043A"
-  _unlockedInteractText: "\u041E\u0442\u043A\u0440\u044B\u0442\u043E"
+  _pressHintText: "\u041D\u0430\u0436\u0430\u0442\u044C"
+  _rotateHintText: "\u0412\u0440\u0430\u0449\u0430\u0442\u044C"
+  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
+  _idleCrosshair: 1
+  _activeCrosshair: 4
   _onUnlocked:
     m_PersistentCalls:
       m_Calls:
@@ -162,6 +167,18 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: SafeUnlockSequence, Assembly-CSharp
         m_MethodName: StartSequence
         m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 5489214858463960451}
+        m_TargetAssemblyTypeName: UnityEngine.BoxCollider, UnityEngine
+        m_MethodName: set_enabled
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -278,7 +295,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RotateOnTrigger
   _rotationAxis: {x: 0, y: 1, z: 0}
-  _targetAngle: 90
+  _targetAngle: 270
   _rotationSpeed: 180
 --- !u!1 &6611998366577913405
 GameObject:
@@ -306,8 +323,8 @@ Transform:
   m_GameObject: {fileID: 6611998366577913405}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: -0.0027, y: 0.0152, z: 0.017}
-  m_LocalScale: {x: 0.0139999995, y: 0.0139999995, z: 0.014}
+  m_LocalPosition: {x: -0.0024, y: 0.015, z: 0.015}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2214866158993990392}

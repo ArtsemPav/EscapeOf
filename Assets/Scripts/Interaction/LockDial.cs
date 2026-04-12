@@ -21,16 +21,17 @@ public struct ComboStep
 }
 
 /// <summary>
-/// Rotary combination dial. Delegates camera switching, cursor management,
-/// and Esc handling to a sibling <see cref="PuzzleModeController"/>.
+/// Rotary combination dial. Handles rotation logic, combination validation, 
+/// and UI feedback in puzzle mode.
 /// </summary>
-public class LockDial : MonoBehaviour, IInteractable, ISaveable
+public class LockDial : MonoBehaviour, ISaveable
 {
     // ── Constants ──────────────────────────────────────────────────────────────
 
     private const float FullRevolutionDegrees = 360f;
     private const float SnapAngleThreshold    = 0.1f;
     private const float MinCursorDistanceSqr  = 1f;
+    private const float MinDragDeltaThreshold = 0.05f;
 
     // ── Inspector ──────────────────────────────────────────────────────────────
 
@@ -38,23 +39,25 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Degrees per discrete step. 3.6° gives 100 positions per revolution.")]
     [SerializeField] private float _stepAngle = 3.6f;
 
-    [Tooltip("Local axis to rotate around (e.g. Z for a front-facing dial).")]
+    [Tooltip("Local axis to rotate around.")]
     [SerializeField] private Vector3 _rotationAxis = Vector3.forward;
 
-    [Tooltip("Speed of the smooth rotation tween in degrees per second.")]
+    [Tooltip("Speed of the smooth rotation in degrees per second.")]
     [SerializeField] private float _rotationSpeed = 360f;
 
     [Header("Combination Settings")]
-    [Tooltip("Sequence of 4 steps to unlock.")]
+    [Tooltip("Sequence of steps to unlock.")]
     [SerializeField] private ComboStep[] _combination = new ComboStep[4];
-
 
     [Tooltip("If true, combination target values will be randomized on start.")]
     [SerializeField] private bool _randomizeOnStart = true;
 
-    [Header("Interaction Text")]
-    [SerializeField] private string _interactText         = "Осмотреть замок";
-    [SerializeField] private string _unlockedInteractText = "Открыто";
+    [Header("UI Feedback")]
+    [SerializeField] private string _pressHintText = "Нажать";
+    [SerializeField] private string _rotateHintText = "Вращать";
+    [SerializeField] private string _exitPopupText = "Выход: Esc";
+    [SerializeField] private CrosshairMode _idleCrosshair = CrosshairMode.Hand;
+    [SerializeField] private CrosshairMode _activeCrosshair = CrosshairMode.Grab;
 
     [Header("Events")]
     [Tooltip("Fired when the entire combination is correctly entered.")]
@@ -64,7 +67,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private UnityEvent _onRotated;
 
     [Header("Save")]
-    [Tooltip("Stable unique ID. Right-click → Generate Save ID to auto-fill.")]
     [SerializeField] private string _saveId;
 
     // ── State ──────────────────────────────────────────────────────────────────
@@ -74,14 +76,13 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     private int  _stepsPerRevolution;
 
     private Quaternion _targetRotation;
-
-    private bool  _isDragging;
-    private float _previousMouseAngle;
-    private float _angleAccumulator;
-    private float _sessionRotationDelta; // Суммарный поворот за текущий клик
+    private bool       _isDragging;
+    private float      _previousMouseAngle;
+    private float      _angleAccumulator;
+    private float      _dragRotationDelta;
     
-    private int               _comboIndex; 
-    private RotationDirection _lastDirection;
+    private int               _comboProgressIndex; 
+    private RotationDirection _lastDragDirection;
 
     private Camera               _mainCamera;
     private PuzzleModeController _puzzleMode;
@@ -89,7 +90,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
     // ── Public API ─────────────────────────────────────────────────────────────
 
     public int CurrentStep => _currentStep;
-    public int StepsPerRevolution => _stepsPerRevolution;
     public bool IsUnlocked => _isUnlocked;
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
@@ -127,76 +127,68 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         _mainCamera         = Camera.main;
 
         if (_randomizeOnStart && !_isUnlocked)
+        {
             RandomizeCombination();
+        }
 
-
-        if (_puzzleMode == null)
-            Debug.LogWarning("[LockDial] PuzzleModeController not found in parent hierarchy.", this);
+        if (_puzzleMode != null)
+        {
+            _puzzleMode.OnPuzzleModeExited.AddListener(ResetUI);
+            _puzzleMode.OnPuzzleModeEntered.AddListener(ShowEntryHint);
+        }
+        else
+        {
+            Debug.LogWarning($"[{nameof(LockDial)}] PuzzleModeController not found for {gameObject.name}.", this);
+        }
 
         SaveManager.Instance?.Register(this);
     }
 
     private void OnDestroy()
     {
+        if (_puzzleMode != null)
+        {
+            _puzzleMode.OnPuzzleModeExited.RemoveListener(ResetUI);
+            _puzzleMode.OnPuzzleModeEntered.RemoveListener(ShowEntryHint);
+        }
+
         SaveManager.Instance?.Unregister(this);
     }
 
     private void Update()
     {
-        TweenRotation();
+        ApplySmoothRotation();
 
         if (_puzzleMode != null && _puzzleMode.IsActive && !_isUnlocked)
-            HandleMouseInput();
+        {
+            ProcessInput();
+            UpdateUI();
+        }
     }
 
-    // ── IInteractable ──────────────────────────────────────────────────────────
+    // ── Logic ──────────────────────────────────────────────────────────────────
 
-    public bool CanInteract() => !_isUnlocked && (_puzzleMode == null || !_puzzleMode.IsActive);
-
-    public void Interact()
-    {
-        if (!CanInteract()) return;
-        _puzzleMode?.EnterPuzzleMode();
-    }
-
-    public string GetInteractText()      => _isUnlocked ? _unlockedInteractText : _interactText;
-    public bool IsPickable()             => false;
-    public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
-
-    // ── Input ──────────────────────────────────────────────────────────────────
-
-    private void HandleMouseInput()
+    private void ProcessInput()
     {
         var mouse = Mouse.current;
         if (mouse == null) return;
 
         if (!mouse.leftButton.isPressed)
         {
-            if (_isDragging)
-            {
-                // Направление фиксируется в момент отпускания по суммарному смещению
-                if (Mathf.Abs(_sessionRotationDelta) > 0.05f) 
-                {
-                    _lastDirection = _sessionRotationDelta > 0 
-                        ? RotationDirection.Clockwise 
-                        : RotationDirection.CounterClockwise;
-                    
-                    CheckCurrentComboStep();
-                }
-                
-                ResetDragState();
-            }
+            EndDrag();
             return;
         }
 
-        if (_mainCamera == null)
-        {
-            _mainCamera = Camera.main;
-            if (_mainCamera == null) return;
-        }
+        HandleDrag(mouse);
+    }
+
+    private void HandleDrag(Mouse mouse)
+    {
+        if (_mainCamera == null) _mainCamera = Camera.main;
+        if (_mainCamera == null) return;
 
         Vector2 screenCenter = _mainCamera.WorldToScreenPoint(transform.position);
-        Vector2 toMouse      = mouse.position.ReadValue() - screenCenter;
+        Vector2 toMouse = mouse.position.ReadValue() - screenCenter;
 
         if (toMouse.sqrMagnitude < MinCursorDistanceSqr) return;
 
@@ -204,78 +196,130 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
         if (!_isDragging)
         {
-            _previousMouseAngle   = currentAngle;
-            _isDragging           = true;
-            _sessionRotationDelta = 0f; // Начали новую сессию — "отсчет от 0"
+            StartDrag(currentAngle);
             return;
         }
 
-        float angleDelta       = Mathf.DeltaAngle(_previousMouseAngle, currentAngle);
-        _previousMouseAngle    = currentAngle;
-        _sessionRotationDelta += angleDelta; // Копим общее смещение
+        float delta = Mathf.DeltaAngle(_previousMouseAngle, currentAngle);
+        _previousMouseAngle = currentAngle;
+        _dragRotationDelta += delta;
+        _angleAccumulator += delta;
 
-        _angleAccumulator += angleDelta;
+        ProcessStepAccumulator();
+    }
 
+    private void StartDrag(float angle)
+    {
+        _previousMouseAngle = angle;
+        _isDragging = true;
+        _dragRotationDelta = 0f;
+    }
+
+    private void EndDrag()
+    {
+        if (!_isDragging) return;
+
+        if (Mathf.Abs(_dragRotationDelta) > MinDragDeltaThreshold)
+        {
+            _lastDragDirection = _dragRotationDelta > 0 
+                ? RotationDirection.Clockwise 
+                : RotationDirection.CounterClockwise;
+            
+            CheckCombination();
+        }
+        
+        ResetDragState();
+    }
+
+    private void ProcessStepAccumulator()
+    {
         while (_angleAccumulator >= _stepAngle)
         {
             _angleAccumulator -= _stepAngle;
-            ApplyStep(1);
+            RotateDiscrete(1);
         }
 
         while (_angleAccumulator <= -_stepAngle)
         {
             _angleAccumulator += _stepAngle;
-            ApplyStep(-1);
+            RotateDiscrete(-1);
         }
     }
 
-    private void ResetDragState()
+    private void RotateDiscrete(int direction)
     {
-        _isDragging           = false;
-        _angleAccumulator     = 0f;
-        _sessionRotationDelta = 0f;
+        _currentStep = WrapStep(_currentStep + direction);
+        _targetRotation = CalculateStepRotation(_currentStep);
+        _onRotated?.Invoke();
     }
 
-    // ── Combination Logic ──────────────────────────────────────────────────────
-
-    private void CheckCurrentComboStep()
+    private void CheckCombination()
     {
         if (_combination == null || _combination.Length == 0) return;
-        if (_comboIndex >= _combination.Length) return;
+        if (_comboProgressIndex >= _combination.Length) return;
 
-        ComboStep target = _combination[_comboIndex];
+        ComboStep target = _combination[_comboProgressIndex];
 
-        if (Mathf.Abs(_sessionRotationDelta) < _stepAngle * 0.5f) return;
-
-        // Логируем результат всего действия: число и результирующее направление
-        string dirStr = _lastDirection == RotationDirection.Clockwise ? "Вправо (CW)" : "Влево (CCW)";
-        Debug.Log($"[LockDial] {name}: Число {_currentStep}, Результирующее направление: {dirStr}");
-
-        if (_currentStep == target.TargetValue && _lastDirection == target.RequiredDirection)
+        // Validate current step and direction
+        if (_currentStep == target.TargetValue && _lastDragDirection == target.RequiredDirection)
         {
-            _comboIndex++;
-            Debug.Log($"<color=green>[LockDial] Шаг {_comboIndex} из {_combination.Length} пройден!</color>");
+            _comboProgressIndex++;
+            Debug.Log($"[{nameof(LockDial)}] Correct step! Progress: {_comboProgressIndex}/{_combination.Length}");
 
-            if (_comboIndex >= _combination.Length)
+            if (_comboProgressIndex >= _combination.Length)
+            {
                 Unlock();
+            }
         }
-        else
+        else if (Mathf.Abs(_dragRotationDelta) > _stepAngle * 0.5f)
         {
-            _comboIndex = 0;
-            Debug.Log("<color=red>[LockDial] Ошибка! Комбинация сброшена.</color>");
+            // Reset if significant movement in wrong way
+            _comboProgressIndex = 0;
+            Debug.Log($"[{nameof(LockDial)}] Wrong step. Resetting sequence.");
         }
     }
 
-    // ── Rotation ───────────────────────────────────────────────────────────────
-
-    private void ApplyStep(int direction)
+    private void Unlock()
     {
-        _currentStep    = WrapStep(_currentStep + direction);
-        _targetRotation = StepToRotation(_currentStep);
-        _onRotated.Invoke();
+        _isUnlocked = true;
+        ResetDragState();
+        ResetUI();
+
+        _puzzleMode?.ExitPuzzleMode();
+        _onUnlocked?.Invoke();
+        SaveManager.Instance?.Save();
     }
 
-    private void TweenRotation()
+    // ── UI & Visuals ───────────────────────────────────────────────────────────
+
+    private void UpdateUI()
+    {
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+
+        bool isHolding = mouse.leftButton.isPressed;
+        CrosshairMode mode = isHolding ? _activeCrosshair : _idleCrosshair;
+        string hint = isHolding ? _rotateHintText : _pressHintText;
+
+        InteractionUI.Instance?.SetCrosshair(mode);
+        InteractionUI.Instance?.SetHint(true, hint, false, mode);
+    }
+
+    private void ResetUI()
+    {
+        InteractionUI.Instance?.SetHint(false);
+        InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
+    }
+
+    private void ShowEntryHint()
+    {
+        if (!string.IsNullOrEmpty(_exitPopupText))
+        {
+            PopupMessageSystem.Instance?.Show(_exitPopupText, PopupMessageType.Warning);
+        }
+    }
+
+    private void ApplySmoothRotation()
     {
         if (Quaternion.Angle(transform.localRotation, _targetRotation) < SnapAngleThreshold)
         {
@@ -292,36 +336,29 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 
     private void SnapToStep(int step)
     {
-        _targetRotation         = StepToRotation(step);
+        _targetRotation = CalculateStepRotation(step);
         transform.localRotation = _targetRotation;
     }
 
-    private Quaternion StepToRotation(int step)
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private Quaternion CalculateStepRotation(int step)
         => Quaternion.AngleAxis(step * _stepAngle, _rotationAxis.normalized);
 
     private int WrapStep(int step)
         => ((step % _stepsPerRevolution) + _stepsPerRevolution) % _stepsPerRevolution;
 
-    // ── Unlock ─────────────────────────────────────────────────────────────────
-
-    private void Unlock()
+    private void ResetDragState()
     {
-        _isUnlocked = true;
-        ResetDragState();
-        _puzzleMode?.ExitPuzzleMode();
-        _onUnlocked.Invoke();
-        SaveManager.Instance?.Save();
+        _isDragging = false;
+        _angleAccumulator = 0f;
+        _dragRotationDelta = 0f;
     }
 
-    /// <summary>
-    /// Randomizes the TargetValue and RequiredDirection of each step in the combination.
-    /// Ensures each subsequent step has a different rotation direction.
-    /// </summary>
     private void RandomizeCombination()
     {
         if (_combination == null || _combination.Length == 0) return;
 
-        // Choose a random starting direction for the first step
         RotationDirection currentDir = (UnityEngine.Random.value > 0.5f) 
             ? RotationDirection.Clockwise 
             : RotationDirection.CounterClockwise;
@@ -330,17 +367,13 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
         {
             _combination[i].TargetValue = UnityEngine.Random.Range(0, _stepsPerRevolution);
             _combination[i].RequiredDirection = currentDir;
-            
-            // Flip direction for the next step
             currentDir = (currentDir == RotationDirection.Clockwise) 
                 ? RotationDirection.CounterClockwise 
                 : RotationDirection.Clockwise;
         }
-        
-        Debug.Log($"[LockDial] {name}: Combination and directions randomized.");
     }
 
-    // ── Editor Utilities ───────────────────────────────────────────────────────
+    // ── Editor ─────────────────────────────────────────────────────────────────
 
     [ContextMenu("Generate Save ID")]
     private void GenerateSaveId()
@@ -352,6 +385,6 @@ public class LockDial : MonoBehaviour, IInteractable, ISaveable
 #endif
     }
 
-    [ContextMenu("Snap to Current Step (Editor)")]
+    [ContextMenu("Snap to Current Step")]
     private void EditorSnapToCurrentStep() => SnapToStep(WrapStep(_currentStep));
 }
