@@ -261,7 +261,7 @@ namespace Escape.Core {
             if (cam == null || _pivot == null) return;
 
             float   openedAngle  = _openFraction * _maxOpenAngle;
-            Vector3 grabWorld    = Quaternion.AngleAxis(openedAngle, Vector3.up) * _grabOffsetWorld;
+            Vector3 grabWorld    = Quaternion.AngleAxis(openedAngle, GetWorldAxisVector()) * _grabOffsetWorld;
             float   grabDist     = grabWorld.magnitude;
 
             if (grabDist < 0.001f) return;
@@ -319,6 +319,7 @@ namespace Escape.Core {
             }
 
             _isOpen = _openFraction > 0.5f;
+            SaveManager.Instance?.Save();
         }
 
         // ── IInteractable ────────────────────────────────────────────────────────
@@ -334,7 +335,7 @@ namespace Escape.Core {
                     // save captures the correct state: key gone + door unlocked simultaneously.
                     SaveManager.Instance?.Save();
                 } else {
-                    PopupMessageSystem.Instance.Show("Нужен ключ от этой двери", PopupMessageType.Warning, 4f);
+                    PopupMessageSystem.Instance.Show(_requirementHint, PopupMessageType.Warning, 4f);
                 }
             }
         }

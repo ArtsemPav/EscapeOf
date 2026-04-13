@@ -101,4 +101,36 @@ public class UIManager : MonoBehaviour
         _playerController?.SetPlayerInputEnabled(true);
         _playerController?.ResetInteractionCache();
     }
+
+    /// <summary>
+    /// Increments the open-panel counter and disables player input without activating any GameObject.
+    /// Use this when a non-panel system (e.g. a puzzle inspector) needs to block the pause menu and player.
+    /// Must be paired with a <see cref="PopModalState"/> call.
+    /// </summary>
+    public void PushModalState()
+    {
+        _openPanelCount++;
+
+        if (_playerController != null)
+        {
+            _playerController.SetPlayerInputEnabled(false);
+            _playerController.ResetInteractionCache();
+        }
+    }
+
+    /// <summary>
+    /// Decrements the open-panel counter. Restores cursor and player input when count reaches zero.
+    /// </summary>
+    public void PopModalState()
+    {
+        _openPanelCount = Mathf.Max(0, _openPanelCount - 1);
+
+        GameManager.Instance?.UpdateCursorState();
+
+        if (!IsAnyPanelOpen)
+        {
+            _playerController?.SetPlayerInputEnabled(true);
+            _playerController?.ResetInteractionCache();
+        }
+    }
 }
