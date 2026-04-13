@@ -20,6 +20,7 @@ public class RotateOnTrigger : MonoBehaviour, ISaveable
     [Tooltip("How fast the rotation should be (degrees per second).")]
     [SerializeField] private float _rotationSpeed = 180f;
 
+    private Quaternion _initialRotation;
     private Quaternion _targetRotation;
     private bool _isRotating = false;
     private bool _isTriggered = false;
@@ -37,11 +38,11 @@ public class RotateOnTrigger : MonoBehaviour, ISaveable
     {
         var data = JsonUtility.FromJson<SaveData>(json);
         _isTriggered = data.isTriggered;
-        
+
         if (_isTriggered)
         {
-            // Instantly snap to target rotation if already triggered
-            _targetRotation = transform.localRotation * Quaternion.AngleAxis(_targetAngle, _rotationAxis);
+            // Snap instantly to the final rotation using the stored initial rotation as base
+            _targetRotation         = _initialRotation * Quaternion.AngleAxis(_targetAngle, _rotationAxis);
             transform.localRotation = _targetRotation;
         }
     }
@@ -56,8 +57,9 @@ public class RotateOnTrigger : MonoBehaviour, ISaveable
 
     private void Awake()
     {
-        // Initialize target rotation to current rotation
-        _targetRotation = transform.localRotation;
+        // Store the object's original rotation as the base for all future calculations
+        _initialRotation = transform.localRotation;
+        _targetRotation  = _initialRotation;
         SaveManager.Instance?.Register(this);
     }
 
@@ -95,8 +97,8 @@ public class RotateOnTrigger : MonoBehaviour, ISaveable
     {
         if (_isTriggered) return;
 
-        _targetRotation = transform.localRotation * Quaternion.AngleAxis(_targetAngle, _rotationAxis);
-        _isRotating = true;
+        _targetRotation = _initialRotation * Quaternion.AngleAxis(_targetAngle, _rotationAxis);
+        _isRotating  = true;
         _isTriggered = true;
     }
 }

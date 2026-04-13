@@ -21,13 +21,24 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
-    [SerializeField] public UnityEvent OnPuzzleModeEntered;
+    [SerializeField] private UnityEvent OnPuzzleModeEntered;
 
     [Tooltip("Fired when the player exits puzzle mode.")]
-    [SerializeField] public UnityEvent OnPuzzleModeExited;
+    [SerializeField] private UnityEvent OnPuzzleModeExited;
 
     [Tooltip("Fired when the puzzle is solved.")]
-    [SerializeField] public UnityEvent OnPuzzleSolved;
+    [SerializeField] private UnityEvent OnPuzzleSolved;
+
+    // ── C# Events (for code-side subscriptions; prefer these over AddListener) ─
+
+    /// <summary>Raised when the player enters puzzle mode.</summary>
+    public event Action OnEntered;
+
+    /// <summary>Raised when the player exits puzzle mode.</summary>
+    public event Action OnExited;
+
+    /// <summary>Raised when the puzzle is solved.</summary>
+    public event Action OnSolved;
 
     // ── State ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +63,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         _isSolved = true;
         OnPuzzleSolved?.Invoke();
-        
+        OnSolved?.Invoke();
+
         if (_isActive)
         {
             ExitPuzzleMode();
@@ -75,10 +87,11 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     {
         var data = JsonUtility.FromJson<SaveData>(json);
         _isSolved = data.isSolved;
-        
+
         if (_isSolved)
         {
             OnPuzzleSolved?.Invoke();
+            OnSolved?.Invoke();
         }
     }
 
@@ -102,11 +115,6 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         }
 
         SaveManager.Instance?.Register(this);
-    }
-
-    private void Start()
-    {
-        SubscribeToInput();
     }
 
     private void OnEnable()
@@ -152,6 +160,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         SetCursorState(true);
 
         OnPuzzleModeEntered?.Invoke();
+        OnEntered?.Invoke();
     }
 
     /// <summary>
@@ -175,6 +184,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         SetCursorState(false);
 
         OnPuzzleModeExited?.Invoke();
+        OnExited?.Invoke();
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

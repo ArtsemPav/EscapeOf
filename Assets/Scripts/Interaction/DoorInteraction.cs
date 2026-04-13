@@ -261,7 +261,7 @@ namespace Escape.Core {
             if (cam == null || _pivot == null) return;
 
             float   openedAngle  = _openFraction * _maxOpenAngle;
-            Vector3 grabWorld    = Quaternion.AngleAxis(openedAngle, Vector3.up) * _grabOffsetWorld;
+            Vector3 grabWorld    = Quaternion.AngleAxis(openedAngle, GetWorldAxisVector()) * _grabOffsetWorld;
             float   grabDist     = grabWorld.magnitude;
 
             if (grabDist < 0.001f) return;

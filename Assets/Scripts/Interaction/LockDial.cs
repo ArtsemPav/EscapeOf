@@ -136,8 +136,8 @@ public class LockDial : MonoBehaviour, ISaveable
 
         if (_puzzleMode != null)
         {
-            _puzzleMode.OnPuzzleModeExited.AddListener(ResetUI);
-            _puzzleMode.OnPuzzleModeEntered.AddListener(ShowEntryHint);
+            _puzzleMode.OnExited += ResetUI;
+            _puzzleMode.OnEntered += ShowEntryHint;
         }
         else
         {
@@ -151,8 +151,8 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         if (_puzzleMode != null)
         {
-            _puzzleMode.OnPuzzleModeExited.RemoveListener(ResetUI);
-            _puzzleMode.OnPuzzleModeEntered.RemoveListener(ShowEntryHint);
+            _puzzleMode.OnExited -= ResetUI;
+            _puzzleMode.OnEntered -= ShowEntryHint;
         }
 
         SaveManager.Instance?.Unregister(this);
@@ -264,24 +264,13 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         if (AudioManager.Instance == null) return;
 
-        // Check if the current value matches the target for the next step in sequence
-        bool isCorrectNextStep = false;
-        if (_comboProgressIndex < _combination.Length)
-        {
-            isCorrectNextStep = (_currentStep == _combination[_comboProgressIndex].TargetValue);
-        }
+        bool isCorrectNextStep = _comboProgressIndex < _combination.Length
+            && _currentStep == _combination[_comboProgressIndex].TargetValue;
 
         if (isCorrectNextStep && _correctStepSound != null)
-        {
             AudioManager.Instance.PlaySFX(_correctStepSound);
-        }
         else if (_tickSound != null)
-        {
             AudioManager.Instance.PlaySFX(_tickSound);
-        }
-
-        // Trigger save whenever the dial rotates to keep currentStep in sync
-        SaveManager.Instance?.Save();
     }
 
     private void CheckCombination()
@@ -315,10 +304,8 @@ public class LockDial : MonoBehaviour, ISaveable
         _isUnlocked = true;
         ResetDragState();
         ResetUI();
-        _puzzleMode.SetSolved();
-        _puzzleMode?.ExitPuzzleMode();
         _onUnlocked?.Invoke();
-        SaveManager.Instance?.Save();
+        _puzzleMode?.SetSolved(); // SetSolved fires OnSolved, ExitPuzzleMode, and Save internally
     }
 
     // ── UI & Visuals ───────────────────────────────────────────────────────────
