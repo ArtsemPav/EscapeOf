@@ -34,7 +34,7 @@ public class LockDial : MonoBehaviour, ISaveable
     private const float MinDragDeltaThreshold = 0.05f;
 
     // ── Inspector ──────────────────────────────────────────────────────────────
-
+    [SerializeField] private PuzzleModeController _puzzleMode;
     [Header("Rotation")]
     [Tooltip("Degrees per discrete step. 3.6° gives 100 positions per revolution.")]
     [SerializeField] private float _stepAngle = 3.6f;
@@ -89,7 +89,6 @@ public class LockDial : MonoBehaviour, ISaveable
     private RotationDirection _lastDragDirection;
 
     private Camera               _mainCamera;
-    private PuzzleModeController _puzzleMode;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -316,7 +315,7 @@ public class LockDial : MonoBehaviour, ISaveable
         _isUnlocked = true;
         ResetDragState();
         ResetUI();
-        GetComponent<PuzzleModeController>().SetSolved();
+        _puzzleMode.SetSolved();
         _puzzleMode?.ExitPuzzleMode();
         _onUnlocked?.Invoke();
         SaveManager.Instance?.Save();

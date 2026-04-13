@@ -8,24 +8,16 @@ using UnityEngine.Events;
 /// Service component that handles entering / exiting puzzle mode for a puzzle GameObject.
 /// Manages the puzzle camera, FPS input blocking, and Esc handling.
 /// </summary>
-public class PuzzleModeController : MonoBehaviour, IInteractable, ISaveable
+public class PuzzleModeController : MonoBehaviour, ISaveable
 {
     // ── Inspector ──────────────────────────────────────────────────────────────
 
     [Header("Save Settings")]
     [SerializeField] private string _saveId = "puzzle_mode_unique_id";
 
-    [Header("Interaction Settings")]
-    [SerializeField] private string _interactText = "Осмотреть";
-    [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
-
     [Header("Camera")]
     [Tooltip("CinemachineCamera that frames the puzzle. Starts inactive and activates on Interact.")]
     [SerializeField] private CinemachineCamera _puzzleCamera;
-
-    [Header("UI & Feedback")]
-    [Tooltip("Text shown in InteractionUI while puzzle mode is active.")]
-    [SerializeField] private string _activeText = "Выход: Esc";
 
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
@@ -159,11 +151,6 @@ public class PuzzleModeController : MonoBehaviour, IInteractable, ISaveable
         // Show cursor for puzzle interaction.
         SetCursorState(true);
 
-        if (PopupMessageSystem.Instance != null)
-        {
-            PopupMessageSystem.Instance.Show(_activeText, PopupMessageType.Warning, 4f);
-        }
-
         OnPuzzleModeEntered?.Invoke();
     }
 
@@ -189,22 +176,6 @@ public class PuzzleModeController : MonoBehaviour, IInteractable, ISaveable
 
         OnPuzzleModeExited?.Invoke();
     }
-
-    // ── IInteractable ──────────────────────────────────────────────────────────
-
-    public bool CanInteract() => !_isActive && !_isSolved;
-
-    public void Interact()
-    {
-        if (CanInteract())
-        {
-            EnterPuzzleMode();
-        }
-    }
-
-    public string GetInteractText() => _isSolved ? string.Empty : _interactText;
-    public bool IsPickable() => false;
-    public CrosshairMode GetCrosshairMode() => _crosshairMode;
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 

@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5668073463708335404}
   - component: {fileID: 5489214858463960451}
   - component: {fileID: 7856941105817215566}
-  - component: {fileID: 4053866037066519823}
+  - component: {fileID: 121477101431058077}
   m_Layer: 6
   m_Name: Lock
   m_TagString: Untagged
@@ -126,6 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1dafff9cf9a82e44bcc85480ab21065, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LockDial
+  _puzzleMode: {fileID: 0}
   _stepAngle: 3.6
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotationSpeed: 360
@@ -159,7 +160,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _saveId: 
---- !u!114 &4053866037066519823
+--- !u!114 &121477101431058077
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -168,23 +169,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 4956244186293029507}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
+  m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
-  _saveId: puzzle_safe_id
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _crosshairMode: 5
-  _puzzleCamera: {fileID: 4380350430016505632}
-  _activeText: "\u0412\u044B\u0445\u043E\u0434: Esc"
-  OnPuzzleModeEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  OnPuzzleModeExited:
-    m_PersistentCalls:
-      m_Calls: []
-  OnPuzzleSolved:
-    m_PersistentCalls:
-      m_Calls: []
+  _controller: {fileID: 5537032744249801686}
 --- !u!1 &5441698666116885734
 GameObject:
   m_ObjectHideFlags: 0
@@ -503,6 +493,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2214866158993990392}
+  - component: {fileID: 5537032744249801686}
   m_Layer: 0
   m_Name: SafeConteiner
   m_TagString: Untagged
@@ -528,6 +519,53 @@ Transform:
   - {fileID: 500705088446703722}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5537032744249801686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7530728405779481166}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
+  _saveId: puzzle_safe_id
+  _puzzleCamera: {fileID: 4380350430016505632}
+  OnPuzzleModeEntered:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5441698666116885734}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+  OnPuzzleModeExited:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 5441698666116885734}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  OnPuzzleSolved:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7753174420789507303
 GameObject:
   m_ObjectHideFlags: 0
@@ -809,6 +847,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SafeUnlockSequence
   _handleRotate: {fileID: 6894371154135444524}
   _door: {fileID: 271244214132305612}
-  _puzzleMode: {fileID: 0}
+  _puzzleMode: {fileID: 5537032744249801686}
   _delayBeforeHandle: 0.5
   _delayBeforeDoor: 1
