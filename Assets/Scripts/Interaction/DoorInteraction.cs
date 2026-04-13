@@ -319,6 +319,7 @@ namespace Escape.Core {
             }
 
             _isOpen = _openFraction > 0.5f;
+            SaveManager.Instance?.Save();
         }
 
         // ── IInteractable ────────────────────────────────────────────────────────

@@ -280,6 +280,9 @@ public class LockDial : MonoBehaviour, ISaveable
         {
             AudioManager.Instance.PlaySFX(_tickSound);
         }
+
+        // Trigger save whenever the dial rotates to keep currentStep in sync
+        SaveManager.Instance?.Save();
     }
 
     private void CheckCombination()
