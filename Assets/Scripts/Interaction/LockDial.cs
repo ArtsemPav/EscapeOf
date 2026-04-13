@@ -59,6 +59,10 @@ public class LockDial : MonoBehaviour, ISaveable
     [SerializeField] private CrosshairMode _idleCrosshair = CrosshairMode.Hand;
     [SerializeField] private CrosshairMode _activeCrosshair = CrosshairMode.Grab;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip _tickSound;
+    [SerializeField] private AudioClip _correctStepSound;
+
     [Header("Events")]
     [Tooltip("Fired when the entire combination is correctly entered.")]
     [SerializeField] private UnityEvent _onUnlocked;
@@ -250,7 +254,32 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         _currentStep = WrapStep(_currentStep + direction);
         _targetRotation = CalculateStepRotation(_currentStep);
+        
+        // Play audio feedback
+        PlayRotationAudio();
+        
         _onRotated?.Invoke();
+    }
+
+    private void PlayRotationAudio()
+    {
+        if (AudioManager.Instance == null) return;
+
+        // Check if the current value matches the target for the next step in sequence
+        bool isCorrectNextStep = false;
+        if (_comboProgressIndex < _combination.Length)
+        {
+            isCorrectNextStep = (_currentStep == _combination[_comboProgressIndex].TargetValue);
+        }
+
+        if (isCorrectNextStep && _correctStepSound != null)
+        {
+            AudioManager.Instance.PlaySFX(_correctStepSound);
+        }
+        else if (_tickSound != null)
+        {
+            AudioManager.Instance.PlaySFX(_tickSound);
+        }
     }
 
     private void CheckCombination()
