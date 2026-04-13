@@ -126,6 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
+  _saveId: puzzle_safe_id
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _crosshairMode: 5
   _puzzleCamera: {fileID: 4380350430016505632}
@@ -134,6 +135,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   OnPuzzleModeExited:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleSolved:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &7856941105817215566
@@ -167,18 +171,6 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: SafeUnlockSequence, Assembly-CSharp
         m_MethodName: StartSequence
         m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 5489214858463960451}
-        m_TargetAssemblyTypeName: UnityEngine.BoxCollider, UnityEngine
-        m_MethodName: set_enabled
-        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -535,7 +527,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: 
+  _saveId: safe_door_id
 --- !u!65 &5504881251143862351
 BoxCollider:
   m_ObjectHideFlags: 0

@@ -284,7 +284,7 @@ public class LockDial : MonoBehaviour, ISaveable
         _isUnlocked = true;
         ResetDragState();
         ResetUI();
-
+        GetComponent<PuzzleModeController>().SetSolved();
         _puzzleMode?.ExitPuzzleMode();
         _onUnlocked?.Invoke();
         SaveManager.Instance?.Save();

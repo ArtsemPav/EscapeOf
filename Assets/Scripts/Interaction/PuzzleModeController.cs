@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -7,9 +8,12 @@ using UnityEngine.Events;
 /// Service component that handles entering / exiting puzzle mode for a puzzle GameObject.
 /// Manages the puzzle camera, FPS input blocking, and Esc handling.
 /// </summary>
-public class PuzzleModeController : MonoBehaviour, IInteractable
+public class PuzzleModeController : MonoBehaviour, IInteractable, ISaveable
 {
     // ── Inspector ──────────────────────────────────────────────────────────────
+
+    [Header("Save Settings")]
+    [SerializeField] private string _saveId = "puzzle_mode_unique_id";
 
     [Header("Interaction Settings")]
     [SerializeField] private string _interactText = "Осмотреть";
@@ -30,15 +34,67 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
     [Tooltip("Fired when the player exits puzzle mode.")]
     [SerializeField] public UnityEvent OnPuzzleModeExited;
 
+    [Tooltip("Fired when the puzzle is solved.")]
+    [SerializeField] public UnityEvent OnPuzzleSolved;
+
     // ── State ──────────────────────────────────────────────────────────────────
 
     private bool _isActive;
+    private bool _isSolved;
     private bool _isSubscribed;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /// <summary>True while the puzzle mode is currently active.</summary>
     public bool IsActive => _isActive;
+
+    /// <summary>True if the puzzle has been solved.</summary>
+    public bool IsSolved => _isSolved;
+
+    /// <summary>
+    /// Marks the puzzle as solved, exits puzzle mode, and saves state.
+    /// </summary>
+    public void SetSolved()
+    {
+        if (_isSolved) return;
+
+        _isSolved = true;
+        OnPuzzleSolved?.Invoke();
+        
+        if (_isActive)
+        {
+            ExitPuzzleMode();
+        }
+
+        // Notify SaveManager to persist the solved state
+        SaveManager.Instance?.Save();
+    }
+
+    // ── ISaveable ──────────────────────────────────────────────────────────────
+
+    public string SaveId => _saveId;
+
+    public string GetSaveData()
+    {
+        return JsonUtility.ToJson(new SaveData { isSolved = _isSolved });
+    }
+
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<SaveData>(json);
+        _isSolved = data.isSolved;
+        
+        if (_isSolved)
+        {
+            OnPuzzleSolved?.Invoke();
+        }
+    }
+
+    [Serializable]
+    private struct SaveData
+    {
+        public bool isSolved;
+    }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
@@ -52,6 +108,8 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
         {
             Debug.LogWarning($"[{nameof(PuzzleModeController)}] Puzzle camera is not assigned on {gameObject.name}.", this);
         }
+
+        SaveManager.Instance?.Register(this);
     }
 
     private void Start()
@@ -76,6 +134,7 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
             ExitPuzzleMode();
         }
         UnsubscribeFromInput();
+        SaveManager.Instance?.Unregister(this);
     }
 
     // ── Puzzle Mode ────────────────────────────────────────────────────────────
@@ -85,7 +144,7 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
     /// </summary>
     public void EnterPuzzleMode()
     {
-        if (_isActive) return;
+        if (_isActive || _isSolved) return;
 
         _isActive = true;
 
@@ -133,7 +192,7 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
-    public bool CanInteract() => !_isActive;
+    public bool CanInteract() => !_isActive && !_isSolved;
 
     public void Interact()
     {
@@ -143,7 +202,7 @@ public class PuzzleModeController : MonoBehaviour, IInteractable
         }
     }
 
-    public string GetInteractText() => _interactText;
+    public string GetInteractText() => _isSolved ? string.Empty : _interactText;
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => _crosshairMode;
 
