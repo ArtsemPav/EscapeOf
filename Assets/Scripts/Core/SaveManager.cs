@@ -167,7 +167,6 @@ public class SaveManager : MonoBehaviour
             try
             {
                 string saveData = kvp.Value.GetSaveData();
-                Debug.Log($"[SaveManager] Snapshot '{kvp.Key}': {saveData}");
                 data.entities.Add(new EntityRecord { id = kvp.Key, data = saveData });
             }
             catch (Exception e) { Debug.LogError($"[SaveManager] GetSaveData() failed for '{kvp.Key}': {e.Message}"); }
