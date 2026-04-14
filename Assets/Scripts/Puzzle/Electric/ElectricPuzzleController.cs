@@ -26,7 +26,7 @@ using UnityEngine.InputSystem;
 ///   • Assign <see cref="_puzzleData"/> (ElectricPuzzleData ScriptableObject).
 /// </summary>
 [RequireComponent(typeof(Collider))]
-public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
+public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable, IPuzzleDropHandler
 {
     // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -94,11 +94,29 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
     [Header("Events")]
     [SerializeField] private UnityEvent _onPuzzleSolved;
 
+    [Header("Fuse")]
+    [Tooltip("Items that can be applied to this puzzle (fuse). " +
+             "Leave empty to disable the inventory bar for this puzzle.")]
+    [SerializeField] private ItemData[] _acceptedItems;
+
+    [Tooltip("Sphere collider on the Safeguardanchor GameObject — the drop zone for the fuse.")]
+    [SerializeField] private Collider _fuseAnchorCollider;
+
+    [Tooltip("Transform where the fuse prefab is spawned when inserted. Usually Safeguardanchor.")]
+    [SerializeField] private Transform _fuseAnchorTransform;
+
+    [Tooltip("Prefab instantiated at the anchor when the fuse is inserted (e.g. SafeGuard.prefab). " +
+             "Falls back to item.inspectionPrefab if left empty.")]
+    [SerializeField] private GameObject _fusePrefab;
+
     // ── Runtime state ─────────────────────────────────────────────────────────
 
     private bool _isOpen;
     private bool _isSolved;
     private bool _wiresCorrect;
+    private bool _fuseInserted;
+    private string _fuseItemId;
+    private GameObject _fuseInstance;
 
     private ElectricWire     _activeWire;
     private ElectricTerminal _activeColoredTerminal;
@@ -111,31 +129,44 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
     private Collider         _ownCollider;
 
     // Pending save state applied in Start()
-    private bool _pendingLoad;
-    private int[] _pendingConnections;
-    private bool  _pendingSolved;
+    private bool   _pendingLoad;
+    private int[]  _pendingConnections;
+    private bool   _pendingSolved;
+    private bool   _pendingFuseInserted;
+    private string _pendingFuseItemId;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => "electric_puzzle";
 
     [Serializable]
-    private struct SaveData { public bool isSolved; public bool wiresCorrect; public int[] connections; }
+    private struct SaveData
+    {
+        public bool   isSolved;
+        public bool   wiresCorrect;
+        public int[]  connections;
+        public bool   fuseInserted;
+        public string fuseItemId;
+    }
 
-    /// <summary>Serialises current connections and solved flags.</summary>
+    /// <summary>Serialises current connections, solved flag, and fuse state.</summary>
     public string GetSaveData() => JsonUtility.ToJson(new SaveData
     {
         isSolved     = _isSolved,
         wiresCorrect = _wiresCorrect,
         connections  = (int[])_connections.Clone(),
+        fuseInserted = _fuseInserted,
+        fuseItemId   = _fuseItemId,
     });
 
     /// <summary>Stores loaded data — applied in Start() after all terminals are ready.</summary>
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<SaveData>(json);
-        _pendingSolved      = data.isSolved;
-        _pendingConnections = data.connections ?? new int[TerminalCount];
+        _pendingSolved       = data.isSolved;
+        _pendingConnections  = data.connections ?? new int[TerminalCount];
+        _pendingFuseInserted = data.fuseInserted;
+        _pendingFuseItemId   = data.fuseItemId;
         Array.Resize(ref _pendingConnections, TerminalCount);
         _pendingLoad = true;
     }
@@ -187,6 +218,14 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
             ApplyPendingLoad();
             // Joint settling after all wires are loaded — resolves any remaining inter-wire overlaps
             ElectricWire.JointPresettle();
+        }
+
+        // Restore fuse visual and lock the anchor after loading a saved game
+        if (_fuseInserted)
+        {
+            var fuseItem = FindAcceptedItemById(_fuseItemId);
+            SpawnFuseVisual(fuseItem);
+            if (_fuseAnchorCollider != null) _fuseAnchorCollider.enabled = false;
         }
 
         RefreshVisuals();
@@ -275,6 +314,9 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
     /// </summary>
     private bool TryInteractLever(Vector2 screenPos)
     {
+        // Lever is locked until the fuse is inserted
+        if (!_fuseInserted) return false;
+
         if (_lever == null || !_lever.CanInteract()) return false;
         if (Camera.main == null) return false;
 
@@ -474,7 +516,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
         if (correct == _wiresCorrect) return; // no state change
 
         _wiresCorrect = correct;
-        SetLampColor(correct ? _lampSolvedColor : _lampDefaultColor);
+        UpdateLamp();
 
         if (correct)
             SaveManager.Instance?.Save();
@@ -550,7 +592,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
             terminal?.DetachWire();
 
         _wiresCorrect = false;
-        SetLampColor(_lampDefaultColor);
+        UpdateLamp();
     }
 
     /// <summary>
@@ -561,14 +603,16 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
     {
         if (_isSolved)
         {
-            SetLampColor(_lampSolvedColor);
+            _wiresCorrect = true;
             if (_solvedObject != null) _solvedObject.SetActive(true);
             _lever?.SetPulledQuiet();
-            return;
+        }
+        else
+        {
+            _wiresCorrect = CheckSolution();
         }
 
-        _wiresCorrect = CheckSolution();
-        SetLampColor(_wiresCorrect ? _lampSolvedColor : _lampDefaultColor);
+        UpdateLamp();
     }
 
     /// <summary>Sets the indicator lamp color directly on the Light component.</summary>
@@ -578,7 +622,94 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
         _lampLight.color = color;
     }
 
-    // ── Open / Close (same pattern as MedallionBoxInteraction) ────────────────
+    /// <summary>
+    /// Updates the indicator lamp based on the complete puzzle state.
+    /// Lamp is disabled entirely when no fuse is inserted.
+    /// </summary>
+    private void UpdateLamp()
+    {
+        if (_lampLight == null) return;
+
+        if (!_fuseInserted)
+        {
+            _lampLight.enabled = false;
+            return;
+        }
+
+        _lampLight.enabled = true;
+        _lampLight.color = (_isSolved || _wiresCorrect) ? _lampSolvedColor : _lampDefaultColor;
+    }
+
+    // ── IPuzzleDropHandler ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Accepts a fuse dragged from the PuzzleInventoryBar.
+    /// Raycasts against the Safeguardanchor collider — drop is valid only when
+    /// the cursor lands on the anchor. The bar removes the item from inventory on true.
+    /// </summary>
+    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    {
+        if (item == null) return false;
+        if (_acceptedItems == null || System.Array.IndexOf(_acceptedItems, item) < 0) return false;
+        if (_fuseInserted) return false;
+        if (_fuseAnchorCollider == null || Camera.main == null) return false;
+
+        var ray = Camera.main.ScreenPointToRay(screenPosition);
+        if (!Physics.Raycast(ray, out var hit, 50f, _terminalLayer, QueryTriggerInteraction.Collide))
+            return false;
+
+        // Accept only a hit on the dedicated anchor collider
+        if (hit.collider != _fuseAnchorCollider) return false;
+
+        InsertFuse(item);
+        return true;
+    }
+
+    /// <summary>Applies fuse insertion: sets state, spawns visual, disables anchor, updates lamp.</summary>
+    private void InsertFuse(ItemData item)
+    {
+        _fuseInserted = true;
+        _fuseItemId   = item.ItemId;
+
+        // Disable the drop-zone collider so it stops intercepting raycasts
+        if (_fuseAnchorCollider != null)
+            _fuseAnchorCollider.enabled = false;
+
+        SpawnFuseVisual(item);
+        UpdateLamp();
+        SaveManager.Instance?.Save();
+    }
+
+    /// <summary>
+    /// Instantiates the fuse prefab at the anchor transform.
+    /// Uses <see cref="_fusePrefab"/> if assigned, otherwise falls back to item.inspectionPrefab.
+    /// </summary>
+    private void SpawnFuseVisual(ItemData item)
+    {
+        var prefab = _fusePrefab != null ? _fusePrefab : item?.inspectionPrefab;
+        if (prefab == null || _fuseAnchorTransform == null) return;
+
+        if (_fuseInstance != null)
+            Destroy(_fuseInstance);
+
+        _fuseInstance = Instantiate(
+            prefab,
+            _fuseAnchorTransform.position,
+            _fuseAnchorTransform.rotation,
+            _fuseAnchorTransform
+        );
+    }
+
+    /// <summary>Finds an ItemData in _acceptedItems by its stable ItemId (used after save/load).</summary>
+    private ItemData FindAcceptedItemById(string id)
+    {
+        if (string.IsNullOrEmpty(id) || _acceptedItems == null) return null;
+        foreach (var it in _acceptedItems)
+            if (it != null && it.ItemId == id) return it;
+        return null;
+    }
+
+    // ── Open / Close ──────────────────────────────────────────────────────────
 
     private void Open()
     {
@@ -601,12 +732,23 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
             UIManager.Instance?.PushModalState();
             GameManager.Instance?.UpdateCursorState();
         }
+
+        // Always show the inventory bar when entering puzzle mode
+        PuzzleInventoryBar.Instance?.Show(this);
+
+        // Enable lever world interaction only while puzzle is open
+        _lever?.SetInteractionEnabled(true);
     }
 
     private void Close()
     {
         if (!_isOpen) return;
         _isOpen = false;
+
+        // Disable lever world interaction when leaving the puzzle
+        _lever?.SetInteractionEnabled(false);
+
+        PuzzleInventoryBar.Instance?.Hide();
 
         if (_panel != null) _panel.SetActive(false);
 
@@ -648,7 +790,9 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
 
     private void ApplyPendingLoad()
     {
-        _isSolved = _pendingSolved;
+        _isSolved     = _pendingSolved;
+        _fuseInserted = _pendingFuseInserted;
+        _fuseItemId   = _pendingFuseItemId;
 
         for (int i = 0; i < TerminalCount; i++)
             _connections[i] = _pendingConnections[i];

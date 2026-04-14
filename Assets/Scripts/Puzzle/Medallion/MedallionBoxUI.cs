@@ -2,20 +2,19 @@ using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 /// <summary>
 /// Orchestrates the medallion box puzzle:
-///   - Populates CoinsBar slots from the player's inventory.
-///   - Manages drag ghost that follows the cursor.
-///   - On drop: raycasts into 3D scene to find a MedallionHole (any hole accepts any medallion).
-///   - On LMB click on a filled hole: retrieves the medallion back to the UI and inventory.
+///   - Accepts items dropped from PuzzleInventoryBar via <see cref="IPuzzleDropHandler"/>.
+///   - On drop: raycasts into 3D scene to find an empty <see cref="MedallionHole"/>.
+///   - On LMB click on a filled hole: retrieves the medallion back to the inventory.
 ///   - Validates the ORDER of placed medallions — fires <see cref="OnPuzzleSolved"/> when correct.
-///   - Each frame raycasts the hole layer for hover: calls <see cref="MedallionHole.Highlight"/>
-///     on the hovered filled hole so the player can tell the coin is clickable.
+///   - Each frame raycasts the hole layer for hover highlight on filled holes.
+///
+/// Drag/ghost logic and slot management are handled by PuzzleInventoryBar.
 /// Attach to MedallionBoxPanel.
 /// </summary>
-public class MedallionBoxUI : MonoBehaviour
+public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
 {
     [Header("Holes — assign in order: 0=Fire, 1=Earth, 2=Iron, 3=Water, 4=Wood")]
     [SerializeField] private MedallionHole[] _holes;
@@ -33,45 +32,27 @@ public class MedallionBoxUI : MonoBehaviour
     [Tooltip("Duration of the drop animation in seconds.")]
     [SerializeField] private float _dropDuration = 0.35f;
 
-    [Tooltip("Screen-space size of the drag ghost image in pixels.")]
-    [SerializeField] private float _ghostSize = 64f;
-
     public event Action OnPuzzleSolved;
 
-    private MedallionSlot[] _slots;
-    private Canvas _canvas;
     private ItemData[] _medallionOrder;
-
-    // Drag state
-    private Image _dragGhost;
-    private MedallionSlot _dragSource;
-    private ItemData _dragItem;
-    private bool _isDragging;
 
     // Hover state — tracks which filled hole the cursor is currently over
     private MedallionHole _hoveredHole;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    private void Awake()
-    {
-        _slots = GetComponentsInChildren<MedallionSlot>();
-        _canvas = GetComponentInParent<Canvas>();
-    }
-
     private void Update()
     {
         if (Mouse.current == null) return;
 
         var mousePos = Mouse.current.position.ReadValue();
-        bool overUI  = EventSystem.current.IsPointerOverGameObject();
+        bool overUI  = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-        // Hover highlight — runs every frame regardless of drag state
-        if (!_isDragging)
-            UpdateHoverHighlight(overUI ? null : mousePos);
+        // Hover highlight — runs every frame
+        UpdateHoverHighlight(overUI ? null : mousePos);
 
-        // Click (not drag) on a filled hole → retrieve medallion back to UI
-        if (!_isDragging && Mouse.current.leftButton.wasPressedThisFrame && !overUI)
+        // Click on a filled hole → retrieve medallion back to inventory
+        if (Mouse.current.leftButton.wasPressedThisFrame && !overUI)
             TryRetrieveFromHole(mousePos);
     }
 
@@ -83,13 +64,12 @@ public class MedallionBoxUI : MonoBehaviour
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Stores the puzzle order and refreshes slot display using the player's collection order.
-    /// Call every time the panel opens and after any retrieval.
+    /// Stores the expected medallion order for victory validation.
+    /// Call every time the panel opens.
     /// </summary>
     public void Populate(ItemData[] medallionOrder)
     {
         _medallionOrder = medallionOrder;
-        RefreshSlots();
     }
 
     /// <summary>Returns the item currently placed in each hole (null if empty). Used by the save system.</summary>
@@ -119,50 +99,30 @@ public class MedallionBoxUI : MonoBehaviour
         }
     }
 
-    private static ItemData FindItem(string id, ItemData[] items)
-    {
-        if (items == null) return null;
-        foreach (var item in items)
-            if (item != null && item.ItemId == id) return item;
-        return null;
-    }
-
-    // ── Drag handlers (called by MedallionSlot) ───────────────────────────────
-
-    /// <summary>Begins a drag — dims the source slot and spawns a ghost image.</summary>
-    public void OnBeginDrag(MedallionSlot slot, PointerEventData eventData)
-    {
-        _dragSource = slot;
-        _dragItem = slot.Item;
-        _isDragging = true;
-
-        slot.SetDragVisual(dimmed: true);
-        SpawnGhost(slot.Item.icon, eventData.position);
-    }
-
-    /// <summary>Moves the ghost to follow the cursor.</summary>
-    public void OnDrag(PointerEventData eventData)
-    {
-        if (_dragGhost != null)
-            _dragGhost.rectTransform.position = eventData.position;
-    }
+    // ── IPuzzleDropHandler ────────────────────────────────────────────────────
 
     /// <summary>
-    /// Ends the drag — attempts to place the medallion on any empty hole.
-    /// Restores the slot icon if placement fails.
+    /// Attempts to place the dragged item on an empty hole via 3D raycast.
+    /// Does NOT remove the item from inventory — PuzzleInventoryBar handles that.
     /// </summary>
-    public void OnEndDrag(MedallionSlot slot, PointerEventData eventData)
+    public bool HandleDrop(ItemData item, Vector2 screenPosition)
     {
-        _isDragging = false;
-        DestroyGhost();
+        if (item == null || Camera.main == null) return false;
 
-        bool placed = TryPlaceOnHole(eventData.position);
+        // Only medallions belonging to this puzzle are accepted
+        if (_medallionOrder == null || System.Array.IndexOf(_medallionOrder, item) < 0)
+            return false;
 
-        if (!placed)
-            slot.SetDragVisual(dimmed: false); // return visual, item stays in slot
+        var ray = Camera.main.ScreenPointToRay(screenPosition);
+        if (!Physics.Raycast(ray, out var hit, 50f, _holeLayer, QueryTriggerInteraction.Collide))
+            return false;
 
-        _dragSource = null;
-        _dragItem = null;
+        var hole = hit.collider.GetComponent<MedallionHole>();
+        if (hole == null || hole.IsFilled) return false;
+
+        hole.Fill(item, _coinPrefab, _dropHeight, _dropDuration);
+        CheckVictory();
+        return true;
     }
 
     // ── Hover highlight ────────────────────────────────────────────────────────
@@ -201,28 +161,6 @@ public class MedallionBoxUI : MonoBehaviour
         _hoveredHole = null;
     }
 
-    // ── Placement ─────────────────────────────────────────────────────────────
-
-    private bool TryPlaceOnHole(Vector2 screenPos)
-    {
-        if (_dragItem == null || Camera.main == null) return false;
-
-        var ray = Camera.main.ScreenPointToRay(screenPos);
-        if (!Physics.Raycast(ray, out var hit, 50f, _holeLayer, QueryTriggerInteraction.Collide))
-            return false;
-
-        var hole = hit.collider.GetComponent<MedallionHole>();
-        if (hole == null || hole.IsFilled) return false;
-
-        // Any medallion accepted — order is checked after placement
-        hole.Fill(_dragItem, _coinPrefab, _dropHeight, _dropDuration);
-        InventorySystem.Instance?.RemoveItem(_dragItem);
-        _dragSource?.SetItem(null);
-
-        CheckVictory();
-        return true;
-    }
-
     // ── Retrieval ─────────────────────────────────────────────────────────────
 
     private void TryRetrieveFromHole(Vector2 screenPos)
@@ -242,9 +180,8 @@ public class MedallionBoxUI : MonoBehaviour
         // Hole is now empty — clear hover so the highlight is not stuck
         ClearHover();
 
-        // Restore to inventory and refresh UI slots
+        // Restore to inventory — PuzzleInventoryBar refreshes via OnInventoryChanged
         InventorySystem.Instance?.AddItem(item);
-        RefreshSlots();
     }
 
     // ── Victory ───────────────────────────────────────────────────────────────
@@ -255,69 +192,19 @@ public class MedallionBoxUI : MonoBehaviour
 
         for (int i = 0; i < _holes.Length; i++)
         {
-            // Hole must be filled AND contain the correct item for its position
             if (_holes[i].PlacedItem != _medallionOrder[i]) return;
         }
 
         OnPuzzleSolved?.Invoke();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Private helpers ──────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Refreshes slot icons using the player's collection order from MedallionCollectionTracker.
-    /// Slots that haven't been collected yet, or whose medallion is in a hole, show as empty.
-    /// </summary>
-    private void RefreshSlots()
+    private static ItemData FindItem(string id, ItemData[] items)
     {
-        var inv = InventorySystem.Instance;
-        if (inv == null || _medallionOrder == null) return;
-
-        var collectionOrder = MedallionCollectionTracker.Instance?.CollectionOrder;
-
-        int slotIdx = 0;
-
-        // Fill slots in collection order — preserves the position even when item is in a hole
-        if (collectionOrder != null)
-        {
-            foreach (var item in collectionOrder)
-            {
-                if (slotIdx >= _slots.Length) break;
-                _slots[slotIdx++].SetItem(inv.HasItem(item) ? item : null);
-            }
-        }
-
-        // Clear any remaining slots (not yet collected or no tracker)
-        while (slotIdx < _slots.Length)
-            _slots[slotIdx++].SetItem(null);
-    }
-
-    // ── Ghost ─────────────────────────────────────────────────────────────────
-
-    private void SpawnGhost(Sprite sprite, Vector2 screenPos)
-    {
-        if (_canvas == null || sprite == null) return;
-
-        var go = new GameObject("DragGhost", typeof(RectTransform));
-        go.transform.SetParent(_canvas.transform, false);
-        go.transform.SetAsLastSibling();
-
-        var rt = go.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(_ghostSize, _ghostSize);
-        rt.position = screenPos;
-
-        _dragGhost = go.AddComponent<Image>();
-        _dragGhost.sprite = sprite;
-        _dragGhost.raycastTarget = false;
-        _dragGhost.color = new Color(1f, 1f, 1f, 0.85f);
-    }
-
-    private void DestroyGhost()
-    {
-        if (_dragGhost != null)
-        {
-            Destroy(_dragGhost.gameObject);
-            _dragGhost = null;
-        }
+        if (items == null) return null;
+        foreach (var item in items)
+            if (item != null && item.ItemId == id) return item;
+        return null;
     }
 }

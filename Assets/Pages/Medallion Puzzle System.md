@@ -8,7 +8,7 @@
 
 ```
 MedallionBoxInteraction    ← на 3D-объекте шкатулки (ISaveable)
-MedallionBoxUI             ← на MedallionBoxPanel в Canvas
+MedallionBoxUI             ← на MedallionBoxPanel в Canvas (IPuzzleDropHandler)
   MedallionSlot × N        ← слоты инвентаря (дочерние объекты панели)
 MedallionHole × 5          ← Hole_0..Hole_4 на шкатулке в сцене
 MedallionCollectionTracker ← синглтон, отдельный GameObject (ISaveable)
@@ -58,7 +58,7 @@ PickableItem × 5           ← на каждой монете в сцене (IS
 
 ### `MedallionBoxUI`
 
-Размещается на `MedallionBoxPanel`. Управляет drag-and-drop, размещением монет в лунках и проверкой победы.
+Размещается на `MedallionBoxPanel`. Управляет drag-and-drop, размещением монет в лунках и проверкой победы. Реализует `IPuzzleDropHandler` — принимает предметы из `PuzzleInventoryBar`.
 
 **Inspector**
 
@@ -74,6 +74,34 @@ PickableItem × 5           ← на каждой монете в сцене (IS
 **Событие:** `OnPuzzleSolved` — Action без аргументов, подписывается `MedallionBoxInteraction`.
 
 **Логика победы:** все 5 лунок заполнены И каждая содержит правильный `ItemData` согласно `_medallionOrder`.
+
+**Интеграция с `PuzzleInventoryBar`**
+
+`HandleDrop` выполняет два последовательных условия:
+
+1. Предмет должен быть в `_medallionOrder` — иначе возвращает `false` и медальон возвращается в бар
+2. Raycast по `_holeLayer` определяет целевую лунку — если попали в свободную, монета вставляется
+
+```csharp
+public bool HandleDrop(ItemData item, Vector2 screenPosition)
+{
+    // Только медальоны из этой загадки принимаются
+    if (Array.IndexOf(_medallionOrder, item) < 0) return false;
+
+    var ray = Camera.main.ScreenPointToRay(screenPosition);
+    if (!Physics.Raycast(ray, out var hit, 50f, _holeLayer, QueryTriggerInteraction.Collide))
+        return false;
+
+    var hole = hit.collider.GetComponent<MedallionHole>();
+    if (hole == null || hole.IsFilled) return false;
+
+    hole.Fill(item, _coinPrefab, _dropHeight, _dropDuration);
+    CheckVictory();
+    return true;
+}
+```
+
+`MedallionBoxInteraction.Open()` вызывает `PuzzleInventoryBar.Instance.Show(this)`, `Close()` — `PuzzleInventoryBar.Instance.Hide()`.
 
 ---
 
@@ -157,10 +185,13 @@ MedallionCollectionTracker               ← отдельный GameObject с к
 
 Игрок открывает шкатулку (E или ЛКМ)
   └─ CinemachineCamera активируется, панель открывается
+  └─ PuzzleInventoryBar.Instance.Show(this) — бар появляется внизу экрана
   └─ MedallionBoxUI.Populate() → слоты заполняются в порядке сбора
 
-Игрок перетаскивает монету в лунку
-  └─ MedallionBoxUI.OnEndDrag() → TryPlaceOnHole()
+Игрок перетаскивает монету из бара в лунку
+  └─ MedallionBoxUI.HandleDrop(item, screenPos)
+       ├─ Проверка: item входит в _medallionOrder — иначе возврат в бар
+       ├─ Physics.Raycast по _holeLayer — определяет лунку
        ├─ MedallionHole.Fill() — анимация падения монеты
        ├─ InventorySystem.RemoveItem() → Save()
        └─ CheckVictory() — если всё верно → OnPuzzleSolved

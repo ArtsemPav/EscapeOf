@@ -215,6 +215,8 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
             boxUI.OnPuzzleSolved -= HandlePuzzleSolved;
             boxUI.OnPuzzleSolved += HandlePuzzleSolved;
             boxUI.Populate(_medallionOrder);
+
+            PuzzleInventoryBar.Instance?.Show(boxUI);
         }
     }
 
@@ -235,6 +237,7 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
         if (!_isOpen) return;
         _isOpen = false;
 
+        PuzzleInventoryBar.Instance?.Hide();
         SetBlendDuration(_blendDuration);
 
         if (_panel != null)

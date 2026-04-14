@@ -49,7 +49,16 @@ public class ElectricLever : MonoBehaviour, IInteractable
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
-    public bool CanInteract()        => !_isPulled;
+    /// <summary>
+    /// Controlled by <see cref="ElectricPuzzleController"/> — true only while the puzzle is open.
+    /// Prevents the player from pulling the lever through the world camera before entering the puzzle.
+    /// </summary>
+    private bool _interactionEnabled;
+
+    /// <summary>Called by ElectricPuzzleController on Open/Close to gate world interaction.</summary>
+    public void SetInteractionEnabled(bool enabled) => _interactionEnabled = enabled;
+
+    public bool CanInteract()        => _interactionEnabled && !_isPulled;
     public string GetInteractText()  => _interactText;
     public bool IsPickable()         => false;
     public bool UseLMBClick          => false;

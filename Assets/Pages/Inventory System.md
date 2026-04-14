@@ -23,6 +23,11 @@ Assets/Scripts/Inventory/
     ├── InventoryItemPreview.cs # Встроенный 3D-превью в правой части инвентаря
     └── InventoryBackdrop.cs    # Закрытие инвентаря кликом вне панели
 
+Assets/Scripts/Puzzle/Shared/
+├── IPuzzleDropHandler.cs      # Интерфейс для пазлов, принимающих предметы из бара
+├── PuzzleInventoryBar.cs      # Горизонтальный бар внизу экрана с прокруткой
+└── PuzzleInventorySlot.cs     # Один слот в баре (drag + tooltip)
+
 Assets/Scripts/Editor/
 ├── MissingScriptCleaner.cs  # Утилита: Tools → Remove Missing Scripts
 └── ItemDataEditor.cs        # Кастомный Inspector для ItemData — интерактивный 3D-превью
@@ -334,6 +339,83 @@ Canvas/
 - `worldPositionStays: true` при парентинге → `initialRotation` применяется после `SetParent`
 - При закрытии `_inspectionPivot` уничтожается вместе с дочерним instance
 - `ItemNameText` и `DescriptionText` восстанавливаются через `SetActive(true)` при закрытии
+
+---
+
+## Панель инвентаря для пазлов — `PuzzleInventoryBar`
+
+Горизонтальный бар, появляющийся внизу экрана при входе в режим пазла. Показывает весь инвентарь игрока в виде прокручиваемой ленты. Предметы из бара можно перетаскивать на объекты пазла — при этом пазл сам решает, принять ли предмет.
+
+### Ключевой принцип — CanvasGroup вместо SetActive
+
+GameObject `PuzzleInventoryBar` **всегда остаётся активным** в иерархии. Видимость управляется через `CanvasGroup`:
+
+```
+SetBarVisible(true)  → alpha=1, interactable=true,  blocksRaycasts=true
+SetBarVisible(false) → alpha=0, interactable=false, blocksRaycasts=false
+```
+
+Это гарантирует, что `Awake()` и `Start()` всегда выполняются при загрузке сцены и `PuzzleInventoryBar.Instance` всегда доступен для пазлов. Если использовать `SetActive(false)` в `Awake`, `Start()` не запустится и синглтон останется `null`.
+
+### `IPuzzleDropHandler`
+
+Интерфейс, который реализует пазл, принимающий предметы из бара:
+
+```csharp
+public interface IPuzzleDropHandler
+{
+    // Возвращает true  → предмет принят, удаляется из инвентаря
+    // Возвращает false → предмет возвращается в бар
+    bool HandleDrop(ItemData item, Vector2 screenPosition);
+}
+```
+
+### Жизненный цикл
+
+```
+Пазл открывается
+  └─ PuzzleInventoryBar.Instance.Show(this)
+       ├─ Регистрирует пазл как текущий IPuzzleDropHandler
+       ├─ Заполняет слоты из InventorySystem._slots
+       └─ SetBarVisible(true) → бар становится видимым
+
+Игрок перетаскивает предмет из бара
+  └─ PuzzleInventorySlot.OnEndDrag()
+       └─ handler.HandleDrop(item, screenPosition)
+            ├─ true  → InventorySystem.RemoveItem(), Save()
+            └─ false → предмет возвращается на своё место в баре
+
+Пазл закрывается
+  └─ PuzzleInventoryBar.Instance.Hide()
+       └─ SetBarVisible(false) → бар скрыт, handler сброшен
+```
+
+### Фильтрация предметов
+
+Каждый пазл отвечает за фильтрацию в `HandleDrop`. Стандартный паттерн — проверка против массива разрешённых `ItemData`:
+
+```csharp
+[SerializeField] private ItemData[] _acceptedItems;
+
+public bool HandleDrop(ItemData item, Vector2 screenPosition)
+{
+    if (System.Array.IndexOf(_acceptedItems, item) < 0) return false;
+    // Raycast или другая логика размещения...
+    return true;
+}
+```
+
+Примеры реализаций в проекте:
+- `MedallionBoxUI` — принимает только медальоны из `_medallionOrder`, определяет лунку через Physics.Raycast по `_holeLayer`
+- `ElectricPuzzleController` — принимает предохранитель, определяет зону вставки через Raycast на `_fuseAnchorCollider`
+
+### Параметры Inspector — `PuzzleInventoryBar`
+
+| Поле | Описание |
+|---|---|
+| `scrollLeftButton` / `scrollRightButton` | Кнопки прокрутки бара |
+| `slotPrefab` | Префаб одного слота (`PuzzleInventorySlot`) |
+| `slotsContainer` | Transform контейнера слотов |
 
 ---
 
