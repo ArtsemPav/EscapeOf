@@ -78,7 +78,9 @@ Assets/Data/Recipes/       # CraftingRecipe ассеты
 
 ## Логика — `InventorySystem`
 
-Singleton на GameObject в сцене. Хранит `ItemData[] _slots` — массив фиксированного размера. Позиция предмета в массиве = его позиция в инвентаре.
+Singleton на GameObject в сцене. Хранит `ItemData[] _slots` — массив фиксированного размера.
+
+**Компакция слотов** — предметы всегда упакованы влево. После `RemoveItem()` и `TryCombine()` вызывается `CompactSlots()`, который сдвигает все непустые элементы к индексу 0. `AddItem()` кладёт предмет в первый свободный слот — при компакции это всегда позиция сразу правее последнего предмета.
 
 ### Событие
 
@@ -87,6 +89,38 @@ public event Action OnInventoryChanged;
 ```
 
 Стреляет после каждого изменения массива `_slots`. UI подписывается в `Start`, отписывается в `OnDisable`.
+
+### Публичные методы
+
+| Метод / Свойство | Описание |
+|---|---|
+| `bool IsFull` | `true` когда все слоты заняты |
+| `bool AddItem(item)` | Добавляет в первый свободный слот. Возвращает `false` если инвентарь полон — предмет **не** уничтожается |
+| `bool RemoveItem(item)` | Удаляет предмет, вызывает `CompactSlots()` |
+| `ItemData GetItemAt(i)` | Предмет по индексу, или `null` |
+| `bool HasItem(item)` | Проверяет наличие |
+| `void SwapSlots(a, b)` | Меняет местами два слота (drag-and-drop в таб-инвентаре) |
+| `bool TryCombine(src, tgt, out result)` | Крафт: ищет рецепт, кладёт результат в `tgt`, очищает `src`, вызывает `CompactSlots()` |
+| `void ClearAll()` | Очищает все слоты (сброс сохранения) |
+
+### Защита от переполнения
+
+`AddItem()` возвращает `bool`. Все три пути подбора (`PickableItem.Interact`, `ItemInspector.BeginInspection` без prefab, `ItemInspector.ConfirmPickup`) проверяют результат перед уничтожением мирового объекта — предмет остаётся в мире если места нет.
+
+`MedallionBoxUI.TryRetrieveFromHole()` проверяет `IsFull` до вызова `hole.Retrieve()` — медальон не пропадёт при попытке вернуть его в заполненный инвентарь.
+
+---
+
+## Editor — `InventoryAutoPopulate`
+
+`Assets/Scripts/Editor/InventoryAutoPopulate.cs`
+
+Автоматически сканирует `Assets/Data/Items` (тип `ItemData`) и `Assets/Data/Recipes` (тип `CraftingRecipe`) и записывает найденные ассеты в скрытые поля `_allItems` и `recipes` компонента `InventorySystem`. Устраняет ручную поддержку этих списков.
+
+**Когда запускается:**
+- При domain reload (старт редактора, компиляция) — `[InitializeOnLoad]`
+- При изменениях в `Assets/Data/Items` или `Assets/Data/Recipes` — `AssetPostprocessor`
+- Вручную: **Tools → Inventory → Refresh Items and Recipes**
 
 ---
 
@@ -357,6 +391,16 @@ SetBarVisible(false) → alpha=0, interactable=false, blocksRaycasts=false
 
 Это гарантирует, что `Awake()` и `Start()` всегда выполняются при загрузке сцены и `PuzzleInventoryBar.Instance` всегда доступен для пазлов. Если использовать `SetActive(false)` в `Awake`, `Start()` не запустится и синглтон останется `null`.
 
+### Отображение слотов
+
+Бар всегда показывает ровно `MaxSlots` ячеек. Пустые ячейки видны как фон без иконки — иконка управляется через `Image.enabled`, сам GameObject слота остаётся активным.
+
+Внутри два счётчика:
+- `_activeSlotCount` = `inv.MaxSlots` — сколько слотов создано в пуле
+- `_filledSlotCount` — число ячеек с предметами; управляет кнопками прокрутки
+
+Кнопки прокрутки активны только когда `_filledSlotCount > visibleSlotCount`.
+
 ### `IPuzzleDropHandler`
 
 Интерфейс, который реализует пазл, принимающий предметы из бара:
@@ -376,13 +420,13 @@ public interface IPuzzleDropHandler
 Пазл открывается
   └─ PuzzleInventoryBar.Instance.Show(this)
        ├─ Регистрирует пазл как текущий IPuzzleDropHandler
-       ├─ Заполняет слоты из InventorySystem._slots
+       ├─ Заполняет слоты из InventorySystem._slots (все MaxSlots ячеек)
        └─ SetBarVisible(true) → бар становится видимым
 
 Игрок перетаскивает предмет из бара
   └─ PuzzleInventorySlot.OnEndDrag()
        └─ handler.HandleDrop(item, screenPosition)
-            ├─ true  → InventorySystem.RemoveItem(), Save()
+            ├─ true  → InventorySystem.RemoveItem() → CompactSlots() → RefreshSlots()
             └─ false → предмет возвращается на своё место в баре
 
 Пазл закрывается
@@ -406,16 +450,22 @@ public bool HandleDrop(ItemData item, Vector2 screenPosition)
 ```
 
 Примеры реализаций в проекте:
-- `MedallionBoxUI` — принимает только медальоны из `_medallionOrder`, определяет лунку через Physics.Raycast по `_holeLayer`
+- `MedallionBoxUI` — принимает только медальоны из `_medallionOrder`, определяет лунку через Physics.Raycast по `_holeLayer`. При возврате медальона проверяет `IsFull` до `hole.Retrieve()`.
 - `ElectricPuzzleController` — принимает предохранитель, определяет зону вставки через Raycast на `_fuseAnchorCollider`
 
 ### Параметры Inspector — `PuzzleInventoryBar`
 
 | Поле | Описание |
 |---|---|
-| `scrollLeftButton` / `scrollRightButton` | Кнопки прокрутки бара |
 | `slotPrefab` | Префаб одного слота (`PuzzleInventorySlot`) |
-| `slotsContainer` | Transform контейнера слотов |
+| `slotContent` | Transform контейнера слотов внутри вьюпорта |
+| `scrollLeftButton` / `scrollRightButton` | Кнопки прокрутки. Неактивны когда предметов ≤ `visibleSlotCount` |
+| `visibleSlotCount` | Сколько слотов видно без прокрутки |
+| `slotSize` | Размер ячейки в пикселях |
+| `slotSpacing` | Отступ между ячейками |
+| `ghostSize` | Размер иконки-призрака при перетаскивании |
+| `barVerticalPadding` | Высота бара = `slotSize + barVerticalPadding` |
+| `iconPadding` | Отступ иконки от края ячейки (0 = заполнить полностью) |
 
 ---
 
@@ -430,10 +480,11 @@ Editor-only скрипт. Меню: **Tools → Remove Missing Scripts**.
 ## Как добавить новый предмет
 
 1. **Assets > Create > Inventory > Item Data** — заполнить `itemName`, `icon`, `inspectionPrefab`
-2. Открыть созданный `ItemData` в Inspector — появится 3D-виджет. Drag внутри виджета, чтобы повернуть модель к читаемому ракурсу; углы запишутся автоматически
-3. Создать GameObject в сцене, добавить `PickableItem`, назначить новый `ItemData`
+2. Положить ассет в `Assets/Data/Items/` — `InventoryAutoPopulate` подхватит его автоматически
+3. Открыть созданный `ItemData` в Inspector — появится 3D-виджет. Drag внутри виджета, чтобы повернуть модель к читаемому ракурсу; углы запишутся автоматически
+4. Создать GameObject в сцене, добавить `PickableItem`, назначить новый `ItemData`
 
 ## Как добавить рецепт крафта
 
 1. **Assets > Create > Inventory > Crafting Recipe** — указать два ингредиента и результат
-2. Добавить ассет в массив `Recipes` на компоненте `InventorySystem` в сцене
+2. Положить ассет в `Assets/Data/Recipes/` — `InventoryAutoPopulate` подхватит его автоматически

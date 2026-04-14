@@ -15,10 +15,12 @@ public class InventorySystem : MonoBehaviour, ISaveable
     [SerializeField] private int maxSlots = 8;
 
     [Header("Crafting")]
+    [HideInInspector]
     [SerializeField] private CraftingRecipe[] recipes;
 
-    [Header("Save")]
-    [Tooltip("All ItemData assets in the game. Required for restoring inventory on load. Assign every item here.")]
+    // Populated automatically by InventoryAutoPopulate (Editor script).
+    // Do not edit manually — add ItemData assets to Assets/Data/Items instead.
+    [HideInInspector]
     [SerializeField] private ItemData[] _allItems;
 
     private ItemData[] _slots;
@@ -49,6 +51,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
         for (int i = 0; i < _slots.Length && i < data.slotIds.Length; i++)
             _slots[i] = FindItemById(data.slotIds[i]);
 
+        CompactSlots();
         OnInventoryChanged?.Invoke();
     }
 
@@ -62,10 +65,33 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
     private ItemData FindItemById(string id)
     {
-        if (string.IsNullOrEmpty(id) || _allItems == null) return null;
+        if (string.IsNullOrEmpty(id)) return null;
+        if (_allItems == null || _allItems.Length == 0)
+        {
+            Debug.LogWarning("[InventorySystem] _allItems is empty — inventory cannot be restored. " +
+                             "Run Tools → Inventory → Refresh Items and Recipes.", this);
+            return null;
+        }
         foreach (var item in _allItems)
             if (item != null && item.ItemId == id) return item;
+
+        Debug.LogWarning($"[InventorySystem] Item '{id}' not found. " +
+                         "Add its ItemData to Assets/Data/Items and run Tools → Inventory → Refresh Items and Recipes.", this);
         return null;
+    }
+
+    /// <summary>
+    /// Shifts all non-null items to the left, eliminating gaps.
+    /// Called automatically after every remove or combine operation.
+    /// </summary>
+    private void CompactSlots()
+    {
+        int write = 0;
+        for (int i = 0; i < _slots.Length; i++)
+            if (_slots[i] != null)
+                _slots[write++] = _slots[i];
+        for (int i = write; i < _slots.Length; i++)
+            _slots[i] = null;
     }
 
     [Serializable]
@@ -98,10 +124,24 @@ public class InventorySystem : MonoBehaviour, ISaveable
     public ItemData GetItemAt(int slotIndex) =>
         slotIndex >= 0 && slotIndex < _slots.Length ? _slots[slotIndex] : null;
 
-    /// <summary>Adds item to the first empty slot. Logs a warning if inventory is full.</summary>
-    public void AddItem(ItemData item)
+    /// <summary>True when every inventory slot is occupied.</summary>
+    public bool IsFull
     {
-        if (item == null) return;
+        get
+        {
+            foreach (var slot in _slots)
+                if (slot == null) return false;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Adds item to the first empty slot.
+    /// Returns true on success, false if the inventory is full (item is NOT consumed).
+    /// </summary>
+    public bool AddItem(ItemData item)
+    {
+        if (item == null) return false;
 
         for (int i = 0; i < _slots.Length; i++)
         {
@@ -109,10 +149,11 @@ public class InventorySystem : MonoBehaviour, ISaveable
             _slots[i] = item;
             OnInventoryChanged?.Invoke();
             SaveManager.Instance?.Save();
-            return;
+            return true;
         }
 
         Debug.LogWarning("Inventory is full — cannot add item.", this);
+        return false;
     }
 
     /// <summary>Removes the item from its slot. Returns true on success.</summary>
@@ -122,6 +163,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
         {
             if (_slots[i] != item) continue;
             _slots[i] = null;
+            CompactSlots();
             OnInventoryChanged?.Invoke();
             SaveManager.Instance?.Save();
             return true;
@@ -175,6 +217,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             result = recipe.result;
             _slots[targetSlotIndex] = result;
             _slots[sourceSlotIndex] = null;
+            CompactSlots();
             OnInventoryChanged?.Invoke();
             return true;
         }

@@ -4,7 +4,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Singleton tooltip panel shown when hovering over a filled inventory slot.
-/// Positions itself below the hovered slot and clamps inside canvas bounds.
+/// Positions itself above the hovered slot when there is room, otherwise below.
+/// Clamps inside canvas bounds in both cases.
 /// </summary>
 public class ItemTooltip : MonoBehaviour
 {
@@ -27,14 +28,11 @@ public class ItemTooltip : MonoBehaviour
         _canvasRect = rootCanvas.GetComponent<RectTransform>();
         _uiCamera = rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : rootCanvas.worldCamera;
 
-        // Pivot at top-center so the panel extends downward from the slot's bottom edge
-        panel.pivot = new Vector2(0.5f, 1f);
         panel.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, panelWidth);
-
         panel.gameObject.SetActive(false);
     }
 
-    /// <summary>Shows the tooltip for the given item, anchored below slotRect.</summary>
+    /// <summary>Shows the tooltip for the given item, anchored near slotRect.</summary>
     public void Show(ItemData item, RectTransform slotRect)
     {
         if (item == null) return;
@@ -43,7 +41,7 @@ public class ItemTooltip : MonoBehaviour
         descriptionText.text = item.description;
         panel.gameObject.SetActive(true);
 
-        PositionBelowSlot(slotRect);
+        PositionNearSlot(slotRect);
     }
 
     /// <summary>Hides the tooltip.</summary>
@@ -52,38 +50,66 @@ public class ItemTooltip : MonoBehaviour
         panel.gameObject.SetActive(false);
     }
 
-    private void PositionBelowSlot(RectTransform slotRect)
+    private void PositionNearSlot(RectTransform slotRect)
     {
-        // [0]=BL [1]=TL [2]=TR [3]=BR
+        // Rebuild layout first so panel.rect.height is accurate before choosing placement.
+        LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+
         Vector3[] corners = new Vector3[4];
         slotRect.GetWorldCorners(corners);
+        // corners: [0]=BL  [1]=TL  [2]=TR  [3]=BR
 
-        Vector2 bottomCenter = ((Vector2)corners[0] + (Vector2)corners[3]) * 0.5f;
+        Vector2 topScreen    = ((Vector2)corners[1] + (Vector2)corners[2]) * 0.5f;
+        Vector2 bottomScreen = ((Vector2)corners[0] + (Vector2)corners[3]) * 0.5f;
 
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            _canvasRect,
-            bottomCenter,
-            _uiCamera,
-            out Vector2 localPoint
-        );
+            _canvasRect, topScreen, _uiCamera, out Vector2 localTop);
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            _canvasRect, bottomScreen, _uiCamera, out Vector2 localBottom);
 
-        panel.localPosition = new Vector2(localPoint.x, localPoint.y - slotGap);
+        float panelHeight = panel.rect.height;
+        float canvasHalfY = _canvasRect.rect.size.y * 0.5f;
 
-        // Force layout so panel.rect.height is accurate before clamping
-        LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+        // Prefer above: pivot at bottom-center so panel grows upward from the slot's top edge.
+        bool fitsAbove = (localTop.y + slotGap + panelHeight) <= canvasHalfY;
+
+        if (fitsAbove)
+        {
+            panel.pivot = new Vector2(0.5f, 0f);
+            panel.localPosition = new Vector2(localTop.x, localTop.y + slotGap);
+        }
+        else
+        {
+            // Fall back to below: pivot at top-center, panel grows downward.
+            panel.pivot = new Vector2(0.5f, 1f);
+            panel.localPosition = new Vector2(localBottom.x, localBottom.y - slotGap);
+        }
+
         ClampInsideCanvas();
     }
 
     private void ClampInsideCanvas()
     {
         Vector2 canvasHalf = _canvasRect.rect.size * 0.5f;
-        Vector2 panelSz = panel.rect.size;
-        Vector2 pos = panel.localPosition;
+        Vector2 panelSz    = panel.rect.size;
+        Vector2 pos        = panel.localPosition;
 
-        // Horizontal: pivot is center, clamp both sides
-        pos.x = Mathf.Clamp(pos.x, -canvasHalf.x + panelSz.x * 0.5f, canvasHalf.x - panelSz.x * 0.5f);
-        // Vertical: pivot is top, panel extends downward
-        pos.y = Mathf.Clamp(pos.y, -canvasHalf.y + panelSz.y, canvasHalf.y);
+        // Horizontal: pivot is always center-x.
+        pos.x = Mathf.Clamp(pos.x,
+            -canvasHalf.x + panelSz.x * 0.5f,
+             canvasHalf.x - panelSz.x * 0.5f);
+
+        // Vertical: direction depends on pivot.
+        if (Mathf.Approximately(panel.pivot.y, 0f))
+        {
+            // Pivot at bottom → panel extends upward → top edge = pos.y + panelHeight.
+            pos.y = Mathf.Clamp(pos.y, -canvasHalf.y, canvasHalf.y - panelSz.y);
+        }
+        else
+        {
+            // Pivot at top → panel extends downward → bottom edge = pos.y - panelHeight.
+            pos.y = Mathf.Clamp(pos.y, -canvasHalf.y + panelSz.y, canvasHalf.y);
+        }
 
         panel.localPosition = pos;
     }

@@ -99,8 +99,10 @@ namespace PuzzleGame
             if (rewardItemData != null && InventorySystem.Instance != null
                 && !InventorySystem.Instance.HasItem(rewardItemData))
             {
-                InventorySystem.Instance.AddItem(rewardItemData);
-                Debug.Log($"[PuzzleManager] Restored: added '{rewardItemData.itemName}' to inventory.");
+                if (!InventorySystem.Instance.AddItem(rewardItemData))
+                    Debug.LogWarning($"[PuzzleManager] Could not restore '{rewardItemData.itemName}' — inventory is full.");
+                else
+                    Debug.Log($"[PuzzleManager] Restored: added '{rewardItemData.itemName}' to inventory.");
             }
 
             Debug.Log("[PuzzleManager] Restored solved state from save.");

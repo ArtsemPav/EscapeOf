@@ -232,7 +232,7 @@ public class ItemInspector : MonoBehaviour
 
         if (item.inspectionPrefab == null)
         {
-            InventorySystem.Instance.AddItem(item);
+            if (!InventorySystem.Instance.AddItem(item)) return;
             if (worldObject != null && worldObject.TryGetComponent(out PickableItem directPickable))
                 directPickable.NotifyPickedUp();
             Destroy(worldObject);
@@ -357,7 +357,12 @@ public class ItemInspector : MonoBehaviour
         if (_currentItem == null) return;
         if (!_isPreviewMode)
         {
-            InventorySystem.Instance.AddItem(_currentItem);
+            if (!InventorySystem.Instance.AddItem(_currentItem))
+            {
+                // Inventory is full — close inspection without picking up; world object stays.
+                EndInspection();
+                return;
+            }
             if (_worldObject != null && _worldObject.TryGetComponent(out PickableItem pickable))
                 pickable.NotifyPickedUp();
             if (_worldObject != null) Destroy(_worldObject);

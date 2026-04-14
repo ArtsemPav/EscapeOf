@@ -50,10 +50,19 @@ public class PuzzleInventoryBar : MonoBehaviour
     [Tooltip("Size of the drag ghost image in pixels.")]
     [SerializeField] private float ghostSize = 64f;
 
+    [Tooltip("Bar height = slotSize + barVerticalPadding. " +
+             "Increase this if taller slots overflow the bar.")]
+    [SerializeField] private float barVerticalPadding = 30f;
+
+    [Tooltip("Gap in pixels between the slot edge and the item icon on each side. " +
+             "Set to 0 to fill the slot completely.")]
+    [SerializeField] private float iconPadding = 4f;
+
     // ── Pool & state ─────────────────────────────────────────────────────────
 
     private PuzzleInventorySlot[] _slotPool;
     private int _activeSlotCount;
+    private int _filledSlotCount; // slots that actually contain an item
     private int _scrollIndex;
     private IPuzzleDropHandler _activeHandler;
     private bool _isOpen;
@@ -66,6 +75,10 @@ public class PuzzleInventoryBar : MonoBehaviour
     private bool _isDragging;
     private Canvas _rootCanvas;
     private CanvasGroup _canvasGroup;
+
+    // Cached (barWidth - viewportWidth) / 2 — buttons + margins + gaps on one side.
+    // Read once from the scene layout so the designer never needs to configure it manually.
+    private float _buttonSideWidth;
 
     /// <summary>Width of one slot step used for scroll offset calculation.</summary>
     private float SlotStep => slotSize + slotSpacing;
@@ -84,11 +97,13 @@ public class PuzzleInventoryBar : MonoBehaviour
         _rootCanvas = GetComponentInParent<Canvas>()?.rootCanvas;
         _canvasGroup = GetComponent<CanvasGroup>();
 
+        CacheButtonSideWidth();
         SetBarVisible(false);
     }
 
     private void Start()
     {
+        ApplyLayout();
         CreateSlotPool();
 
         if (scrollLeftButton != null)
@@ -216,7 +231,7 @@ public class PuzzleInventoryBar : MonoBehaviour
 
     private void ScrollRight()
     {
-        int maxIndex = Mathf.Max(0, _activeSlotCount - visibleSlotCount);
+        int maxIndex = Mathf.Max(0, _filledSlotCount - visibleSlotCount);
         if (_scrollIndex >= maxIndex) return;
         _scrollIndex++;
         UpdateContentPosition();
@@ -237,6 +252,12 @@ public class PuzzleInventoryBar : MonoBehaviour
         for (int i = 0; i < poolSize; i++)
         {
             var slot = Instantiate(slotPrefab, slotContent);
+
+            // Apply slot size from the Inspector field — slotSize is the single source of truth.
+            var slotRT = slot.GetComponent<RectTransform>();
+            if (slotRT != null) slotRT.sizeDelta = new Vector2(slotSize, slotSize);
+
+            slot.ApplyIconPadding(iconPadding);
             slot.Init(this);
             slot.Clear();
             slot.gameObject.SetActive(false);
@@ -245,33 +266,35 @@ public class PuzzleInventoryBar : MonoBehaviour
     }
 
     /// <summary>
-    /// Fills active slots with all non-null items from the inventory.
-    /// Empty inventory slots are skipped — bar shows a compact list.
+    /// Mirrors the inventory into the slot pool 1-to-1.
+    /// Every inventory slot is always visible: filled slots show the item icon,
+    /// empty slots show only the slot background without an icon.
     /// </summary>
     private void RefreshSlots()
     {
         var inv = InventorySystem.Instance;
         if (inv == null || _slotPool == null) return;
 
-        int displayIndex = 0;
+        int slotCount = Mathf.Min(inv.MaxSlots, _slotPool.Length);
 
-        for (int i = 0; i < inv.MaxSlots; i++)
+        for (int i = 0; i < slotCount; i++)
         {
-            var item = inv.GetItemAt(i);
-            if (item == null) continue;
+            _slotPool[i].gameObject.SetActive(true);
 
-            if (displayIndex < _slotPool.Length)
-            {
-                _slotPool[displayIndex].gameObject.SetActive(true);
-                _slotPool[displayIndex].SetItem(item);
-                displayIndex++;
-            }
+            var item = inv.GetItemAt(i);
+            if (item != null)
+                _slotPool[i].SetItem(item);
+            else
+                _slotPool[i].Clear(); // background visible, icon hidden
         }
 
-        _activeSlotCount = displayIndex;
+        _activeSlotCount = slotCount;
+        _filledSlotCount = 0;
+        for (int i = 0; i < slotCount; i++)
+            if (inv.GetItemAt(i) != null) _filledSlotCount++;
 
-        // Deactivate remaining pool slots
-        for (int i = displayIndex; i < _slotPool.Length; i++)
+        // Hide pool slots that exceed the inventory size (shouldn't happen in normal use).
+        for (int i = slotCount; i < _slotPool.Length; i++)
         {
             _slotPool[i].Clear();
             _slotPool[i].gameObject.SetActive(false);
@@ -284,7 +307,7 @@ public class PuzzleInventoryBar : MonoBehaviour
 
     private void ClampScrollIndex()
     {
-        int maxIndex = Mathf.Max(0, _activeSlotCount - visibleSlotCount);
+        int maxIndex = Mathf.Max(0, _filledSlotCount - visibleSlotCount);
         _scrollIndex = Mathf.Clamp(_scrollIndex, 0, maxIndex);
     }
 
@@ -298,13 +321,81 @@ public class PuzzleInventoryBar : MonoBehaviour
 
     private void UpdateButtonStates()
     {
-        int maxIndex = Mathf.Max(0, _activeSlotCount - visibleSlotCount);
+        int maxIndex = Mathf.Max(0, _filledSlotCount - visibleSlotCount);
 
         if (scrollLeftButton != null)
             scrollLeftButton.interactable = _scrollIndex > 0;
 
         if (scrollRightButton != null)
             scrollRightButton.interactable = _scrollIndex < maxIndex;
+    }
+
+    // ── Layout ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Caches the fixed side chrome (buttons + margins + gap) from the initial scene layout.
+    /// Must be called in Awake before any resize happens.
+    /// </summary>
+    private void CacheButtonSideWidth()
+    {
+        var barRT      = GetComponent<RectTransform>();
+        var viewportRT = slotContent != null ? slotContent.parent as RectTransform : null;
+
+        if (barRT != null && viewportRT != null && viewportRT.sizeDelta.x > 0f)
+            _buttonSideWidth = (barRT.sizeDelta.x - viewportRT.sizeDelta.x) * 0.5f;
+        else
+            _buttonSideWidth = 87f; // safe fallback matching the default scene setup
+    }
+
+    /// <summary>
+    /// Resizes SlotViewport and the root bar RectTransform so that exactly
+    /// <see cref="visibleSlotCount"/> slots fit without scrolling.
+    /// Called automatically on Start and in the Editor via OnValidate — so changing
+    /// <see cref="visibleSlotCount"/>, <see cref="slotSize"/>, or <see cref="slotSpacing"/>
+    /// in the Inspector immediately updates the layout.
+    /// </summary>
+    private void ApplyLayout()
+    {
+        var barRT      = GetComponent<RectTransform>();
+        var viewportRT = slotContent != null ? slotContent.parent as RectTransform : null;
+        if (barRT == null || viewportRT == null) return;
+
+        // In OnValidate _buttonSideWidth is not yet cached — recompute from current sizes.
+        if (_buttonSideWidth == 0f)
+            _buttonSideWidth = (barRT.sizeDelta.x - viewportRT.sizeDelta.x) * 0.5f;
+
+        float viewportWidth = visibleSlotCount * slotSize +
+                              Mathf.Max(0, visibleSlotCount - 1) * slotSpacing;
+
+        viewportRT.sizeDelta = new Vector2(viewportWidth, viewportRT.sizeDelta.y);
+        barRT.sizeDelta      = new Vector2(viewportWidth + _buttonSideWidth * 2f,
+                                           slotSize + barVerticalPadding);
+
+        // Keep HorizontalLayoutGroup spacing in sync with slotSpacing.
+        var hlg = slotContent != null
+            ? slotContent.GetComponent<HorizontalLayoutGroup>()
+            : null;
+        if (hlg != null)
+            hlg.spacing = slotSpacing;
+    }
+
+    private void OnValidate()
+    {
+        ApplyLayout();
+
+        // Update any already-instantiated slot instances immediately.
+        // This makes Inspector changes take effect in Play Mode without restarting.
+        if (slotContent == null) return;
+        foreach (Transform child in slotContent)
+        {
+            var slotRT = child.GetComponent<RectTransform>();
+            if (slotRT != null)
+                slotRT.sizeDelta = new Vector2(slotSize, slotSize);
+
+            var slot = child.GetComponent<PuzzleInventorySlot>();
+            if (slot != null)
+                slot.ApplyIconPadding(iconPadding);
+        }
     }
 
     // ── Inventory subscription ────────────────────────────────────────────────

@@ -28,6 +28,19 @@ public class PuzzleInventorySlot : MonoBehaviour,
         _bar = bar;
     }
 
+    /// <summary>
+    /// Sets the padding between the slot edge and the icon image.
+    /// Pass 0 to make the icon fill the slot completely.
+    /// Called by PuzzleInventoryBar during pool creation.
+    /// </summary>
+    public void ApplyIconPadding(float padding)
+    {
+        if (iconImage == null) return;
+        var rt = iconImage.GetComponent<RectTransform>();
+        if (rt != null)
+            rt.sizeDelta = new Vector2(-padding * 2f, -padding * 2f);
+    }
+
     /// <summary>Assigns an item to this slot and shows its icon.</summary>
     public void SetItem(ItemData item)
     {

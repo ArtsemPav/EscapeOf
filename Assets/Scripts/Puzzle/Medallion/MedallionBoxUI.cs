@@ -174,14 +174,18 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         var hole = hit.collider.GetComponent<MedallionHole>();
         if (hole == null || !hole.IsFilled) return;
 
+        // Guard: do not remove medallion from hole if inventory has no room.
+        if (InventorySystem.Instance == null || InventorySystem.Instance.IsFull) return;
+
         var item = hole.Retrieve(_dropHeight, _dropDuration);
         if (item == null) return;
 
         // Hole is now empty — clear hover so the highlight is not stuck
         ClearHover();
 
-        // Restore to inventory — PuzzleInventoryBar refreshes via OnInventoryChanged
-        InventorySystem.Instance?.AddItem(item);
+        // Edge case: inventory filled between the guard and AddItem — restore medallion immediately.
+        if (!InventorySystem.Instance.AddItem(item))
+            hole.FillImmediate(item, _coinPrefab);
     }
 
     // ── Victory ───────────────────────────────────────────────────────────────

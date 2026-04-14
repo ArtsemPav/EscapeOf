@@ -86,7 +86,7 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
         }
         else
         {
-            InventorySystem.Instance.AddItem(itemData);
+            if (!InventorySystem.Instance.AddItem(itemData)) return;
             NotifyPickedUp();
             Destroy(gameObject);
         }
