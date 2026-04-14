@@ -113,14 +113,12 @@ public class ElectricWire : MonoBehaviour
             _capEnd.position = endAnchor.position;
         }
 
+        // Pins are at the cap anchor children — the wire-contact points on each cap
         Vector3 startPin = _capStartAnchorChild != null ? _capStartAnchorChild.position : _startAnchor.position;
         Vector3 endPin   = _capEndAnchorChild   != null ? _capEndAnchorChild.position   : endAnchor.position;
 
-        // Re-layout points along the straight line so they start near the final shape
         ReinitializeAlong(startPin, endPin);
         RecalculateRestLength(startPin, endPin);
-
-        // Pre-simulate so the wire loads in its natural resting shape instantly
         PresettleWire(startPin, endPin);
     }
 
@@ -156,7 +154,9 @@ public class ElectricWire : MonoBehaviour
         // and eliminate micro-vibration. The LineRenderer keeps its last-set positions.
         if (_isSleeping) return;
 
-        // Use the physical anchor points as Verlet pins
+        // Wire pins are at the cap's anchor child — the designed wire-contact point on the cap.
+        // The cap root (mesh center) sits at the terminal / cursor; the anchor defines the
+        // exact entry point where the wire visually meets the cap body.
         Vector3 startPin = _capStartAnchorChild != null
             ? _capStartAnchorChild.position
             : _startAnchor.position;
@@ -170,7 +170,6 @@ public class ElectricWire : MonoBehaviour
         }
         else
         {
-            // During drag: cap center follows cursor, wire pin goes to cap's anchor child
             if (_capEnd != null)
                 _capEnd.position = _dragEndPoint;
 
@@ -206,24 +205,22 @@ public class ElectricWire : MonoBehaviour
         _lineRenderer.positionCount     = SegCount;
         _lineRenderer.startWidth        = _settings.wireWidthStart;
         _lineRenderer.endWidth          = _settings.wireWidthEnd;
-        _lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        _lineRenderer.receiveShadows    = false;
+        _lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+        _lineRenderer.receiveShadows    = true;
         _lineRenderer.textureMode       = LineTextureMode.Stretch;
         _lineRenderer.alignment         = LineAlignment.View;
         _lineRenderer.numCapVertices    = 4;
         _lineRenderer.numCornerVertices = 4;
 
-        // LineRenderer wires require Unlit rendering so that _BaseColor maps directly
-        // to the visible color without being affected by scene lighting or PBR metallic values.
-        // Use wireMaterial only when it is already an Unlit-based material; otherwise fall back
-        // to a fresh URP/Unlit instance so the assigned color is always correct.
-        bool isUnlit = wireMaterial != null && wireMaterial.shader != null
-                       && wireMaterial.shader.name.Contains("Unlit");
-
-        _lineMaterial = isUnlit
+        // Clone the provided material to allow per-wire colour tinting.
+        // Falls back to URP/Lit so the wire participates in scene lighting.
+        _lineMaterial = wireMaterial != null
             ? new Material(wireMaterial)
-            : new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            : new Material(Shader.Find("Universal Render Pipeline/Lit"));
 
+        // Wire colour comes entirely from _BaseColor — remove the panel albedo texture
+        // that would otherwise stretch along the ribbon and create dark banding.
+        _lineMaterial.SetTexture("_BaseMap", null);
         _lineMaterial.SetColor("_BaseColor", color);
 
         _lineRenderer.sharedMaterial = _lineMaterial;
@@ -241,7 +238,7 @@ public class ElectricWire : MonoBehaviour
 
         _capEnd = SpawnCap(capPrefab, "WireCap_End", out _capEndAnchorChild);
         _capEnd.rotation = startTerminal.rotation;
-        PlaceCapAtPoint(_capEnd, _capEndAnchorChild, startTerminal.position);
+        _capEnd.position = startTerminal.position;
     }
 
     private Transform SpawnCap(GameObject prefab, string capName, out Transform anchorChild)
@@ -393,6 +390,7 @@ public class ElectricWire : MonoBehaviour
             // Verlet + constraints for every wire
             foreach (var w in connected)
             {
+                // Pins are at the cap anchor children — the wire-contact points on each cap
                 Vector3 sPin = w._capStartAnchorChild != null ? w._capStartAnchorChild.position : w._startAnchor.position;
                 Vector3 ePin = w._capEndAnchorChild   != null ? w._capEndAnchorChild.position   : w._endAnchor.position;
 

@@ -115,14 +115,39 @@ public class SaveManager : MonoBehaviour
             Debug.LogWarning("SaveManager: ISaveable registered with an empty SaveId — skipping.", this);
             return;
         }
+
+        // If a different live Unity object is already registered under this ID, do not overwrite it.
+        // This prevents inspection-preview clones (same prefab, same SaveId) from displacing
+        // the original world-object registration in the dictionary.
+        // A destroyed object compares equal to null via Unity's overridden == operator,
+        // so a stale reference from a previous scene load is always replaced.
+        if (_saveables.TryGetValue(saveable.SaveId, out var existing))
+        {
+            var existingUnityObj = existing as UnityEngine.Object;
+            var newUnityObj      = saveable as UnityEngine.Object;
+            if (existingUnityObj != null && existingUnityObj != newUnityObj)
+            {
+                Debug.LogWarning($"[SaveManager] Register: '{saveable.SaveId}' already held by '{existingUnityObj.name}' — ignoring duplicate registration from '{newUnityObj?.name}'.", this);
+                return;
+            }
+        }
+
         _saveables[saveable.SaveId] = saveable;
     }
 
     /// <summary>Unregisters an ISaveable. Call in OnDestroy().</summary>
     public void Unregister(ISaveable saveable)
     {
-        if (!string.IsNullOrEmpty(saveable.SaveId))
+        if (string.IsNullOrEmpty(saveable.SaveId)) return;
+
+        // Only remove if the entry in the dictionary is THIS saveable instance.
+        // If a duplicate (e.g. an inspection-preview clone) was blocked from registering,
+        // its OnDestroy must not evict the legitimate world-object registration.
+        if (_saveables.TryGetValue(saveable.SaveId, out var registered) &&
+            registered as UnityEngine.Object == saveable as UnityEngine.Object)
+        {
             _saveables.Remove(saveable.SaveId);
+        }
     }
 
     // ── Save / Load / Delete ──────────────────────────────────────────────────

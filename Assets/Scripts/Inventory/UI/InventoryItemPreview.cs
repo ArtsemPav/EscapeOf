@@ -147,9 +147,21 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
         var instance  = Instantiate(prefab, PreviewOrigin, Quaternion.identity);
         SetLayerRecursively(instance, _previewLayer);
 
+        // Важно: инициализируем bounds с первого рендерера, а не с PreviewOrigin.
+        // Если сеять с PreviewOrigin, эта точка включается в Encapsulate и тянет
+        // center в сторону от реального геометрического центра модели.
         var renderers = instance.GetComponentsInChildren<Renderer>();
-        var bounds    = new Bounds(PreviewOrigin, Vector3.zero);
-        foreach (var r in renderers) bounds.Encapsulate(r.bounds);
+        Bounds bounds;
+        if (renderers.Length > 0)
+        {
+            bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                bounds.Encapsulate(renderers[i].bounds);
+        }
+        else
+        {
+            bounds = new Bounds(PreviewOrigin, Vector3.zero);
+        }
 
         Vector3 center  = bounds.center;
         float   maxSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);

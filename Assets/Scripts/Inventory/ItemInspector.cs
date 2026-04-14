@@ -282,11 +282,21 @@ public class ItemInspector : MonoBehaviour
         _inspectionInstance = Instantiate(item.inspectionPrefab, InspectionOrigin, Quaternion.identity);
         SetLayerRecursively(_inspectionInstance, _inspectionLayer);
 
-        // Вычисляем геометрический центр модели по bounds всех рендереров
+        // Вычисляем геометрический центр модели по bounds всех рендереров.
+        // Важно: НЕ инициализируем Bounds с InspectionOrigin — иначе эта точка
+        // включается в Encapsulate и тянет center от геометрического центра.
         var renderers = _inspectionInstance.GetComponentsInChildren<Renderer>();
-        var bounds = new Bounds(InspectionOrigin, Vector3.zero);
-        foreach (var r in renderers)
-            bounds.Encapsulate(r.bounds);
+        Bounds bounds;
+        if (renderers.Length > 0)
+        {
+            bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                bounds.Encapsulate(renderers[i].bounds);
+        }
+        else
+        {
+            bounds = new Bounds(InspectionOrigin, Vector3.zero);
+        }
 
         Vector3 itemCenter = bounds.center;
         float maxSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
