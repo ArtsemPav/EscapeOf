@@ -117,14 +117,25 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         SaveManager.Instance?.Register(this);
     }
 
-    private void OnEnable()
+    private void Start()
     {
+        // Deferred subscription: InputManager singleton is guaranteed to exist by Start.
         SubscribeToInput();
     }
 
     private void OnDisable()
     {
         UnsubscribeFromInput();
+    }
+
+    private void OnEnable()
+    {
+        // Re-subscribe after a hot-reload or after the object is re-enabled
+        // (only if Start has already run, i.e. InputManager is already available).
+        if (_isSubscribed == false && InputManager.Instance != null)
+        {
+            SubscribeToInput();
+        }
     }
 
     private void OnDestroy()
