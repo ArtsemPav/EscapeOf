@@ -63,6 +63,15 @@ public class LockDial : MonoBehaviour, ISaveable
     [SerializeField] private AudioClip _tickSound;
     [SerializeField] private AudioClip _correctStepSound;
 
+    [Tooltip("If assigned, audio feedback will only play when this item is present in the inventory.")]
+    [SerializeField] private ItemData _requiredItemForAudio;
+
+    [Tooltip("Looping clip played as an additional background layer while the puzzle is active (requires Required Item For Audio in inventory).")]
+    [SerializeField] private AudioClip _puzzleBackgroundLayer;
+
+    [Tooltip("Volume for the background layer clip.")]
+    [SerializeField, Range(0f, 1f)] private float _puzzleBackgroundLayerVolume = 1f;
+
     [Header("Events")]
     [Tooltip("Fired when the entire combination is correctly entered.")]
     [SerializeField] private UnityEvent _onUnlocked;
@@ -136,8 +145,10 @@ public class LockDial : MonoBehaviour, ISaveable
 
         if (_puzzleMode != null)
         {
-            _puzzleMode.OnExited += ResetUI;
+            _puzzleMode.OnExited  += ResetUI;
+            _puzzleMode.OnExited  += OnPuzzleExited;
             _puzzleMode.OnEntered += ShowEntryHint;
+            _puzzleMode.OnEntered += OnPuzzleEntered;
         }
         else
         {
@@ -151,8 +162,10 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         if (_puzzleMode != null)
         {
-            _puzzleMode.OnExited -= ResetUI;
+            _puzzleMode.OnExited  -= ResetUI;
+            _puzzleMode.OnExited  -= OnPuzzleExited;
             _puzzleMode.OnEntered -= ShowEntryHint;
+            _puzzleMode.OnEntered -= OnPuzzleEntered;
         }
 
         SaveManager.Instance?.Unregister(this);
@@ -264,6 +277,8 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         if (AudioManager.Instance == null) return;
 
+        if (_requiredItemForAudio != null && !HasRequiredItem()) return;
+
         bool isCorrectNextStep = _comboProgressIndex < _combination.Length
             && _currentStep == _combination[_comboProgressIndex].TargetValue;
 
@@ -306,6 +321,31 @@ public class LockDial : MonoBehaviour, ISaveable
         ResetUI();
         _onUnlocked?.Invoke();
         _puzzleMode?.SetSolved(); // SetSolved fires OnSolved, ExitPuzzleMode, and Save internally
+    }
+
+    // ── Stethoscope audio isolation ────────────────────────────────────────────
+
+    private bool HasRequiredItem()
+        => _requiredItemForAudio != null
+        && InventorySystem.Instance != null
+        && InventorySystem.Instance.HasItem(_requiredItemForAudio);
+
+    private void OnPuzzleEntered()
+    {
+        if (!HasRequiredItem()) return;
+
+        AudioManager.Instance?.MuteBackground();
+
+        if (_puzzleBackgroundLayer != null)
+            AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+    }
+
+    private void OnPuzzleExited()
+    {
+        if (!HasRequiredItem()) return;
+
+        AudioManager.Instance?.StopBackgroundLayer();
+        AudioManager.Instance?.UnmuteBackground();
     }
 
     // ── UI & Visuals ───────────────────────────────────────────────────────────
