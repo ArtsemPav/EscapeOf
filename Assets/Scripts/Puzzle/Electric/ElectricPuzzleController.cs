@@ -590,7 +590,17 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
         SetBlendDuration(_blendDuration);
         if (_panelCamera != null) _panelCamera.gameObject.SetActive(true);
 
-        if (_panel != null) UIManager.Instance?.OpenPanel(_panel);
+        // If a Canvas panel is assigned, use the standard OpenPanel flow.
+        // Otherwise, push a modal state manually so cursor is freed and player input is blocked.
+        if (_panel != null)
+        {
+            UIManager.Instance?.OpenPanel(_panel);
+        }
+        else
+        {
+            UIManager.Instance?.PushModalState();
+            GameManager.Instance?.UpdateCursorState();
+        }
     }
 
     private void Close()
@@ -612,7 +622,11 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable
         while (_brain != null && _brain.IsBlending) yield return null;
 
         SetBlendDuration(_originalBlendTime);
-        if (_panel != null) UIManager.Instance?.ClosePanel(_panel);
+
+        if (_panel != null)
+            UIManager.Instance?.ClosePanel(_panel);
+        else
+            UIManager.Instance?.PopModalState();
 
         if (_ownCollider != null) _ownCollider.enabled = true;
     }
