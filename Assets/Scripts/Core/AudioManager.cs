@@ -72,9 +72,9 @@ public class AudioManager : MonoBehaviour {
         StartCoroutine(FadeBetweenSources(_gameMusicSource, _menuMusicSource));
     }
 
-    public void PlaySFX(AudioClip clip) {
+    public void PlaySFX(AudioClip clip, float volume = 1f) {
         if (clip != null)
-            _sfxSource.PlayOneShot(clip);
+            _sfxSource.PlayOneShot(clip, volume);
     }
 
     public AudioSource Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance) {

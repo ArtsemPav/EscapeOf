@@ -45,6 +45,9 @@ public class LockDial : MonoBehaviour, ISaveable
     [Tooltip("Speed of the smooth rotation in degrees per second.")]
     [SerializeField] private float _rotationSpeed = 360f;
 
+    [Tooltip("Maximum rotation speed from user input in degrees per second.")]
+    [SerializeField] private float _maxInputRotationSpeed = 720f;
+
     [Header("Combination Settings")]
     [Tooltip("Sequence of steps to unlock.")]
     [SerializeField] private ComboStep[] _combination = new ComboStep[4];
@@ -61,7 +64,9 @@ public class LockDial : MonoBehaviour, ISaveable
 
     [Header("Audio")]
     [SerializeField] private AudioClip _tickSound;
+    [SerializeField, Range(0f, 1f)] private float _tickVolume = 1f;
     [SerializeField] private AudioClip _correctStepSound;
+    [SerializeField, Range(0f, 1f)] private float _correctStepVolume = 1f;
 
     [Tooltip("If assigned, audio feedback will only play when this item is present in the inventory.")]
     [SerializeField] private ItemData _requiredItemForAudio;
@@ -217,7 +222,12 @@ public class LockDial : MonoBehaviour, ISaveable
         }
 
         float delta = Mathf.DeltaAngle(_previousMouseAngle, currentAngle);
-        _previousMouseAngle = currentAngle;
+        
+        // Limit the rotation delta based on max input speed
+        float maxDelta = _maxInputRotationSpeed * Time.deltaTime;
+        delta = Mathf.Clamp(delta, -maxDelta, maxDelta);
+
+        _previousMouseAngle = Mathf.MoveTowardsAngle(_previousMouseAngle, currentAngle, _maxInputRotationSpeed * Time.deltaTime);
         _dragRotationDelta += delta;
         _angleAccumulator += delta;
 
@@ -277,15 +287,21 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         if (AudioManager.Instance == null) return;
 
-        if (_requiredItemForAudio != null && !HasRequiredItem()) return;
+        bool hasStethoscope = HasRequiredItem();
+        
+        // Tick sound is always played regardless of stethoscope
+        if (_tickSound != null)
+            AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
 
-        bool isCorrectNextStep = _comboProgressIndex < _combination.Length
-            && _currentStep == _combination[_comboProgressIndex].TargetValue;
+        // Correct step sound is only played if the player has the stethoscope
+        if (hasStethoscope)
+        {
+            bool isCorrectNextStep = _comboProgressIndex < _combination.Length
+                && _currentStep == _combination[_comboProgressIndex].TargetValue;
 
-        if (isCorrectNextStep && _correctStepSound != null)
-            AudioManager.Instance.PlaySFX(_correctStepSound);
-        else if (_tickSound != null)
-            AudioManager.Instance.PlaySFX(_tickSound);
+            if (isCorrectNextStep && _correctStepSound != null)
+                AudioManager.Instance.PlaySFX(_correctStepSound, _correctStepVolume);
+        }
     }
 
     private void CheckCombination()
