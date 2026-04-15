@@ -36,6 +36,11 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private UnityEvent _onPanelOpened;
     [Tooltip("Called when the correct code is entered. Wire door.UnlockAndOpen() here.")]
     [SerializeField] private UnityEvent _onUnlocked;
+    [Tooltip("Игровой ивент, который поднимается при разблокировке.\n" +
+             "Перетащи сюда .asset из Assets/Data/Events/\n" +
+             "Например: PowerRestore.asset, DoorLab_Open.asset и т.д.\n" +
+             "Можно оставить пустым — тогда ничего не поднимается.")]
+    [SerializeField] private GameEvent _onUnlockedEvent;
 
     [Header("Save")]
     [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
@@ -141,6 +146,7 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
             InventorySystem.Instance.RemoveItem(_requiredItem);
 
         _onUnlocked.Invoke();
+        _onUnlockedEvent?.Raise();
 
         if (_collider != null)
             _collider.enabled = false;
