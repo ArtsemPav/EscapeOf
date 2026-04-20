@@ -179,12 +179,6 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
         bool result = heightOk && spotlightOk && colorOk && roomLightOk;
 
-        Debug.Log($"[LoopPuzzle] {cond.symbolObject.name}: " +
-                  $"height={heightOk}({(cond.column != null ? cond.column.CurrentHeight.ToString() : "null")}/{cond.requiredHeight}) " +
-                  $"spotlight={spotlightOk} " +
-                  $"color={colorOk}({(cond.spotlight != null ? cond.spotlight.GetEffectiveColor().ToString() : "null")}/{cond.requiredColor}) " +
-                  $"roomLight={roomLightOk} → {result}");
-
         cond.symbolObject.SetActive(result);
     }
 

@@ -63,11 +63,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
-    public void Interact()
-    {
-        Debug.Log($"[LoopPuzzleButton] Interact called on {name}, IsActive={IsActive}");
-        Toggle();
-    }
+    public void Interact() => Toggle();
     public bool IsPickable() => false;
     public bool UseLMBClick => true;
     public string GetInteractText() => _interactText;
