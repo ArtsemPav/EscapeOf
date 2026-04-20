@@ -573,7 +573,7 @@ public class FPSController : MonoBehaviour, ISaveable
 
     private void OnInteract()
     {
-        if (_currentInteractable != null)
+        if (_currentInteractable != null && !_currentInteractable.UseLMBClick)
         {
             _currentInteractable.Interact();
             _currentInteractable = null;

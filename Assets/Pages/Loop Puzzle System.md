@@ -1,0 +1,134 @@
+## Обзор
+
+Головоломка «Комната с картинами» (`PaintPuzzle`). Игрок стоит в комнате управления и через глазок наблюдает за комнатой с четырьмя нишами (Q1–Q4). Задача — настроить высоту картин, цвет линз прожекторов и схему питания так, чтобы на всех четырёх полотнах одновременно проявились скрытые символы. Когда все символы видны, открывается скрытая дверь.
+
+---
+
+## Префаб
+
+`Assets/Prefabs/puzzle/paint/PaintPuzzle.prefab`
+
+```
+PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
+├── Peephole                  ← PeepholeInteractable (+ BoxCollider, слой Interactable Layer)
+├── ControlRoom
+│   ├── PowerButtons
+│   │   └── Button_S1..S6    ← LoopPuzzleButton, слой Interactable Layer
+│   ├── ColumnButtons
+│   │   └── Button_Q1..Q4    ← PaintingColumnTrigger, слой Interactable Layer
+│   ├── LensButtons           ← (создать вручную)
+│   │   └── Button_L1..L4*   ← SpotlightLensButton, слой Interactable Layer
+│   └── HiddenDoor            ← LoopPuzzleHiddenDoor
+└── PaintingRoom
+    ├── Spotlights
+    │   └── Spotlight_L1..L4  ← PaintingSpotlight
+    └── Paintings
+        └── PaintingColumn_Q1..Q4  ← PaintingColumn
+            └── Symbol_*           ← активны только при выполнении условий
+```
+
+\* `LensButtons` для L3 не нужна — синтетический прожектор.
+
+---
+
+## Скрипты
+
+| Файл | Назначение |
+|---|---|
+| `LensColor.cs` | Enum: `None / Red / Blue / Yellow / Green` |
+| `PaintingSpotlight.cs` | Прожектор с линзой и синтезом |
+| `SpotlightLensButton.cs` | Кнопка смены линзы (ISaveable) |
+| `LoopPuzzleButton.cs` | Рубильник питания S1–S6 |
+| `LoopPuzzlePowerCircuit.cs` | Схема питания (OR-of-AND) |
+| `LoopPuzzleController.cs` | Центральный контроллер условий (ISaveable) |
+| `LoopPuzzleHiddenDoor.cs` | Скользящая дверь (ISaveable) |
+| `PaintingColumn.cs` | Ниша с изменяемой высотой (ISaveable) |
+| `PaintingColumnTrigger.cs` | Кнопка смены высоты картины |
+| `PaintingRoomLightSwitch.cs` | Выключатель света в комнате с картинами |
+| `PeepholeInteractable.cs` | Глазок: переключение камеры, modal state |
+
+---
+
+## Матрица активации
+
+| Ниша | Цвет луча | Высота | Символ | Код |
+|---|---|---|---|---|
+| Q1 (Младенец) | Red (L1) | TOP | Ω | 4 |
+| Q2 (Воин) | Yellow (L2) | BOT | Ψ | 9 |
+| Q3 (Судья) | Green (L2 Blue + L4 Yellow) | MID | Σ | 2 |
+| Q4 (Тень) | Blue (L4) | BOT | Δ | ? |
+
+Значение для Q4 (Δ) не было указано — уточнить с дизайнером.
+
+---
+
+## Логика синтеза L3
+
+`PaintingSpotlight` на L3 имеет поле `_synthesisInputs = [L2, L4]`.
+
+- L2 линза = Blue **и** L4 линза = Yellow → `GetEffectiveColor()` = `Green`
+- Любая другая комбинация → `None` (грязный белый свет, символ не проявляется)
+- L3 подписывается на `OnLensChanged` каждого из inputs и автоматически перекрашивает Unity Light при изменении
+
+---
+
+## Схема питания (LoopPuzzlePowerCircuit)
+
+Рубильники S1–S6, S6 — мастер (если выкл., все прожекторы выкл.).
+
+| Прожектор | Условие питания (OR-of-AND) |
+|---|---|
+| L1 | S1=ON |
+| L2 | (S1+S2) OR (S4) |
+| L3 | (S5+S3+S1+S2) OR (S5+S3+S4) |
+| L4 | S3=ON |
+
+---
+
+## Индикаторы кнопок (LoopPuzzleButton)
+
+Каждый рубильник `Button_S1..S6` имеет дочерний `Cube` с материалом `ButtonIndicator.mat` (`Assets/Materials/LightPuzzle/ButtonIndicator.mat`).
+
+Визуальная логика реализована через `material.SetColor()` на инстансе материала:
+
+| Состояние | `_BaseColor` | `_EmissionColor` |
+|---|---|---|
+| OFF (по умолчанию) | `(0.05, 0.05, 0.05)` — почти чёрный | `black` — нет свечения |
+| ON | `(0, 1, 0.3)` — зелёный | HDR `_activeEmissionColor` — bloom-свечение |
+
+**Требования к сцене:**
+- `Global Volume` → `Is Global = true`, содержит `Bloom`
+- `Main Camera` → `Universal Additional Camera Data` → `Post Processing = enabled`
+- Материал `ButtonIndicator.mat` → `Emission` keyword включён, `Global Illumination = Realtime`
+
+---
+
+## Взаимодействие (FPSController)
+
+`LoopPuzzleButton` использует `UseLMBClick = true` — срабатывает по ЛКМ через `HandleDragInteraction()`.
+
+`FPSController.OnInteract()` обрабатывает **только** объекты где `UseLMBClick = false` (E-клавиша), чтобы избежать двойного вызова `Interact()` в один кадр.
+
+---
+
+## Глазок (PeepholeInteractable)
+
+- Активирует `CinemachineCamera` → `_peepholeCamera`
+- Вызывает `UIManager.PushModalState()` (блокирует движение игрока)
+- Курсор остаётся залочен
+- Выход: LMB, WASD (новое нажатие), Esc
+- Выход работает через **собственные `InputAction`** (не из Player action map), так как `PushModalState()` отключает весь Player map
+
+---
+
+## Что нужно сделать вручную (pending)
+
+- [x] Добавить `BoxCollider` на `Peephole`
+- [x] Создать объекты `LensButtons/Button_L1`, `Button_L2`, `Button_L4` в префабе, назначить `SpotlightLensButton` с уникальными `_saveId`
+- [x] На `Spotlight_L3` → `PaintingSpotlight._synthesisInputs` назначить `Spotlight_L2` и `Spotlight_L4`
+- [x] В `LoopPuzzleController._conditions` выставить `requiredColor`: Q1=Red, Q2=Yellow, Q3=Green, Q4=Blue
+- [x] `Global Volume` выставить `Is Global = true`, включить `Post Processing` на `Main Camera`
+- [ ] На объекты освещения в PaintingRoom добавить компонент **Light Zone** (`LightGroup.cs`) с `Zone Id = "painting_room"`
+- [ ] Расставить кнопки `Button_L1`, `Button_L2`, `Button_L4` физически в сцене (позиция в ControlRoom)
+- [ ] Настроить высоты `_lowY / _midY / _highY` в `PaintingColumn` под реальную геометрию сцены
+- [ ] Уточнить код Δ (значение символа Q4) у дизайнера
