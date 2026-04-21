@@ -468,6 +468,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1577079786517699182}
   - component: {fileID: 7250977709502846567}
+  - component: {fileID: 2839608979736780325}
   m_Layer: 0
   m_Name: Symbol_Psi
   m_TagString: Untagged
@@ -485,7 +486,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
   m_LocalPosition: {x: 0.0069999695, y: 0, z: 0.01}
-  m_LocalScale: {x: 0.012834474, y: 0.0128344735, z: 0.012834474}
+  m_LocalScale: {x: 0.12, y: 0.12, z: 0.12}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 9013497369159589449}
@@ -539,8 +540,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 6a27e778865a12c4a958df2a85cf60c9, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: 73fb2fd134312604a88da7371f7c532b, type: 3}
+  m_Color: {r: 1, g: 0.7455913, b: 0, a: 0.1882353}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -549,6 +550,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &2839608979736780325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1131615060902562575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3fe576b7cc45c84a81f8d89ce8306d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SymbolFader
+  _fadeDuration: 0.5
 --- !u!1 &1141698470113856794
 GameObject:
   m_ObjectHideFlags: 0
@@ -559,6 +573,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4673800327581573618}
   - component: {fileID: 6487970023423522458}
+  - component: {fileID: 2825155744841317898}
   m_Layer: 0
   m_Name: Symbol_Omega
   m_TagString: Untagged
@@ -575,8 +590,8 @@ Transform:
   m_GameObject: {fileID: 1141698470113856794}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0.0069999695, y: 0, z: 0.001}
-  m_LocalScale: {x: 0.012834475, y: 0.0128344735, z: 0.012834475}
+  m_LocalPosition: {x: 0.003, y: 0, z: 0.001}
+  m_LocalScale: {x: 0.12, y: 0.12, z: 0.12}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8109907675412079903}
@@ -630,8 +645,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 6a27e778865a12c4a958df2a85cf60c9, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: cd83570495a9b6148ac3df075390ecfe, type: 3}
+  m_Color: {r: 0.8544474, g: 0.0034545164, b: 0.0034545164, a: 0.30588236}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -640,6 +655,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &2825155744841317898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1141698470113856794}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3fe576b7cc45c84a81f8d89ce8306d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SymbolFader
+  _fadeDuration: 0.5
 --- !u!1 &1211288485176292342
 GameObject:
   m_ObjectHideFlags: 0
@@ -1771,9 +1799,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleButton
   _interactText: "\u0420\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A S5 (Focus)"
+  _lockedInteractText: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E"
   _indicatorRenderer: {fileID: 950246566344050133}
+  _inactiveBaseColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _activeBaseColor: {r: 0, g: 1, b: 0.3, a: 1}
   _activeEmissionColor: {r: 0, g: 4, b: 0.5, a: 1}
-  _inactiveEmissionColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _lockedBaseColor: {r: 0.25, g: 0.1, b: 0, a: 1}
+  _lockedEmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &3478644962323450837
 GameObject:
   m_ObjectHideFlags: 0
@@ -2068,9 +2100,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleButton
   _interactText: "\u0420\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A S3"
+  _lockedInteractText: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E"
   _indicatorRenderer: {fileID: 2111936731100774327}
+  _inactiveBaseColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _activeBaseColor: {r: 0, g: 1, b: 0.3, a: 1}
   _activeEmissionColor: {r: 0, g: 4, b: 0.5, a: 1}
-  _inactiveEmissionColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _lockedBaseColor: {r: 0.25, g: 0.1, b: 0, a: 1}
+  _lockedEmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &4059250164242728192
 GameObject:
   m_ObjectHideFlags: 0
@@ -2170,9 +2206,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleButton
   _interactText: "\u0420\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A S1"
+  _lockedInteractText: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E"
   _indicatorRenderer: {fileID: 854543142175221251}
+  _inactiveBaseColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _activeBaseColor: {r: 0, g: 1, b: 0.3, a: 1}
   _activeEmissionColor: {r: 0, g: 4, b: 0.5, a: 1}
-  _inactiveEmissionColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _lockedBaseColor: {r: 0.25, g: 0.1, b: 0, a: 1}
+  _lockedEmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &4397765702144961069
 GameObject:
   m_ObjectHideFlags: 0
@@ -2382,9 +2422,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleButton
   _interactText: "\u0420\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A S4"
+  _lockedInteractText: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E"
   _indicatorRenderer: {fileID: 7181458599577802839}
+  _inactiveBaseColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _activeBaseColor: {r: 0, g: 1, b: 0.3, a: 1}
   _activeEmissionColor: {r: 0, g: 4, b: 0.5, a: 1}
-  _inactiveEmissionColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _lockedBaseColor: {r: 0.25, g: 0.1, b: 0, a: 1}
+  _lockedEmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &4856819416871844096
 GameObject:
   m_ObjectHideFlags: 0
@@ -2395,6 +2439,7 @@ GameObject:
   m_Component:
   - component: {fileID: 579124891736191064}
   - component: {fileID: 4074368555012045621}
+  - component: {fileID: 8848778064678966905}
   m_Layer: 0
   m_Name: Symbol_Sigma
   m_TagString: Untagged
@@ -2412,7 +2457,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
   m_LocalPosition: {x: 0.0069999695, y: 0, z: -0}
-  m_LocalScale: {x: 0.012834474, y: 0.0128344735, z: 0.012834474}
+  m_LocalScale: {x: 0.12, y: 0.12, z: 0.12}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 274557271264890562}
@@ -2466,8 +2511,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 6a27e778865a12c4a958df2a85cf60c9, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: c7c0e14475bbce645b58f7a4c6288016, type: 3}
+  m_Color: {r: 0, g: 1, b: 0.039936066, a: 0.09019608}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2476,6 +2521,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &8848778064678966905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4856819416871844096}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3fe576b7cc45c84a81f8d89ce8306d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SymbolFader
+  _fadeDuration: 0.5
 --- !u!1 &5473818330524573140
 GameObject:
   m_ObjectHideFlags: 0
@@ -2486,6 +2544,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3032059882956017896}
   - component: {fileID: 6449757494989147229}
+  - component: {fileID: 4355683169966741017}
   m_Layer: 0
   m_Name: Symbol_Delta
   m_TagString: Untagged
@@ -2503,7 +2562,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
   m_LocalPosition: {x: 0.0069999695, y: 0, z: 0.02}
-  m_LocalScale: {x: 0.012834474, y: 0.0128344735, z: 0.012834474}
+  m_LocalScale: {x: 0.12, y: 0.12, z: 0.12}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6636809358351477334}
@@ -2557,8 +2616,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 6a27e778865a12c4a958df2a85cf60c9, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: fb3ba480c08d2874ca70cf0f3c06a36d, type: 3}
+  m_Color: {r: 0.007843137, g: 0.44478962, b: 1, a: 0.07450981}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -2567,6 +2626,19 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &4355683169966741017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5473818330524573140}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d3fe576b7cc45c84a81f8d89ce8306d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SymbolFader
+  _fadeDuration: 0.5
 --- !u!1 &5705453536800465679
 GameObject:
   m_ObjectHideFlags: 0
@@ -3849,9 +3921,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleButton
   _interactText: "\u0420\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A (\u041C\u0430\u0441\u0442\u0435\u0440)"
+  _lockedInteractText: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E"
   _indicatorRenderer: {fileID: 7417283216742217631}
+  _inactiveBaseColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _activeBaseColor: {r: 0, g: 1, b: 0.3, a: 1}
   _activeEmissionColor: {r: 0, g: 4, b: 0.5, a: 1}
-  _inactiveEmissionColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _lockedBaseColor: {r: 0.25, g: 0.1, b: 0, a: 1}
+  _lockedEmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1 &8911920934317523027
 GameObject:
   m_ObjectHideFlags: 0
@@ -4013,6 +4089,13 @@ MonoBehaviour:
     - requirements:
       - switchIndex: 2
         mustBeOn: 1
+  _adjacency:
+  - neighborIndices: 
+  - neighborIndices: 
+  - neighborIndices: 
+  - neighborIndices: 
+  - neighborIndices: 
+  _masterUnlockSequence: 
 --- !u!114 &3147916580290794970
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4028,6 +4111,7 @@ MonoBehaviour:
   _saveId: loop_puzzle_controller
   _powerCircuit: {fileID: 8792655740812080360}
   _hiddenDoor: {fileID: 8997413569634167117}
+  _roomLightSwitch: {fileID: 0}
   _roomLightZoneId: painting_room
   _conditions:
   - column: {fileID: 7390986345540793785}
@@ -4100,9 +4184,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleButton
   _interactText: "\u0420\u0443\u0431\u0438\u043B\u044C\u043D\u0438\u043A S2"
+  _lockedInteractText: "\u0417\u0430\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u0430\u043D\u043E"
   _indicatorRenderer: {fileID: 5950103870672714300}
+  _inactiveBaseColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _activeBaseColor: {r: 0, g: 1, b: 0.3, a: 1}
   _activeEmissionColor: {r: 0, g: 4, b: 0.5, a: 1}
-  _inactiveEmissionColor: {r: 0.05, g: 0.05, b: 0.05, a: 1}
+  _lockedBaseColor: {r: 0.25, g: 0.1, b: 0, a: 1}
+  _lockedEmissionColor: {r: 0, g: 0, b: 0, a: 1}
 --- !u!1001 &1079340017859022335
 PrefabInstance:
   m_ObjectHideFlags: 0

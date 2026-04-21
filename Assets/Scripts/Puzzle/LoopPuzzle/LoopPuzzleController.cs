@@ -37,8 +37,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     [SerializeField] private string _saveId = "loop_puzzle_controller";
 
     [Header("References")]
-    [SerializeField] private LoopPuzzlePowerCircuit _powerCircuit;
-    [SerializeField] private LoopPuzzleHiddenDoor _hiddenDoor;
+    [SerializeField] private LoopPuzzlePowerCircuit    _powerCircuit;
+    [SerializeField] private LoopPuzzleHiddenDoor      _hiddenDoor;
+    [SerializeField] private PaintingRoomLightSwitch   _roomLightSwitch;
 
     [Header("Room Light Zone")]
     [Tooltip("ZoneId of the painting room lights in LightingSystem. " +
@@ -51,6 +52,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     private bool _isSolved;
     private bool _roomLightOff;
 
+    // Cached from save data — used to restore the solved visual state on load.
+    private bool[] _savedSwitchStates;
+    private int[]  _savedConditionLenses;
+
     /// <summary>True if the puzzle has been solved.</summary>
     public bool IsSolved => _isSolved;
 
@@ -58,17 +63,35 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
     public string SaveId => _saveId;
 
-    public string GetSaveData() =>
-        JsonUtility.ToJson(new SaveData { isSolved = _isSolved });
+    public string GetSaveData()
+    {
+        var data = new SaveData { isSolved = _isSolved };
+
+        if (_isSolved)
+        {
+            // Persist the winning configuration so it can be restored visually on next load.
+            data.switchStates    = _powerCircuit?.GetAllSwitchStates();
+            data.conditionLenses = CollectConditionLenses();
+        }
+
+        return JsonUtility.ToJson(data);
+    }
 
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<SaveData>(json);
-        _isSolved = data.isSolved;
+        _isSolved            = data.isSolved;
+        _savedSwitchStates   = data.switchStates;
+        _savedConditionLenses = data.conditionLenses;
     }
 
     [Serializable]
-    private struct SaveData { public bool isSolved; }
+    private struct SaveData
+    {
+        public bool   isSolved;
+        public bool[] switchStates;     // S1–S6 states; null when puzzle is not yet solved
+        public int[]  conditionLenses;  // LensColor cast to int per _conditions entry; -1 = no spotlight
+    }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
@@ -79,17 +102,17 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
     private void Start()
     {
+        // _roomLightOff must be initialised before both solved and unsolved paths.
+        if (LightingSystem.Instance != null)
+            _roomLightOff = !LightingSystem.Instance.GetZoneSwitchState(_roomLightZoneId);
+
         if (_isSolved)
         {
-            HideAllSymbols();
+            RestoreSolvedState();
             return;
         }
 
         SubscribeToEvents();
-
-        if (LightingSystem.Instance != null)
-            _roomLightOff = !LightingSystem.Instance.GetZoneSwitchState(_roomLightZoneId);
-
         RefreshAllSymbols();
     }
 
@@ -153,6 +176,66 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         CheckWinCondition();
     }
 
+    // ── Solved-state helpers ───────────────────────────────────────────────────
+
+    /// <summary>
+    /// Restores the full visual state of a solved puzzle from save data:
+    /// powers the correct spotlights, applies lens colors, reveals symbols,
+    /// and locks all player interactions.
+    /// </summary>
+    private void RestoreSolvedState()
+    {
+        // 1. Restore switch states → EvaluateAndApply lights the correct spotlights.
+        if (_savedSwitchStates != null && _powerCircuit != null)
+            _powerCircuit.RestoreSwitchStates(_savedSwitchStates);
+
+        // 2. Restore lens colors so spotlights show the correct tint.
+        if (_savedConditionLenses != null)
+        {
+            for (int i = 0; i < _conditions.Length && i < _savedConditionLenses.Length; i++)
+            {
+                if (_conditions[i].spotlight == null || _savedConditionLenses[i] < 0) continue;
+                _conditions[i].spotlight.SetLens((LensColor)_savedConditionLenses[i]);
+            }
+        }
+
+        // 3. Show all symbols (faded in if SymbolFader is present).
+        ShowAllSymbols();
+
+        // 4. Prevent any further interaction with the puzzle controls.
+        LockAllInteractions();
+    }
+
+    /// <summary>Shows all condition symbols. Uses SymbolFader fade-in when available.</summary>
+    private void ShowAllSymbols()
+    {
+        foreach (var cond in _conditions)
+        {
+            if (cond.symbolObject == null) continue;
+            var fader = cond.symbolObject.GetComponent<SymbolFader>();
+            if (fader != null) fader.Show();
+            else               cond.symbolObject.SetActive(true);
+        }
+    }
+
+    /// <summary>Locks all puzzle buttons and the room light switch.</summary>
+    private void LockAllInteractions()
+    {
+        _powerCircuit?.LockAllSwitches();
+        _roomLightSwitch?.SetLocked(true);
+    }
+
+    /// <summary>Collects the current lens color of each condition's spotlight as an int array.</summary>
+    private int[] CollectConditionLenses()
+    {
+        var lenses = new int[_conditions.Length];
+        for (int i = 0; i < _conditions.Length; i++)
+            lenses[i] = _conditions[i].spotlight != null
+                ? (int)_conditions[i].spotlight.CurrentLens
+                : -1;
+        return lenses;
+    }
+
     // ── Symbol Logic ───────────────────────────────────────────────────────────
 
     private void RefreshAllSymbols()
@@ -175,14 +258,29 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
                            || cond.requiredColor == LensColor.None
                            || cond.spotlight.GetEffectiveColor() == cond.requiredColor;
         bool roomLightOk = !cond.requireRoomLightOff || _roomLightOff;
+        bool shouldShow  = heightOk && spotlightOk && colorOk && roomLightOk;
 
-        cond.symbolObject.SetActive(heightOk && spotlightOk && colorOk && roomLightOk);
+        var fader = cond.symbolObject.GetComponent<SymbolFader>();
+        if (fader != null)
+        {
+            if (shouldShow) fader.Show();
+            else            fader.Hide();
+        }
+        else
+        {
+            cond.symbolObject.SetActive(shouldShow);
+        }
     }
 
     private void HideAllSymbols()
     {
         foreach (var cond in _conditions)
-            if (cond.symbolObject != null) cond.symbolObject.SetActive(false);
+        {
+            if (cond.symbolObject == null) continue;
+            var fader = cond.symbolObject.GetComponent<SymbolFader>();
+            if (fader != null) fader.HideImmediate();
+            else               cond.symbolObject.SetActive(false);
+        }
     }
 
     // ── Win Condition ──────────────────────────────────────────────────────────
@@ -192,7 +290,13 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         if (_isSolved) return;
 
         foreach (var cond in _conditions)
-            if (cond.symbolObject == null || !cond.symbolObject.activeSelf) return;
+        {
+            if (cond.symbolObject == null) return;
+
+            var fader   = cond.symbolObject.GetComponent<SymbolFader>();
+            bool visible = fader != null ? fader.IsTargetVisible : cond.symbolObject.activeSelf;
+            if (!visible) return;
+        }
 
         OnPuzzleSolved();
     }
@@ -200,6 +304,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     private void OnPuzzleSolved()
     {
         _isSolved = true;
+        LockAllInteractions();
         _hiddenDoor?.Open();
         Debug.Log("[LoopPuzzleController] Puzzle solved — hidden door opened.");
         SaveManager.Instance?.Save();

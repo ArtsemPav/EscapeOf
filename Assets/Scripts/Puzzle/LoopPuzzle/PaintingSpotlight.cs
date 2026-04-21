@@ -93,7 +93,6 @@ public class PaintingSpotlight : MonoBehaviour
         if (IsPowered == powered) return;
         IsPowered = powered;
         ApplyPowerState(powered);
-        // Уведомляем об изменении: питание влияет на эффективный цвет синтезных прожекторов.
         OnLensChanged?.Invoke();
     }
 

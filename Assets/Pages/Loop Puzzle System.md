@@ -16,7 +16,7 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 │   │   └── Button_S1..S6    ← LoopPuzzleButton, слой Interactable Layer
 │   ├── ColumnButtons
 │   │   └── Button_Q1..Q4    ← PaintingColumnTrigger, слой Interactable Layer
-│   ├── LensButtons           ← (создать вручную)
+│   ├── LensButtons
 │   │   └── Button_L1..L4*   ← SpotlightLensButton, слой Interactable Layer
 │   └── HiddenDoor            ← LoopPuzzleHiddenDoor
 └── PaintingRoom
@@ -24,7 +24,8 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
     │   └── Spotlight_L1..L4  ← PaintingSpotlight
     └── Paintings
         └── PaintingColumn_Q1..Q4  ← PaintingColumn
-            └── Symbol_*           ← активны только при выполнении условий
+            ├── Symbol_Omega/Psi/Sigma/Delta  ← SpriteRenderer + SymbolFader
+            └── ...
 ```
 
 \* `LensButtons` для L3 не нужна — синтетический прожектор.
@@ -38,13 +39,14 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 | `LensColor.cs` | Enum: `None / Red / Blue / Yellow / Green` |
 | `PaintingSpotlight.cs` | Прожектор с линзой и синтезом |
 | `SpotlightLensButton.cs` | Кнопка смены линзы (ISaveable) |
-| `LoopPuzzleButton.cs` | Рубильник питания S1–S6 |
-| `LoopPuzzlePowerCircuit.cs` | Схема питания (OR-of-AND) |
+| `LoopPuzzleButton.cs` | Рубильник питания S1–S6, блокируется при решении |
+| `LoopPuzzlePowerCircuit.cs` | Схема питания (OR-of-AND), `LockAllSwitches()` |
 | `LoopPuzzleController.cs` | Центральный контроллер условий (ISaveable) |
 | `LoopPuzzleHiddenDoor.cs` | Скользящая дверь (ISaveable) |
 | `PaintingColumn.cs` | Ниша с изменяемой высотой (ISaveable) |
 | `PaintingColumnTrigger.cs` | Кнопка смены высоты картины |
-| `PaintingRoomLightSwitch.cs` | Выключатель света в комнате с картинами |
+| `PaintingRoomLightSwitch.cs` | Выключатель света, блокируется при решении |
+| `SymbolFader.cs` | Плавное появление символа + аддитивный блендинг |
 | `PeepholeInteractable.cs` | Глазок: переключение камеры, modal state |
 
 ---
@@ -59,6 +61,41 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 | Q4 (Тень) | Blue (L4) | BOT | Δ | ? |
 
 Значение для Q4 (Δ) не было указано — уточнить с дизайнером.
+
+---
+
+## SymbolFader — плавное появление и аддитивный блендинг
+
+`SymbolFader` — компонент на каждом `Symbol_*` объекте (вместо `SetActive`).
+
+### Поведение
+
+- `Show()` — фейд-ин по `SpriteRenderer.color.a` за `_fadeDuration` (0.5 с по умолчанию). Активирует GameObject если он был неактивен.
+- `Hide()` — фейд-аут. Не деактивирует GameObject — оставляет активным с `alpha = 0` чтобы последующий `Show()` мог сразу запустить корутину.
+- `HideImmediate()` — мгновенное скрытие без анимации. Используется при инициализации и reset.
+- `IsTargetVisible` — логическое состояние (не зависит от текущей анимации). `LoopPuzzleController.CheckWinCondition` читает это значение вместо `activeSelf`.
+
+### Аддитивный блендинг
+
+В `Awake()` компонент инстанцирует материал (`_renderer.material`) и устанавливает:
+
+```
+_SrcBlend = SrcAlpha (5)
+_DstBlend = One (1)
+```
+
+Результат: `Symbol × alpha + Scene × 1` — символ накладывается на картину, не перекрывая её. Работает с `Sprites/Default` и `Universal Render Pipeline/2D/Sprite-Unlit-Default`. Если шейдер не поддерживает эти свойства (`HasProperty` = false), блендинг молча пропускается.
+
+### Настройка в префабе
+
+`SymbolFader` уже добавлен на все четыре символа в `PaintPuzzle.prefab`:
+
+```
+PaintingColumn_Q1/Symbol_Omega   ← SymbolFader (_fadeDuration = 0.5)
+PaintingColumn_Q2/Symbol_Psi     ← SymbolFader (_fadeDuration = 0.5)
+PaintingColumn_Q3/Symbol_Sigma   ← SymbolFader (_fadeDuration = 0.5)
+PaintingColumn_Q4/Symbol_Delta   ← SymbolFader (_fadeDuration = 0.5)
+```
 
 ---
 
@@ -98,17 +135,58 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 3. Когда правильная комбинация активна → все прожекторы включаются.
 4. `LoopPuzzleController` проверяет высоту картин и цвет линз → символы проявляются → дверь открывается.
 
+### Блокировка при решении
+
+При решении загадки `LoopPuzzlePowerCircuit.LockAllSwitches()` блокирует все S1–S6. После этого `LoopPuzzleButton.SetLocked(true)` предотвращает любое взаимодействие с рубильниками.
+
+---
+
+## Блокировка взаимодействий при решении
+
+Когда загадка решена (`OnPuzzleSolved`), `LoopPuzzleController.LockAllInteractions()` вызывает:
+
+- `_powerCircuit.LockAllSwitches()` — блокирует S1–S6
+- `_roomLightSwitch.SetLocked(true)` — блокирует выключатель света
+
+**`PaintingRoomLightSwitch.SetLocked(bool)`** — новый метод. Когда заблокирован, `Interact()` возвращает управление сразу, `GetInteractText()` возвращает `_lockedInteractText` (по умолчанию: «Заблокировано»).
+
+`_roomLightSwitch` — `[SerializeField]` на `LoopPuzzleController`. Назначить в Inspector. Если не назначен (`null`), `?.SetLocked(true)` молча пропускается.
+
+---
+
+## Сохранение (LoopPuzzleController)
+
+`LoopPuzzleController` реализует `ISaveable`. Структура `SaveData`:
+
+| Поле | Тип | Когда сохраняется |
+|---|---|---|
+| `isSolved` | `bool` | всегда |
+| `switchStates` | `bool[]` | только если `isSolved = true` |
+| `conditionLenses` | `int[]` | только если `isSolved = true` |
+
+`switchStates` — состояния S1–S6 на момент решения. `conditionLenses` — `LensColor` каждого спотлайта из `_conditions`, приведённый к `int` (`-1` если у условия нет спотлайта).
+
+### Восстановление решённого состояния (`RestoreSolvedState`)
+
+При загрузке с `isSolved = true` вызывается `RestoreSolvedState()` вместо стандартного `Start()`:
+
+1. `_powerCircuit.RestoreSwitchStates(switchStates)` → `EvaluateAndApply()` → нужные прожекторы загораются.
+2. `spotlight.SetLens(LensColor)` для каждого условия → цвет линз восстанавливается.
+3. `ShowAllSymbols()` — `SymbolFader.Show()` на каждом символе (fade-in).
+4. `LockAllInteractions()` — S1–S6 и выключатель света заблокированы.
+5. Подписка на события **не** происходит — загадка уже решена.
+
+Старые сохранения (только `isSolved`) совместимы: `JsonUtility` оставляет `switchStates` и `conditionLenses` как `null`. В этом случае прожекторы и линзы не восстанавливаются, символы всё равно показываются через `ShowAllSymbols()`.
+
 ---
 
 ## LoopPuzzleController — сброс состояния
-
-Если загадка была ошибочно помечена как решённая (сохранено `isSolved=true`), `Start()` уходит в ранний выход и никакие события не подписываются — символы никогда не появляются.
 
 **Как сбросить в Play Mode:**
 1. Выбери `PaintPuzzle` в Hierarchy.
 2. В Inspector на `LoopPuzzleController` → правая кнопка → **Reset Puzzle**.
 
-Метод сбрасывает `_isSolved = false`, переподписывается на все события, обновляет символы и записывает сброс в сохранение.
+Метод сбрасывает `_isSolved = false`, переподписывается на все события, обновляет символы и записывает сброс в сохранение. Заблокированные кнопки **не** разблокируются автоматически — для полного сброса нужно перезапустить Play Mode.
 
 ---
 
@@ -217,6 +295,8 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 - [x] На `Spotlight_L3` → `PaintingSpotlight._synthesisInputs` назначить `Spotlight_L2` и `Spotlight_L4`
 - [x] В `LoopPuzzleController._conditions` выставить `requiredColor`: Q1=Red, Q2=Yellow, Q3=Green, Q4=Blue
 - [x] `Global Volume` выставить `Is Global = true`, включить `Post Processing` на `Main Camera`
+- [x] `SymbolFader` добавлен на `Symbol_Omega`, `Symbol_Psi`, `Symbol_Sigma`, `Symbol_Delta` в префабе
+- [ ] Добавить `PaintingRoomLightSwitch` на объект выключателя в сцене, назначить его в `LoopPuzzleController._roomLightSwitch`
 - [ ] На объекты освещения в PaintingRoom добавить компонент **Light Zone** (`LightGroup.cs`) с `Zone Id = "painting_room"`
 - [ ] Расставить кнопки `Button_L1`, `Button_L2`, `Button_L4` физически в сцене (позиция в ControlRoom)
 - [ ] Настроить высоты `_lowY / _midY / _highY` в `PaintingColumn` под реальную геометрию сцены

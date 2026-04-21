@@ -11,20 +11,30 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private static readonly int BaseColorId      = Shader.PropertyToID("_BaseColor");
 
-    private static readonly Color ActiveBase   = new Color(0f,    1f,    0.3f,  1f);
-    private static readonly Color InactiveBase = new Color(0.05f, 0.05f, 0.05f, 1f);
-    private static readonly Color LockedBase   = new Color(0.25f, 0.1f,  0f,    1f);
-
     [Header("Interaction")]
     [SerializeField] private string _interactText       = "Нажать";
     [SerializeField] private string _lockedInteractText = "Заблокировано";
 
     [Header("Indicator")]
     [SerializeField] private Renderer _indicatorRenderer;
+
+    [Header("Colors — OFF")]
+    [Tooltip("Base color of the indicator when the button is OFF or locked.")]
+    [SerializeField] private Color _inactiveBaseColor   = new Color(0.05f, 0.05f, 0.05f, 1f);
+
+    [Header("Colors — ON")]
+    [Tooltip("Base color of the indicator when the button is ON.")]
+    [SerializeField] private Color _activeBaseColor     = new Color(0f, 1f, 0.3f, 1f);
     [Tooltip("HDR emission color when the button is ON. Values above 1 activate Bloom.")]
-    [SerializeField] private Color _activeEmissionColor = new Color(0f, 4f, 0.5f);
-    [Tooltip("HDR emission color when the button is locked.")]
-    [SerializeField] private Color _lockedEmissionColor = new Color(2f, 0.4f, 0f);
+    [ColorUsage(showAlpha: false, hdr: true)]
+    [SerializeField] private Color _activeEmissionColor = new Color(0f, 4f, 0.5f, 1f);
+
+    [Header("Colors — Locked")]
+    [Tooltip("Base color of the indicator when the button is locked.")]
+    [SerializeField] private Color _lockedBaseColor     = new Color(0.25f, 0.1f, 0f, 1f);
+    [Tooltip("HDR emission color when the button is locked. Set to black to suppress glow.")]
+    [ColorUsage(showAlpha: false, hdr: true)]
+    [SerializeField] private Color _lockedEmissionColor = Color.black;
 
     private Material _indicatorMaterial;
 
@@ -67,7 +77,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
         ApplyVisual();
     }
 
-    /// <summary>Locks or unlocks the button. Locked buttons ignore Interact() and glow orange.</summary>
+    /// <summary>Locks or unlocks the button. Visual state updates immediately.</summary>
     public void SetLocked(bool locked)
     {
         IsLocked = locked;
@@ -87,17 +97,17 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
         if (IsLocked)
         {
-            _indicatorMaterial.SetColor(BaseColorId,     LockedBase);
+            _indicatorMaterial.SetColor(BaseColorId,     _lockedBaseColor);
             _indicatorMaterial.SetColor(EmissionColorId, _lockedEmissionColor);
         }
         else if (IsActive)
         {
-            _indicatorMaterial.SetColor(BaseColorId,     ActiveBase);
+            _indicatorMaterial.SetColor(BaseColorId,     _activeBaseColor);
             _indicatorMaterial.SetColor(EmissionColorId, _activeEmissionColor);
         }
         else
         {
-            _indicatorMaterial.SetColor(BaseColorId,     InactiveBase);
+            _indicatorMaterial.SetColor(BaseColorId,     _inactiveBaseColor);
             _indicatorMaterial.SetColor(EmissionColorId, Color.black);
         }
     }
@@ -114,4 +124,3 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     public bool UseLMBClick         => true;
     public string GetInteractText() => IsLocked ? _lockedInteractText : _interactText;
 }
-

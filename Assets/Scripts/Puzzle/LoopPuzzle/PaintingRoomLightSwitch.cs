@@ -12,11 +12,14 @@ public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
     [Header("Interaction")]
     [SerializeField] private string _interactTextWhenOn  = "Выключить свет";
     [SerializeField] private string _interactTextWhenOff = "Включить свет";
+    [SerializeField] private string _lockedInteractText  = "Заблокировано";
 
     [Header("Lighting Zone")]
     [Tooltip("Must match the ZoneId on all LightZone components in the painting room, " +
              "and the _roomLightZoneId on LoopPuzzleController.")]
     [SerializeField] private string _zoneId = "painting_room";
+
+    private bool _isLocked;
 
     /// <summary>True when the zone is currently switched off.</summary>
     public bool IsLightOff
@@ -28,10 +31,15 @@ public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
         }
     }
 
+    /// <summary>Locks or unlocks the switch. When locked, Interact() is ignored.</summary>
+    public void SetLocked(bool locked) => _isLocked = locked;
+
     // ── IInteractable ──────────────────────────────────────────────────────────
 
     public void Interact()
     {
+        if (_isLocked) return;
+
         if (LightingSystem.Instance == null)
         {
             Debug.LogWarning("[PaintingRoomLightSwitch] LightingSystem not found in scene.", this);
@@ -42,5 +50,7 @@ public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
 
     public bool IsPickable()        => false;
     public bool UseLMBClick         => true;
-    public string GetInteractText() => IsLightOff ? _interactTextWhenOff : _interactTextWhenOn;
+    public string GetInteractText() => _isLocked
+        ? _lockedInteractText
+        : (IsLightOff ? _interactTextWhenOff : _interactTextWhenOn);
 }

@@ -183,6 +183,14 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
 
     // ── Editor utilities ───────────────────────────────────────────────────────
 
+    /// <summary>Locks all switches including the master S6. Called when the puzzle is solved.</summary>
+    public void LockAllSwitches()
+    {
+        if (_switches == null) return;
+        foreach (var sw in _switches)
+            sw?.SetLocked(true);
+    }
+
     public int SwitchCount          => _switches != null ? _switches.Length : 0;
     public int SpotlightConfigCount => _spotlightConfigs != null ? _spotlightConfigs.Length : 0;
     public SwitchAdjacency[] Adjacency            => _adjacency;
