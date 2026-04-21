@@ -87,7 +87,6 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
         SubscribeToEvents();
 
-        // Read initial room light state from LightingSystem
         if (LightingSystem.Instance != null)
             _roomLightOff = !LightingSystem.Instance.GetZoneSwitchState(_roomLightZoneId);
 
@@ -177,9 +176,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
                            || cond.spotlight.GetEffectiveColor() == cond.requiredColor;
         bool roomLightOk = !cond.requireRoomLightOff || _roomLightOff;
 
-        bool result = heightOk && spotlightOk && colorOk && roomLightOk;
-
-        cond.symbolObject.SetActive(result);
+        cond.symbolObject.SetActive(heightOk && spotlightOk && colorOk && roomLightOk);
     }
 
     private void HideAllSymbols()
@@ -206,5 +203,20 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         _hiddenDoor?.Open();
         Debug.Log("[LoopPuzzleController] Puzzle solved — hidden door opened.");
         SaveManager.Instance?.Save();
+    }
+
+    /// <summary>Resets the puzzle solved state and re-subscribes to all events. Call from Inspector context menu in Play Mode.</summary>
+    [ContextMenu("Reset Puzzle")]
+    private void ResetPuzzle()
+    {
+        _isSolved = false;
+        SubscribeToEvents();
+
+        if (LightingSystem.Instance != null)
+            _roomLightOff = !LightingSystem.Instance.GetZoneSwitchState(_roomLightZoneId);
+
+        RefreshAllSymbols();
+        SaveManager.Instance?.Save();
+        Debug.Log("[LoopPuzzleController] Puzzle reset.");
     }
 }

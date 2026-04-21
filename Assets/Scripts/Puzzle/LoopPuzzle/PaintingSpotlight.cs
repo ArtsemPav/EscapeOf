@@ -93,15 +93,19 @@ public class PaintingSpotlight : MonoBehaviour
         if (IsPowered == powered) return;
         IsPowered = powered;
         ApplyPowerState(powered);
+        // Уведомляем об изменении: питание влияет на эффективный цвет синтезных прожекторов.
+        OnLensChanged?.Invoke();
     }
 
     /// <summary>
     /// Returns the effective color emitted by this spotlight.
-    /// For synthesis spotlights (L3): Blue + Yellow from inputs = Green; otherwise None.
-    /// For normal spotlights: returns CurrentLens directly.
+    /// For synthesis spotlights (L3): Blue + Yellow from POWERED inputs = Green; otherwise None.
+    /// For normal spotlights: returns CurrentLens, or None if not powered.
     /// </summary>
     public LensColor GetEffectiveColor()
     {
+        if (!IsPowered) return LensColor.None;
+
         if (_synthesisInputs == null || _synthesisInputs.Length == 0)
             return CurrentLens;
 
@@ -110,7 +114,7 @@ public class PaintingSpotlight : MonoBehaviour
 
         foreach (var input in _synthesisInputs)
         {
-            if (input == null) continue;
+            if (input == null || !input.IsPowered) continue;
             var c = input.GetEffectiveColor();
             if (c == LensColor.Blue)   hasBlue   = true;
             if (c == LensColor.Yellow) hasYellow = true;
