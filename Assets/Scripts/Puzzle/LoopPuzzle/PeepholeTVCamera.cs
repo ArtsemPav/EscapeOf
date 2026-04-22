@@ -71,6 +71,7 @@ public class PeepholeTVCamera : MonoBehaviour
             return;
         }
 
+        HideSymbolsFromMainCamera();
         CreateRenderTexture();
         ApplyToScreen();
     }
@@ -93,6 +94,21 @@ public class PeepholeTVCamera : MonoBehaviour
     }
 
     // ── Setup ──────────────────────────────────────────────────────────────────
+
+    /// <summary>Removes the TVOnly layer from the main camera culling mask so symbols are invisible to the player directly.</summary>
+    private static void HideSymbolsFromMainCamera()
+    {
+        int tvOnlyLayer = LayerMask.NameToLayer("TVOnly");
+        if (tvOnlyLayer == -1)
+        {
+            Debug.LogWarning("[PeepholeTVCamera] Layer 'TVOnly' not found. Symbols will be visible to the main camera.");
+            return;
+        }
+
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null)
+            mainCamera.cullingMask &= ~(1 << tvOnlyLayer);
+    }
 
     private void CreateRenderTexture()
     {
