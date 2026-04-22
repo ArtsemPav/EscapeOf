@@ -13,7 +13,15 @@ using UnityEngine.Rendering;
 [RequireComponent(typeof(SpriteRenderer))]
 public class SymbolFader : MonoBehaviour
 {
+    [Tooltip("Delay in seconds before the fade-in begins.")]
+    [SerializeField] private float _showDelay    = 0f;
+
+    [Tooltip("Duration of the fade-in and fade-out animation in seconds.")]
     [SerializeField] private float _fadeDuration = 0.5f;
+
+    [Tooltip("Target alpha when fully visible. Use values below 1 for semi-transparent symbols.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float _targetAlpha  = 1f;
 
     /// <summary>
     /// The logical target state — true when all puzzle conditions for this symbol are met.
@@ -36,7 +44,8 @@ public class SymbolFader : MonoBehaviour
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Marks this symbol as logically visible and fades it in.
+    /// Marks this symbol as logically visible and fades it in to _targetAlpha,
+    /// optionally waiting _showDelay seconds before starting.
     /// Activates the GameObject first if it was deactivated.
     /// </summary>
     public void Show()
@@ -47,11 +56,11 @@ public class SymbolFader : MonoBehaviour
         if (!gameObject.activeSelf)
             gameObject.SetActive(true);  // triggers Awake on first activation
 
-        _fadeCoroutine = StartCoroutine(FadeTo(1f));
+        _fadeCoroutine = StartCoroutine(ShowSequence());
     }
 
     /// <summary>
-    /// Marks this symbol as logically hidden and fades it out.
+    /// Marks this symbol as logically hidden and fades it out to zero.
     /// Safe to call on an already-inactive GameObject.
     /// </summary>
     public void Hide()
@@ -81,6 +90,14 @@ public class SymbolFader : MonoBehaviour
         if (_fadeCoroutine == null) return;
         StopCoroutine(_fadeCoroutine);
         _fadeCoroutine = null;
+    }
+
+    private IEnumerator ShowSequence()
+    {
+        if (_showDelay > 0f)
+            yield return new WaitForSeconds(_showDelay);
+
+        yield return FadeTo(_targetAlpha);
     }
 
     private IEnumerator FadeTo(float target)

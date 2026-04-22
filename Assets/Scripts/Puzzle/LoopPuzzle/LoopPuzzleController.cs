@@ -223,6 +223,12 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     {
         _powerCircuit?.LockAllSwitches();
         _roomLightSwitch?.SetLocked(true);
+
+        foreach (var t in GetComponentsInChildren<PaintingColumnTrigger>())
+            t.SetLocked(true);
+
+        foreach (var b in GetComponentsInChildren<SpotlightLensButton>())
+            b.SetLocked(true);
     }
 
     /// <summary>Collects the current lens color of each condition's spotlight as an int array.</summary>

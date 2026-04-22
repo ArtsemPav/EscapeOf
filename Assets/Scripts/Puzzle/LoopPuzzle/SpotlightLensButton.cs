@@ -16,7 +16,8 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private string _saveId = "lens_button_unique_id";
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText = "Сменить линзу";
+    [SerializeField] private string _interactText       = "Сменить линзу";
+    [SerializeField] private string _lockedInteractText = "Заблокировано";
 
     [Header("Target Spotlight")]
     [Tooltip("The spotlight (L1, L2 or L4) whose lens this button controls.")]
@@ -37,6 +38,7 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 
     private int _currentIndex;
     private MaterialPropertyBlock _propertyBlock;
+    private bool _isLocked;
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
 
@@ -84,9 +86,13 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
+    /// <summary>Locks or unlocks the button. When locked, Interact() is ignored.</summary>
+    public void SetLocked(bool locked) => _isLocked = locked;
+
     /// <summary>Cycles to the next lens in the configured options.</summary>
     public void Interact()
     {
+        if (_isLocked) return;
         if (_lensOptions == null || _lensOptions.Length == 0) return;
         _currentIndex = (_currentIndex + 1) % _lensOptions.Length;
         ApplyCurrentLens();
@@ -95,7 +101,7 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     public bool CanInteract()       => true;
     public bool IsPickable()        => false;
     public bool UseLMBClick         => true;
-    public string GetInteractText() => _interactText;
+    public string GetInteractText() => _isLocked ? _lockedInteractText : _interactText;
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
