@@ -11,6 +11,13 @@
 ```
 PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 ├── Peephole                  ← PeepholeInteractable (+ BoxCollider, слой Interactable Layer)
+│   ├── PeepholeCamera        ← CinemachineCamera (вид через глазок)
+│   ├── Cube                  ← визуальная заглушка глазка
+│   └── TVCamera              ← Camera + PeepholeTVCamera + TVGlitchEffect
+├── tv
+│   └── TV_CCTV_01
+│       ├── pPlane1           ← экран; получает runtime-материал TVGlitch (slot 0)
+│       └── TV_CCTV_02        ← корпус телевизора
 ├── ControlRoom
 │   ├── PowerButtons
 │   │   └── Button_S1..S6    ← LoopPuzzleButton, слой Interactable Layer
@@ -48,6 +55,8 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 | `PaintingRoomLightSwitch.cs` | Выключатель света, блокируется при решении |
 | `SymbolFader.cs` | Плавное появление символа + аддитивный блендинг |
 | `PeepholeInteractable.cs` | Глазок: переключение камеры, modal state |
+| `PeepholeTVCamera.cs` | Создаёт RenderTexture, назначает TVGlitch-материал на экран, синхронизирует параметры шейдера каждый кадр |
+| `TVGlitchEffect.cs` | Случайные глитч-события: анимирует `_GlitchAmount` на материале экрана |
 
 ---
 
@@ -285,6 +294,50 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 - Курсор остаётся залочен
 - Выход: LMB, WASD (новое нажатие), Esc
 - Выход работает через **собственные `InputAction`** (не из Player action map), так как `PushModalState()` отключает весь Player map
+
+---
+
+## TV-экран (PeepholeTVCamera + TVGlitchEffect)
+
+### Шейдер
+
+`Assets/Shaders/TVGlitch.shader` — кастомный URP Unlit шейдер (`Custom/TVGlitch`).
+
+| Свойство | Тип | Описание |
+|---|---|---|
+| `_BaseMap` | Texture2D | RenderTexture от `TVCamera` |
+| `_ScanlineCount` | Float | Количество скан-линий (180 по умолчанию) |
+| `_ScanlineDarkness` | Range(0, 0.5) | Затемнение между линиями |
+| `_NoiseAmount` | Range(0, 1) | Доля статика поверх изображения |
+| `_NoiseSpeed` | Range(1, 60) | Частота смены кадра шума (fps) |
+| `_EmissionStrength` | Range(0, 10) | Множитель яркости RT-контента |
+| `_EmissionColor` | HDR Color | Аддитивное свечение экрана (не зависит от контента) |
+| `_GlitchAmount` | Range(0, 1) | Интенсивность глитча — управляется скриптом |
+
+### PeepholeTVCamera
+
+Находится на `TVCamera`. Создаёт `RenderTexture`, направляет на неё камеру, создаёт runtime-экземпляр материала `Custom/TVGlitch` и назначает его на `pPlane1` (slot `_materialIndex`).
+
+Поля в секции **Screen Appearance** в Inspector:
+
+| Поле Inspector | Поле C# | Описание |
+|---|---|---|
+| Emission Strength | `_emissionStrength` | Яркость RT-контента (default 2.5) |
+| Noise Amount | `_noiseAmount` | Статик (default 0.12) |
+| Emission Color | `_emissionColor` | HDR свечение экрана (default black) |
+
+Значения синхронизируются с материалом каждый кадр (`Update` → `SyncMaterialProperties`) — изменения в Inspector работают в реальном времени в Play Mode.
+
+### TVGlitchEffect
+
+Находится на том же `TVCamera`. Периодически запускает корутины глитча: снапает `_GlitchAmount` до случайного значения, затем плавно сводит к 0. Поддерживает burst-режим (несколько глитчей подряд).
+
+### Настройка яркости экрана
+
+- Если изображение **тусклое** — подними **Emission Strength** (4–8).
+- Если изображение **чёрное** — проверь что RT-камера (`TVCamera`) имеет `Target Texture` назначен (в Awake назначается автоматически), и что сцена освещена.
+- Для **свечения экрана** (bloom-ореол) — выставь **Emission Color** в HDR с `Intensity > 1` (значение > 1.0 по порогу bloom).
+- **Noise Amount** держи в диапазоне `0.05–0.15`; значения выше 0.5 делают экран почти полным статиком.
 
 ---
 
