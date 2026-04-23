@@ -112,6 +112,11 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
             return;
         }
 
+        // Randomize each column to a height other than the solution height.
+        // Columns that were loaded from a save keep their saved position.
+        foreach (var cond in _conditions)
+            cond.column?.RandomizeStartingHeight(cond.requiredHeight);
+
         SubscribeToEvents();
         RefreshAllSymbols();
     }

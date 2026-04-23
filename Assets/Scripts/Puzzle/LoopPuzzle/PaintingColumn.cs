@@ -57,6 +57,7 @@ public class PaintingColumn : MonoBehaviour, ISaveable
 
     public void LoadSaveData(string json)
     {
+        _wasLoaded = true;
         var data = JsonUtility.FromJson<SaveData>(json);
         _currentHeight = (PaintingHeight)Mathf.Clamp(data.height, 0, 2);
         SnapToCurrentHeight();
@@ -64,6 +65,8 @@ public class PaintingColumn : MonoBehaviour, ISaveable
 
     [Serializable]
     private struct SaveData { public int height; }
+
+    private bool _wasLoaded;
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
@@ -96,6 +99,21 @@ public class PaintingColumn : MonoBehaviour, ISaveable
 
         _moveCoroutine = StartCoroutine(SlideTo(GetTargetY(_currentHeight)));
         OnHeightChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Picks a random starting height that is never equal to <paramref name="excludedHeight"/>.
+    /// No-op if this column was loaded from a save — the saved position takes priority.
+    /// Must be called before any AdvanceHeight() calls.
+    /// </summary>
+    public void RandomizeStartingHeight(PaintingHeight excludedHeight)
+    {
+        if (_wasLoaded) return;
+
+        // Offset by 1 or 2 steps from the excluded height → always lands on a different value.
+        int offset = UnityEngine.Random.Range(1, 3);
+        _currentHeight = (PaintingHeight)(((int)excludedHeight + offset) % 3);
+        SnapToCurrentHeight();
     }
 
     // ── Private ────────────────────────────────────────────────────────────────
