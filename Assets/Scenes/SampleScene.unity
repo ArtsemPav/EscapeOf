@@ -609,7 +609,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 821796101}
   _axis: 1
-  _pressDepth: 0.01
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1 &62592572
@@ -4447,7 +4447,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 1954035189}
   _axis: 1
-  _pressDepth: 0.015
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1001 &361291601
@@ -6807,7 +6807,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 129424845}
   _axis: 1
-  _pressDepth: 0.01
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1001 &535911162
@@ -8124,7 +8124,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 250679763}
   _axis: 1
-  _pressDepth: 0.01
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1001 &604805769
@@ -10732,7 +10732,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 214693409}
   _axis: 1
-  _pressDepth: 0.015
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1 &840624340 stripped
@@ -12564,8 +12564,8 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 1
-  m_Range: 10
+  m_Intensity: 0.35
+  m_Range: 3.72
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -14826,7 +14826,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 1453476259}
   _axis: 1
-  _pressDepth: 0.015
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1 &1202459650
@@ -15183,7 +15183,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 634165883}
   _axis: 1
-  _pressDepth: 0.015
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1 &1243006605
@@ -18128,7 +18128,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 952601755}
   _axis: 1
-  _pressDepth: 0.01
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!4 &1530880605 stripped
@@ -20808,7 +20808,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 371327203}
   _axis: 1
-  _pressDepth: 0.015
+  _pressDepth: 0.2
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!1 &1834620094
@@ -21689,7 +21689,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
   _pressTarget: {fileID: 1008141586}
   _axis: 1
-  _pressDepth: 0.015
+  _pressDepth: 0.1
   _pressDuration: 0.06
   _returnDuration: 0.12
 --- !u!4 &1952543616 stripped
@@ -25285,15 +25285,15 @@ PrefabInstance:
       objectReference: {fileID: 59532862}
     - target: {fileID: 4314488219611226966, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       propertyPath: _activeEmissionColor.b
-      value: 0.015625
+      value: 0.0625
       objectReference: {fileID: 0}
     - target: {fileID: 4314488219611226966, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       propertyPath: _activeEmissionColor.g
-      value: 0.125
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4314488219611226966, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       propertyPath: _activeEmissionColor.r
-      value: 0.1668848
+      value: 0.6675392
       objectReference: {fileID: 0}
     - target: {fileID: 4821030837808507243, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       propertyPath: m_Layer
@@ -25461,6 +25461,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8792655740812080360, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       propertyPath: _spotlightConfigs.Array.data[2].activationRules.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8792655740812080360, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      propertyPath: _spotlightConfigs.Array.data[1].activationRules.Array.data[0].requirements.Array.size
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8792655740812080360, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}

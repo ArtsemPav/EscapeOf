@@ -60,6 +60,7 @@ public class PaintingColumn : MonoBehaviour, ISaveable
         _wasLoaded = true;
         var data = JsonUtility.FromJson<SaveData>(json);
         _currentHeight = (PaintingHeight)Mathf.Clamp(data.height, 0, 2);
+        _initialHeight = _currentHeight;
         SnapToCurrentHeight();
     }
 
@@ -67,6 +68,9 @@ public class PaintingColumn : MonoBehaviour, ISaveable
     private struct SaveData { public int height; }
 
     private bool _wasLoaded;
+
+    /// <summary>Height assigned at the start of a fresh session. Used to restore on puzzle reset.</summary>
+    private PaintingHeight _initialHeight;
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
@@ -103,6 +107,7 @@ public class PaintingColumn : MonoBehaviour, ISaveable
 
     /// <summary>
     /// Picks a random starting height that is never equal to <paramref name="excludedHeight"/>.
+    /// Caches the result as the initial height for future resets.
     /// No-op if this column was loaded from a save — the saved position takes priority.
     /// Must be called before any AdvanceHeight() calls.
     /// </summary>
@@ -110,32 +115,31 @@ public class PaintingColumn : MonoBehaviour, ISaveable
     {
         if (_wasLoaded) return;
 
-        // Offset by 1 or 2 steps from the excluded height → always lands on a different value.
         int offset = UnityEngine.Random.Range(1, 3);
         _currentHeight = (PaintingHeight)(((int)excludedHeight + offset) % 3);
+        _initialHeight = _currentHeight;
         SnapToCurrentHeight();
     }
 
     /// <summary>
-    /// Resets the column to a random non-solution height and re-enables randomization for future calls.
-    /// Called when the player resets the puzzle by turning off the master power switch.
+    /// Slides the column back to the height it had at the start of this session.
+    /// If the column was loaded from a save, returns to the loaded position.
     /// </summary>
-    public void ResetToInitialState(PaintingHeight excludedHeight)
+    public void ResetToInitialState()
     {
-        if (_moveCoroutine != null)
-        {
-            StopCoroutine(_moveCoroutine);
-            _moveCoroutine = null;
+        _currentHeight = _initialHeight;
 
-            IsMoving = false;
-            s_movingCount = Mathf.Max(0, s_movingCount - 1);
-            if (s_movingCount == 0) OnAnyMovingChanged?.Invoke(false);
+        bool wasMoving = _moveCoroutine != null;
+        if (_moveCoroutine != null) StopCoroutine(_moveCoroutine);
+
+        if (!wasMoving)
+        {
+            IsMoving = true;
+            s_movingCount++;
+            if (s_movingCount == 1) OnAnyMovingChanged?.Invoke(true);
         }
 
-        _wasLoaded = false;
-        int offset = UnityEngine.Random.Range(1, 3);
-        _currentHeight = (PaintingHeight)(((int)excludedHeight + offset) % 3);
-        SnapToCurrentHeight();
+        _moveCoroutine = StartCoroutine(SlideTo(GetTargetY(_currentHeight)));
     }
 
     // ── Private ────────────────────────────────────────────────────────────────

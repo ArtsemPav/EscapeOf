@@ -357,9 +357,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         // Reset S1–S5 to off without triggering cascade or power events.
         _powerCircuit?.ResetSwitchesToOff();
 
-        // Reset each column to a new random non-solution height.
+        // Reset each column back to its starting position for this session.
         foreach (var cond in _conditions)
-            cond.column?.ResetToInitialState(cond.requiredHeight);
+            cond.column?.ResetToInitialState();
 
         HideAllSymbols();
     }
