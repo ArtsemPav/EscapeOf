@@ -23,6 +23,13 @@ public class SymbolFader : MonoBehaviour
     [Range(0f, 1f)]
     [SerializeField] private float _targetAlpha  = 1f;
 
+    [Tooltip("Multiplied onto the sprite's original color. (1,1,1) = keep original. HDR values above 1 boost brightness for Bloom.")]
+    [ColorUsage(showAlpha: false, hdr: true)]
+    [SerializeField] private Color _glowColor = Color.white;
+
+    /// <summary>RGB of the SpriteRenderer as set in the prefab/Inspector. Cached once in Awake.</summary>
+    private Color _baseColor;
+
     /// <summary>
     /// The logical target state — true when all puzzle conditions for this symbol are met.
     /// LoopPuzzleController.CheckWinCondition reads this instead of activeSelf.
@@ -36,8 +43,8 @@ public class SymbolFader : MonoBehaviour
 
     private void Awake()
     {
-        _renderer = GetComponent<SpriteRenderer>();
-        ApplyAdditiveBlend();
+        _renderer  = GetComponent<SpriteRenderer>();
+        _baseColor = _renderer.color;   // cache original prefab color before we touch it
         SetAlpha(0f);
     }
 
@@ -118,9 +125,12 @@ public class SymbolFader : MonoBehaviour
 
     private void SetAlpha(float alpha)
     {
-        var c = _renderer.color;
-        c.a   = alpha;
-        _renderer.color = c;
+        _renderer.color = new Color(
+            _baseColor.r * _glowColor.r,
+            _baseColor.g * _glowColor.g,
+            _baseColor.b * _glowColor.b,
+            alpha
+        );
     }
 
     /// <summary>

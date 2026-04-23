@@ -57,6 +57,12 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
     /// <summary>Срабатывает при любом изменении питания прожекторов.</summary>
     public event Action OnPowerChanged;
 
+    /// <summary>Срабатывает при включении или выключении S6 (мастер-рубильника). True = включён.</summary>
+    public event Action<bool> OnMasterToggled;
+
+    /// <summary>True когда мастер-рубильник S6 активен.</summary>
+    public bool IsMasterOn => PowerButton != null && PowerButton.IsActive;
+
     private bool _processingCascade;
 
     private LoopPuzzleButton PowerButton =>
@@ -100,6 +106,7 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
             _switches[i]?.SetLocked(!isOn);
 
         EvaluateAndApply();
+        OnMasterToggled?.Invoke(isOn);
     }
 
     /// <summary>Один из S1–S5 нажат — применить Lights Out каскад и пересчитать питание.</summary>

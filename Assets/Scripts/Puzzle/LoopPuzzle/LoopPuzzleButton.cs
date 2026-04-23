@@ -9,7 +9,8 @@ using UnityEngine;
 public class LoopPuzzleButton : MonoBehaviour, IInteractable
 {
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
-    private static readonly int BaseColorId      = Shader.PropertyToID("_BaseColor");
+    private static readonly int EmissionMapId   = Shader.PropertyToID("_EmissionMap");
+    private static readonly int BaseMapId       = Shader.PropertyToID("_BaseMap");
 
     [Header("Interaction")]
     [SerializeField] private string _interactText       = "Нажать";
@@ -18,25 +19,18 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     [Header("Indicator")]
     [SerializeField] private Renderer _indicatorRenderer;
 
-    [Header("Colors — OFF")]
-    [Tooltip("Base color of the indicator when the button is OFF or locked.")]
-    [SerializeField] private Color _inactiveBaseColor   = new Color(0.05f, 0.05f, 0.05f, 1f);
-
-    [Header("Colors — ON")]
-    [Tooltip("Base color of the indicator when the button is ON.")]
-    [SerializeField] private Color _activeBaseColor     = new Color(0f, 1f, 0.3f, 1f);
+    [Header("Emission — ON")]
     [Tooltip("HDR emission color when the button is ON. Values above 1 activate Bloom.")]
     [ColorUsage(showAlpha: false, hdr: true)]
     [SerializeField] private Color _activeEmissionColor = new Color(0f, 4f, 0.5f, 1f);
 
-    [Header("Colors — Locked")]
-    [Tooltip("Base color of the indicator when the button is locked.")]
-    [SerializeField] private Color _lockedBaseColor     = new Color(0.25f, 0.1f, 0f, 1f);
+    [Header("Emission — Locked")]
     [Tooltip("HDR emission color when the button is locked. Set to black to suppress glow.")]
     [ColorUsage(showAlpha: false, hdr: true)]
     [SerializeField] private Color _lockedEmissionColor = Color.black;
 
     private Material _indicatorMaterial;
+    private Texture  _albedoTexture;
 
     /// <summary>Current active state of this button.</summary>
     public bool IsActive { get; private set; }
@@ -53,6 +47,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
         {
             _indicatorMaterial = _indicatorRenderer.material;
             _indicatorMaterial.EnableKeyword("_EMISSION");
+            _albedoTexture = _indicatorMaterial.GetTexture(BaseMapId);
         }
 
         ApplyVisual();
@@ -97,17 +92,17 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
         if (IsLocked)
         {
-            _indicatorMaterial.SetColor(BaseColorId,     _lockedBaseColor);
+            _indicatorMaterial.SetTexture(EmissionMapId, null);
             _indicatorMaterial.SetColor(EmissionColorId, _lockedEmissionColor);
         }
         else if (IsActive)
         {
-            _indicatorMaterial.SetColor(BaseColorId,     _activeBaseColor);
+            _indicatorMaterial.SetTexture(EmissionMapId, _albedoTexture);
             _indicatorMaterial.SetColor(EmissionColorId, _activeEmissionColor);
         }
         else
         {
-            _indicatorMaterial.SetColor(BaseColorId,     _inactiveBaseColor);
+            _indicatorMaterial.SetTexture(EmissionMapId, null);
             _indicatorMaterial.SetColor(EmissionColorId, Color.black);
         }
     }

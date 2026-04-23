@@ -1,16 +1,16 @@
 using System;
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
 /// Interactable button that cycles the spectral lens on a target PaintingSpotlight.
-/// Each press advances to the next color in _lensOptions (Red → Blue → Yellow → Red…).
-/// The indicator MeshRenderer's emission color reflects the active lens.
-/// Uses MaterialPropertyBlock to avoid per-instance material creation.
-/// Saves/loads its current lens index via ISaveable.
+/// Each press advances one of four steps (0→1→2→3→0), rotating a target Transform
+/// by the configured angle per step around the configured axis.
+/// Saves/loads its current step index via ISaveable.
 /// </summary>
 public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 {
-    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+    private const int StepCount = 4;
 
     [Header("Save")]
     [SerializeField] private string _saveId = "lens_button_unique_id";
@@ -24,58 +24,54 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private PaintingSpotlight _targetSpotlight;
 
     [Header("Lens Cycle")]
-    [Tooltip("Ordered list of lens colors this button cycles through.")]
-    [SerializeField] private LensColor[] _lensOptions = { LensColor.Red, LensColor.Blue, LensColor.Yellow };
+    [Tooltip("Lens applied at step 0, 1, 2, 3 respectively. Must have exactly 4 entries.")]
+    [SerializeField] private LensColor[] _lensOptions = { LensColor.None, LensColor.Red, LensColor.Blue, LensColor.Yellow };
 
-    [Header("Indicator")]
-    [SerializeField] private Renderer _indicatorRenderer;
-    [Tooltip("HDR emission color shown when the current lens is Red. Values > 1 activate Bloom.")]
-    [SerializeField] private Color _redEmission    = new Color(3f, 0.3f, 0.2f);
-    [Tooltip("HDR emission color for Blue lens.")]
-    [SerializeField] private Color _blueEmission   = new Color(0.2f, 0.8f, 4f);
-    [Tooltip("HDR emission color for Yellow lens.")]
-    [SerializeField] private Color _yellowEmission = new Color(3f, 2.8f, 0.1f);
+    [Header("Rotation")]
+    [Tooltip("Transform that physically rotates. If null, this GameObject's transform is used.")]
+    [SerializeField] private Transform _rotationTarget;
+    [Tooltip("Axis of rotation in local space.")]
+    [SerializeField] private RotationAxis _axis = RotationAxis.Y;
+    [Tooltip("Angle applied per step in degrees.")]
+    [SerializeField] private float _stepAngle = 15f;
+    [Tooltip("Duration of the rotation animation in seconds.")]
+    [SerializeField] private float _rotateDuration = 0.2f;
 
-    private int _currentIndex;
-    private MaterialPropertyBlock _propertyBlock;
-    private bool _isLocked;
+    private int       _currentStep;
+    private bool      _isLocked;
+    private Coroutine _rotateCoroutine;
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
 
     public string GetSaveData() =>
-        JsonUtility.ToJson(new SaveData { lensIndex = _currentIndex });
+        JsonUtility.ToJson(new SaveData { stepIndex = _currentStep });
 
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<SaveData>(json);
-        _currentIndex = Mathf.Clamp(data.lensIndex, 0, Mathf.Max(0, _lensOptions.Length - 1));
+        _currentStep = Mathf.Clamp(data.stepIndex, 0, StepCount - 1);
+        SnapRotation();
         ApplyCurrentLens();
     }
 
     [Serializable]
-    private struct SaveData { public int lensIndex; }
+    private struct SaveData { public int stepIndex; }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        _propertyBlock = new MaterialPropertyBlock();
-
-        if (_indicatorRenderer != null)
-        {
-            Material mat = _indicatorRenderer.material;
-            mat.EnableKeyword("_EMISSION");
-            mat.SetColor(EmissionColorId, Color.black);
-        }
+        if (_rotationTarget == null)
+            _rotationTarget = transform;
 
         SaveManager.Instance?.Register(this);
     }
 
     private void Start()
     {
-        // Apply initial lens on Start so all spotlights are initialized first.
+        SnapRotation();
         ApplyCurrentLens();
     }
 
@@ -89,45 +85,79 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     /// <summary>Locks or unlocks the button. When locked, Interact() is ignored.</summary>
     public void SetLocked(bool locked) => _isLocked = locked;
 
-    /// <summary>Cycles to the next lens in the configured options.</summary>
+    /// <summary>Advances to the next step (0→1→2→3→0), rotates the button, and updates the spotlight lens.</summary>
     public void Interact()
     {
         if (_isLocked) return;
-        if (_lensOptions == null || _lensOptions.Length == 0) return;
-        _currentIndex = (_currentIndex + 1) % _lensOptions.Length;
+
+        _currentStep = (_currentStep + 1) % StepCount;
         ApplyCurrentLens();
+        AnimateRotation();
     }
 
-    public bool CanInteract()       => true;
-    public bool IsPickable()        => false;
-    public bool UseLMBClick         => true;
-    public string GetInteractText() => _isLocked ? _lockedInteractText : _interactText;
+    public bool   IsPickable()        => false;
+    public bool   UseLMBClick         => true;
+    public string GetInteractText()   => _isLocked ? _lockedInteractText : _interactText;
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
+    // ── Rotation ───────────────────────────────────────────────────────────────
+
+    private void AnimateRotation()
+    {
+        if (_rotateCoroutine != null)
+            StopCoroutine(_rotateCoroutine);
+        _rotateCoroutine = StartCoroutine(RotateTo(TargetRotation()));
+    }
+
+    private void SnapRotation()
+    {
+        Vector3 euler = _rotationTarget.localEulerAngles;
+        SetAxisValue(ref euler, _currentStep * _stepAngle);
+        _rotationTarget.localEulerAngles = euler;
+    }
+
+    private IEnumerator RotateTo(Quaternion target)
+    {
+        Quaternion start   = _rotationTarget.localRotation;
+        float      elapsed = 0f;
+
+        while (elapsed < _rotateDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t  = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / _rotateDuration));
+            _rotationTarget.localRotation = Quaternion.Lerp(start, target, t);
+            yield return null;
+        }
+
+        _rotationTarget.localRotation = target;
+        _rotateCoroutine = null;
+    }
+
+    private Quaternion TargetRotation()
+    {
+        Vector3 euler = Vector3.zero;
+        SetAxisValue(ref euler, _currentStep * _stepAngle);
+        return Quaternion.Euler(euler);
+    }
+
+    private void SetAxisValue(ref Vector3 euler, float value)
+    {
+        switch (_axis)
+        {
+            case RotationAxis.X: euler.x = value; break;
+            case RotationAxis.Y: euler.y = value; break;
+            case RotationAxis.Z: euler.z = value; break;
+        }
+    }
+
+    // ── Lens ───────────────────────────────────────────────────────────────────
 
     private void ApplyCurrentLens()
     {
         if (_lensOptions == null || _lensOptions.Length == 0) return;
-
-        var lens = _lensOptions[_currentIndex];
+        var lens = _lensOptions[Mathf.Clamp(_currentStep, 0, _lensOptions.Length - 1)];
         _targetSpotlight?.SetLens(lens);
-        UpdateIndicator(lens);
-    }
-
-    private void UpdateIndicator(LensColor lens)
-    {
-        if (_indicatorRenderer == null) return;
-
-        var emissionColor = lens switch
-        {
-            LensColor.Red    => _redEmission,
-            LensColor.Blue   => _blueEmission,
-            LensColor.Yellow => _yellowEmission,
-            _                => Color.black
-        };
-
-        _indicatorRenderer.GetPropertyBlock(_propertyBlock);
-        _propertyBlock.SetColor(EmissionColorId, emissionColor);
-        _indicatorRenderer.SetPropertyBlock(_propertyBlock);
     }
 }
+
+/// <summary>Local-space axis around which the button rotates.</summary>
+public enum RotationAxis { X, Y, Z }
