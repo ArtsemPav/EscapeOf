@@ -548,6 +548,8 @@ public class FPSController : MonoBehaviour, ISaveable
             {
                 // Single click: notes, pickups, etc.
                 _currentInteractable.Interact();
+                (_currentInteractable as MonoBehaviour)
+                    ?.GetComponent<ButtonPressAnimation>()?.Play();
                 _currentInteractable = null;
                 _lastHintText = null;
                 _lastCrosshairMode = CrosshairMode.Default;
@@ -576,6 +578,8 @@ public class FPSController : MonoBehaviour, ISaveable
         if (_currentInteractable != null && !_currentInteractable.UseLMBClick)
         {
             _currentInteractable.Interact();
+            (_currentInteractable as MonoBehaviour)
+                ?.GetComponent<ButtonPressAnimation>()?.Play();
             _currentInteractable = null;
             _lastHintText = null;
             _lastCrosshairMode = CrosshairMode.Default;

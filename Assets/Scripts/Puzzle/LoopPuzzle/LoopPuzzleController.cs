@@ -132,7 +132,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     private void SubscribeToEvents()
     {
         if (_powerCircuit != null)
-            _powerCircuit.OnPowerChanged += OnAnyStateChanged;
+        {
+            _powerCircuit.OnPowerChanged  += OnAnyStateChanged;
+            _powerCircuit.OnMasterToggled += OnMasterToggled;
+        }
 
         foreach (var cond in _conditions)
         {
@@ -150,7 +153,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     private void UnsubscribeFromEvents()
     {
         if (_powerCircuit != null)
-            _powerCircuit.OnPowerChanged -= OnAnyStateChanged;
+        {
+            _powerCircuit.OnPowerChanged  -= OnAnyStateChanged;
+            _powerCircuit.OnMasterToggled -= OnMasterToggled;
+        }
 
         foreach (var cond in _conditions)
         {
@@ -171,6 +177,12 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     {
         RefreshAllSymbols();
         CheckWinCondition();
+    }
+
+    private void OnMasterToggled(bool isOn)
+    {
+        if (!isOn)
+            ResetPuzzleState();
     }
 
     private void OnZoneSwitchChanged(string zoneId, bool isSwitchedOn)
@@ -334,5 +346,21 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         RefreshAllSymbols();
         SaveManager.Instance?.Save();
         Debug.Log("[LoopPuzzleController] Puzzle reset.");
+    }
+
+    /// <summary>
+    /// Resets all painting columns to a random non-solution height and resets all S1–S5
+    /// switch states to off. Called automatically when the player turns off the master S6.
+    /// </summary>
+    private void ResetPuzzleState()
+    {
+        // Reset S1–S5 to off without triggering cascade or power events.
+        _powerCircuit?.ResetSwitchesToOff();
+
+        // Reset each column to a new random non-solution height.
+        foreach (var cond in _conditions)
+            cond.column?.ResetToInitialState(cond.requiredHeight);
+
+        HideAllSymbols();
     }
 }

@@ -198,6 +198,17 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
             sw?.SetLocked(true);
     }
 
+    /// <summary>
+    /// Silently resets S1–S5 to the OFF state without triggering cascade or power events.
+    /// S6 (master) is intentionally left untouched — it stays in whatever state the player set it.
+    /// Called when the player turns off the master to reset the puzzle.
+    /// </summary>
+    public void ResetSwitchesToOff()
+    {
+        for (int i = 0; i < NonMasterCount; i++)
+            _switches[i]?.SetStateSilent(false);
+    }
+
     public int SwitchCount          => _switches != null ? _switches.Length : 0;
     public int SpotlightConfigCount => _spotlightConfigs != null ? _spotlightConfigs.Length : 0;
     public SwitchAdjacency[] Adjacency            => _adjacency;

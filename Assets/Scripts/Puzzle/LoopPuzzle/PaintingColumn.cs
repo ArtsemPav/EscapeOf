@@ -116,6 +116,28 @@ public class PaintingColumn : MonoBehaviour, ISaveable
         SnapToCurrentHeight();
     }
 
+    /// <summary>
+    /// Resets the column to a random non-solution height and re-enables randomization for future calls.
+    /// Called when the player resets the puzzle by turning off the master power switch.
+    /// </summary>
+    public void ResetToInitialState(PaintingHeight excludedHeight)
+    {
+        if (_moveCoroutine != null)
+        {
+            StopCoroutine(_moveCoroutine);
+            _moveCoroutine = null;
+
+            IsMoving = false;
+            s_movingCount = Mathf.Max(0, s_movingCount - 1);
+            if (s_movingCount == 0) OnAnyMovingChanged?.Invoke(false);
+        }
+
+        _wasLoaded = false;
+        int offset = UnityEngine.Random.Range(1, 3);
+        _currentHeight = (PaintingHeight)(((int)excludedHeight + offset) % 3);
+        SnapToCurrentHeight();
+    }
+
     // ── Private ────────────────────────────────────────────────────────────────
 
     private void SnapToCurrentHeight()
