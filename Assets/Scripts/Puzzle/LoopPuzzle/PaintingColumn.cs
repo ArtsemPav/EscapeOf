@@ -72,6 +72,9 @@ public class PaintingColumn : MonoBehaviour, ISaveable
     /// <summary>Height assigned at the start of a fresh session. Used to restore on puzzle reset.</summary>
     private PaintingHeight _initialHeight;
 
+    /// <summary>True if this column's height was restored from a save file this session.</summary>
+    public bool WasLoaded => _wasLoaded;
+
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
     private void Awake()
@@ -118,6 +121,20 @@ public class PaintingColumn : MonoBehaviour, ISaveable
         int offset = UnityEngine.Random.Range(1, 3);
         _currentHeight = (PaintingHeight)(((int)excludedHeight + offset) % 3);
         _initialHeight = _currentHeight;
+        SnapToCurrentHeight();
+    }
+
+    /// <summary>
+    /// Directly sets the initial height for this column without randomization.
+    /// Used by LoopPuzzleController when computing a globally consistent starting state.
+    /// No-op if this column was loaded from a save.
+    /// </summary>
+    public void SetInitialHeight(PaintingHeight height)
+    {
+        if (_wasLoaded) return;
+
+        _currentHeight = height;
+        _initialHeight = height;
         SnapToCurrentHeight();
     }
 

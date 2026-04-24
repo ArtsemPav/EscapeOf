@@ -1,22 +1,24 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
 /// <summary>
-/// Renders the painting room view to a RenderTexture and displays it on the TV screen.
+/// Cycles through a list of cameras and renders the active one to a shared RenderTexture
+/// displayed on the TV screen. Only the active camera renders — all others are disabled.
 ///
 /// Setup:
-///  1. Add a Camera component to TVCamera (child of Peephole) and point it into the painting room.
-///     Make sure its Tag is NOT "MainCamera".
-///  2. Add this script to that same GameObject (or any active object in the hierarchy).
-///  3. Assign _camera to the Camera component and _screenRenderer to the screen MeshRenderer.
-///  4. Set _materialIndex to the correct material slot on the screen renderer.
+///  1. Add all TV cameras to the <see cref="_cameras"/> list in the Inspector.
+///  2. Assign <see cref="_screenRenderer"/> to the TV screen MeshRenderer.
+///  3. Set <see cref="_materialIndex"/> to the correct material slot on the screen renderer.
+///  4. Call <see cref="NextCamera"/> from a button's IInteractable.Interact().
 /// </summary>
 public class PeepholeTVCamera : MonoBehaviour
 {
-    [Header("References")]
-    [Tooltip("The camera positioned at the peephole, looking into the painting room.")]
-    [SerializeField] private Camera   _camera;
+    [Header("Cameras")]
+    [Tooltip("All TV cameras in cycle order. The first one is active at start.")]
+    [SerializeField] private List<Camera> _cameras = new();
 
+    [Header("Screen")]
     [Tooltip("MeshRenderer of the TV screen object.")]
     [SerializeField] private Renderer _screenRenderer;
 
@@ -46,6 +48,7 @@ public class PeepholeTVCamera : MonoBehaviour
 
     private RenderTexture _renderTexture;
     private Material      _screenMaterial;
+    private int           _currentIndex;
 
     private static readonly int EmissionStrengthID = Shader.PropertyToID("_EmissionStrength");
     private static readonly int EmissionColorID    = Shader.PropertyToID("_EmissionColor");
@@ -55,13 +58,16 @@ public class PeepholeTVCamera : MonoBehaviour
     /// <summary>The instanced screen material. Used by TVGlitchEffect to drive shader properties.</summary>
     public Material ScreenMaterial => _screenMaterial;
 
+    /// <summary>Index of the currently active camera in the <see cref="_cameras"/> list.</summary>
+    public int CurrentCameraIndex => _currentIndex;
+
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        if (_camera == null)
+        if (_cameras == null || _cameras.Count == 0)
         {
-            Debug.LogError("[PeepholeTVCamera] Camera reference is not assigned.", this);
+            Debug.LogError("[PeepholeTVCamera] No cameras assigned.", this);
             return;
         }
 
@@ -74,6 +80,7 @@ public class PeepholeTVCamera : MonoBehaviour
         HideSymbolsFromMainCamera();
         CreateRenderTexture();
         ApplyToScreen();
+        ActivateCamera(_currentIndex);
     }
 
     private void Update()
@@ -93,9 +100,36 @@ public class PeepholeTVCamera : MonoBehaviour
         }
     }
 
-    // ── Setup ──────────────────────────────────────────────────────────────────
+    // ── Public API ─────────────────────────────────────────────────────────────
 
-    /// <summary>Removes the TVOnly layer from the main camera culling mask so symbols are invisible to the player directly.</summary>
+    /// <summary>Advances to the next camera in the list, wrapping around.</summary>
+    public void NextCamera()
+    {
+        if (_cameras == null || _cameras.Count == 0) return;
+
+        int next = (_currentIndex + 1) % _cameras.Count;
+        ActivateCamera(next);
+    }
+
+    // ── Private ────────────────────────────────────────────────────────────────
+
+    /// <summary>Enables only the camera at <paramref name="index"/>, assigning it the shared RT. Disables all others.</summary>
+    private void ActivateCamera(int index)
+    {
+        for (int i = 0; i < _cameras.Count; i++)
+        {
+            var cam = _cameras[i];
+            if (cam == null) continue;
+
+            bool isActive = i == index;
+            cam.targetTexture = isActive ? _renderTexture : null;
+            cam.enabled       = isActive;
+        }
+
+        _currentIndex = index;
+    }
+
+    /// <summary>Removes the TVOnly layer from the main camera so symbols are invisible to the player directly.</summary>
     private static void HideSymbolsFromMainCamera()
     {
         int tvOnlyLayer = LayerMask.NameToLayer("TVOnly");
@@ -116,14 +150,8 @@ public class PeepholeTVCamera : MonoBehaviour
         _renderTexture.name         = "PeepholeTV_RT";
         _renderTexture.antiAliasing = 1;
         _renderTexture.Create();
-
-        _camera.targetTexture = _renderTexture;
     }
 
-    /// <summary>
-    /// Creates a Custom/TVGlitch material instance with the RenderTexture and assigns it
-    /// to the specified material slot on the screen renderer.
-    /// </summary>
     private void ApplyToScreen()
     {
         var shader = Shader.Find("Custom/TVGlitch");
@@ -151,7 +179,6 @@ public class PeepholeTVCamera : MonoBehaviour
         _screenRenderer.materials = mats;
     }
 
-    /// <summary>Pushes the serialized appearance fields to the runtime material. Called every frame so Inspector changes apply immediately in Play Mode.</summary>
     private void SyncMaterialProperties()
     {
         if (_screenMaterial == null) return;

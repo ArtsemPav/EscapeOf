@@ -112,10 +112,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
             return;
         }
 
-        // Randomize each column to a height other than the solution height.
+        // Randomize each column to a solvable starting height.
         // Columns that were loaded from a save keep their saved position.
-        foreach (var cond in _conditions)
-            cond.column?.RandomizeStartingHeight(cond.requiredHeight);
+        RandomizeColumns();
 
         SubscribeToEvents();
         RefreshAllSymbols();
@@ -146,6 +145,8 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
                 cond.spotlight.OnLensChanged += OnAnyStateChanged;
         }
 
+        PaintingColumn.OnAnyMovingChanged += OnAnyColumnMovingChanged;
+
         if (LightingSystem.Instance != null)
             LightingSystem.Instance.OnZoneSwitchChanged += OnZoneSwitchChanged;
     }
@@ -167,6 +168,8 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
                 cond.spotlight.OnLensChanged -= OnAnyStateChanged;
         }
 
+        PaintingColumn.OnAnyMovingChanged -= OnAnyColumnMovingChanged;
+
         if (LightingSystem.Instance != null)
             LightingSystem.Instance.OnZoneSwitchChanged -= OnZoneSwitchChanged;
     }
@@ -176,7 +179,21 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     private void OnAnyStateChanged()
     {
         RefreshAllSymbols();
-        CheckWinCondition();
+        // Win condition is checked in OnAnyColumnMovingChanged when all columns stop.
+        // For non-column state changes (spotlights, power, room light) check immediately
+        // but only if no columns are currently moving.
+        if (!PaintingColumn.IsAnyMoving)
+            CheckWinCondition();
+    }
+
+    private void OnAnyColumnMovingChanged(bool anyMoving)
+    {
+        if (!anyMoving)
+        {
+            // All columns have stopped — safe to evaluate the win condition now.
+            RefreshAllSymbols();
+            CheckWinCondition();
+        }
     }
 
     private void OnMasterToggled(bool isOn)
@@ -190,7 +207,8 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         if (zoneId != _roomLightZoneId) return;
         _roomLightOff = !isSwitchedOn;
         RefreshAllSymbols();
-        CheckWinCondition();
+        if (!PaintingColumn.IsAnyMoving)
+            CheckWinCondition();
     }
 
     // ── Solved-state helpers ───────────────────────────────────────────────────
@@ -331,6 +349,66 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         _hiddenDoor?.Open();
         Debug.Log("[LoopPuzzleController] Puzzle solved — hidden door opened.");
         SaveManager.Instance?.Save();
+    }
+
+    /// <summary>
+    /// Randomizes all column starting heights while preserving the puzzle's movement invariant
+    /// (h0 - h1 + h2 - h3) mod 3, which is required for the puzzle to always be solvable.
+    /// Falls back to per-column randomization if any column was loaded from a save —
+    /// saved states are always reachable, so the invariant is already correct for that session.
+    /// </summary>
+    private void RandomizeColumns()
+    {
+        if (_conditions.Length == 0) return;
+
+        bool anyLoaded = false;
+        foreach (var cond in _conditions)
+        {
+            if (cond.column != null && cond.column.WasLoaded)
+            {
+                anyLoaded = true;
+                break;
+            }
+        }
+
+        if (anyLoaded || _conditions.Length != 4)
+        {
+            foreach (var cond in _conditions)
+                cond.column?.RandomizeStartingHeight(cond.requiredHeight);
+            return;
+        }
+
+        // Invariant of the solution: (sol0 - sol1 + sol2 - sol3) mod 3.
+        // All reachable states share this value — the starting state must too.
+        int solInvariant = (
+              (int)_conditions[0].requiredHeight
+            - (int)_conditions[1].requiredHeight
+            + (int)_conditions[2].requiredHeight
+            - (int)_conditions[3].requiredHeight + 9) % 3;
+
+        var heights = new PaintingHeight[4];
+
+        // Out of the 8 possible (h0,h1,h2) combos, exactly 2 produce h3 == sol3 (unsolvable).
+        // The loop converges in ~1.3 attempts on average.
+        for (int attempt = 0; attempt < 50; attempt++)
+        {
+            for (int i = 0; i < 3; i++)
+            {
+                int offset = UnityEngine.Random.Range(1, 3);
+                heights[i] = (PaintingHeight)(((int)_conditions[i].requiredHeight + offset) % 3);
+            }
+
+            // Derive h3 to preserve the invariant: h0 - h1 + h2 - h3 ≡ solInvariant
+            // => h3 = h0 - h1 + h2 - solInvariant (mod 3)
+            int h3 = ((int)heights[0] - (int)heights[1] + (int)heights[2] - solInvariant + 9) % 3;
+            heights[3] = (PaintingHeight)h3;
+
+            if (heights[3] != _conditions[3].requiredHeight)
+                break;
+        }
+
+        for (int i = 0; i < 4; i++)
+            _conditions[i].column?.SetInitialHeight(heights[i]);
     }
 
     /// <summary>Resets the puzzle solved state and re-subscribes to all events. Call from Inspector context menu in Play Mode.</summary>
