@@ -13,9 +13,12 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 ├── Peephole                  ← PeepholeInteractable (+ BoxCollider, слой Interactable Layer)
 │   ├── PeepholeCamera        ← CinemachineCamera (вид через глазок)
 │   ├── Cube                  ← визуальная заглушка глазка
-│   └── TVCamera              ← Camera + PeepholeTVCamera + TVGlitchEffect
+│   ├── TVCamera              ← Camera (чистая, без скриптов)
+│   ├── TVCamera2..6          ← Camera (чистые, без скриптов)
 ├── tv
-│   └── TV_CCTV_01
+│   └── TV_CCTV_01            ← PeepholeTVCamera, TVGlitchEffect
+│       ├── PositionSwitch    ← TVChannelButton, ButtonPressAnimation, слой Interactable Layer
+│       │   └── buttonPosition ← Transform — физически нажимается
 │       ├── pPlane1           ← экран; получает runtime-материал TVGlitch (slot 0)
 │       └── TV_CCTV_02        ← корпус телевизора
 ├── ControlRoom
@@ -45,18 +48,19 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 |---|---|
 | `LensColor.cs` | Enum: `None / Red / Blue / Yellow / Green` |
 | `PaintingSpotlight.cs` | Прожектор с линзой и синтезом |
-| `SpotlightLensButton.cs` | Кнопка смены линзы (ISaveable) |
-| `LoopPuzzleButton.cs` | Рубильник питания S1–S6, блокируется при решении |
-| `LoopPuzzlePowerCircuit.cs` | Схема питания (OR-of-AND), `LockAllSwitches()` |
+| `SpotlightLensButton.cs` | Кнопка смены линзы: 4 такта (0→1→2→3→0), поворот физического объекта, ISaveable |
+| `LoopPuzzleButton.cs` | Рубильник питания S1–S6, текстурированный emission-гло, блокируется при решении |
+| `LoopPuzzlePowerCircuit.cs` | Схема питания (OR-of-AND), `LockAllSwitches()`, события `OnPowerChanged` и `OnMasterToggled` |
 | `LoopPuzzleController.cs` | Центральный контроллер условий (ISaveable) |
 | `LoopPuzzleHiddenDoor.cs` | Скользящая дверь (ISaveable) |
-| `PaintingColumn.cs` | Ниша с изменяемой высотой (ISaveable) |
-| `PaintingColumnTrigger.cs` | Кнопка смены высоты картины |
+| `PaintingColumn.cs` | Ниша с изменяемой высотой (ISaveable), глобальный счётчик `IsAnyMoving`, события `OnMoveFinished` / `OnHeightChanged` |
+| `PaintingColumnTrigger.cs` | Кнопка смены высоты: glow во время движения, два независимых флага блокировки (питание / решение) |
 | `PaintingRoomLightSwitch.cs` | Выключатель света, блокируется при решении |
-| `SymbolFader.cs` | Плавное появление символа + аддитивный блендинг |
+| `SymbolFader.cs` | Плавное появление символа с настраиваемым HDR-цветом свечения |
 | `PeepholeInteractable.cs` | Глазок: переключение камеры, modal state |
-| `PeepholeTVCamera.cs` | Создаёт RenderTexture, назначает TVGlitch-материал на экран, синхронизирует параметры шейдера каждый кадр |
+| `PeepholeTVCamera.cs` | Создаёт RenderTexture, циклически активирует одну из N камер, назначает TVGlitch-материал на экран, синхронизирует параметры шейдера каждый кадр |
 | `TVGlitchEffect.cs` | Случайные глитч-события: анимирует `_GlitchAmount` на материале экрана |
+| `TVChannelButton.cs` | `IInteractable` на кнопке ТВ; вызывает `PeepholeTVCamera.NextCamera()` |
 
 ---
 
@@ -73,38 +77,134 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController
 
 ---
 
-## SymbolFader — плавное появление и аддитивный блендинг
+## SymbolFader — плавное появление и свечение
 
-`SymbolFader` — компонент на каждом `Symbol_*` объекте (вместо `SetActive`).
+`SymbolFader` — компонент на каждом `Symbol_*` объекте.
 
 ### Поведение
 
-- `Show()` — фейд-ин по `SpriteRenderer.color.a` за `_fadeDuration` (0.5 с по умолчанию). Активирует GameObject если он был неактивен.
-- `Hide()` — фейд-аут. Не деактивирует GameObject — оставляет активным с `alpha = 0` чтобы последующий `Show()` мог сразу запустить корутину.
+- `Show()` — фейд-ин за `_fadeDuration` (0.5 с по умолчанию). Активирует GameObject если он был неактивен.
+- `Hide()` — фейд-аут. Оставляет GameObject активным с `alpha = 0` — последующий `Show()` сразу запускает корутину.
 - `HideImmediate()` — мгновенное скрытие без анимации. Используется при инициализации и reset.
 - `IsTargetVisible` — логическое состояние (не зависит от текущей анимации). `LoopPuzzleController.CheckWinCondition` читает это значение вместо `activeSelf`.
 
-### Аддитивный блендинг
+### Цвет свечения
 
-В `Awake()` компонент инстанцирует материал (`_renderer.material`) и устанавливает:
+Поле `_glowColor` (HDR, alpha игнорируется) — **мультипликатор** поверх оригинального `SpriteRenderer.color`.
 
-```
-_SrcBlend = SrcAlpha (5)
-_DstBlend = One (1)
-```
+| `_glowColor` | Результат |
+|---|---|
+| `(1, 1, 1)` — белый (default) | Исходный цвет спрайта сохраняется |
+| `(2, 2, 2)` | Цвет спрайта удваивается → активирует Bloom |
+| `(2, 0, 0)` | Красный HDR-гло поверх исходного цвета |
 
-Результат: `Symbol × alpha + Scene × 1` — символ накладывается на картину, не перекрывая её. Работает с `Sprites/Default` и `Universal Render Pipeline/2D/Sprite-Unlit-Default`. Если шейдер не поддерживает эти свойства (`HasProperty` = false), блендинг молча пропускается.
+В `Awake` оригинальный `SpriteRenderer.color` кешируется как `_baseColor`. `SetAlpha` умножает `_baseColor * _glowColor` и подставляет текущий alpha от fade-системы.
+
+> Важно: `Sprite-Unlit-Default` в URP хардкодит `Blend SrcAlpha OneMinusSrcAlpha` — изменить режим смешивания через `_SrcBlend` / `_DstBlend` невозможно без кастомного шейдера.
+
+### Требования к сцене для Bloom
+
+- `Global Volume` → `Is Global = true`, содержит `Bloom`
+- `Main Camera` → `Universal Additional Camera Data` → `Post Processing = enabled`
+- Значения `_glowColor` выше `1.0` по хотя бы одному каналу
 
 ### Настройка в префабе
 
-`SymbolFader` уже добавлен на все четыре символа в `PaintPuzzle.prefab`:
+```
+PaintingColumn_Q1/Symbol_Omega  ← _baseColor = (0.855, 0.003, 0.003)  — красный
+PaintingColumn_Q2/Symbol_Psi    ← _baseColor = (1, 0.746, 0)          — оранжевый
+PaintingColumn_Q3/Symbol_Sigma  ← _baseColor = (0, 1, 0.04)           — зелёный
+PaintingColumn_Q4/Symbol_Delta  ← _baseColor = (0.008, 0.445, 1)      — синий
+```
 
+`_baseColor` — это `SpriteRenderer.color` из Inspector/префаба. Менять его напрямую в Inspector, не в коде.
+
+---
+
+## PaintingColumn — движение картин
+
+`PaintingColumn` управляет плавным перемещением картины между тремя высотами.
+
+### Глобальный счётчик движения
+
+```csharp
+public static bool IsAnyMoving       // true пока хоть одна колонна движется
+public static event Action<bool> OnAnyMovingChanged  // true = началось, false = все остановились
 ```
-PaintingColumn_Q1/Symbol_Omega   ← SymbolFader (_fadeDuration = 0.5)
-PaintingColumn_Q2/Symbol_Psi     ← SymbolFader (_fadeDuration = 0.5)
-PaintingColumn_Q3/Symbol_Sigma   ← SymbolFader (_fadeDuration = 0.5)
-PaintingColumn_Q4/Symbol_Delta   ← SymbolFader (_fadeDuration = 0.5)
-```
+
+`PaintingColumnTrigger` и `LoopPuzzleController` используют `IsAnyMoving` чтобы блокировать взаимодействие и отложить проверку победы до конца анимации.
+
+### События
+
+| Событие | Когда |
+|---|---|
+| `OnHeightChanged` | Сразу при вызове `AdvanceHeight()` — до конца анимации |
+| `OnMoveFinished` | По окончании корутины `SlideTo` |
+
+---
+
+## PaintingColumnTrigger — кнопки Q1–Q4
+
+### Логика блокировки
+
+Два независимых флага:
+
+| Флаг | Причина | Кто ставит |
+|---|---|---|
+| `_isLockedByPower` | S6 выключен | `OnMasterToggled` из `LoopPuzzlePowerCircuit` |
+| `_isLockedByPuzzle` | Загадка решена | `LoopPuzzleController` → `SetLocked(true)` |
+
+Кнопка также игнорирует нажатие при `PaintingColumn.IsAnyMoving`.
+
+### Текст подсказки
+
+| Состояние | Текст |
+|---|---|
+| Активна | `_interactText` («Нажать») |
+| Нет питания | `_noPowerText` («Нет питания») |
+| Решено / движение | `_lockedInteractText` («Заблокировано») |
+
+### Привязка к PowerCircuit
+
+`LoopPuzzlePowerCircuit` ищется автоматически через `GetComponentInParent` в `Start()`. Поле `_powerCircuit` в Inspector — опциональный override для нестандартной иерархии.
+
+### Glow во время движения
+
+При нажатии включается emission через `_EmissionMap = _albedoTexture` + `_EmissionColor`. Гаснет когда обе привязанные колонны (`_primaryColumn`, `_linkedColumn`) завершили `OnMoveFinished`. Если питание отрубается во время движения — гасится немедленно.
+
+---
+
+## SpotlightLensButton — кнопки L1, L2, L4
+
+Кнопка циклически переключает линзу прожектора по 4 тактам: `0 → 1 → 2 → 3 → 0`.
+
+### Поля Inspector
+
+| Секция | Поле | Описание |
+|---|---|---|
+| Save | `_saveId` | Уникальный ID для ISaveable |
+| Linked | `_targetSpotlight` | `PaintingSpotlight` который управляется |
+| Lens Cycle | `_lensOptions[4]` | `LensColor` на каждый такт (0–3) |
+| Rotation | `_rotationTarget` | Transform для поворота (null = сам GameObject) |
+| Rotation | `_axis` | Ось вращения в локальных координатах (X / Y / Z) |
+| Rotation | `_stepAngle` | Угол за один шаг в градусах (default 15°) |
+| Rotation | `_rotateDuration` | Длительность анимации поворота (default 0.2 с) |
+
+Итоговые углы: `0° → 15° → 30° → 45° → 0°` при `_stepAngle = 15`.
+
+При загрузке сохранения поворот применяется мгновенно (`SnapRotation`) без анимации.
+
+---
+
+## LoopPuzzlePowerCircuit — события питания
+
+| Событие / свойство | Тип | Описание |
+|---|---|---|
+| `OnPowerChanged` | `event Action` | Любое изменение состояния прожекторов |
+| `OnMasterToggled` | `event Action<bool>` | S6 включён (`true`) / выключен (`false`) |
+| `IsMasterOn` | `bool` | Текущее состояние S6 |
+
+`PaintingColumnTrigger` подписывается на `OnMasterToggled` чтобы управлять `_isLockedByPower`.
 
 ---
 
@@ -139,7 +239,7 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 
 ### Игровой процесс
 
-1. Игрок нажимает S6 → S1–S5 разблокируются.
+1. Игрок нажимает S6 → S1–S5 разблокируются, кнопки Q1–Q4 разблокируются.
 2. Игрок нажимает S1–S5 — каждое нажатие применяет Lights Out каскад.
 3. Когда правильная комбинация активна → все прожекторы включаются.
 4. `LoopPuzzleController` проверяет высоту картин и цвет линз → символы проявляются → дверь открывается.
@@ -150,14 +250,26 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 
 ---
 
+## Индикаторы кнопок (LoopPuzzleButton)
+
+Каждый рубильник `Button_S1..S6` имеет дочерний рендерер с материалом `Panel.mat`.
+
+| Состояние | `_EmissionMap` | `_EmissionColor` |
+|---|---|---|
+| OFF | `null` | `black` — нет свечения |
+| ON | `_BaseMap` (текстура кнопки) | HDR `_activeEmissionColor` — textured bloom |
+| Locked | `null` | `_lockedEmissionColor` (default black) |
+
+Emission работает поверх текстуры — нет плоского однотонного свечения. `_albedoTexture` кешируется в `Awake` из `_BaseMap`.
+
+---
+
 ## Блокировка взаимодействий при решении
 
 Когда загадка решена (`OnPuzzleSolved`), `LoopPuzzleController.LockAllInteractions()` вызывает:
 
 - `_powerCircuit.LockAllSwitches()` — блокирует S1–S6
 - `_roomLightSwitch.SetLocked(true)` — блокирует выключатель света
-
-**`PaintingRoomLightSwitch.SetLocked(bool)`** — новый метод. Когда заблокирован, `Interact()` возвращает управление сразу, `GetInteractText()` возвращает `_lockedInteractText` (по умолчанию: «Заблокировано»).
 
 `_roomLightSwitch` — `[SerializeField]` на `LoopPuzzleController`. Назначить в Inspector. Если не назначен (`null`), `?.SetLocked(true)` молча пропускается.
 
@@ -253,38 +365,6 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 - **Пунктирная** — дополнительная OR-группа того же прожектора.
 - **Точка ●** на шине — реальное соединение (не пересечение).
 
-### Маршрутизация правил (bus-lane routing)
-
-Каждый прожектор имеет свою горизонтальную шину на отдельном уровне между рядами узлов. Линии от рубильников идут вертикально до шины своего прожектора, затем горизонтально до вертикали прожектора, затем вертикально к узлу. Это исключает слияние линий разных прожекторов.
-
-### Дуги смежности (Lights Out)
-
-Дуги идут ниже ряда рубильников. Высота дуги пропорциональна дистанции между рубильниками: `depth = 26 + dist × 26 px`. Рисуются от дальних к ближним — ближние дуги поверх дальних.
-
----
-
-## Индикаторы кнопок (LoopPuzzleButton)
-
-Каждый рубильник `Button_S1..S6` имеет дочерний `Cube` с материалом `ButtonIndicator.mat` (`Assets/Materials/LightPuzzle/ButtonIndicator.mat`).
-
-| Состояние | `_BaseColor` | `_EmissionColor` |
-|---|---|---|
-| OFF | `(0.05, 0.05, 0.05)` — почти чёрный | `black` — нет свечения |
-| ON | `(0, 1, 0.3)` — зелёный | HDR `_activeEmissionColor` — bloom-свечение |
-
-**Требования к сцене:**
-- `Global Volume` → `Is Global = true`, содержит `Bloom`
-- `Main Camera` → `Universal Additional Camera Data` → `Post Processing = enabled`
-- Материал `ButtonIndicator.mat` → `Emission` keyword включён, `Global Illumination = Realtime`
-
----
-
-## Взаимодействие (FPSController)
-
-`LoopPuzzleButton` использует `UseLMBClick = true` — срабатывает по ЛКМ через `HandleDragInteraction()`.
-
-`FPSController.OnInteract()` обрабатывает **только** объекты где `UseLMBClick = false` (E-клавиша), чтобы избежать двойного вызова `Interact()` в один кадр.
-
 ---
 
 ## Глазок (PeepholeInteractable)
@@ -297,7 +377,7 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 
 ---
 
-## TV-экран (PeepholeTVCamera + TVGlitchEffect)
+## TV-экран (PeepholeTVCamera + TVGlitchEffect + TVChannelButton)
 
 ### Шейдер
 
@@ -305,7 +385,7 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 
 | Свойство | Тип | Описание |
 |---|---|---|
-| `_BaseMap` | Texture2D | RenderTexture от `TVCamera` |
+| `_BaseMap` | Texture2D | Shared RenderTexture от активной TVCamera |
 | `_ScanlineCount` | Float | Количество скан-линий (180 по умолчанию) |
 | `_ScanlineDarkness` | Range(0, 0.5) | Затемнение между линиями |
 | `_NoiseAmount` | Range(0, 1) | Доля статика поверх изображения |
@@ -316,28 +396,46 @@ S1–S5 реализуют загадку Lights Out. Нажатие рубил�
 
 ### PeepholeTVCamera
 
-Находится на `TVCamera`. Создаёт `RenderTexture`, направляет на неё камеру, создаёт runtime-экземпляр материала `Custom/TVGlitch` и назначает его на `pPlane1` (slot `_materialIndex`).
+Находится на `TV_CCTV_01`. Управляет списком камер `_cameras` (TVCamera1–6): в любой момент только одна камера активна и рендерит в shared `RenderTexture`. Остальные отключены (`camera.enabled = false`, `targetTexture = null`).
 
-Поля в секции **Screen Appearance** в Inspector:
+При старте создаёт RT, инстанцирует runtime-материал `Custom/TVGlitch` и назначает его на `pPlane1` (slot `_materialIndex`). `TVGlitchEffect` получает `ScreenMaterial` с того же `TV_CCTV_01`.
 
-| Поле Inspector | Поле C# | Описание |
+Поля Inspector:
+
+| Поле | Поле C# | Описание |
 |---|---|---|
-| Emission Strength | `_emissionStrength` | Яркость RT-контента (default 2.5) |
-| Noise Amount | `_noiseAmount` | Статик (default 0.12) |
-| Emission Color | `_emissionColor` | HDR свечение экрана (default black) |
+| Cameras | `_cameras` | Список Camera — порядок = порядок переключения |
+| Screen Renderer | `_screenRenderer` | MeshRenderer экрана (pPlane1) |
+| Material Index | `_materialIndex` | Слот материала на экране (0) |
+| Emission Strength | `_emissionStrength` | Яркость RT-контента |
+| Noise Amount | `_noiseAmount` | Статик (держи 0.03–0.15) |
+| Noise Speed | `_noiseSpeed` | Частота шума (fps) |
+| Emission Color | `_emissionColor` | HDR свечение экрана |
 
-Значения синхронизируются с материалом каждый кадр (`Update` → `SyncMaterialProperties`) — изменения в Inspector работают в реальном времени в Play Mode.
+Значения синхронизируются с материалом каждый кадр (`Update` → `SyncMaterialProperties`).
+
+Символы на слое `TVOnly` видны только TV-камерам. `Main Camera` исключает этот слой из `cullingMask` в `Awake` через `HideSymbolsFromMainCamera()`.
 
 ### TVGlitchEffect
 
-Находится на том же `TVCamera`. Периодически запускает корутины глитча: снапает `_GlitchAmount` до случайного значения, затем плавно сводит к 0. Поддерживает burst-режим (несколько глитчей подряд).
+Находится на `TV_CCTV_01` рядом с `PeepholeTVCamera`. В `Start()` получает `ScreenMaterial` через `GetComponent<PeepholeTVCamera>()`. Периодически запускает корутины глитча: снапает `_GlitchAmount` до случайного значения, затем плавно сводит к 0. Поддерживает burst-режим.
+
+### TVChannelButton
+
+Находится на `PositionSwitch` (слой `Interactable Layer`). Реализует `IInteractable`, вызывает `PeepholeTVCamera.NextCamera()` — переключает на следующую камеру в списке `_cameras` по кругу.
+
+`ButtonPressAnimation` на том же объекте физически нажимает `buttonPosition` по оси Y при взаимодействии.
+
+### Порядок переключения камер
+
+Список `_cameras` на `PeepholeTVCamera` (Inspector) → порядок элементов = порядок переключения. Чтобы изменить — перетащи элементы в списке. `NextCamera()` делает `(currentIndex + 1) % count`.
 
 ### Настройка яркости экрана
 
-- Если изображение **тусклое** — подними **Emission Strength** (4–8).
-- Если изображение **чёрное** — проверь что RT-камера (`TVCamera`) имеет `Target Texture` назначен (в Awake назначается автоматически), и что сцена освещена.
-- Для **свечения экрана** (bloom-ореол) — выставь **Emission Color** в HDR с `Intensity > 1` (значение > 1.0 по порогу bloom).
-- **Noise Amount** держи в диапазоне `0.05–0.15`; значения выше 0.5 делают экран почти полным статиком.
+- Если изображение **тусклое** — подними `_emissionStrength` (4–8).
+- Если изображение **чёрное** — RT назначается автоматически в `Awake`; убедись что активная TVCamera смотрит на освещённую сцену.
+- Для **свечения экрана** — выставь `_emissionColor` в HDR с `Intensity > 1`.
+- `_noiseAmount` держи в `0.03–0.15`; выше 0.5 — экран превращается в статик.
 
 ---
 
