@@ -7,10 +7,11 @@ using UnityEngine.Rendering.Universal;
 /// displayed on the TV screen. Only the active camera renders — all others are disabled.
 ///
 /// Setup:
-///  1. Add all TV cameras to the <see cref="_cameras"/> list in the Inspector.
-///  2. Assign <see cref="_screenRenderer"/> to the TV screen MeshRenderer.
-///  3. Set <see cref="_materialIndex"/> to the correct material slot on the screen renderer.
-///  4. Call <see cref="NextCamera"/> from a button's IInteractable.Interact().
+///  1. Assign the TVGlitch shader asset to <see cref="_shader"/>.
+///  2. Add all TV cameras to the <see cref="_cameras"/> list in the Inspector.
+///  3. Assign <see cref="_screenRenderer"/> to the TV screen MeshRenderer.
+///  4. Set <see cref="_materialIndex"/> to the correct material slot on the screen renderer.
+///  5. Call <see cref="NextCamera"/> from a button's IInteractable.Interact().
 /// </summary>
 public class PeepholeTVCamera : MonoBehaviour
 {
@@ -26,8 +27,12 @@ public class PeepholeTVCamera : MonoBehaviour
     [SerializeField] private int _materialIndex = 0;
 
     [Header("Render Texture")]
-    [SerializeField] private int _width  = 1024;
-    [SerializeField] private int _height = 576;
+    [SerializeField] private int _width  = 512;
+    [SerializeField] private int _height = 288;
+
+    [Header("Shader")]
+    [Tooltip("The TVGlitch shader asset. Assign to prevent shader stripping in builds.")]
+    [SerializeField] private Shader _shader;
 
     [Header("Screen Appearance")]
     [Tooltip("Brightness multiplier applied to the RT content (1 = neutral, 0 = black screen).")]
@@ -78,14 +83,10 @@ public class PeepholeTVCamera : MonoBehaviour
         }
 
         HideSymbolsFromMainCamera();
+        ConfigureCameras();
         CreateRenderTexture();
         ApplyToScreen();
         ActivateCamera(_currentIndex);
-    }
-
-    private void Update()
-    {
-        SyncMaterialProperties();
     }
 
     private void OnDestroy()
@@ -100,6 +101,15 @@ public class PeepholeTVCamera : MonoBehaviour
         }
     }
 
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        // Sync shader properties in real time when Inspector values change in Play Mode.
+        if (_screenMaterial != null)
+            SyncMaterialProperties();
+    }
+#endif
+
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /// <summary>Advances to the next camera in the list, wrapping around.</summary>
@@ -112,6 +122,25 @@ public class PeepholeTVCamera : MonoBehaviour
     }
 
     // ── Private ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Disables unnecessary URP intermediate buffers on all TV cameras.
+    /// Color and depth textures are only needed for screen-space effects,
+    /// which these cameras don't use.
+    /// </summary>
+    private void ConfigureCameras()
+    {
+        foreach (var cam in _cameras)
+        {
+            if (cam == null) continue;
+
+            var data = cam.GetUniversalAdditionalCameraData();
+            if (data == null) continue;
+
+            data.requiresColorTexture = false;
+            data.requiresDepthTexture = false;
+        }
+    }
 
     /// <summary>Enables only the camera at <paramref name="index"/>, assigning it the shared RT. Disables all others.</summary>
     private void ActivateCamera(int index)
@@ -154,10 +183,11 @@ public class PeepholeTVCamera : MonoBehaviour
 
     private void ApplyToScreen()
     {
-        var shader = Shader.Find("Custom/TVGlitch");
+        // Use the serialized shader reference. Fall back to Shader.Find only as a last resort.
+        Shader shader = _shader != null ? _shader : Shader.Find("Custom/TVGlitch");
         if (shader == null)
         {
-            Debug.LogError("[PeepholeTVCamera] Shader 'Custom/TVGlitch' not found.", this);
+            Debug.LogError("[PeepholeTVCamera] TVGlitch shader not found. Assign it in the Inspector.", this);
             return;
         }
 
@@ -179,9 +209,13 @@ public class PeepholeTVCamera : MonoBehaviour
         _screenRenderer.materials = mats;
     }
 
+    /// <summary>
+    /// Pushes the current Inspector values to the screen material.
+    /// Called once on Awake and via OnValidate when values change in the Editor.
+    /// Not called every frame.
+    /// </summary>
     private void SyncMaterialProperties()
     {
-        if (_screenMaterial == null) return;
         _screenMaterial.SetFloat(EmissionStrengthID, _emissionStrength);
         _screenMaterial.SetFloat(NoiseAmountID,      _noiseAmount);
         _screenMaterial.SetFloat(NoiseSpeedID,       _noiseSpeed);
