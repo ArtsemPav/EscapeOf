@@ -19,6 +19,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     [Tooltip("CinemachineCamera that frames the puzzle. Starts inactive and activates on Interact.")]
     [SerializeField] private CinemachineCamera _puzzleCamera;
 
+    [Tooltip("Duration of the Cinemachine blend when entering and exiting the puzzle camera (seconds).")]
+    [SerializeField, Min(0f)] private float _blendDuration = 0.75f;
+
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
     [SerializeField] private UnityEvent OnPuzzleModeEntered;
@@ -45,6 +48,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     private bool _isActive;
     private bool _isSolved;
     private bool _isSubscribed;
+
+    private CinemachineBrain _brain;
+    private float            _originalBlendTime;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -114,6 +120,14 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
             Debug.LogWarning($"[{nameof(PuzzleModeController)}] Puzzle camera is not assigned on {gameObject.name}.", this);
         }
 
+        // Cache the CinemachineBrain and store the original blend time for restoration.
+        _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
+        if (_brain == null)
+            _brain = FindFirstObjectByType<CinemachineBrain>();
+
+        if (_brain != null)
+            _originalBlendTime = _brain.DefaultBlend.Time;
+
         SaveManager.Instance?.Register(this);
     }
 
@@ -161,7 +175,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         if (_puzzleCamera != null)
         {
+            SetBlendDuration(_blendDuration);
             _puzzleCamera.gameObject.SetActive(true);
+            StartCoroutine(RestoreBlendAfterTransition());
         }
 
         // Block FPS input and prevent GameManager from opening the pause menu on Esc.
@@ -185,7 +201,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         if (_puzzleCamera != null)
         {
+            SetBlendDuration(_blendDuration);
             _puzzleCamera.gameObject.SetActive(false);
+            StartCoroutine(RestoreBlendAfterTransition());
         }
 
         // Restore FPS input and decrement the modal panel counter.
@@ -204,6 +222,21 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     {
         Cursor.lockState = visible ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = visible;
+    }
+
+    private void SetBlendDuration(float duration)
+    {
+        if (_brain == null) return;
+        var blend  = _brain.DefaultBlend;
+        blend.Time = duration;
+        _brain.DefaultBlend = blend;
+    }
+
+    private IEnumerator RestoreBlendAfterTransition()
+    {
+        yield return null;
+        while (_brain != null && _brain.IsBlending) yield return null;
+        SetBlendDuration(_originalBlendTime);
     }
 
     private void SubscribeToInput()
