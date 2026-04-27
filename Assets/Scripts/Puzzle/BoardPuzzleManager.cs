@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Events;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,7 +23,7 @@ using System.Linq;
 ///      (the one not used for entry).
 ///   4. Repeat until the full sequence is satisfied.
 /// </summary>
-public class BoardPuzzleManager : MonoBehaviour {
+public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
     [Header("Events")]
     [Tooltip("Fired once when the full terminal sequence is successfully traced.")]
@@ -40,12 +41,88 @@ public class BoardPuzzleManager : MonoBehaviour {
     [Tooltip("Radius used by OverlapSphere to find physically adjacent connector points.")]
     [SerializeField] private float _connectionDetectionRadius = 0.15f;
 
-    // All BoardPuzzleTrackConnector components found in the scene, cached on Start.
+    [Header("Save")]
+    [Tooltip("Unique identifier for the save system. Must be unique across the entire game.")]
+    [SerializeField] private string _saveId = "board_puzzle";
+
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    public string SaveId => _saveId;
+
+    public string GetSaveData()
+    {
+        var rotations = new float[_cylinders.Length * 4];
+        for (int i = 0; i < _cylinders.Length; i++)
+        {
+            if (_cylinders[i] == null) continue;
+            Quaternion q = _cylinders[i].transform.localRotation;
+            rotations[i * 4 + 0] = q.x;
+            rotations[i * 4 + 1] = q.y;
+            rotations[i * 4 + 2] = q.z;
+            rotations[i * 4 + 3] = q.w;
+        }
+
+        return JsonUtility.ToJson(new SaveData
+        {
+            isSolved  = _isSolved,
+            rotations = rotations
+        });
+    }
+
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<SaveData>(json);
+        _loadedIsSolved   = data.isSolved;
+        _loadedRotations  = data.rotations;
+    }
+
+    [Serializable]
+    private struct SaveData
+    {
+        public bool    isSolved;
+        public float[] rotations;
+    }
+
+    // ── Runtime state ─────────────────────────────────────────────────────────
+
+    private bool    _isSolved;
+    private bool    _loadedIsSolved;
+    private float[] _loadedRotations;
+
+    // All BoardPuzzleTrackConnectors found in the scene, cached on Start.
     private List<BoardPuzzleTrackConnector> _allTrackConnectors;
+
+    private void Awake()
+    {
+        SaveManager.Instance?.Register(this);
+    }
 
     private void Start() {
         _allTrackConnectors = new List<BoardPuzzleTrackConnector>(
             FindObjectsByType<BoardPuzzleTrackConnector>(FindObjectsSortMode.None));
+
+        // Restore cylinder rotations from save before subscribing to OnRotated.
+        if (_loadedRotations != null && _loadedRotations.Length == _cylinders.Length * 4)
+        {
+            for (int i = 0; i < _cylinders.Length; i++)
+            {
+                if (_cylinders[i] == null) continue;
+                _cylinders[i].transform.localRotation = new Quaternion(
+                    _loadedRotations[i * 4 + 0],
+                    _loadedRotations[i * 4 + 1],
+                    _loadedRotations[i * 4 + 2],
+                    _loadedRotations[i * 4 + 3]);
+            }
+        }
+
+        if (_loadedIsSolved)
+        {
+            _isSolved = true;
+            LockAllCylinders();
+            // Re-fire the event so listeners (doors, lights, etc.) can restore their state.
+            OnPuzzleSolved.Invoke();
+            return;
+        }
 
         foreach (var pipe in _cylinders) {
             if (pipe != null)
@@ -54,6 +131,8 @@ public class BoardPuzzleManager : MonoBehaviour {
     }
 
     private void OnDestroy() {
+        SaveManager.Instance?.Unregister(this);
+
         foreach (var pipe in _cylinders) {
             if (pipe != null)
                 pipe.OnRotated -= CheckSolution;
@@ -82,7 +161,9 @@ public class BoardPuzzleManager : MonoBehaviour {
             Debug.Log($"[Puzzle] Trying start direction: {startConnector.name}");
             if (TraceSequence(startConnector, fromTerminal: startTerminal, targetIndex: 1)) {
                 Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!!</color>");
+                _isSolved = true;
                 LockAllCylinders();
+                SaveManager.Instance?.Save();
                 OnPuzzleSolved.Invoke();
                 return;
             }
