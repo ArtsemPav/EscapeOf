@@ -16,6 +16,12 @@ public class BoardPuzzlePipe : MonoBehaviour
 
     private bool _isRotating = false;
 
+    private void OnDisable()
+    {
+        // If the object is deactivated mid-rotation, reset the lock so it is not permanently blocked.
+        _isRotating = false;
+    }
+
     /// <summary>
     /// Rotates the cylinder 90 degrees clockwise around the specified axis.
     /// </summary>

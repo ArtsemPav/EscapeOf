@@ -30,6 +30,8 @@ public class BoardPuzzleTrackConnector : MonoBehaviour
 
     /// <summary>
     /// Builds a fast lookup map for connections.
+    /// Connections are now unidirectional to allow for specific routing logic.
+    /// For bidirectional connections, define them explicitly in both directions.
     /// </summary>
     private void InitializeConnectionMap()
     {
@@ -46,14 +48,8 @@ public class BoardPuzzleTrackConnector : MonoBehaviour
             {
                 if (linked == null) continue;
 
-                // Add A -> B
+                // Add A -> B only
                 _connectionMap[conn.PointA].Add(linked);
-
-                // Add B -> A (Bidirectional)
-                if (!_connectionMap.ContainsKey(linked))
-                    _connectionMap[linked] = new HashSet<GameObject>();
-                
-                _connectionMap[linked].Add(conn.PointA);
             }
         }
     }

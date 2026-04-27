@@ -1,9 +1,25 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Manages path validation for the board puzzle.
-/// Traces a logical 'beam' through cylinders and checks if terminals are visited in the correct sequence.
+///
+/// Connection model:
+///   LOGICAL  — terminal <-> connector (A -> A1, A -> A2, B1 -> B).
+///              Defined in BoardPuzzleTrackConnector in the inspector.
+///   PHYSICAL — connector <-> connector across different cylinders.
+///              Detected at runtime via Physics.OverlapSphere.
+///   INTERNAL — connector <-> connector within the same cylinder.
+///              Also defined in BoardPuzzleTrackConnector.
+///
+/// Algorithm:
+///   1. From the first terminal, collect all logically connected exit connectors (A1, A2).
+///   2. Try each. Trace: PHYSICAL -> INTERNAL -> PHYSICAL -> ...
+///      After each PHYSICAL step, check whether the landed connector logically reaches a terminal.
+///   3. If the correct next terminal is reached, exit from the OTHER connector of that terminal
+///      (the one not used for entry).
+///   4. Repeat until the full sequence is satisfied.
 /// </summary>
 public class BoardPuzzleManager : MonoBehaviour {
     [Header("Puzzle Grid")]
@@ -11,13 +27,20 @@ public class BoardPuzzleManager : MonoBehaviour {
     [SerializeField] private BoardPuzzlePipe[] _cylinders;
 
     [Header("Path Sequence")]
-    [Tooltip("The sequence of terminal GameObjects that must be visited in order (e.g., A -> E -> A -> B -> C).")]
+    [Tooltip("The sequence of terminal GameObjects that must be visited in order.")]
     [SerializeField] private List<GameObject> _targetSequence;
 
-    private Dictionary<GameObject, BoardPuzzlePipe> _pointToCylinderMap;
+    [Header("Physics Detection")]
+    [Tooltip("Radius used by OverlapSphere to find physically adjacent connector points.")]
+    [SerializeField] private float _connectionDetectionRadius = 0.15f;
+
+    // All BoardPuzzleTrackConnector components found in the scene, cached on Start.
+    private List<BoardPuzzleTrackConnector> _allTrackConnectors;
 
     private void Start() {
-        InitializeMap();
+        _allTrackConnectors = new List<BoardPuzzleTrackConnector>(
+            FindObjectsByType<BoardPuzzleTrackConnector>(FindObjectsSortMode.None));
+
         foreach (var pipe in _cylinders) {
             if (pipe != null)
                 pipe.OnRotated += CheckSolution;
@@ -31,91 +54,132 @@ public class BoardPuzzleManager : MonoBehaviour {
         }
     }
 
-    private void InitializeMap() {
-        _pointToCylinderMap = new Dictionary<GameObject, BoardPuzzlePipe>();
-        if (_cylinders != null) {
-            foreach (var pipe in _cylinders) {
-                if (pipe == null) continue;
-                AddPointsToMap(pipe.transform, pipe);
-            }
-        }
-        
-        // Ensure all target terminals are also in the map with a null pipe reference
-        // This allows internal connections to trace to terminals even if they aren't children of a pipe
-        foreach (var terminal in _targetSequence) {
-            if (terminal != null && !_pointToCylinderMap.ContainsKey(terminal)) {
-                _pointToCylinderMap[terminal] = null;
-            }
-        }
-    }
-
-    private void AddPointsToMap(Transform parent, BoardPuzzlePipe pipe) {
-        foreach (Transform child in parent) {
-            if (child.GetComponent<Collider>() != null) {
-                _pointToCylinderMap[child.gameObject] = pipe;
-            }
-            AddPointsToMap(child, pipe);
-        }
-    }
+    // -------------------------------------------------------------------------
+    // Public entry point
+    // -------------------------------------------------------------------------
 
     public void CheckSolution() {
         if (_targetSequence == null || _targetSequence.Count < 2) return;
 
         Debug.Log("<color=cyan>[Puzzle] --- Starting Path Validation ---</color>");
 
-        int sequenceIndex = 0;
-        GameObject currentPoint = _targetSequence[0];
+        GameObject startTerminal = _targetSequence[0];
+        List<GameObject> startConnectors = FindLogicalConnectors(startTerminal);
 
-        while (sequenceIndex < _targetSequence.Count - 1) {
-            GameObject nextTerminal = _targetSequence[sequenceIndex + 1];
-            Debug.Log($"<color=yellow>[Puzzle] Attempting to reach: {nextTerminal.name} from {currentPoint.name}</color>");
+        if (startConnectors.Count == 0) {
+            Debug.Log($"<color=red>[Puzzle] No logical connectors for start terminal '{startTerminal.name}'. " +
+                      $"Check BoardPuzzleTrackConnector setup.</color>");
+            return;
+        }
 
-            if (CanReachTarget(currentPoint, nextTerminal, out GameObject reachedPoint)) {
-                sequenceIndex++;
-                currentPoint = reachedPoint;
-                Debug.Log($"<color=green>[Puzzle] Step {sequenceIndex} reached: {nextTerminal.name}</color>");
-            } else {
-                Debug.Log($"<color=red>[Puzzle] Path broken! Could not reach {nextTerminal.name}</color>");
+        foreach (GameObject startConnector in startConnectors) {
+            Debug.Log($"[Puzzle] Trying start direction: {startConnector.name}");
+            if (TraceSequence(startConnector, fromTerminal: startTerminal, targetIndex: 1)) {
+                Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!!</color>");
                 return;
             }
         }
 
-        if (sequenceIndex == _targetSequence.Count - 1) {
-            Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!! Sequence complete.</color>");
-        }
+        Debug.Log("<color=red>[Puzzle] Path broken! No valid path found.</color>");
     }
 
-    private bool CanReachTarget(GameObject startPoint, GameObject targetTerminal, out GameObject finalPoint) {
-        finalPoint = null;
-        Queue<GameObject> toVisit = new Queue<GameObject>();
+    // -------------------------------------------------------------------------
+    // Sequence tracer (terminal level)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Recursively traces from exitConnector trying to reach _targetSequence[targetIndex],
+    /// then continues to the next terminal via the opposite connector.
+    /// </summary>
+    private bool TraceSequence(GameObject exitConnector, GameObject fromTerminal, int targetIndex) {
+        if (targetIndex >= _targetSequence.Count) return true;
+
+        GameObject targetTerminal = _targetSequence[targetIndex];
+
+        // Pass the target terminal so TraceToTerminal skips wrong terminals
+        // instead of returning the first one it encounters.
+        if (!TraceToTerminal(exitConnector, fromTerminal, targetTerminal, out GameObject arrivalConnector)) {
+            Debug.Log($"[Puzzle] Dead end from {exitConnector.name}");
+            return false;
+        }
+
+        Debug.Log($"<color=green>[Puzzle] Step {targetIndex}: reached {targetTerminal.name} " +
+                  $"via {arrivalConnector.name}</color>");
+
+        // Last terminal — done.
+        if (targetIndex == _targetSequence.Count - 1) return true;
+
+        // Find the exit connector: the other logical connector of this terminal.
+        List<GameObject> terminalConnectors = FindLogicalConnectors(targetTerminal);
+        GameObject nextExit = terminalConnectors.FirstOrDefault(c => c != arrivalConnector);
+
+        if (nextExit == null) {
+            Debug.Log($"<color=red>[Puzzle] No exit connector at {targetTerminal.name} " +
+                      $"(entered via {arrivalConnector.name})</color>");
+            return false;
+        }
+
+        Debug.Log($"[Puzzle] Exiting {targetTerminal.name} via {nextExit.name}");
+        return TraceSequence(nextExit, fromTerminal: targetTerminal, targetIndex: targetIndex + 1);
+    }
+
+    // -------------------------------------------------------------------------
+    // Cylinder-network tracer (connector level)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Follows PHYSICAL -> INTERNAL -> PHYSICAL -> ... from exitConnector
+    /// until the targetTerminal is reached. Wrong terminals are treated as dead ends.
+    /// </summary>
+    private bool TraceToTerminal(GameObject exitConnector, GameObject fromTerminal,
+                                  GameObject targetTerminal,
+                                  out GameObject arrivalConnector) {
+        arrivalConnector = null;
+
+        Stack<(GameObject current, GameObject prev)> stack = new Stack<(GameObject, GameObject)>();
         HashSet<GameObject> visited = new HashSet<GameObject>();
 
-        toVisit.Enqueue(startPoint);
+        if (fromTerminal != null) visited.Add(fromTerminal);
 
-        while (toVisit.Count > 0) {
-            GameObject current = toVisit.Dequeue();
+        stack.Push((exitConnector, fromTerminal));
+
+        while (stack.Count > 0) {
+            var (current, prev) = stack.Pop();
             if (visited.Contains(current)) continue;
             visited.Add(current);
 
-            if (current == targetTerminal) {
-                finalPoint = current;
-                return true;
-            }
+            List<GameObject> physicalNeighbors = FindPhysicalNeighbors(current, exclude: prev);
 
-            // 1. Check external connections (to neighboring cylinders/terminals)
-            GameObject neighborPoint = FindNeighborConnection(current);
-            if (neighborPoint != null && !visited.Contains(neighborPoint)) {
-                Debug.Log($"[Path Trace] PHYSICAL: {current.name} -> {neighborPoint.name}");
-                toVisit.Enqueue(neighborPoint);
-            }
+            foreach (GameObject neighbor in physicalNeighbors) {
+                if (visited.Contains(neighbor)) continue;
+                Debug.Log($"[Path] PHYSICAL: {current.name} -> {neighbor.name}");
 
-            // 2. Check internal connections in the current cylinder or terminal
-            BoardPuzzleTrackConnector connector = current.GetComponentInParent<BoardPuzzleTrackConnector>();
-            if (connector != null) {
-                foreach (var linked in connector.GetConnectedPoints(current)) {
-                    if (!visited.Contains(linked)) {
-                        Debug.Log($"[Path Trace] INTERNAL ({current.name}): {current.name} -> {linked.name}");
-                        toVisit.Enqueue(linked);
+                // Check logical arrival at any terminal.
+                GameObject terminal = FindLogicalTerminal(neighbor);
+                if (terminal != null) {
+                    Debug.Log($"[Path] LOGICAL TERMINAL: {neighbor.name} -> {terminal.name}");
+
+                    if (terminal == targetTerminal) {
+                        arrivalConnector = neighbor;
+                        return true;
+                    }
+
+                    // Wrong terminal — treat as dead end, do not pass through it.
+                    visited.Add(neighbor);
+                    continue;
+                }
+
+                // INTERNAL step: follow connections within neighbor's cylinder.
+                BoardPuzzleTrackConnector connector =
+                    neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
+
+                if (connector != null) {
+                    foreach (GameObject linked in connector.GetConnectedPoints(neighbor)) {
+                        if (_targetSequence.Contains(linked)) continue;
+                        if (!visited.Contains(linked)) {
+                            Debug.Log($"[Path] INTERNAL: {neighbor.name} -> {linked.name}");
+                            stack.Push((linked, neighbor));
+                        }
                     }
                 }
             }
@@ -124,29 +188,66 @@ public class BoardPuzzleManager : MonoBehaviour {
         return false;
     }
 
+    // -------------------------------------------------------------------------
+    // Logical connection helpers
+    // -------------------------------------------------------------------------
+
     /// <summary>
-    /// Finds a point on an adjacent cylinder that matches the position/logic of the current point.
+    /// Returns all connectors logically connected FROM the given point
+    /// across all BoardPuzzleTrackConnectors in the scene.
+    /// Excludes terminals from the result.
     /// </summary>
-    private GameObject FindNeighborConnection(GameObject point) {
-        Collider col = point.GetComponent<Collider>();
-        if (col == null) return null;
-
-        // Increased radius to 0.1f to handle potential small gaps between connectors
-        Collider[] overlaps = Physics.OverlapSphere(col.bounds.center, 0.1f);
-        foreach (var other in overlaps) {
-            if (other.gameObject == point) continue;
-
-            // Check if it's a connection point on another cylinder or a terminal
-            if (_pointToCylinderMap.ContainsKey(other.gameObject)) {
-                return other.gameObject;
-            }
-
-            // Check if it's one of the target terminals
-            if (_targetSequence.Contains(other.gameObject)) {
-                return other.gameObject;
+    private List<GameObject> FindLogicalConnectors(GameObject fromPoint) {
+        List<GameObject> results = new List<GameObject>();
+        foreach (BoardPuzzleTrackConnector tc in _allTrackConnectors) {
+            foreach (GameObject connected in tc.GetConnectedPoints(fromPoint)) {
+                if (!_targetSequence.Contains(connected) && !results.Contains(connected))
+                    results.Add(connected);
             }
         }
+        return results;
+    }
 
+    /// <summary>
+    /// Checks whether any BoardPuzzleTrackConnector defines a logical connection
+    /// FROM connector TO a terminal. Returns the terminal if found, null otherwise.
+    /// </summary>
+    private GameObject FindLogicalTerminal(GameObject connector) {
+        foreach (BoardPuzzleTrackConnector tc in _allTrackConnectors) {
+            foreach (GameObject linked in tc.GetConnectedPoints(connector)) {
+                if (_targetSequence.Contains(linked))
+                    return linked;
+            }
+        }
         return null;
+    }
+
+    // -------------------------------------------------------------------------
+    // Physical connection helper
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns all physically adjacent objects that are valid connector points
+    /// (have a BoardPuzzleTrackConnector in their hierarchy),
+    /// excluding the given object to prevent backtracking.
+    /// </summary>
+    private List<GameObject> FindPhysicalNeighbors(GameObject point, GameObject exclude = null) {
+        List<GameObject> results = new List<GameObject>();
+        Collider col = point.GetComponent<Collider>();
+        if (col == null) return results;
+
+        Collider[] overlaps = Physics.OverlapSphere(col.bounds.center, _connectionDetectionRadius);
+        foreach (Collider other in overlaps) {
+            GameObject go = other.gameObject;
+            if (go == point) continue;
+            if (go == exclude) continue;
+            if (_targetSequence.Contains(go)) continue;
+
+            // Accept only connector-point children, not the cylinder GameObject itself.
+            BoardPuzzleTrackConnector parentConnector = go.GetComponentInParent<BoardPuzzleTrackConnector>();
+            if (parentConnector != null && parentConnector.gameObject != go)
+                results.Add(go);
+        }
+        return results;
     }
 }

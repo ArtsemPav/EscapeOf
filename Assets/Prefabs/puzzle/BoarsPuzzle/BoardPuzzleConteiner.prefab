@@ -646,7 +646,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1777700982092159345}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.8000014, y: -0.27399996, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -762,7 +762,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 3969166411440873158}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &5779081096536651320
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -776,14 +777,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 41
+  - Name: R_B
     PointA: {fileID: 7202958356948840227}
     ConnectedPoints:
     - {fileID: 4310112048974745201}
-  - Name: 43
+  - Name: L_T
     PointA: {fileID: 2090212647016994800}
     ConnectedPoints:
     - {fileID: 5249792912637241433}
+  - Name: B_R
+    PointA: {fileID: 4310112048974745201}
+    ConnectedPoints:
+    - {fileID: 7202958356948840227}
+  - Name: T_L
+    PointA: {fileID: 5249792912637241433}
+    ConnectedPoints:
+    - {fileID: 2090212647016994800}
 --- !u!1 &1852393844012580717
 GameObject:
   m_ObjectHideFlags: 0
@@ -867,7 +876,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1962217132172909458}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.7999995, y: -0.2739998, z: -0.8000003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -983,7 +992,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 1797071483516895943}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &1727693414215149321
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -997,14 +1007,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 71
+  - Name: R_B
     PointA: {fileID: 1852393844012580717}
     ConnectedPoints:
     - {fileID: 8027618649804025127}
-  - Name: 73
+  - Name: L_T
     PointA: {fileID: 3336979932273158349}
     ConnectedPoints:
     - {fileID: 1979443837057638653}
+  - Name: B_R
+    PointA: {fileID: 8027618649804025127}
+    ConnectedPoints:
+    - {fileID: 1852393844012580717}
+  - Name: T_L
+    PointA: {fileID: 1979443837057638653}
+    ConnectedPoints:
+    - {fileID: 3336979932273158349}
 --- !u!1 &1979443837057638653
 GameObject:
   m_ObjectHideFlags: 0
@@ -1197,7 +1215,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2314949162152619564}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0.2740003, z: 0.8000003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -1312,7 +1330,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 2560380863952177130}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &4148211044048650709
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1326,11 +1345,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 22
+  - Name: B-RT
     PointA: {fileID: 5761384372764933204}
     ConnectedPoints:
     - {fileID: 8749790695024557103}
     - {fileID: 1759478126353039063}
+  - Name: T_B
+    PointA: {fileID: 1759478126353039063}
+    ConnectedPoints:
+    - {fileID: 5761384372764933204}
+  - Name: R_B
+    PointA: {fileID: 8749790695024557103}
+    ConnectedPoints:
+    - {fileID: 5761384372764933204}
 --- !u!1 &2856553786324513984
 GameObject:
   m_ObjectHideFlags: 0
@@ -2165,7 +2192,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 2158091736424656323}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &155167942557068331
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2179,11 +2207,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 31
+  - Name: B_LT
     PointA: {fileID: 9023600526370981071}
     ConnectedPoints:
     - {fileID: 3182124292573700821}
     - {fileID: 5029399452858147218}
+  - Name: L_B
+    PointA: {fileID: 3182124292573700821}
+    ConnectedPoints:
+    - {fileID: 9023600526370981071}
+  - Name: T_B
+    PointA: {fileID: 5029399452858147218}
+    ConnectedPoints:
+    - {fileID: 9023600526370981071}
 --- !u!1 &4823978613456996607
 GameObject:
   m_ObjectHideFlags: 0
@@ -2341,31 +2377,86 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: A-A1-A2
+  - Name: A-A1
     PointA: {fileID: 2984462464836252123}
     ConnectedPoints:
     - {fileID: 1194106147279443908}
+  - Name: A1-A
+    PointA: {fileID: 1194106147279443908}
+    ConnectedPoints:
+    - {fileID: 2984462464836252123}
+  - Name: A-A2
+    PointA: {fileID: 2984462464836252123}
+    ConnectedPoints:
     - {fileID: 4536934408374374147}
-  - Name: B-B1-B2
+  - Name: A2-A
+    PointA: {fileID: 4536934408374374147}
+    ConnectedPoints:
+    - {fileID: 2984462464836252123}
+  - Name: B-B1
     PointA: {fileID: 5957517454434774509}
     ConnectedPoints:
     - {fileID: 648458585369857292}
+  - Name: B1-B
+    PointA: {fileID: 648458585369857292}
+    ConnectedPoints:
+    - {fileID: 5957517454434774509}
+  - Name: B-B2
+    PointA: {fileID: 5957517454434774509}
+    ConnectedPoints:
     - {fileID: 4739464572424236358}
-  - Name: C-C1-C2
+  - Name: B2-B
+    PointA: {fileID: 4739464572424236358}
+    ConnectedPoints:
+    - {fileID: 5957517454434774509}
+  - Name: C-C1
     PointA: {fileID: 2967005788668977013}
     ConnectedPoints:
     - {fileID: 7846539137563216885}
-    - {fileID: 474468327599663265}
-  - Name: E-E1-E2
-    PointA: {fileID: 3188051282380634218}
+  - Name: C1-C
+    PointA: {fileID: 7846539137563216885}
     ConnectedPoints:
-    - {fileID: 4823978613456996607}
-    - {fileID: 3265083232379000278}
-  - Name: D-D1-D2
+    - {fileID: 2967005788668977013}
+  - Name: C-C2
+    PointA: {fileID: 2967005788668977013}
+    ConnectedPoints:
+    - {fileID: 474468327599663265}
+  - Name: C2-C
+    PointA: {fileID: 474468327599663265}
+    ConnectedPoints:
+    - {fileID: 2967005788668977013}
+  - Name: D-D1
     PointA: {fileID: 806952125877800589}
     ConnectedPoints:
     - {fileID: 4577820373583818106}
+  - Name: D1-D
+    PointA: {fileID: 4577820373583818106}
+    ConnectedPoints:
+    - {fileID: 806952125877800589}
+  - Name: D-D2
+    PointA: {fileID: 806952125877800589}
+    ConnectedPoints:
     - {fileID: 4087845770430682938}
+  - Name: D2-D
+    PointA: {fileID: 4087845770430682938}
+    ConnectedPoints:
+    - {fileID: 806952125877800589}
+  - Name: E-E1
+    PointA: {fileID: 3188051282380634218}
+    ConnectedPoints:
+    - {fileID: 4823978613456996607}
+  - Name: E1-E
+    PointA: {fileID: 4823978613456996607}
+    ConnectedPoints:
+    - {fileID: 3188051282380634218}
+  - Name: E-E2
+    PointA: {fileID: 3188051282380634218}
+    ConnectedPoints:
+    - {fileID: 3265083232379000278}
+  - Name: E2-E
+    PointA: {fileID: 3265083232379000278}
+    ConnectedPoints:
+    - {fileID: 3188051282380634218}
 --- !u!1 &5147462540219571209
 GameObject:
   m_ObjectHideFlags: 0
@@ -2555,7 +2646,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5310705266922520280}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0.2739998, z: -0.8000003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2670,7 +2761,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 3408701342321694875}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &8419010369701649530
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2684,11 +2776,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 82
+  - Name: B_RT
     PointA: {fileID: 5147462540219571209}
     ConnectedPoints:
     - {fileID: 5161808001456069400}
     - {fileID: 1266082637595162094}
+  - Name: R_B
+    PointA: {fileID: 5161808001456069400}
+    ConnectedPoints:
+    - {fileID: 5147462540219571209}
+  - Name: T_B
+    PointA: {fileID: 1266082637595162094}
+    ConnectedPoints:
+    - {fileID: 5147462540219571209}
 --- !u!1 &5351954953711262225
 GameObject:
   m_ObjectHideFlags: 0
@@ -2835,7 +2935,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 8492090724864305558}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &6269542469186558039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2849,14 +2950,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 51
+  - Name: R_L
     PointA: {fileID: 1174900204608190507}
     ConnectedPoints:
     - {fileID: 6428683845642119286}
-  - Name: 53
+  - Name: T_B
     PointA: {fileID: 7118851295201742846}
     ConnectedPoints:
     - {fileID: 663183461816672811}
+  - Name: L_R
+    PointA: {fileID: 6428683845642119286}
+    ConnectedPoints:
+    - {fileID: 1174900204608190507}
+  - Name: B_T
+    PointA: {fileID: 663183461816672811}
+    ConnectedPoints:
+    - {fileID: 7118851295201742846}
 --- !u!1 &5734808333842807012
 GameObject:
   m_ObjectHideFlags: 0
@@ -3046,7 +3155,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6097298032590404565}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -0.8000014, y: -0.27400267, z: 0.8000003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -3161,7 +3270,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 2279067913482830565}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &689334126550356836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3175,11 +3285,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 12
+  - Name: B_RL
     PointA: {fileID: 8288249098202307876}
     ConnectedPoints:
     - {fileID: 7122937800424570922}
     - {fileID: 1185760142454578839}
+  - Name: R-B
+    PointA: {fileID: 7122937800424570922}
+    ConnectedPoints:
+    - {fileID: 8288249098202307876}
+  - Name: L_B
+    PointA: {fileID: 1185760142454578839}
+    ConnectedPoints:
+    - {fileID: 8288249098202307876}
 --- !u!1 &6392184591625040782
 GameObject:
   m_ObjectHideFlags: 0
@@ -3326,7 +3444,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 5992312736154897093}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &5742675589555201789
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3340,14 +3459,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 61
+  - Name: R_B
     PointA: {fileID: 9142384955874453602}
     ConnectedPoints:
     - {fileID: 2856553786324513984}
-  - Name: 63
+  - Name: L_T
     PointA: {fileID: 5734808333842807012}
     ConnectedPoints:
     - {fileID: 7413834263492856104}
+  - Name: B_R
+    PointA: {fileID: 2856553786324513984}
+    ConnectedPoints:
+    - {fileID: 9142384955874453602}
+  - Name: T_L
+    PointA: {fileID: 7413834263492856104}
+    ConnectedPoints:
+    - {fileID: 5734808333842807012}
 --- !u!1 &6428683845642119286
 GameObject:
   m_ObjectHideFlags: 0
@@ -3537,7 +3664,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7130546950789979901}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.7999995, y: -0.2739998, z: -0.8000003}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -3652,7 +3779,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 45d88724012dd7f4691c9c250be162f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CylinderInteractable
-  _pipe: {fileID: 7902036269155389104}
+  _interactText: "\u041F\u043E\u0432\u0435\u0440\u043D\u0443\u0442\u044C"
+  _crosshairMode: 1
 --- !u!114 &709431012316373666
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3666,11 +3794,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleTrackConnector
   _connections:
-  - Name: 92
+  - Name: B_LT
     PointA: {fileID: 3493841094795316134}
     ConnectedPoints:
     - {fileID: 1023043370937991195}
     - {fileID: 1077952323583388984}
+  - Name: L_B
+    PointA: {fileID: 1023043370937991195}
+    ConnectedPoints:
+    - {fileID: 3493841094795316134}
+  - Name: T_B
+    PointA: {fileID: 1077952323583388984}
+    ConnectedPoints:
+    - {fileID: 3493841094795316134}
 --- !u!1 &7201652788600543791
 GameObject:
   m_ObjectHideFlags: 0
@@ -3792,6 +3928,9 @@ MonoBehaviour:
   _targetSequence:
   - {fileID: 2984462464836252123}
   - {fileID: 5957517454434774509}
+  - {fileID: 5957517454434774509}
+  - {fileID: 806952125877800589}
+  _connectionDetectionRadius: 0.15
 --- !u!1 &7202958356948840227
 GameObject:
   m_ObjectHideFlags: 0
