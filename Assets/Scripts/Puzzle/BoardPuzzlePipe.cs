@@ -15,6 +15,7 @@ public class BoardPuzzlePipe : MonoBehaviour
     [SerializeField] private Vector3 _rotationAxis = new Vector3(0, 0, 1);
 
     private bool _isRotating = false;
+    private bool _isLocked = false;
 
     private void OnDisable()
     {
@@ -23,11 +24,17 @@ public class BoardPuzzlePipe : MonoBehaviour
     }
 
     /// <summary>
+    /// Permanently blocks rotation on this cylinder. Used when the puzzle is solved.
+    /// </summary>
+    public void Lock() => _isLocked = true;
+
+    /// <summary>
     /// Rotates the cylinder 90 degrees clockwise around the specified axis.
+    /// Does nothing if the cylinder is already rotating or locked.
     /// </summary>
     public void Rotate()
     {
-        if (_isRotating) return;
+        if (_isRotating || _isLocked) return;
         StartCoroutine(RotateRoutine());
     }
 

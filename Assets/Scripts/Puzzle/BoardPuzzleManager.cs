@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,6 +23,11 @@ using System.Linq;
 ///   4. Repeat until the full sequence is satisfied.
 /// </summary>
 public class BoardPuzzleManager : MonoBehaviour {
+
+    [Header("Events")]
+    [Tooltip("Fired once when the full terminal sequence is successfully traced.")]
+    public UnityEvent OnPuzzleSolved;
+
     [Header("Puzzle Grid")]
     [Tooltip("All cylinders in the puzzle.")]
     [SerializeField] private BoardPuzzlePipe[] _cylinders;
@@ -76,6 +82,8 @@ public class BoardPuzzleManager : MonoBehaviour {
             Debug.Log($"[Puzzle] Trying start direction: {startConnector.name}");
             if (TraceSequence(startConnector, fromTerminal: startTerminal, targetIndex: 1)) {
                 Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!!</color>");
+                LockAllCylinders();
+                OnPuzzleSolved.Invoke();
                 return;
             }
         }
@@ -191,6 +199,17 @@ public class BoardPuzzleManager : MonoBehaviour {
     // -------------------------------------------------------------------------
     // Logical connection helpers
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Calls Lock() on every cylinder to block further rotation after the puzzle is solved.
+    /// </summary>
+    private void LockAllCylinders()
+    {
+        foreach (BoardPuzzlePipe pipe in _cylinders)
+        {
+            if (pipe != null) pipe.Lock();
+        }
+    }
 
     /// <summary>
     /// Returns all connectors logically connected FROM the given point
