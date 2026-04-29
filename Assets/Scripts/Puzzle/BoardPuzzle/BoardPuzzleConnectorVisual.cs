@@ -13,14 +13,20 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     [Tooltip("The renderer that will be highlighted. If null, tries to get Renderer on this GameObject.")]
     [SerializeField] private Renderer _targetRenderer;
 
+    [Tooltip("The index of the material to target if the renderer has multiple materials.")]
+    [SerializeField, Min(0)] private int _materialIndex = 0;
+
     [Header("Emission Settings")]
+    [Tooltip("Color for the emission. Use HDR color picker for intensity.")]
     [ColorUsage(true, true)]
-    [SerializeField] private Color _activeColor = new Color(0f, 1f, 1f, 1f); // Cyan HDR
+    [SerializeField] private Color _activeColor = Color.cyan;
+    
+    [Tooltip("Speed of the fade in/out animation.")]
     [SerializeField] private float _fadeSpeed = 5f;
 
     private MaterialPropertyBlock _propBlock;
-    private float _targetIntensity = 0f;
-    private float _currentIntensity = 0f;
+    private float _targetWeight = 0f;
+    private float _currentWeight = 0f;
 
     private void Awake()
     {
@@ -29,10 +35,14 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
 
         _propBlock = new MaterialPropertyBlock();
         
-        // Ensure emission keyword is enabled on the shared material
-        if (_targetRenderer != null && _targetRenderer.sharedMaterial != null)
+        // Ensure emission keyword is enabled on the shared material at the specified index
+        if (_targetRenderer != null)
         {
-            _targetRenderer.sharedMaterial.EnableKeyword(EmissionKeyword);
+            Material[] sharedMaterials = _targetRenderer.sharedMaterials;
+            if (_materialIndex < sharedMaterials.Length && sharedMaterials[_materialIndex] != null)
+            {
+                sharedMaterials[_materialIndex].EnableKeyword(EmissionKeyword);
+            }
         }
     }
 
@@ -41,18 +51,23 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     /// </summary>
     public void SetPower(bool hasPower)
     {
-        _targetIntensity = hasPower ? 1f : 0f;
+        _targetWeight = hasPower ? 1f : 0f;
     }
 
     private void Update()
     {
         if (_targetRenderer == null) return;
-        if (Mathf.Approximately(_currentIntensity, _targetIntensity)) return;
+        if (Mathf.Approximately(_currentWeight, _targetWeight)) return;
 
-        _currentIntensity = Mathf.MoveTowards(_currentIntensity, _targetIntensity, _fadeSpeed * Time.deltaTime);
+        _currentWeight = Mathf.MoveTowards(_currentWeight, _targetWeight, _fadeSpeed * Time.deltaTime);
         
-        _targetRenderer.GetPropertyBlock(_propBlock);
-        _propBlock.SetColor(EmissionColorId, _activeColor * _currentIntensity);
-        _targetRenderer.SetPropertyBlock(_propBlock);
+        // Use the index-aware overload of GetPropertyBlock and SetPropertyBlock
+        _targetRenderer.GetPropertyBlock(_propBlock, _materialIndex);
+        
+        // Final color = color * current weight (0 to 1)
+        Color finalColor = _activeColor * _currentWeight;
+        _propBlock.SetColor(EmissionColorId, finalColor);
+        
+        _targetRenderer.SetPropertyBlock(_propBlock, _materialIndex);
     }
 }
