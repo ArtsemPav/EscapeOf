@@ -95,6 +95,8 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
     // All BoardPuzzleTrackConnectors found in the scene, cached on Start.
     private List<BoardPuzzleTrackConnector> _allTrackConnectors;
+    // Cache for connector visuals to update emission.
+    private Dictionary<GameObject, BoardPuzzleConnectorVisual> _visualsCache = new();
 
     private void Awake()
     {
@@ -104,6 +106,8 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     private void Start() {
         _allTrackConnectors = new List<BoardPuzzleTrackConnector>(
             FindObjectsByType<BoardPuzzleTrackConnector>(FindObjectsSortMode.None));
+
+        InitVisuals();
 
         // Restore cylinder rotations from save before subscribing to OnRotated.
         if (_loadedRotations != null && _loadedRotations.Length == _cylinders.Length * 4)
@@ -123,6 +127,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         {
             _isSolved = true;
             LockAllCylinders();
+            UpdateVisualPath();
             // Re-fire the event so listeners (doors, lights, etc.) can restore their state.
             OnPuzzleSolved.Invoke();
             return;
@@ -132,6 +137,8 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
             if (pipe != null)
                 pipe.OnRotated += CheckSolution;
         }
+
+        UpdateVisualPath();
     }
 
     private void OnDestroy() {
@@ -149,6 +156,8 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
     public void CheckSolution() {
         if (_targetSequence == null || _targetSequence.Count < 2) return;
+
+        UpdateVisualPath();
 
         if (_showDebugLogs) Debug.Log("<color=cyan>[Puzzle] --- Starting Path Validation ---</color>");
 
@@ -353,5 +362,88 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
                 results.Add(go);
         }
         return results;
+    }
+
+    // -------------------------------------------------------------------------
+    // Path Visualization Helpers
+    // -------------------------------------------------------------------------
+
+    private void InitVisuals()
+    {
+        var allVisuals = FindObjectsByType<BoardPuzzleConnectorVisual>(FindObjectsSortMode.None);
+        foreach (var v in allVisuals)
+        {
+            _visualsCache[v.gameObject] = v;
+        }
+    }
+
+    private void UpdateVisualPath()
+    {
+        if (_targetSequence == null || _targetSequence.Count == 0) return;
+
+        GameObject startTerminal = _targetSequence[0];
+        HashSet<GameObject> poweredPoints = new HashSet<GameObject>();
+        
+        // Always power the start terminal
+        poweredPoints.Add(startTerminal);
+
+        // Start tracing from the first terminal's logical connectors
+        List<GameObject> startConnectors = FindLogicalConnectors(startTerminal);
+        foreach (var start in startConnectors)
+        {
+            TracePoweredNetwork(start, startTerminal, poweredPoints);
+        }
+
+        // Apply visual state to all cached connectors
+        foreach (var kvp in _visualsCache)
+        {
+            if (kvp.Value != null)
+            {
+                kvp.Value.SetPower(poweredPoints.Contains(kvp.Key));
+            }
+        }
+    }
+
+    private void TracePoweredNetwork(GameObject exitConnector, GameObject fromTerminal, HashSet<GameObject> visited)
+    {
+        Stack<(GameObject current, GameObject prev)> stack = new Stack<(GameObject, GameObject)>();
+        stack.Push((exitConnector, fromTerminal));
+
+        while (stack.Count > 0)
+        {
+            var (current, prev) = stack.Pop();
+            if (visited.Contains(current)) continue;
+            visited.Add(current);
+
+            // Find physical neighbors (connections between cylinders)
+            List<GameObject> physicalNeighbors = FindPhysicalNeighbors(current, exclude: prev);
+            foreach (GameObject neighbor in physicalNeighbors)
+            {
+                if (visited.Contains(neighbor)) continue;
+
+                // If neighbor reaches ANY terminal, mark it as powered but don't trace further through terminals
+                GameObject terminal = FindLogicalTerminal(neighbor);
+                if (terminal != null)
+                {
+                    visited.Add(neighbor);
+                    visited.Add(terminal); // Also power the terminal itself
+                    continue;
+                }
+
+                // Internal step: follow internal cylinder connections
+                BoardPuzzleTrackConnector connector = neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
+                if (connector != null)
+                {
+                    visited.Add(neighbor); // The entry point itself is now powered
+                    foreach (GameObject linked in connector.GetConnectedPoints(neighbor))
+                    {
+                        if (!_targetSequence.Contains(linked) && !visited.Contains(linked))
+                        {
+                            stack.Push((linked, neighbor));
+                        }
+                    }
+                }
+            }
+        }
     }
 }
