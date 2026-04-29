@@ -534,7 +534,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PendulumSwing
   _amplitude: 15
-  _frequency: 1
+  _fallbackFrequency: 1
   _swingAxis: {x: 0, y: 0, z: 1}
   _settleSpeed: 90
 --- !u!1 &3196629075353864940 stripped
@@ -577,6 +577,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
   _saveId: clock_puzzle
   _puzzleCamera: {fileID: 8723951160259072455}
+  _blendDuration: 0.75
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -638,6 +639,8 @@ MonoBehaviour:
   _tickVolume: 0.8
   _tickMinDistance: 1
   _tickMaxDistance: 15
+  _peakThreshold: 0.35
+  _minPeakInterval: 0.15
   _chimeClip: {fileID: 8300000, guid: 6cf641f92c006a045893249cdea8863b, type: 3}
   _chimeVolume: 1
 --- !u!1 &5335499468430391888 stripped
@@ -702,7 +705,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClockHandHighlight
   _emissionColor: {r: 1, g: 0.85, b: 0.4, a: 1}
-  _emissionIntensity: 0.6
+  _emissionIntensity: 0.3
   _fadeSpeed: 8
 --- !u!1 &8487646435245748179 stripped
 GameObject:
@@ -766,5 +769,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClockHandHighlight
   _emissionColor: {r: 1, g: 0.85, b: 0.4, a: 1}
-  _emissionIntensity: 0.6
+  _emissionIntensity: 0.3
   _fadeSpeed: 8
