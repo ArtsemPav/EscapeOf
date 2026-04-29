@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Collections.Generic;
 using System.Collections;
 
 namespace PuzzleGame
@@ -8,10 +7,10 @@ namespace PuzzleGame
     /// <summary>
     /// Manages the sliding puzzle logic, including grid generation, shuffling, and win conditions.
     /// </summary>
-    public class PuzzleManager : MonoBehaviour, ISaveable
+    public class FifteenPuzzleManager : MonoBehaviour, ISaveable
     {
         [Header("Save")]
-        [SerializeField] private string _saveId = "boss_puzzle";
+        [SerializeField] private string _saveId = "fifteen_puzzle";
 
         [Header("Grid Settings")]
         [SerializeField] private int width = 3;
@@ -19,7 +18,7 @@ namespace PuzzleGame
         [SerializeField] private float spacing = 0.22f; // Distance between tile centers
 
         [Header("Setup")]
-        [SerializeField] private List<PuzzleElement> elements = new List<PuzzleElement>();
+        [SerializeField] private List<FifteenPuzzleElement> elements = new List<FifteenPuzzleElement>();
         [SerializeField] private GameObject lastElementPrefab; // The last tile to show on win
         [SerializeField] private ItemData rewardItemData;      // Item to add to inventory on restore (skips LastElement spawn)
 
@@ -27,7 +26,7 @@ namespace PuzzleGame
         [SerializeField] private bool useImageAtlas = true;
         [SerializeField] private Material puzzleMaterial;
 
-        private PuzzleElement[,] grid;
+        private FifteenPuzzleElement[,] grid;
         private Vector2Int emptyPosition;
         private bool isShuffling;
         private GameObject spawnedLastElement;
@@ -151,12 +150,12 @@ namespace PuzzleGame
 
         private void InitializeGrid()
         {
-            grid = new PuzzleElement[width, height];
+            grid = new FifteenPuzzleElement[width, height];
             
             // If elements are not pre-assigned, try to find them in children
             if (elements.Count == 0)
             {
-                elements.AddRange(GetComponentsInChildren<PuzzleElement>());
+                elements.AddRange(GetComponentsInChildren<FifteenPuzzleElement>());
             }
 
             int index = 0;
@@ -166,7 +165,7 @@ namespace PuzzleGame
                 {
                     if (index < elements.Count)
                     {
-                        PuzzleElement element = elements[index];
+                        FifteenPuzzleElement element = elements[index];
                         element.Initialize(this, new Vector2Int(x, y), index);
                         grid[x, y] = element;
                         
@@ -195,7 +194,7 @@ namespace PuzzleGame
         /// <summary>
         /// Attempts to move a tile into the adjacent empty space.
         /// </summary>
-        public bool TryMoveElement(PuzzleElement element)
+        public bool TryMoveElement(FifteenPuzzleElement element)
         {
             if (isShuffling || isPuzzleSolved) return false;
 
@@ -209,7 +208,7 @@ namespace PuzzleGame
             return false;
         }
 
-        private void MoveElementToEmpty(PuzzleElement element)
+        private void MoveElementToEmpty(FifteenPuzzleElement element)
         {
             Vector2Int oldPos = element.GridPosition;
             
@@ -244,10 +243,10 @@ namespace PuzzleGame
         {
             for (int i = 0; i < moves; i++)
             {
-                List<PuzzleElement> neighbors = GetNeighbors(emptyPosition);
+                List<FifteenPuzzleElement> neighbors = GetNeighbors(emptyPosition);
                 if (neighbors.Count > 0)
                 {
-                    PuzzleElement randomNeighbor = neighbors[Random.Range(0, neighbors.Count)];
+                    FifteenPuzzleElement randomNeighbor = neighbors[Random.Range(0, neighbors.Count)];
                     
                     // Instant swap for shuffle
                     Vector2Int oldPos = randomNeighbor.GridPosition;
@@ -260,9 +259,9 @@ namespace PuzzleGame
             }
         }
 
-        private List<PuzzleElement> GetNeighbors(Vector2Int pos)
+        private List<FifteenPuzzleElement> GetNeighbors(Vector2Int pos)
         {
-            List<PuzzleElement> neighbors = new List<PuzzleElement>();
+            List<FifteenPuzzleElement> neighbors = new List<FifteenPuzzleElement>();
             Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
             
             foreach (var dir in dirs)
@@ -358,7 +357,7 @@ namespace PuzzleGame
             elements.Sort((a, b) => a.TargetIndex.CompareTo(b.TargetIndex));
 
             // Reset the grid
-            grid = new PuzzleElement[width, height];
+            grid = new FifteenPuzzleElement[width, height];
             int index = 0;
 
             for (int y = 0; y < height; y++)
@@ -367,7 +366,7 @@ namespace PuzzleGame
                 {
                     if (index < elements.Count)
                     {
-                        PuzzleElement element = elements[index];
+                        FifteenPuzzleElement element = elements[index];
                         element.GridPosition = new Vector2Int(x, y);
                         grid[x, y] = element;
                         

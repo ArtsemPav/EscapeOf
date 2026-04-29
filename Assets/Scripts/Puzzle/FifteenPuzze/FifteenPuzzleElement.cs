@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 
 namespace PuzzleGame
@@ -10,7 +9,7 @@ namespace PuzzleGame
     /// Handles player interaction via mouse click and movement animation.
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class PuzzleElement : MonoBehaviour, IInteractable
+    public class FifteenPuzzleElement : MonoBehaviour, IInteractable
     {
         [Header("Movement Settings")]
         [SerializeField] private float moveSpeed = 10f;
@@ -19,7 +18,7 @@ namespace PuzzleGame
         [SerializeField] private TextMeshPro numberText;
         [SerializeField] private bool showDebugText = false;
         
-        private PuzzleManager manager;
+        private FifteenPuzzleManager manager;
         private Vector2Int gridPosition;
         private int targetIndex;
         private bool isMoving;
@@ -36,7 +35,7 @@ namespace PuzzleGame
             set => targetIndex = value; 
         }
 
-        public void Initialize(PuzzleManager puzzleManager, Vector2Int startPos, int index)
+        public void Initialize(FifteenPuzzleManager puzzleManager, Vector2Int startPos, int index)
         {
             manager = puzzleManager;
             gridPosition = startPos;

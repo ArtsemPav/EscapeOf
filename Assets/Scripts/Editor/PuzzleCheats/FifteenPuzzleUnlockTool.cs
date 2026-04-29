@@ -5,16 +5,15 @@ using PuzzleGame;
 namespace PuzzleGame.Editor
 {
     /// <summary>
-    /// Editor utility to automatically solve the Boss Puzzle in the scene.
+    /// Editor utility to automatically solve the Fifteen Puzzle in the scene.
     /// </summary>
-    public static class PuzzleSolverUtility
-    {
-        private const string MENU_PATH = "Tools/Solve Boss Puzzle";
+    public static class FifteenPuzzleUnlockTool {
+        private const string MENU_PATH = "Tools/PuzzlesCheats/Solve Fifteen Puzzle";
 
         [MenuItem(MENU_PATH)]
         public static void SolvePuzzle()
         {
-            PuzzleManager manager = Object.FindFirstObjectByType<PuzzleManager>();
+            FifteenPuzzleManager manager = Object.FindFirstObjectByType<FifteenPuzzleManager>();
 
             if (manager == null)
             {
@@ -25,7 +24,7 @@ namespace PuzzleGame.Editor
             // Record undo for all puzzle elements and the manager
             Undo.RecordObject(manager, "Auto Solve Puzzle");
             
-            PuzzleElement[] elements = Object.FindObjectsByType<PuzzleElement>(FindObjectsSortMode.None);
+            FifteenPuzzleElement[] elements = Object.FindObjectsByType<FifteenPuzzleElement>(FindObjectsSortMode.None);
             foreach (var element in elements)
             {
                 Undo.RecordObject(element.transform, "Auto Solve Puzzle Position");
@@ -45,7 +44,7 @@ namespace PuzzleGame.Editor
                 UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(manager.gameObject.scene);
             }
 
-            Debug.Log("Boss Puzzle has been automatically solved.");
+            Debug.Log("Fifteen Puzzle has been automatically solved.");
         }
     }
 }
