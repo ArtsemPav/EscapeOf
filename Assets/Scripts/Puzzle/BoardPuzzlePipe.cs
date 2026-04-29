@@ -29,6 +29,11 @@ public class BoardPuzzlePipe : MonoBehaviour
     public void Lock() => _isLocked = true;
 
     /// <summary>
+    /// Returns whether the cylinder is locked.
+    /// </summary>
+    public bool IsLocked => _isLocked;
+
+    /// <summary>
     /// Rotates the cylinder 90 degrees clockwise around the specified axis.
     /// Does nothing if the cylinder is already rotating or locked.
     /// </summary>

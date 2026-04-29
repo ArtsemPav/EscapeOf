@@ -22,15 +22,21 @@ public class CylinderInteractable : MonoBehaviour, IInteractable
     /// <summary>Rotates the cylinder when the player clicks it.</summary>
     public void Interact()
     {
-        if (_pipe != null)
+        if (_pipe != null && !_pipe.IsLocked)
         {
             _pipe.Rotate();
         }
-        else
+        else if (_pipe == null)
         {
             Debug.LogError($"[{nameof(CylinderInteractable)}] BoardPuzzlePipe reference is NULL on {gameObject.name}!");
         }
     }
+
+    /// <summary>
+    /// Returns false if the pipe is locked (puzzle solved), 
+    /// preventing any interaction and hiding UI prompts.
+    /// </summary>
+    public bool CanInteract() => _pipe != null && !_pipe.IsLocked;
 
     /// <summary>Returns the hint text shown when hovering over this cylinder in puzzle mode.</summary>
     public string GetInteractText() => _interactText;

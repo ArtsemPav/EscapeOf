@@ -45,6 +45,10 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     [Tooltip("Unique identifier for the save system. Must be unique across the entire game.")]
     [SerializeField] private string _saveId = "board_puzzle";
 
+    [Header("Debug")]
+    [Tooltip("If enabled, path tracing details will be printed to the console.")]
+    [SerializeField] private bool _showDebugLogs = true;
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
@@ -146,21 +150,21 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     public void CheckSolution() {
         if (_targetSequence == null || _targetSequence.Count < 2) return;
 
-        Debug.Log("<color=cyan>[Puzzle] --- Starting Path Validation ---</color>");
+        if (_showDebugLogs) Debug.Log("<color=cyan>[Puzzle] --- Starting Path Validation ---</color>");
 
         GameObject startTerminal = _targetSequence[0];
         List<GameObject> startConnectors = FindLogicalConnectors(startTerminal);
 
         if (startConnectors.Count == 0) {
-            Debug.Log($"<color=red>[Puzzle] No logical connectors for start terminal '{startTerminal.name}'. " +
+            if (_showDebugLogs) Debug.Log($"<color=red>[Puzzle] No logical connectors for start terminal '{startTerminal.name}'. " +
                       $"Check BoardPuzzleTrackConnector setup.</color>");
             return;
         }
 
         foreach (GameObject startConnector in startConnectors) {
-            Debug.Log($"[Puzzle] Trying start direction: {startConnector.name}");
+            if (_showDebugLogs) Debug.Log($"[Puzzle] Trying start direction: {startConnector.name}");
             if (TraceSequence(startConnector, fromTerminal: startTerminal, targetIndex: 1)) {
-                Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!!</color>");
+                if (_showDebugLogs) Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!!</color>");
                 _isSolved = true;
                 LockAllCylinders();
                 SaveManager.Instance?.Save();
@@ -169,7 +173,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
             }
         }
 
-        Debug.Log("<color=red>[Puzzle] Path broken! No valid path found.</color>");
+        if (_showDebugLogs) Debug.Log("<color=red>[Puzzle] Path broken! No valid path found.</color>");
     }
 
     // -------------------------------------------------------------------------
@@ -188,11 +192,11 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         // Pass the target terminal so TraceToTerminal skips wrong terminals
         // instead of returning the first one it encounters.
         if (!TraceToTerminal(exitConnector, fromTerminal, targetTerminal, out GameObject arrivalConnector)) {
-            Debug.Log($"[Puzzle] Dead end from {exitConnector.name}");
+            if (_showDebugLogs) Debug.Log($"[Puzzle] Dead end from {exitConnector.name}");
             return false;
         }
 
-        Debug.Log($"<color=green>[Puzzle] Step {targetIndex}: reached {targetTerminal.name} " +
+        if (_showDebugLogs) Debug.Log($"<color=green>[Puzzle] Step {targetIndex}: reached {targetTerminal.name} " +
                   $"via {arrivalConnector.name}</color>");
 
         // Last terminal — done.
@@ -203,12 +207,12 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         GameObject nextExit = terminalConnectors.FirstOrDefault(c => c != arrivalConnector);
 
         if (nextExit == null) {
-            Debug.Log($"<color=red>[Puzzle] No exit connector at {targetTerminal.name} " +
+            if (_showDebugLogs) Debug.Log($"<color=red>[Puzzle] No exit connector at {targetTerminal.name} " +
                       $"(entered via {arrivalConnector.name})</color>");
             return false;
         }
 
-        Debug.Log($"[Puzzle] Exiting {targetTerminal.name} via {nextExit.name}");
+        if (_showDebugLogs) Debug.Log($"[Puzzle] Exiting {targetTerminal.name} via {nextExit.name}");
         return TraceSequence(nextExit, fromTerminal: targetTerminal, targetIndex: targetIndex + 1);
     }
 
@@ -241,12 +245,12 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
             foreach (GameObject neighbor in physicalNeighbors) {
                 if (visited.Contains(neighbor)) continue;
-                Debug.Log($"[Path] PHYSICAL: {current.name} -> {neighbor.name}");
+                if (_showDebugLogs) Debug.Log($"[Path] PHYSICAL: {current.name} -> {neighbor.name}");
 
                 // Check logical arrival at any terminal.
                 GameObject terminal = FindLogicalTerminal(neighbor);
                 if (terminal != null) {
-                    Debug.Log($"[Path] LOGICAL TERMINAL: {neighbor.name} -> {terminal.name}");
+                    if (_showDebugLogs) Debug.Log($"[Path] LOGICAL TERMINAL: {neighbor.name} -> {terminal.name}");
 
                     if (terminal == targetTerminal) {
                         arrivalConnector = neighbor;
@@ -266,7 +270,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
                     foreach (GameObject linked in connector.GetConnectedPoints(neighbor)) {
                         if (_targetSequence.Contains(linked)) continue;
                         if (!visited.Contains(linked)) {
-                            Debug.Log($"[Path] INTERNAL: {neighbor.name} -> {linked.name}");
+                            if (_showDebugLogs) Debug.Log($"[Path] INTERNAL: {neighbor.name} -> {linked.name}");
                             stack.Push((linked, neighbor));
                         }
                     }
