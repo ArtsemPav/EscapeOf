@@ -175,6 +175,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
             if (TraceSequence(startConnector, fromTerminal: startTerminal, targetIndex: 1)) {
                 if (_showDebugLogs) Debug.Log("<color=cyan>[Puzzle] !!! PUZZLE SOLVED !!!</color>");
                 _isSolved = true;
+                UpdateVisualPath();
                 LockAllCylinders();
                 SaveManager.Instance?.Save();
                 OnPuzzleSolved.Invoke();
@@ -389,35 +390,39 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         if (_targetSequence == null || _targetSequence.Count == 0) return;
 
         HashSet<GameObject> poweredPoints = new HashSet<GameObject>();
-        GameObject startTerminal = _targetSequence[0];
-        poweredPoints.Add(startTerminal);
 
-        GameObject currentStart = startTerminal;
-        int nextTargetIndex = 1;
-
-        while (nextTargetIndex < _targetSequence.Count)
+        if (!_isSolved)
         {
-            GameObject targetTerminal = _targetSequence[nextTargetIndex];
-            List<GameObject> exits = FindLogicalConnectors(currentStart);
-            bool reachedNext = false;
-            GameObject arrivalPoint = null;
+            GameObject startTerminal = _targetSequence[0];
+            poweredPoints.Add(startTerminal);
 
-            foreach (var exit in exits)
+            GameObject currentStart = startTerminal;
+            int nextTargetIndex = 1;
+
+            while (nextTargetIndex < _targetSequence.Count)
             {
-                if (TraceToTerminalForVisual(exit, currentStart, targetTerminal, poweredPoints, out arrivalPoint))
+                GameObject targetTerminal = _targetSequence[nextTargetIndex];
+                List<GameObject> exits = FindLogicalConnectors(currentStart);
+                bool reachedNext = false;
+                GameObject arrivalPoint = null;
+
+                foreach (var exit in exits)
                 {
-                    reachedNext = true;
-                    break;
+                    if (TraceToTerminalForVisual(exit, currentStart, targetTerminal, poweredPoints, out arrivalPoint))
+                    {
+                        reachedNext = true;
+                        break;
+                    }
                 }
-            }
 
-            if (reachedNext)
-            {
-                poweredPoints.Add(targetTerminal);
-                currentStart = targetTerminal;
-                nextTargetIndex++;
+                if (reachedNext)
+                {
+                    poweredPoints.Add(targetTerminal);
+                    currentStart = targetTerminal;
+                    nextTargetIndex++;
+                }
+                else break;
             }
-            else break;
         }
 
         // Apply visual state
@@ -425,7 +430,8 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         {
             if (kvp.Value != null)
             {
-                bool hasPower = poweredPoints.Contains(kvp.Key);
+                // If solved, power is always false. If not solved, depends on the path.
+                bool hasPower = !_isSolved && poweredPoints.Contains(kvp.Key);
                 // A terminal is only "allowed" if it's actually in the powered points set
                 kvp.Value.SetPower(hasPower, hasPower);
             }
