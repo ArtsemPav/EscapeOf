@@ -17,6 +17,11 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     [SerializeField, Min(0)] private int _materialIndex = 0;
 
     [Header("Emission Settings")]
+    [Tooltip("If true, this object is treated as a terminal and won't light up unless it's part of the active sequence.")]
+    [SerializeField] private bool _isTerminal = false;
+    public bool IsTerminal => _isTerminal;
+
+
     [Tooltip("Color for the emission. Use HDR color picker for intensity.")]
     [ColorUsage(true, true)]
     [SerializeField] private Color _activeColor = Color.cyan;
@@ -27,6 +32,8 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     private MaterialPropertyBlock _propBlock;
     private float _targetWeight = 0f;
     private float _currentWeight = 0f;
+    private readonly Color _blackColor = new Color(0f, 0f, 0f, 0f);
+    private bool _isDirty = true;
 
     private void Awake()
     {
@@ -49,25 +56,39 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     /// <summary>
     /// Sets whether this connector is currently receiving "power" from the start terminal.
     /// </summary>
-    public void SetPower(bool hasPower)
+    /// <param name="hasPower">Does this connector have power?</param>
+    /// <param name="isAllowedTerminal">If this is a terminal, is it allowed to light up?</param>
+    public void SetPower(bool hasPower, bool isAllowedTerminal = true)
     {
-        _targetWeight = hasPower ? 1f : 0f;
+        bool finalPower = _isTerminal ? (hasPower && isAllowedTerminal) : hasPower;
+        float newTarget = finalPower ? 1f : 0f;
+        if (!Mathf.Approximately(_targetWeight, newTarget))
+        {
+            _targetWeight = newTarget;
+            _isDirty = true;
+        }
     }
 
     private void Update()
     {
         if (_targetRenderer == null) return;
-        if (Mathf.Approximately(_currentWeight, _targetWeight)) return;
+        
+        if (!_isDirty && Mathf.Approximately(_currentWeight, _targetWeight)) return;
 
         _currentWeight = Mathf.MoveTowards(_currentWeight, _targetWeight, _fadeSpeed * Time.deltaTime);
         
         // Use the index-aware overload of GetPropertyBlock and SetPropertyBlock
         _targetRenderer.GetPropertyBlock(_propBlock, _materialIndex);
         
-        // Final color = color * current weight (0 to 1)
-        Color finalColor = _activeColor * _currentWeight;
+        // Use Lerp to smoothly transition from black to active color
+        Color finalColor = Color.Lerp(_blackColor, _activeColor, _currentWeight);
         _propBlock.SetColor(EmissionColorId, finalColor);
         
         _targetRenderer.SetPropertyBlock(_propBlock, _materialIndex);
+
+        if (Mathf.Approximately(_currentWeight, _targetWeight))
+        {
+            _isDirty = false;
+        }
     }
 }

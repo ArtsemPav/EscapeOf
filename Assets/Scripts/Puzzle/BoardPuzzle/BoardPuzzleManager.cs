@@ -192,37 +192,45 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     /// <summary>
     /// Recursively traces from exitConnector trying to reach _targetSequence[targetIndex],
     /// then continues to the next terminal via the opposite connector.
+    /// Supports multiple paths to the same terminal.
     /// </summary>
     private bool TraceSequence(GameObject exitConnector, GameObject fromTerminal, int targetIndex) {
         if (targetIndex >= _targetSequence.Count) return true;
 
         GameObject targetTerminal = _targetSequence[targetIndex];
 
-        // Pass the target terminal so TraceToTerminal skips wrong terminals
-        // instead of returning the first one it encounters.
-        if (!TraceToTerminal(exitConnector, fromTerminal, targetTerminal, out GameObject arrivalConnector)) {
-            if (_showDebugLogs) Debug.Log($"[Puzzle] Dead end from {exitConnector.name}");
+        // Find ALL possible ways to reach this terminal from the current exit.
+        List<GameObject> possibleArrivals = FindAllArrivalConnectors(exitConnector, fromTerminal, targetTerminal);
+
+        if (possibleArrivals.Count == 0) {
+            if (_showDebugLogs) Debug.Log($"[Puzzle] Dead end from {exitConnector.name} - cannot reach {targetTerminal.name}");
             return false;
         }
 
-        if (_showDebugLogs) Debug.Log($"<color=green>[Puzzle] Step {targetIndex}: reached {targetTerminal.name} " +
-                  $"via {arrivalConnector.name}</color>");
+        foreach (GameObject arrivalConnector in possibleArrivals) {
+            if (_showDebugLogs) Debug.Log($"<color=green>[Puzzle] Step {targetIndex}: reached {targetTerminal.name} via {arrivalConnector.name}</color>");
 
-        // Last terminal — done.
-        if (targetIndex == _targetSequence.Count - 1) return true;
+            // Last terminal — done.
+            if (targetIndex == _targetSequence.Count - 1) return true;
 
-        // Find the exit connector: the other logical connector of this terminal.
-        List<GameObject> terminalConnectors = FindLogicalConnectors(targetTerminal);
-        GameObject nextExit = terminalConnectors.FirstOrDefault(c => c != arrivalConnector);
+            // Find the exit connector: the other logical connector of this terminal.
+            List<GameObject> terminalConnectors = FindLogicalConnectors(targetTerminal);
+            GameObject nextExit = terminalConnectors.FirstOrDefault(c => c != arrivalConnector);
 
-        if (nextExit == null) {
-            if (_showDebugLogs) Debug.Log($"<color=red>[Puzzle] No exit connector at {targetTerminal.name} " +
-                      $"(entered via {arrivalConnector.name})</color>");
-            return false;
+            if (nextExit == null) {
+                if (_showDebugLogs) Debug.Log($"<color=red>[Puzzle] No exit connector at {targetTerminal.name} (entered via {arrivalConnector.name})</color>");
+                continue; // Try another arrival point if this one has no exit
+            }
+
+            if (_showDebugLogs) Debug.Log($"[Puzzle] Exiting {targetTerminal.name} via {nextExit.name}");
+            if (TraceSequence(nextExit, fromTerminal: targetTerminal, targetIndex: targetIndex + 1)) {
+                return true;
+            }
+
+            if (_showDebugLogs) Debug.Log($"[Puzzle] Path through {arrivalConnector.name} failed further down the line. Trying other arrival points...");
         }
 
-        if (_showDebugLogs) Debug.Log($"[Puzzle] Exiting {targetTerminal.name} via {nextExit.name}");
-        return TraceSequence(nextExit, fromTerminal: targetTerminal, targetIndex: targetIndex + 1);
+        return false;
     }
 
     // -------------------------------------------------------------------------
@@ -231,13 +239,10 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
     /// <summary>
     /// Follows PHYSICAL -> INTERNAL -> PHYSICAL -> ... from exitConnector
-    /// until the targetTerminal is reached. Wrong terminals are treated as dead ends.
+    /// and collects ALL arrival connectors that logically reach targetTerminal.
     /// </summary>
-    private bool TraceToTerminal(GameObject exitConnector, GameObject fromTerminal,
-                                  GameObject targetTerminal,
-                                  out GameObject arrivalConnector) {
-        arrivalConnector = null;
-
+    private List<GameObject> FindAllArrivalConnectors(GameObject exitConnector, GameObject fromTerminal, GameObject targetTerminal) {
+        List<GameObject> arrivalConnectors = new List<GameObject>();
         Stack<(GameObject current, GameObject prev)> stack = new Stack<(GameObject, GameObject)>();
         HashSet<GameObject> visited = new HashSet<GameObject>();
 
@@ -254,32 +259,27 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
             foreach (GameObject neighbor in physicalNeighbors) {
                 if (visited.Contains(neighbor)) continue;
-                if (_showDebugLogs) Debug.Log($"[Path] PHYSICAL: {current.name} -> {neighbor.name}");
 
                 // Check logical arrival at any terminal.
                 GameObject terminal = FindLogicalTerminal(neighbor);
                 if (terminal != null) {
-                    if (_showDebugLogs) Debug.Log($"[Path] LOGICAL TERMINAL: {neighbor.name} -> {terminal.name}");
-
                     if (terminal == targetTerminal) {
-                        arrivalConnector = neighbor;
-                        return true;
+                        if (!arrivalConnectors.Contains(neighbor))
+                            arrivalConnectors.Add(neighbor);
                     }
 
-                    // Wrong terminal — treat as dead end, do not pass through it.
+                    // Treat terminals as blocking for further pathing, even if it's the target.
                     visited.Add(neighbor);
                     continue;
                 }
 
                 // INTERNAL step: follow connections within neighbor's cylinder.
-                BoardPuzzleTrackConnector connector =
-                    neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
+                BoardPuzzleTrackConnector connector = neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
 
                 if (connector != null) {
                     foreach (GameObject linked in connector.GetConnectedPoints(neighbor)) {
-                        if (_targetSequence.Contains(linked)) continue;
+                        if (IsTerminal(linked)) continue;
                         if (!visited.Contains(linked)) {
-                            if (_showDebugLogs) Debug.Log($"[Path] INTERNAL: {neighbor.name} -> {linked.name}");
                             stack.Push((linked, neighbor));
                         }
                     }
@@ -287,7 +287,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
             }
         }
 
-        return false;
+        return arrivalConnectors;
     }
 
     // -------------------------------------------------------------------------
@@ -314,7 +314,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         List<GameObject> results = new List<GameObject>();
         foreach (BoardPuzzleTrackConnector tc in _allTrackConnectors) {
             foreach (GameObject connected in tc.GetConnectedPoints(fromPoint)) {
-                if (!_targetSequence.Contains(connected) && !results.Contains(connected))
+                if (!IsTerminal(connected) && !results.Contains(connected))
                     results.Add(connected);
             }
         }
@@ -322,15 +322,16 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     }
 
     /// <summary>
-    /// Checks whether any BoardPuzzleTrackConnector defines a logical connection
-    /// FROM connector TO a terminal. Returns the terminal if found, null otherwise.
+    /// Checks whether the SPECIFIC BoardPuzzleTrackConnector that owns this connector
+    /// defines a logical connection TO a terminal.
     /// </summary>
     private GameObject FindLogicalTerminal(GameObject connector) {
-        foreach (BoardPuzzleTrackConnector tc in _allTrackConnectors) {
-            foreach (GameObject linked in tc.GetConnectedPoints(connector)) {
-                if (_targetSequence.Contains(linked))
-                    return linked;
-            }
+        BoardPuzzleTrackConnector tc = connector.GetComponentInParent<BoardPuzzleTrackConnector>();
+        if (tc == null) return null;
+
+        foreach (GameObject linked in tc.GetConnectedPoints(connector)) {
+            if (IsTerminal(linked))
+                return linked;
         }
         return null;
     }
@@ -349,16 +350,22 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         Collider col = point.GetComponent<Collider>();
         if (col == null) return results;
 
+        // Get the cylinder (parent with BoardPuzzleTrackConnector) of the current point
+        BoardPuzzleTrackConnector currentCylinder = point.GetComponentInParent<BoardPuzzleTrackConnector>();
+
         Collider[] overlaps = Physics.OverlapSphere(col.bounds.center, _connectionDetectionRadius);
         foreach (Collider other in overlaps) {
             GameObject go = other.gameObject;
             if (go == point) continue;
             if (go == exclude) continue;
-            if (_targetSequence.Contains(go)) continue;
+            if (IsTerminal(go)) continue;
 
             // Accept only connector-point children, not the cylinder GameObject itself.
-            BoardPuzzleTrackConnector parentConnector = go.GetComponentInParent<BoardPuzzleTrackConnector>();
-            if (parentConnector != null && parentConnector.gameObject != go)
+            BoardPuzzleTrackConnector otherCylinder = go.GetComponentInParent<BoardPuzzleTrackConnector>();
+            
+            // CRITICAL FIX: Only allow connection if the other point belongs to a DIFFERENT cylinder.
+            // This prevents points on the same cylinder from "short-circuiting" physically.
+            if (otherCylinder != null && otherCylinder.gameObject != go && otherCylinder != currentCylinder)
                 results.Add(go);
         }
         return results;
@@ -381,69 +388,127 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     {
         if (_targetSequence == null || _targetSequence.Count == 0) return;
 
-        GameObject startTerminal = _targetSequence[0];
         HashSet<GameObject> poweredPoints = new HashSet<GameObject>();
-        
-        // Always power the start terminal
+        GameObject startTerminal = _targetSequence[0];
         poweredPoints.Add(startTerminal);
 
-        // Start tracing from the first terminal's logical connectors
-        List<GameObject> startConnectors = FindLogicalConnectors(startTerminal);
-        foreach (var start in startConnectors)
+        GameObject currentStart = startTerminal;
+        int nextTargetIndex = 1;
+
+        while (nextTargetIndex < _targetSequence.Count)
         {
-            TracePoweredNetwork(start, startTerminal, poweredPoints);
+            GameObject targetTerminal = _targetSequence[nextTargetIndex];
+            List<GameObject> exits = FindLogicalConnectors(currentStart);
+            bool reachedNext = false;
+            GameObject arrivalPoint = null;
+
+            foreach (var exit in exits)
+            {
+                if (TraceToTerminalForVisual(exit, currentStart, targetTerminal, poweredPoints, out arrivalPoint))
+                {
+                    reachedNext = true;
+                    break;
+                }
+            }
+
+            if (reachedNext)
+            {
+                poweredPoints.Add(targetTerminal);
+                currentStart = targetTerminal;
+                nextTargetIndex++;
+            }
+            else break;
         }
 
-        // Apply visual state to all cached connectors
+        // Apply visual state
         foreach (var kvp in _visualsCache)
         {
             if (kvp.Value != null)
             {
-                kvp.Value.SetPower(poweredPoints.Contains(kvp.Key));
+                bool hasPower = poweredPoints.Contains(kvp.Key);
+                // A terminal is only "allowed" if it's actually in the powered points set
+                kvp.Value.SetPower(hasPower, hasPower);
             }
         }
     }
 
-    private void TracePoweredNetwork(GameObject exitConnector, GameObject fromTerminal, HashSet<GameObject> visited)
+    /// <summary>
+    /// A version of TraceToTerminal that powers everything along the way.
+    /// Returns true only if targetTerminal is reached.
+    /// </summary>
+    private bool TraceToTerminalForVisual(GameObject exitConnector, GameObject fromTerminal, 
+                                          GameObject targetTerminal, HashSet<GameObject> poweredPoints,
+                                          out GameObject arrivalConnector)
     {
+        arrivalConnector = null;
         Stack<(GameObject current, GameObject prev)> stack = new Stack<(GameObject, GameObject)>();
+        HashSet<GameObject> localVisited = new HashSet<GameObject>();
+        
         stack.Push((exitConnector, fromTerminal));
 
         while (stack.Count > 0)
         {
             var (current, prev) = stack.Pop();
-            if (visited.Contains(current)) continue;
-            visited.Add(current);
+            if (localVisited.Contains(current)) continue;
+            localVisited.Add(current);
 
-            // Find physical neighbors (connections between cylinders)
+            // Power everything that is NOT a terminal, OR is one of the allowed terminals in the current segment
+            bool isTerminal = IsTerminal(current);
+            if (!isTerminal || current == targetTerminal || current == fromTerminal)
+            {
+                poweredPoints.Add(current);
+            }
+
             List<GameObject> physicalNeighbors = FindPhysicalNeighbors(current, exclude: prev);
             foreach (GameObject neighbor in physicalNeighbors)
             {
-                if (visited.Contains(neighbor)) continue;
+                if (localVisited.Contains(neighbor)) continue;
 
-                // If neighbor reaches ANY terminal, mark it as powered but don't trace further through terminals
                 GameObject terminal = FindLogicalTerminal(neighbor);
                 if (terminal != null)
                 {
-                    visited.Add(neighbor);
-                    visited.Add(terminal); // Also power the terminal itself
+                    // If we reached the target, power it and stop this segment
+                    if (terminal == targetTerminal)
+                    {
+                        poweredPoints.Add(neighbor);
+                        poweredPoints.Add(terminal);
+                        arrivalConnector = neighbor;
+                        return true;
+                    }
+                    // If it's some other terminal, we don't power it and don't go through it
                     continue;
                 }
 
-                // Internal step: follow internal cylinder connections
+                // Internal step: Follow internal cylinder connections
                 BoardPuzzleTrackConnector connector = neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
                 if (connector != null)
                 {
-                    visited.Add(neighbor); // The entry point itself is now powered
+                    // Check if this path leads anywhere valid first
+                    bool leadsSomewhere = false;
                     foreach (GameObject linked in connector.GetConnectedPoints(neighbor))
                     {
-                        if (!_targetSequence.Contains(linked) && !visited.Contains(linked))
+                        if (!localVisited.Contains(linked))
                         {
                             stack.Push((linked, neighbor));
+                            leadsSomewhere = true;
                         }
+                    }
+
+                    // Only power the entry point if it's a valid path that doesn't just hit a wrong terminal
+                    if (leadsSomewhere)
+                    {
+                        poweredPoints.Add(neighbor);
                     }
                 }
             }
         }
+
+        return false;
+    }
+
+    private bool IsTerminal(GameObject go) {
+        if (_targetSequence.Contains(go)) return true;
+        if (_visualsCache.TryGetValue(go, out var visual)) return visual.IsTerminal;
+        return false;
     }
 }
