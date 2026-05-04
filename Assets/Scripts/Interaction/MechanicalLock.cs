@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Logic for a 5-digit combination lock using mechanical cylinders.
+/// Integrated with PuzzleModeController for state management and events.
 /// </summary>
 public class MechanicalLock : MonoBehaviour, ISaveable
 {
@@ -15,14 +16,9 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     [SerializeField] private PuzzleModeController _puzzleController;
     [SerializeField] private LockCylinder[] _cylinders;
     
-    [Header("Events")]
-    [SerializeField] private UnityEvent OnPuzzleSolved;
-    [SerializeField] private GameEvent _puzzleSolvedGameEvent;
-
     [Header("Save")]
     [SerializeField] private string _saveId;
 
-    private bool _isSolved;
     private Camera _mainCamera;
 
     public string SaveId => _saveId;
@@ -35,6 +31,38 @@ public class MechanicalLock : MonoBehaviour, ISaveable
         SaveManager.Instance?.Register(this);
     }
 
+    private void Start()
+    {
+        // Randomize cylinders on start if not already solved (and if no save data was applied yet)
+        if (_puzzleController != null && !_puzzleController.IsSolved)
+        {
+            RandomizeCylinders();
+        }
+    }
+
+    private void RandomizeCylinders()
+    {
+        bool isCorrect;
+        do
+        {
+            isCorrect = true;
+            for (int i = 0; i < _cylinders.Length; i++)
+            {
+                if (_cylinders[i] != null)
+                {
+                    int randomValue = UnityEngine.Random.Range(0, 10);
+                    _cylinders[i].SetValue(randomValue);
+                    
+                    if (i < _correctCombination.Length && randomValue != _correctCombination[i])
+                    {
+                        isCorrect = false;
+                    }
+                }
+            }
+            // If we accidentally rolled the correct combination, try again
+        } while (isCorrect && _cylinders.Length == _correctCombination.Length);
+    }
+
     private void OnDestroy()
     {
         SaveManager.Instance?.Unregister(this);
@@ -42,7 +70,7 @@ public class MechanicalLock : MonoBehaviour, ISaveable
 
     private void Update()
     {
-        if (_puzzleController != null && _puzzleController.IsActive && !_isSolved)
+        if (_puzzleController != null && _puzzleController.IsActive && !_puzzleController.IsSolved)
         {
             HandleInput();
         }
@@ -50,7 +78,10 @@ public class MechanicalLock : MonoBehaviour, ISaveable
 
     private void HandleInput()
     {
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        bool lmb = Mouse.current.leftButton.wasPressedThisFrame;
+        bool rmb = Mouse.current.rightButton.wasPressedThisFrame;
+
+        if (lmb || rmb)
         {
             Ray ray = _mainCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
             if (Physics.Raycast(ray, out RaycastHit hit))
@@ -58,7 +89,8 @@ public class MechanicalLock : MonoBehaviour, ISaveable
                 LockCylinder cylinder = hit.collider.GetComponentInParent<LockCylinder>();
                 if (cylinder != null && Array.IndexOf(_cylinders, cylinder) != -1)
                 {
-                    cylinder.Rotate();
+                    // LMB -> rotate forward (-36 deg), RMB -> rotate backward (+36 deg)
+                    cylinder.Rotate(!lmb);
                     CheckCombination();
                 }
             }
@@ -82,12 +114,9 @@ public class MechanicalLock : MonoBehaviour, ISaveable
 
     private void Solve()
     {
-        _isSolved = true;
-        OnPuzzleSolved?.Invoke();
-        _puzzleSolvedGameEvent?.Raise();
-        
         if (_puzzleController != null)
         {
+            // PuzzleModeController handles its own solved state, events (OnPuzzleSolved), and saves state.
             _puzzleController.SetSolved();
         }
     }
@@ -100,7 +129,6 @@ public class MechanicalLock : MonoBehaviour, ISaveable
         for (int i = 0; i < _cylinders.Length; i++) values[i] = _cylinders[i].CurrentValue;
         
         return JsonUtility.ToJson(new LockSaveData { 
-            isSolved = _isSolved, 
             cylinderValues = values 
         });
     }
@@ -108,7 +136,6 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<LockSaveData>(json);
-        _isSolved = data.isSolved;
         
         if (data.cylinderValues != null && data.cylinderValues.Length == _cylinders.Length)
         {
@@ -117,17 +144,11 @@ public class MechanicalLock : MonoBehaviour, ISaveable
                 _cylinders[i].SetValue(data.cylinderValues[i]);
             }
         }
-
-        if (_isSolved && _puzzleController != null && !_puzzleController.IsSolved)
-        {
-            _puzzleController.SetSolved();
-        }
     }
 
     [Serializable]
     private struct LockSaveData
     {
-        public bool isSolved;
         public int[] cylinderValues;
     }
 

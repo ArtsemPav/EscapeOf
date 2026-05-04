@@ -34,11 +34,19 @@ public class LockCylinder : MonoBehaviour
     }
 
     /// <summary>
-    /// Rotates the cylinder by one step (-36 degrees).
+    /// Rotates the cylinder by one step.
     /// </summary>
-    public void Rotate()
+    /// <param name="clockwise">If true, rotates 36 degrees. If false, rotates -36 degrees.</param>
+    public void Rotate(bool clockwise)
     {
-        _currentIndex = (_currentIndex + 1) % 10;
+        if (clockwise)
+        {
+            _currentIndex = (_currentIndex - 1 + 10) % 10;
+        }
+        else
+        {
+            _currentIndex = (_currentIndex + 1) % 10;
+        }
         UpdateRotation(false);
     }
 
