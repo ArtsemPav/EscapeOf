@@ -17,6 +17,7 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     [SerializeField] private LockCylinder[] _cylinders;
     
     [Header("Save")]
+    [Tooltip("Unique ID for saving the state of lock cylinders (their current rotation values).")]
     [SerializeField] private string _saveId;
 
     private Camera _mainCamera;

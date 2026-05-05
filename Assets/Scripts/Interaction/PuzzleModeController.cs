@@ -185,6 +185,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         // Show cursor for puzzle interaction.
         SetCursorState(true);
+        if (UI.PuzzleCursor.Instance != null)
+        {
+            UI.PuzzleCursor.Instance.Show();
+        }
 
         OnPuzzleModeEntered?.Invoke();
         OnEntered?.Invoke();
@@ -211,6 +215,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         // Restore FPS cursor state.
         SetCursorState(false);
+        if (UI.PuzzleCursor.Instance != null)
+        {
+            UI.PuzzleCursor.Instance.Hide();
+        }
 
         OnPuzzleModeExited?.Invoke();
         OnExited?.Invoke();
