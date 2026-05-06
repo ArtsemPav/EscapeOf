@@ -30,12 +30,38 @@ public class DigitalLockSystem : MonoBehaviour
     [Tooltip("The puzzle controller to notify when the code is correct.")]
     [SerializeField] private PuzzleModeController _puzzleController;
 
+    [Header("Audio")]
+    [Tooltip("Sound played when any digit, Clear, or Enter is pressed.")]
+    [SerializeField] private AudioClip _buttonPressSound;
+
+    [Tooltip("Sound played when the correct code is entered.")]
+    [SerializeField] private AudioClip _successSound;
+
+    [Tooltip("Sound played when an incorrect code is entered.")]
+    [SerializeField] private AudioClip _errorSound;
+
     private string _currentInput = string.Empty;
     private bool _isDisplayingTemporaryMessage = false;
+    private bool _blinkState = true;
+    private float _blinkTimer = 0f;
+    private const float BLINK_INTERVAL = 0.5f;
 
     private void Start()
     {
         UpdateDisplay();
+    }
+
+    private void Update()
+    {
+        if (_isDisplayingTemporaryMessage || _currentInput == _solvedText) return;
+
+        _blinkTimer += Time.deltaTime;
+        if (_blinkTimer >= BLINK_INTERVAL)
+        {
+            _blinkTimer = 0f;
+            _blinkState = !_blinkState;
+            UpdateDisplay();
+        }
     }
 
     /// <summary>
@@ -54,6 +80,7 @@ public class DigitalLockSystem : MonoBehaviour
         if (_currentInput.Length >= _maxCodeLength) return;
 
         _currentInput += digit.ToString();
+        PlaySound(_buttonPressSound);
         UpdateDisplay();
     }
 
@@ -63,6 +90,7 @@ public class DigitalLockSystem : MonoBehaviour
     public void Clear()
     {
         _currentInput = string.Empty;
+        PlaySound(_buttonPressSound);
         UpdateDisplay();
     }
 
@@ -80,11 +108,21 @@ public class DigitalLockSystem : MonoBehaviour
                 _puzzleController.SetSolved();
             }
             _currentInput = _solvedText;
+            PlaySound(_successSound);
             UpdateDisplay();
         }
         else
         {
+            PlaySound(_errorSound);
             StartCoroutine(ShowErrorRoutine());
+        }
+    }
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (AudioManager.Instance != null && clip != null)
+        {
+            AudioManager.Instance.PlaySFX(clip);
         }
     }
 
@@ -123,6 +161,9 @@ public class DigitalLockSystem : MonoBehaviour
 
         System.Text.StringBuilder displayBuilder = new System.Text.StringBuilder();
 
+        // Use fixed width for each character to prevent layout shifting
+        displayBuilder.Append("<mspace=0.6em>");
+
         for (int i = 0; i < _maxCodeLength; i++)
         {
             if (i < _currentInput.Length)
@@ -139,11 +180,27 @@ public class DigitalLockSystem : MonoBehaviour
             }
             else
             {
-                // Fill remaining slots with '_'
-                displayBuilder.Append('_');
+                // Current slot to fill
+                if (i == _currentInput.Length)
+                {
+                    // Use a transparent underscore instead of a space to prevent layout shifting
+                    if (_blinkState)
+                    {
+                        displayBuilder.Append('_');
+                    }
+                    else
+                    {
+                        displayBuilder.Append("<color=#00000000>_</color>");
+                    }
+                }
+                else
+                {
+                    displayBuilder.Append('_');
+                }
             }
         }
 
+        displayBuilder.Append("</mspace>");
         _screenText.text = displayBuilder.ToString();
     }
 }
