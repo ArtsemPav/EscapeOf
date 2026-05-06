@@ -6,26 +6,42 @@ using UnityEngine;
 /// </summary>
 public class SimpleInteractable : MonoBehaviour, IInteractable
 {
-    [Header("Settings")]
-    [SerializeField] private string _interactText = "Взаимодействовать";
-    [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
+    [Header("UI Feedback")]
+    [SerializeField] private string _idleHintText = "Взаимодействовать";
+    [SerializeField] private string _activeHintText = "Нажать";
+    [SerializeField] private CrosshairMode _idleCrosshair = CrosshairMode.Hand;
+    [SerializeField] private CrosshairMode _activeCrosshair = CrosshairMode.Grab;
     [SerializeField] private bool _isPickable = false;
 
     [Header("Events")]
     [SerializeField] private UnityEngine.Events.UnityEvent _onInteract;
 
-    public bool CanInteract() => enabled;
+    public bool CanInteract() => true;
 
     public void Interact()
     {
         _onInteract?.Invoke();
     }
 
-    public string GetInteractText() => _interactText;
+    public string GetInteractText()
+    {
+        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.isPressed)
+        {
+            return _activeHintText;
+        }
+        return _idleHintText;
+    }
 
     public bool IsPickable() => _isPickable;
 
-    public CrosshairMode GetCrosshairMode() => _crosshairMode;
+    public CrosshairMode GetCrosshairMode()
+    {
+        if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.isPressed)
+        {
+            return _activeCrosshair;
+        }
+        return _idleCrosshair;
+    }
 
     /// <summary>
     /// If true, FPSController will use LMB instead of E. 

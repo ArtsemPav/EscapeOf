@@ -243,7 +243,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         var interactables = GetComponentsInChildren<SimpleInteractable>(true);
         foreach (var interactable in interactables)
         {
-            interactable.enabled = isEnabled;
+            if (interactable.TryGetComponent<Collider>(out var col))
+            {
+                col.enabled = isEnabled;
+            }
         }
     }
 

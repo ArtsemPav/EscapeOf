@@ -55,13 +55,6 @@ public class LockDial : MonoBehaviour, ISaveable
     [Tooltip("If true, combination target values will be randomized on start.")]
     [SerializeField] private bool _randomizeOnStart = true;
 
-    [Header("UI Feedback")]
-    [SerializeField] private string _pressHintText = "Нажать";
-    [SerializeField] private string _rotateHintText = "Вращать";
-    [SerializeField] private string _exitPopupText = "Выход: Esc";
-    [SerializeField] private CrosshairMode _idleCrosshair = CrosshairMode.Hand;
-    [SerializeField] private CrosshairMode _activeCrosshair = CrosshairMode.Grab;
-
     [Header("Audio")]
     [SerializeField] private AudioClip _tickSound;
     [SerializeField, Range(0f, 1f)] private float _tickVolume = 1f;
@@ -152,7 +145,6 @@ public class LockDial : MonoBehaviour, ISaveable
         {
             _puzzleMode.OnExited  += ResetUI;
             _puzzleMode.OnExited  += OnPuzzleExited;
-            _puzzleMode.OnEntered += ShowEntryHint;
             _puzzleMode.OnEntered += OnPuzzleEntered;
         }
         else
@@ -169,7 +161,6 @@ public class LockDial : MonoBehaviour, ISaveable
         {
             _puzzleMode.OnExited  -= ResetUI;
             _puzzleMode.OnExited  -= OnPuzzleExited;
-            _puzzleMode.OnEntered -= ShowEntryHint;
             _puzzleMode.OnEntered -= OnPuzzleEntered;
         }
 
@@ -368,12 +359,11 @@ public class LockDial : MonoBehaviour, ISaveable
 
     private void UpdateUI()
     {
-        var mouse = Mouse.current;
-        if (mouse == null) return;
+        IInteractable interactable = GetComponent<IInteractable>();
+        if (interactable == null) return;
 
-        bool isHolding = mouse.leftButton.isPressed;
-        CrosshairMode mode = isHolding ? _activeCrosshair : _idleCrosshair;
-        string hint = isHolding ? _rotateHintText : _pressHintText;
+        string hint = interactable.GetInteractText();
+        CrosshairMode mode = interactable.GetCrosshairMode();
 
         InteractionUI.Instance?.SetCrosshair(mode);
         InteractionUI.Instance?.SetHint(true, hint, false, mode);
@@ -383,14 +373,6 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         InteractionUI.Instance?.SetHint(false);
         InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
-    }
-
-    private void ShowEntryHint()
-    {
-        if (!string.IsNullOrEmpty(_exitPopupText))
-        {
-            PopupMessageSystem.Instance?.Show(_exitPopupText, PopupMessageType.Warning);
-        }
     }
 
     private void ApplySmoothRotation()
