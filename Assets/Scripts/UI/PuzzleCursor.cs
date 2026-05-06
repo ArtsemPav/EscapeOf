@@ -99,15 +99,16 @@ namespace UI
 
         private void HandleInteraction()
         {
-            if (Camera.main == null || Mouse.current == null) return;
+            Camera eventCamera = (_canvas != null && _canvas.worldCamera != null) ? _canvas.worldCamera : Camera.main;
+            if (eventCamera == null || Mouse.current == null) return;
 
-            Ray ray = Camera.main.ScreenPointToRay(Mouse.current.position.ReadValue());
+            Ray ray = eventCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
             
             // If layer mask is not set in inspector, try to find "Puzzle Interactable" layer, fallback to "Interactable Layer"
             LayerMask mask = _interactableLayer;
             if (mask == 0)
             {
-                int puzzleLayer = LayerMask.NameToLayer("Puzzle Interactable");
+                int puzzleLayer = LayerMask.NameToLayer("PuzzleInteractable");
                 if (puzzleLayer != -1) mask = 1 << puzzleLayer;
                 else mask = LayerMask.GetMask("Interactable Layer");
             }

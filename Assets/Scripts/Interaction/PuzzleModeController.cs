@@ -173,6 +173,12 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         _isActive = true;
 
+        // Enable child interactables when entering puzzle mode (e.g. puzzle buttons/elements).
+        SetChildInteractablesEnabled(true);
+
+        // Disable main puzzle interactable collider to prevent raycast blocking or accidental re-triggering.
+        SetPuzzleInteractableColliderEnabled(false);
+
         if (_puzzleCamera != null)
         {
             SetBlendDuration(_blendDuration);
@@ -203,6 +209,12 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         _isActive = false;
 
+        // Disable child interactables when exiting puzzle mode.
+        SetChildInteractablesEnabled(false);
+
+        // Re-enable main puzzle interactable collider.
+        SetPuzzleInteractableColliderEnabled(true);
+
         if (_puzzleCamera != null)
         {
             SetBlendDuration(_blendDuration);
@@ -225,6 +237,27 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private void SetChildInteractablesEnabled(bool isEnabled)
+    {
+        var interactables = GetComponentsInChildren<SimpleInteractable>(true);
+        foreach (var interactable in interactables)
+        {
+            interactable.enabled = isEnabled;
+        }
+    }
+
+    private void SetPuzzleInteractableColliderEnabled(bool isEnabled)
+    {
+        var puzzleInteractables = GetComponentsInChildren<PuzzleInteractable>(true);
+        foreach (var pi in puzzleInteractables)
+        {
+            if (pi.TryGetComponent<Collider>(out var col))
+            {
+                col.enabled = isEnabled;
+            }
+        }
+    }
 
     private void SetCursorState(bool visible)
     {
