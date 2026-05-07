@@ -71,7 +71,7 @@ namespace UI
             }
         }
 
-        private void Update()
+        private void FixedUpdate()
         {
             if (_cursorTransform == null || Mouse.current == null) return;
 
