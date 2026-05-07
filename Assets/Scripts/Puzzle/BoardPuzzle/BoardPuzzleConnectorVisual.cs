@@ -25,6 +25,14 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     [Tooltip("Color for the emission. Use HDR color picker for intensity.")]
     [ColorUsage(true, true)]
     [SerializeField] private Color _activeColor = Color.cyan;
+
+    [Tooltip("Color for the terminal when it is reached in the correct sequence.")]
+    [ColorUsage(true, true)]
+    [SerializeField] private Color _correctTerminalColor = Color.green;
+
+    [Tooltip("Color for the terminal when it is reached out of order or is incorrect.")]
+    [ColorUsage(true, true)]
+    [SerializeField] private Color _incorrectTerminalColor = Color.red;
     
     [Tooltip("Speed of the fade in/out animation.")]
     [SerializeField] private float _fadeSpeed = 5f;
@@ -32,6 +40,7 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     private MaterialPropertyBlock _propBlock;
     private float _targetWeight = 0f;
     private float _currentWeight = 0f;
+    private Color _currentTargetColor;
     private readonly Color _blackColor = new Color(0f, 0f, 0f, 0f);
     private bool _isDirty = true;
 
@@ -41,6 +50,7 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
             _targetRenderer = GetComponent<Renderer>();
 
         _propBlock = new MaterialPropertyBlock();
+        _currentTargetColor = _activeColor;
         
         // Ensure emission keyword is enabled on the shared material at the specified index
         if (_targetRenderer != null)
@@ -58,13 +68,20 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     /// </summary>
     /// <param name="hasPower">Does this connector have power?</param>
     /// <param name="isAllowedTerminal">If this is a terminal, is it allowed to light up?</param>
-    public void SetPower(bool hasPower, bool isAllowedTerminal = true)
+    /// <param name="isCorrect">Is this terminal reached in the correct sequence order?</param>
+    public void SetPower(bool hasPower, bool isAllowedTerminal = true, bool isCorrect = true)
     {
-        bool finalPower = _isTerminal ? (hasPower && isAllowedTerminal) : hasPower;
+        // If it's a terminal but NOT the one currently targeted in the sequence,
+        // we still light it up as "incorrect" if it has power, instead of not lighting up at all.
+        bool finalPower = hasPower; 
         float newTarget = finalPower ? 1f : 0f;
-        if (!Mathf.Approximately(_targetWeight, newTarget))
+        
+        Color targetColor = _isTerminal ? (isCorrect ? _correctTerminalColor : _incorrectTerminalColor) : _activeColor;
+
+        if (!Mathf.Approximately(_targetWeight, newTarget) || _currentTargetColor != targetColor)
         {
             _targetWeight = newTarget;
+            _currentTargetColor = targetColor;
             _isDirty = true;
         }
     }
@@ -80,8 +97,8 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
         // Use the index-aware overload of GetPropertyBlock and SetPropertyBlock
         _targetRenderer.GetPropertyBlock(_propBlock, _materialIndex);
         
-        // Use Lerp to smoothly transition from black to active color
-        Color finalColor = Color.Lerp(_blackColor, _activeColor, _currentWeight);
+        // Use Lerp to smoothly transition from black to target color
+        Color finalColor = Color.Lerp(_blackColor, _currentTargetColor, _currentWeight);
         _propBlock.SetColor(EmissionColorId, finalColor);
         
         _targetRenderer.SetPropertyBlock(_propBlock, _materialIndex);

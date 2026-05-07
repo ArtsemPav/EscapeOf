@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -49,6 +50,10 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     [Tooltip("If enabled, path tracing details will be printed to the console.")]
     [SerializeField] private bool _showDebugLogs = true;
 
+    [Header("Solved Highlight")]
+    [Tooltip("How many seconds the highlight stays visible after the puzzle is solved. Set to 0 to keep it on indefinitely.")]
+    [SerializeField, Min(0f)] private float _highlightOffDelay = 5f;
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
@@ -92,6 +97,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     private bool    _isSolved;
     private bool    _loadedIsSolved;
     private float[] _loadedRotations;
+    private Coroutine _highlightOffCoroutine;
 
     // All BoardPuzzleTrackConnectors found in the scene, cached on Start.
     private List<BoardPuzzleTrackConnector> _allTrackConnectors;
@@ -127,7 +133,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         {
             _isSolved = true;
             LockAllCylinders();
-            UpdateVisualPath();
+            TurnOffAllVisuals();
             // Re-fire the event so listeners (doors, lights, etc.) can restore their state.
             OnPuzzleSolved.Invoke();
             return;
@@ -138,7 +144,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
                 pipe.OnRotated += CheckSolution;
         }
 
-        UpdateVisualPath();
+        TurnOffAllVisuals();
     }
 
     private void OnDestroy() {
@@ -214,17 +220,28 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
             // Last terminal — done.
             if (targetIndex == _targetSequence.Count - 1) return true;
 
+            // Find the next target in the sequence. 
+            // If the next target is the SAME as the current one (duplicate in sequence),
+            // we skip the tracing step and treat the current arrival as the entry for the next step.
+            int nextTargetIndex = targetIndex + 1;
+            while (nextTargetIndex < _targetSequence.Count && _targetSequence[nextTargetIndex] == targetTerminal)
+            {
+                if (_showDebugLogs) Debug.Log($"[Puzzle] Duplicate terminal '{targetTerminal.name}' detected at index {nextTargetIndex}, skipping trace.");
+                if (nextTargetIndex == _targetSequence.Count - 1) return true;
+                nextTargetIndex++;
+            }
+
             // Find the exit connector: the other logical connector of this terminal.
             List<GameObject> terminalConnectors = FindLogicalConnectors(targetTerminal);
             GameObject nextExit = terminalConnectors.FirstOrDefault(c => c != arrivalConnector);
 
             if (nextExit == null) {
                 if (_showDebugLogs) Debug.Log($"<color=red>[Puzzle] No exit connector at {targetTerminal.name} (entered via {arrivalConnector.name})</color>");
-                continue; // Try another arrival point if this one has no exit
+                continue; 
             }
 
             if (_showDebugLogs) Debug.Log($"[Puzzle] Exiting {targetTerminal.name} via {nextExit.name}");
-            if (TraceSequence(nextExit, fromTerminal: targetTerminal, targetIndex: targetIndex + 1)) {
+            if (TraceSequence(nextExit, fromTerminal: targetTerminal, targetIndex: nextTargetIndex)) {
                 return true;
             }
 
@@ -391,49 +408,175 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
         HashSet<GameObject> poweredPoints = new HashSet<GameObject>();
 
-        if (!_isSolved)
         {
             GameObject startTerminal = _targetSequence[0];
+            
+            // Start a flood fill from the first terminal to find ALL reachable points
+            Stack<(GameObject current, GameObject prev)> stack = new Stack<(GameObject, GameObject)>();
+            stack.Push((startTerminal, null));
             poweredPoints.Add(startTerminal);
 
-            GameObject currentStart = startTerminal;
-            int nextTargetIndex = 1;
-
-            while (nextTargetIndex < _targetSequence.Count)
+            while (stack.Count > 0)
             {
-                GameObject targetTerminal = _targetSequence[nextTargetIndex];
-                List<GameObject> exits = FindLogicalConnectors(currentStart);
-                bool reachedNext = false;
-                GameObject arrivalPoint = null;
+                var (current, prev) = stack.Pop();
 
-                foreach (var exit in exits)
+                // 1. Get physical neighbors (crossing between cylinders)
+                List<GameObject> physicalNeighbors = FindPhysicalNeighbors(current, exclude: prev);
+                foreach (GameObject neighbor in physicalNeighbors)
                 {
-                    if (TraceToTerminalForVisual(exit, currentStart, targetTerminal, poweredPoints, out arrivalPoint))
+                    if (poweredPoints.Contains(neighbor)) continue;
+                    poweredPoints.Add(neighbor);
+
+                    // If we hit a terminal via physical connection, power it.
+                    // Only continue through it if it belongs to the target sequence.
+                    // Non-sequence terminals block the beam (show as red, do not propagate further).
+                    GameObject terminal = FindLogicalTerminal(neighbor);
+                    if (terminal != null)
                     {
-                        reachedNext = true;
-                        break;
+                        if (!poweredPoints.Contains(terminal))
+                        {
+                            poweredPoints.Add(terminal);
+                            if (_targetSequence.Contains(terminal))
+                                stack.Push((terminal, neighbor));
+                        }
+                        continue;
+                    }
+
+                    // 2. Get internal logical connections (inside the cylinder)
+                    BoardPuzzleTrackConnector connector = neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
+                    if (connector != null)
+                    {
+                        foreach (GameObject linked in connector.GetConnectedPoints(neighbor))
+                        {
+                            if (!poweredPoints.Contains(linked))
+                            {
+                                poweredPoints.Add(linked);
+                                stack.Push((linked, neighbor));
+                            }
+                        }
                     }
                 }
 
-                if (reachedNext)
+                // 3. Special case for the start terminal or intermediate sequence terminals:
+                // they have logical exits defined in BoardPuzzleTrackConnector
+                List<GameObject> logicalExits = FindLogicalConnectors(current);
+                foreach (GameObject exit in logicalExits)
                 {
-                    poweredPoints.Add(targetTerminal);
-                    currentStart = targetTerminal;
-                    nextTargetIndex++;
+                    if (!poweredPoints.Contains(exit))
+                    {
+                        poweredPoints.Add(exit);
+                        stack.Push((exit, current));
+                    }
                 }
-                else break;
             }
         }
 
+        // Find frontier: how many consecutive terminals from start are powered in order.
+        // _targetSequence[0] is the start terminal and is always in poweredPoints,
+        // so nextExpectedIndex is always >= 1.
+        int nextExpectedIndex = 0;
+        while (nextExpectedIndex < _targetSequence.Count && poweredPoints.Contains(_targetSequence[nextExpectedIndex]))
+            nextExpectedIndex++;
+
         // Apply visual state
+        bool anyVisualPowered = false;
+        foreach (var kvp in _visualsCache)
+        {
+            if (kvp.Value == null) continue;
+
+            GameObject obj = kvp.Key;
+            bool hasPower = poweredPoints.Contains(obj);
+            if (hasPower) anyVisualPowered = true;
+
+            if (kvp.Value.IsTerminal)
+            {
+                // Correct only if this terminal is the frontier —
+                // the last terminal reached correctly in the sequence chain.
+                // Everything else (non-sequence, out-of-order, already passed) → incorrect.
+                bool isCorrect = nextExpectedIndex > 0 && obj == _targetSequence[nextExpectedIndex - 1];
+                kvp.Value.SetPower(hasPower, hasPower, isCorrect);
+            }
+            else
+            {
+                // Regular pipe connector.
+                kvp.Value.SetPower(hasPower, hasPower);
+            }
+        }
+
+        if (anyVisualPowered)
+            StartHighlightOffTimer();
+    }
+
+    /// <summary>Starts the coroutine that turns off highlight after <see cref="_highlightOffDelay"/> seconds.</summary>
+    private void StartHighlightOffTimer()
+    {
+        if (_highlightOffDelay <= 0f) return;
+        if (_highlightOffCoroutine != null)
+            StopCoroutine(_highlightOffCoroutine);
+        _highlightOffCoroutine = StartCoroutine(TurnOffHighlightAfterDelay());
+    }
+
+    private IEnumerator TurnOffHighlightAfterDelay()
+    {
+        yield return new WaitForSeconds(_highlightOffDelay);
+        TurnOffAllVisuals();
+        _highlightOffCoroutine = null;
+    }
+
+    /// <summary>Sets power to false on every cached connector visual.</summary>
+    private void TurnOffAllVisuals()
+    {
         foreach (var kvp in _visualsCache)
         {
             if (kvp.Value != null)
+                kvp.Value.SetPower(false);
+        }
+    }
+
+    /// <summary>
+    /// Checks if any terminal is reachable from the current powered path, 
+    /// even if it's not the correct one in sequence, to mark it as "incorrect" (red).
+    /// </summary>
+    private void CheckForIncorrectTerminalVisual(GameObject currentStart, HashSet<GameObject> poweredPoints)
+    {
+        List<GameObject> exits = FindLogicalConnectors(currentStart);
+        foreach (var exit in exits)
+        {
+            Stack<(GameObject current, GameObject prev)> stack = new Stack<(GameObject, GameObject)>();
+            HashSet<GameObject> localVisited = new HashSet<GameObject>();
+            stack.Push((exit, currentStart));
+
+            while (stack.Count > 0)
             {
-                // If solved, power is always false. If not solved, depends on the path.
-                bool hasPower = !_isSolved && poweredPoints.Contains(kvp.Key);
-                // A terminal is only "allowed" if it's actually in the powered points set
-                kvp.Value.SetPower(hasPower, hasPower);
+                var (current, prev) = stack.Pop();
+                if (localVisited.Contains(current)) continue;
+                localVisited.Add(current);
+
+                List<GameObject> physicalNeighbors = FindPhysicalNeighbors(current, exclude: prev);
+                foreach (GameObject neighbor in physicalNeighbors)
+                {
+                    if (localVisited.Contains(neighbor)) continue;
+
+                    GameObject terminal = FindLogicalTerminal(neighbor);
+                    if (terminal != null)
+                    {
+                        // Found a terminal that isn't the correct one in sequence
+                        if (_visualsCache.TryGetValue(terminal, out var visual))
+                        {
+                            visual.SetPower(true, true, isCorrect: false);
+                        }
+                        return;
+                    }
+
+                    BoardPuzzleTrackConnector connector = neighbor.GetComponentInParent<BoardPuzzleTrackConnector>();
+                    if (connector != null)
+                    {
+                        foreach (GameObject linked in connector.GetConnectedPoints(neighbor))
+                        {
+                            stack.Push((linked, neighbor));
+                        }
+                    }
+                }
             }
         }
     }
