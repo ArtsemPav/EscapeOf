@@ -8,6 +8,7 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
 {
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private const string EmissionKeyword = "_EMISSION";
+    private const float EmissionOffset = 0.001f;
 
     [Header("References")]
     [Tooltip("The renderer that will be highlighted. If null, tries to get Renderer on this GameObject.")]
@@ -20,6 +21,9 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     [Tooltip("If true, this object is treated as a terminal and won't light up unless it's part of the active sequence.")]
     [SerializeField] private bool _isTerminal = false;
     public bool IsTerminal => _isTerminal;
+
+    public Renderer TargetRenderer => _targetRenderer;
+    public int MaterialIndex => _materialIndex;
 
 
     [Tooltip("Color for the emission. Use HDR color picker for intensity.")]
@@ -43,6 +47,8 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     private Color _currentTargetColor;
     private readonly Color _blackColor = new Color(0f, 0f, 0f, 0f);
     private bool _isDirty = true;
+    private Vector3 _originalLocalPosition;
+    private bool _isLifted = false;
 
     private void Awake()
     {
@@ -55,6 +61,8 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
         // Ensure emission keyword is enabled on the shared material at the specified index
         if (_targetRenderer != null)
         {
+            _originalLocalPosition = _targetRenderer.transform.localPosition;
+
             Material[] sharedMaterials = _targetRenderer.sharedMaterials;
             if (_materialIndex < sharedMaterials.Length && sharedMaterials[_materialIndex] != null)
             {
@@ -102,6 +110,16 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
         _propBlock.SetColor(EmissionColorId, finalColor);
         
         _targetRenderer.SetPropertyBlock(_propBlock, _materialIndex);
+
+        // Lift when emission starts, restore when fully off
+        bool shouldBeLifted = _currentWeight > 0f;
+        if (shouldBeLifted != _isLifted)
+        {
+            _isLifted = shouldBeLifted;
+            _targetRenderer.transform.localPosition = _isLifted
+                ? _originalLocalPosition + new Vector3(0f, EmissionOffset, 0f)
+                : _originalLocalPosition;
+        }
 
         if (Mathf.Approximately(_currentWeight, _targetWeight))
         {

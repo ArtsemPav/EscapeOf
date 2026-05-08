@@ -81,4 +81,14 @@ public class BoardPuzzleTrackConnector : MonoBehaviour
         }
         return false;
     }
+
+    /// <summary>
+    /// Returns all source points (PointA) that have at least one connection defined in this connector.
+    /// Used by BoardPuzzleManager to build a global logical connection cache.
+    /// </summary>
+    public IEnumerable<GameObject> GetAllSourcePoints()
+    {
+        if (_connectionMap == null) InitializeConnectionMap();
+        return _connectionMap.Keys;
+    }
 }
