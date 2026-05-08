@@ -11347,6 +11347,10 @@ PrefabInstance:
       value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7856941105817215566, guid: 19fe1d32b8da1de48a8886cc1d26a395, type: 3}
+      propertyPath: _puzzleBackgroundLayerVolume
+      value: 0.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7856941105817215566, guid: 19fe1d32b8da1de48a8886cc1d26a395, type: 3}
       propertyPath: _combination.Array.data[1].TargetValue
       value: 10
       objectReference: {fileID: 0}
@@ -18444,12 +18448,12 @@ RectTransform:
   - {fileID: 107118781}
   - {fileID: 1309294854}
   - {fileID: 1385822683}
-  - {fileID: 373345483}
   - {fileID: 2030102931}
   - {fileID: 46145207}
   - {fileID: 1719392093}
   - {fileID: 6912957}
   - {fileID: 1271420136}
+  - {fileID: 373345483}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -24742,6 +24746,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8431676527426461425, guid: e42467db1076e704ebb781a8ad9a75f5, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[1].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8431676527426461425, guid: e42467db1076e704ebb781a8ad9a75f5, type: 3}
       propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[1].m_Target
       value: 
       objectReference: {fileID: 1441861829}
@@ -24749,6 +24757,14 @@ PrefabInstance:
       propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[2].m_Target
       value: 
       objectReference: {fileID: 2069630804}
+    - target: {fileID: 8431676527426461425, guid: e42467db1076e704ebb781a8ad9a75f5, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: Unlock
+      objectReference: {fileID: 0}
+    - target: {fileID: 8431676527426461425, guid: e42467db1076e704ebb781a8ad9a75f5, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[1].m_TargetAssemblyTypeName
+      value: Escape.Core.DoorInteraction, Assembly-CSharp
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
