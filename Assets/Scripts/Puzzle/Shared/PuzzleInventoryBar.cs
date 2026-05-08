@@ -135,12 +135,7 @@ public class PuzzleInventoryBar : MonoBehaviour
     /// </summary>
     public void Show(IPuzzleDropHandler handler)
     {
-        if (handler == null)
-        {
-            Debug.LogWarning("[PuzzleInventoryBar] Show called with null handler.", this);
-            return;
-        }
-
+        // Allow handler to be null if we just want to display the inventory without drop interaction.
         _activeHandler = handler;
         _scrollIndex = 0;
         _isOpen = true;

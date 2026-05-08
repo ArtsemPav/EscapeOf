@@ -8,7 +8,7 @@ namespace Bezi.Editor.Tools
     /// </summary>
     public static class LockDialUnlockTool
     {
-        [MenuItem("Tools/PuzzlesCheats/Unlock Safe Lock Dial")]
+        [MenuItem("Tools/PuzzlesCheats/DoctorRoomSafeUnlock")]
         public static void UnlockSelectedLockDial()
         {
             // Try to get LockDial from selection first, if not - find all in scene

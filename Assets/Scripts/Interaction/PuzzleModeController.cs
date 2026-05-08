@@ -32,6 +32,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     [Tooltip("Fired when the puzzle is solved.")]
     [SerializeField] private UnityEvent OnPuzzleSolved;
 
+    [Header("UI")]
+    [Tooltip("If true, the PuzzleInventoryBar will be shown when entering puzzle mode.")]
+    [SerializeField] private bool _showInventoryBar = true;
+
     // ── C# Events (for code-side subscriptions; prefer these over AddListener) ─
 
     /// <summary>Raised when the player enters puzzle mode.</summary>
@@ -196,6 +200,12 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
             UI.PuzzleCursor.Instance.Show();
         }
 
+        if (_showInventoryBar)
+        {
+            var handler = GetComponentInChildren<IPuzzleDropHandler>();
+            PuzzleInventoryBar.Instance?.Show(handler);
+        }
+
         OnPuzzleModeEntered?.Invoke();
         OnEntered?.Invoke();
     }
@@ -230,6 +240,11 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (UI.PuzzleCursor.Instance != null)
         {
             UI.PuzzleCursor.Instance.Hide();
+        }
+
+        if (_showInventoryBar)
+        {
+            PuzzleInventoryBar.Instance?.Hide();
         }
 
         OnPuzzleModeExited?.Invoke();

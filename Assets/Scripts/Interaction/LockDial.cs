@@ -24,7 +24,7 @@ public struct ComboStep
 /// Rotary combination dial. Handles rotation logic, combination validation, 
 /// and UI feedback in puzzle mode.
 /// </summary>
-public class LockDial : MonoBehaviour, ISaveable
+public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler
 {
     // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -61,10 +61,10 @@ public class LockDial : MonoBehaviour, ISaveable
     [SerializeField] private AudioClip _correctStepSound;
     [SerializeField, Range(0f, 1f)] private float _correctStepVolume = 1f;
 
-    [Tooltip("If assigned, audio feedback will only play when this item is present in the inventory.")]
+    [Tooltip("If assigned, audio feedback will only play when this item is APPLIED to the dial.")]
     [SerializeField] private ItemData _requiredItemForAudio;
 
-    [Tooltip("Looping clip played as an additional background layer while the puzzle is active (requires Required Item For Audio in inventory).")]
+    [Tooltip("Looping clip played as an additional background layer while the puzzle is active (requires Required Item For Audio to be applied).")]
     [SerializeField] private AudioClip _puzzleBackgroundLayer;
 
     [Tooltip("Volume for the background layer clip.")]
@@ -96,6 +96,7 @@ public class LockDial : MonoBehaviour, ISaveable
     private RotationDirection _lastDragDirection;
 
     private Camera               _mainCamera;
+    private bool                 _isRequiredItemApplied;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         currentStep = _currentStep,
         isUnlocked  = _isUnlocked,
+        isRequiredItemApplied = _isRequiredItemApplied
     });
 
     public void LoadSaveData(string json)
@@ -117,6 +119,7 @@ public class LockDial : MonoBehaviour, ISaveable
         var data     = JsonUtility.FromJson<SaveData>(json);
         _currentStep = data.currentStep;
         _isUnlocked  = data.isUnlocked;
+        _isRequiredItemApplied = data.isRequiredItemApplied;
         SnapToStep(_currentStep);
     }
 
@@ -125,6 +128,7 @@ public class LockDial : MonoBehaviour, ISaveable
     {
         public int  currentStep;
         public bool isUnlocked;
+        public bool isRequiredItemApplied;
     }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
@@ -268,13 +272,18 @@ public class LockDial : MonoBehaviour, ISaveable
         _currentStep = WrapStep(_currentStep + direction);
         _targetRotation = CalculateStepRotation(_currentStep);
         
+        // Determine rotation direction for audio feedback
+        RotationDirection currentDir = direction > 0 
+            ? RotationDirection.Clockwise 
+            : RotationDirection.CounterClockwise;
+
         // Play audio feedback
-        PlayRotationAudio();
+        PlayRotationAudio(currentDir);
         
         _onRotated?.Invoke();
     }
 
-    private void PlayRotationAudio()
+    private void PlayRotationAudio(RotationDirection currentDirection)
     {
         if (AudioManager.Instance == null) return;
 
@@ -284,13 +293,15 @@ public class LockDial : MonoBehaviour, ISaveable
         if (_tickSound != null)
             AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
 
-        // Correct step sound is only played if the player has the stethoscope
-        if (hasStethoscope)
+        // Correct step sound is only played if the player has the stethoscope 
+        // AND reaches the target value with the correct rotation direction.
+        if (hasStethoscope && _comboProgressIndex < _combination.Length)
         {
-            bool isCorrectNextStep = _comboProgressIndex < _combination.Length
-                && _currentStep == _combination[_comboProgressIndex].TargetValue;
+            ComboStep target = _combination[_comboProgressIndex];
+            bool isCorrectMovement = _currentStep == target.TargetValue 
+                                  && currentDirection == target.RequiredDirection;
 
-            if (isCorrectNextStep && _correctStepSound != null)
+            if (isCorrectMovement && _correctStepSound != null)
                 AudioManager.Instance.PlaySFX(_correctStepSound, _correctStepVolume);
         }
     }
@@ -333,9 +344,33 @@ public class LockDial : MonoBehaviour, ISaveable
     // ── Stethoscope audio isolation ────────────────────────────────────────────
 
     private bool HasRequiredItem()
-        => _requiredItemForAudio != null
-        && InventorySystem.Instance != null
-        && InventorySystem.Instance.HasItem(_requiredItemForAudio);
+        => _requiredItemForAudio == null || _isRequiredItemApplied;
+
+    /// <summary>
+    /// Handles item application from the PuzzleInventoryBar.
+    /// If the required item (stethoscope) is dropped, it enables advanced audio feedback.
+    /// </summary>
+    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    {
+        if (item == _requiredItemForAudio && !_isRequiredItemApplied)
+        {
+            _isRequiredItemApplied = true;
+            Debug.Log($"[{nameof(LockDial)}] {_requiredItemForAudio.itemName} applied to safe. Advanced audio feedback enabled.");
+
+            // Start the background layer if we are already in the puzzle mode
+            if (_puzzleMode != null && _puzzleMode.IsActive)
+            {
+                AudioManager.Instance?.MuteBackground();
+
+                if (_puzzleBackgroundLayer != null)
+                    AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+            }
+
+            return true; // Item accepted and consumed from inventory
+        }
+
+        return false;
+    }
 
     private void OnPuzzleEntered()
     {
