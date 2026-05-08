@@ -34,7 +34,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     [Header("UI")]
     [Tooltip("If true, the PuzzleInventoryBar will be shown when entering puzzle mode.")]
-    [SerializeField] private bool _showInventoryBar = true;
+    [SerializeField] private bool _showInventoryBar = false;
 
     // ── C# Events (for code-side subscriptions; prefer these over AddListener) ─
 

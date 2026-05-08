@@ -189,13 +189,34 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        if (!mouse.leftButton.isPressed)
+        if (_isDragging)
         {
-            EndDrag();
-            return;
+            if (!mouse.leftButton.isPressed)
+            {
+                EndDrag();
+            }
+            else
+            {
+                HandleDrag(mouse);
+            }
         }
+        else if (mouse.leftButton.wasPressedThisFrame && IsMouseOverDial(mouse))
+        {
+            HandleDrag(mouse);
+        }
+    }
 
-        HandleDrag(mouse);
+    private bool IsMouseOverDial(Mouse mouse)
+    {
+        if (_mainCamera == null) _mainCamera = Camera.main;
+        if (_mainCamera == null) return false;
+
+        Ray ray = _mainCamera.ScreenPointToRay(mouse.position.ReadValue());
+        if (Physics.Raycast(ray, out RaycastHit hit))
+        {
+            return hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform);
+        }
+        return false;
     }
 
     private void HandleDrag(Mouse mouse)
