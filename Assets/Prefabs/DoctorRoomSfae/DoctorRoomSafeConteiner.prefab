@@ -193,8 +193,8 @@ MonoBehaviour:
   _correctStepSound: {fileID: 8300000, guid: 0258203339fdf8c4eb8366e6c0704961, type: 3}
   _correctStepVolume: 1
   _requiredItemForAudio: {fileID: 11400000, guid: 48707e517ff49044697d873b8740eda1, type: 2}
-  _puzzleBackgroundLayer: {fileID: 8300000, guid: f5dcf471c0329904c9c8c06d96045c6a, type: 3}
-  _puzzleBackgroundLayerVolume: 1
+  _puzzleBackgroundLayer: {fileID: 8300000, guid: 7994bf67935cccb449ef8725153555a6, type: 3}
+  _puzzleBackgroundLayerVolume: 0.8
   _onUnlocked:
     m_PersistentCalls:
       m_Calls:
@@ -591,7 +591,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 7.40514, y: 7.10863, z: -3.14049}
-  m_LocalScale: {x: 71.42856, y: 71.42856, z: 50}
+  m_LocalScale: {x: 50, y: 50, z: 50}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2950492794843609858}
@@ -611,7 +611,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
-  _saveId: puzzle_safe_id
+  _saveId: 
   _puzzleCamera: {fileID: 4380350430016505632}
   _blendDuration: 0.75
   OnPuzzleModeEntered:
@@ -647,6 +647,7 @@ MonoBehaviour:
   OnPuzzleSolved:
     m_PersistentCalls:
       m_Calls: []
+  _showInventoryBar: 1
 --- !u!1 &7753174420789507303
 GameObject:
   m_ObjectHideFlags: 0
@@ -757,7 +758,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 1
-  _requiredKey: {fileID: 11400000, guid: b7ae1d248de487e49822c0fa3c192d3a, type: 2}
+  _requiredKey: {fileID: 0}
   _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u0432\u0435\u0441\u0442\u0438
     \u043A\u043E\u0434"
   _lockedJiggleFraction: 0.02
