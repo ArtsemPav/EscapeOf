@@ -28,6 +28,7 @@ public class InteractionUI : MonoBehaviour
     [SerializeField] private Sprite crosshairUnlocked;
     [SerializeField] private Sprite crosshairGrab;
     [SerializeField] private Sprite crosshairRead;
+    [SerializeField] private Sprite crosshairItemDrag;
 
     private Coroutine _blockedHintCoroutine;
 
@@ -63,7 +64,7 @@ public class InteractionUI : MonoBehaviour
 
             if (interactionIcon != null)
             {
-                bool isDraggable = crosshairMode == CrosshairMode.Grab;
+                bool isDraggable = crosshairMode == CrosshairMode.Grab || crosshairMode == CrosshairMode.ItemDrag;
                 Sprite icon = isPickable ? handIcon : (isDraggable ? dragIcon : defaultIcon);
                 interactionIcon.sprite = icon;
                 interactionIcon.gameObject.SetActive(icon != null);
@@ -87,7 +88,25 @@ public class InteractionUI : MonoBehaviour
             CrosshairMode.Unlocked => crosshairUnlocked != null ? crosshairUnlocked : crosshairDefault,
             CrosshairMode.Grab     => crosshairGrab     != null ? crosshairGrab     : crosshairDefault,
             CrosshairMode.Read     => crosshairRead     != null ? crosshairRead     : crosshairDefault,
+            CrosshairMode.ItemDrag => crosshairItemDrag != null ? crosshairItemDrag : crosshairGrab,
             _                      => crosshairDefault
         };
+    }
+
+    /// <summary>
+    /// Shows a drag hint while the player hovers an item from PuzzleInventoryBar over a compatible 3D object.
+    /// </summary>
+    public void ShowDragHint(string itemName, string targetHint)
+    {
+        string text = $"Применить {itemName} {targetHint}";
+        SetHint(true, text, isPickable: false, CrosshairMode.ItemDrag);
+    }
+
+    /// <summary>
+    /// Hides the drag hint shown by <see cref="ShowDragHint"/>.
+    /// </summary>
+    public void HideDragHint()
+    {
+        SetHint(false);
     }
 }

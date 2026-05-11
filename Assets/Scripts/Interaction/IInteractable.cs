@@ -42,7 +42,10 @@ public enum CrosshairMode
     Grab,
 
     /// <summary>Read icon — object contains readable text (note, book, sign).</summary>
-    Read
+    Read,
+
+    /// <summary>Item drag icon — displayed while dragging an item from PuzzleInventoryBar onto a 3D object.</summary>
+    ItemDrag
 }
 
 public interface IInteractable
