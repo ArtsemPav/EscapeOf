@@ -178,6 +178,8 @@ MonoBehaviour:
   scrollLeftButton: {fileID: 841582183}
   scrollRightButton: {fileID: 1617343472}
   visibleSlotCount: 10
+  _wrongItemMessage: "\u042D\u0442\u043E\u0442 \u043F\u0440\u0435\u0434\u043C\u0435\u0442
+    \u0441\u044E\u0434\u0430 \u043D\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u0438\u0442"
   slotSize: 140
   slotSpacing: 12
   ghostSize: 112
@@ -3315,7 +3317,7 @@ Light:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 513
   m_Lightmapping: 4
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
@@ -3351,7 +3353,7 @@ MonoBehaviour:
   m_SoftShadowQuality: 0
   m_RenderingLayersMask:
     serializedVersion: 0
-    m_Bits: 1
+    m_Bits: 513
   m_ShadowRenderingLayersMask:
     serializedVersion: 0
     m_Bits: 1
@@ -8485,6 +8487,7 @@ MonoBehaviour:
   crosshairUnlocked: {fileID: 21300000, guid: ffa4ac81b427fd9448426b101aa90b75, type: 3}
   crosshairGrab: {fileID: 21300000, guid: 6148ce22fd474c245aeb9206c2ca0652, type: 3}
   crosshairRead: {fileID: 21300000, guid: 3c8a5a98cd3e8804fbabf816543c7400, type: 3}
+  crosshairItemDrag: {fileID: 0}
 --- !u!1 &1285989901
 GameObject:
   m_ObjectHideFlags: 0
@@ -11521,7 +11524,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2214131502101386874, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: m_Range
-      value: 3.09
+      value: 5.21
+      objectReference: {fileID: 0}
+    - target: {fileID: 2214131502101386874, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Shadows.m_NearPlane
+      value: 0.0521
       objectReference: {fileID: 0}
     - target: {fileID: 2404412634879464842, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: m_Range
@@ -12382,6 +12389,7 @@ PrefabInstance:
     - {fileID: 3362726476793944810, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
     - {fileID: 7559792854136419132, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
     - {fileID: 4289890414165017775, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+    - {fileID: 8125414939461309282, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1000694534055144255, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       insertIndex: 2
