@@ -24,7 +24,7 @@ public struct ComboStep
 /// Rotary combination dial. Handles rotation logic, combination validation, 
 /// and UI feedback in puzzle mode.
 /// </summary>
-public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler
+public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDropTarget
 {
     // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -391,6 +391,18 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler
         }
 
         return false;
+    }
+
+    // ── IPuzzleDropTarget ──────────────────────────────────────────────────────
+
+    /// <summary>Returns the hint text to display when hovering with a dragged item.</summary>
+    public string GetDropHint() => "на сейф";
+
+    /// <summary>Returns true when the target is compatible with the given item.</summary>
+    public bool CanAccept(ItemData item)
+    {
+        // Only accept the stethoscope if it hasn't been applied yet.
+        return item == _requiredItemForAudio && !_isRequiredItemApplied;
     }
 
     private void OnPuzzleEntered()

@@ -41,6 +41,9 @@ public class PuzzleInventoryBar : MonoBehaviour
     [Tooltip("Number of slots visible at once without scrolling.")]
     [SerializeField] private int visibleSlotCount = 5;
 
+    [Tooltip("Message shown when the dragged item is not accepted by the active puzzle handler.")]
+    [SerializeField] private string _wrongItemMessage = "Этот предмет сюда не подходит";
+
     [Tooltip("Width and height of each slot in pixels.")]
     [SerializeField] private float slotSize = 80f;
 
@@ -172,6 +175,7 @@ public class PuzzleInventoryBar : MonoBehaviour
 
         slot.SetDragVisual(dimmed: true);
         SpawnGhost(slot.Item.icon, eventData.position);
+        UI.PuzzleCursor.Instance?.SetDragMode(true, _dragItem);
     }
 
     /// <summary>Moves the ghost to follow the cursor.</summary>
@@ -192,6 +196,7 @@ public class PuzzleInventoryBar : MonoBehaviour
             return;
 
         _isDragging = false;
+        UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         DestroyGhost();
 
         bool accepted = false;
@@ -208,6 +213,10 @@ public class PuzzleInventoryBar : MonoBehaviour
         {
             // Return visual — item stays in inventory
             slot?.SetDragVisual(dimmed: false);
+
+            // Show warning only when there is an active puzzle handler to drop on
+            if (_dragItem != null && _activeHandler != null)
+                PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
         }
 
         _dragSource = null;
@@ -443,6 +452,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         _isDragging = false;
         _dragSource?.SetDragVisual(dimmed: false);
         DestroyGhost();
+        UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         _dragSource = null;
         _dragItem = null;
     }

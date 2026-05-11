@@ -250,6 +250,8 @@ MonoBehaviour:
   scrollLeftButton: {fileID: 841582183}
   scrollRightButton: {fileID: 1617343472}
   visibleSlotCount: 10
+  _wrongItemMessage: "\u042D\u0442\u043E\u0442 \u043F\u0440\u0435\u0434\u043C\u0435\u0442
+    \u0441\u044E\u0434\u0430 \u043D\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u0438\u0442"
   slotSize: 140
   slotSpacing: 12
   ghostSize: 112
@@ -14751,6 +14753,7 @@ MonoBehaviour:
   crosshairUnlocked: {fileID: 21300000, guid: ffa4ac81b427fd9448426b101aa90b75, type: 3}
   crosshairGrab: {fileID: 21300000, guid: 6148ce22fd474c245aeb9206c2ca0652, type: 3}
   crosshairRead: {fileID: 21300000, guid: 3c8a5a98cd3e8804fbabf816543c7400, type: 3}
+  crosshairItemDrag: {fileID: 21300000, guid: 6148ce22fd474c245aeb9206c2ca0652, type: 3}
 --- !u!1 &1278023431
 GameObject:
   m_ObjectHideFlags: 0
@@ -18484,10 +18487,10 @@ RectTransform:
   - {fileID: 107118781}
   - {fileID: 1309294854}
   - {fileID: 1385822683}
-  - {fileID: 2030102931}
   - {fileID: 46145207}
   - {fileID: 1719392093}
   - {fileID: 6912957}
+  - {fileID: 2030102931}
   - {fileID: 1271420136}
   - {fileID: 373345483}
   m_Father: {fileID: 0}
@@ -19377,6 +19380,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UI.PuzzleCursor
   _cursorTransform: {fileID: 1719183076}
   _hideHardwareCursor: 1
+  _cursorDefault: {fileID: 21300000, guid: 317404d4919f3c54fbfcaaa1a3ff3bb9, type: 3}
+  _cursorHover: {fileID: 21300000, guid: c0081940ae6632940b662f7f1f8c0ca9, type: 3}
+  _cursorDrag: {fileID: 21300000, guid: 6148ce22fd474c245aeb9206c2ca0652, type: 3}
+  _cursorHand: {fileID: 0}
+  _cursorRead: {fileID: 0}
   _interactableLayer:
     serializedVersion: 2
     m_Bits: 1024
@@ -24712,6 +24720,10 @@ PrefabInstance:
     - target: {fileID: 2519944777819826996, guid: 256e8e92afb529244bb6f92079ca37e5, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 6061419509187459734, guid: 256e8e92afb529244bb6f92079ca37e5, type: 3}
+      propertyPath: _showInventoryBar
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7528968924209388468, guid: 256e8e92afb529244bb6f92079ca37e5, type: 3}
       propertyPath: m_Name

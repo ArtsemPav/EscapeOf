@@ -67,10 +67,12 @@ public class PuzzleInventorySlot : MonoBehaviour,
     {
         if (!HasItem) return;
         ItemTooltip.Instance?.Show(Item, GetComponent<RectTransform>());
+        UI.PuzzleCursor.Instance?.SetHoverSprite(true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
+        UI.PuzzleCursor.Instance?.SetHoverSprite(false);
         ItemTooltip.Instance?.Hide();
     }
 
