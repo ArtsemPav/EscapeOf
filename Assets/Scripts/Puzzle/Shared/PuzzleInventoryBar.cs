@@ -175,7 +175,7 @@ public class PuzzleInventoryBar : MonoBehaviour
 
         slot.SetDragVisual(dimmed: true);
         SpawnGhost(slot.Item.icon, eventData.position);
-     //   UI.PuzzleCursor.Instance?.SetDragMode(true, _dragItem);
+        UI.PuzzleCursor.Instance?.SetDragMode(true, _dragItem);
     }
 
     /// <summary>Moves the ghost to follow the cursor.</summary>
@@ -196,7 +196,7 @@ public class PuzzleInventoryBar : MonoBehaviour
             return;
 
         _isDragging = false;
-    //    UI.PuzzleCursor.Instance?.SetDragMode(false, null);
+        UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         DestroyGhost();
 
         bool accepted = false;
@@ -452,7 +452,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         _isDragging = false;
         _dragSource?.SetDragVisual(dimmed: false);
         DestroyGhost();
-  //      UI.PuzzleCursor.Instance?.SetDragMode(false, null);
+        UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         _dragSource = null;
         _dragItem = null;
     }

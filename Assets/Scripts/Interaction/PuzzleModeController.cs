@@ -22,6 +22,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     [Tooltip("Duration of the Cinemachine blend when entering and exiting the puzzle camera (seconds).")]
     [SerializeField, Min(0f)] private float _blendDuration = 0.75f;
 
+    [Header("UI")]
+    [Tooltip("If true, the PuzzleInventoryBar will be shown when entering puzzle mode.")]
+    [SerializeField] private bool _showInventoryBar = false;
+
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
     [SerializeField] private UnityEvent OnPuzzleModeEntered;
@@ -31,10 +35,6 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     [Tooltip("Fired when the puzzle is solved.")]
     [SerializeField] private UnityEvent OnPuzzleSolved;
-
-    [Header("UI")]
-    [Tooltip("If true, the PuzzleInventoryBar will be shown when entering puzzle mode.")]
-    [SerializeField] private bool _showInventoryBar = false;
 
     // ── C# Events (for code-side subscriptions; prefer these over AddListener) ─
 
