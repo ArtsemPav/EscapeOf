@@ -17,13 +17,6 @@ namespace UI
         [SerializeField] private RectTransform _cursorTransform;
         [SerializeField] private bool _hideHardwareCursor = true;
 
-        [Header("Cursor Sprites")]
-        [SerializeField] private Sprite _cursorDefault;
-        [SerializeField] private Sprite _cursorHover;
-        [SerializeField] private Sprite _cursorDrag;
-        [SerializeField] private Sprite _cursorHand;
-        [SerializeField] private Sprite _cursorRead;
-
         [Header("Interaction")]
         [SerializeField] private LayerMask _interactableLayer;
         [SerializeField] private float _interactDistance = 2.5f;
@@ -62,7 +55,7 @@ namespace UI
                 _cursorImage = _cursorTransform.GetComponent<Image>();
             }
 
-            ApplyCursorSprite(_cursorDefault);
+            // ApplyCursorSprite(_cursorDefault);
 
             // Initially disabled (only component, not gameObject)
             this.enabled = false;
@@ -78,7 +71,7 @@ namespace UI
             // Ensure we start with the default sprite and clean state
             _isDragging = false;
             _draggedItem = null;
-            ApplyCursorSprite(_cursorDefault);
+            // ApplyCursorSprite(_cursorDefault);
         }
 
         private void OnDisable()
@@ -120,7 +113,21 @@ namespace UI
 
                 _cursorTransform.localPosition = localPoint;
             }
+            // Block 3D interaction if the pointer is over a UI element
+            if (UnityEngine.EventSystems.EventSystem.current != null && 
+                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+            {
+                if (!_isOverUI)
+                {
+                    _isOverUI = true;
+                    // Force clean interaction state when entering UI
+                    InteractionUI.Instance?.SetHint(false);
+                    InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
+                }
+                return;
+            }
 
+            _isOverUI = false;
             HandleInteraction();
         }
 
@@ -131,14 +138,16 @@ namespace UI
 
             Ray ray = eventCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
 
-            // If layer mask is not set in inspector, try to find "PuzzleInteractable" layer, fallback to "Interactable Layer"
+            // Strictly use PuzzleInteractable layer to avoid triggering FPS interactables through UI
             LayerMask mask = _interactableLayer;
             if (mask == 0)
             {
                 int puzzleLayer = LayerMask.NameToLayer("PuzzleInteractable");
                 if (puzzleLayer != -1) mask = 1 << puzzleLayer;
-                else mask = LayerMask.GetMask("Interactable Layer");
             }
+
+            // If no valid mask is found, skip interaction to prevent accidental triggers
+            if (mask == 0) return;
 
             if (_isDragging)
             {
@@ -170,9 +179,6 @@ namespace UI
 
         private void HandleStandardInteraction(Ray ray, LayerMask mask)
         {
-            // If we are hovering over UI, let the UI events control the sprite.
-            if (_isOverUI) return;
-
             if (Physics.Raycast(ray, out RaycastHit hit, _interactDistance, mask))
             {
                 IInteractable interactable = hit.collider.GetComponent<IInteractable>();
@@ -185,15 +191,6 @@ namespace UI
                     CrosshairMode mode = interactable.GetCrosshairMode();
                     InteractionUI.Instance?.SetHint(true, text, interactable.IsPickable(), mode);
                     
-                    // Select appropriate cursor sprite based on mode
-                    Sprite cursorSprite = mode switch
-                    {
-                        CrosshairMode.Hand => _cursorHand != null ? _cursorHand : _cursorHover,
-                        CrosshairMode.Read => _cursorRead != null ? _cursorRead : _cursorHover,
-                        _ => _cursorHover
-                    };
-                    ApplyCursorSprite(cursorSprite);
-
                     if (Mouse.current.leftButton.wasPressedThisFrame)
                     {
                         interactable.Interact();
@@ -203,13 +200,12 @@ namespace UI
             }
 
             InteractionUI.Instance?.SetHint(false);
-            ApplyCursorSprite(_cursorDefault);
         }
 
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Switches the cursor into drag mode (cursorDrag sprite) or back to default.
+        /// Switches the cursor into drag mode or back to default.
         /// Call from PuzzleInventoryBar on begin/end drag.
         /// </summary>
         public void SetDragMode(bool isDragging, ItemData draggedItem)
@@ -217,33 +213,35 @@ namespace UI
             _isDragging = isDragging;
             _draggedItem = draggedItem;
 
-            if (isDragging)
+            if (!isDragging)
             {
-                ApplyCursorSprite(_cursorDrag);
-            }
-            else
-            {
-                // Return to hover if still over UI, otherwise default
-                ApplyCursorSprite(_isOverUI ? _cursorHover : _cursorDefault);
                 InteractionUI.Instance?.HideDragHint();
             }
         }
 
         /// <summary>
-        /// Switches the cursor sprite to hover state when the pointer is over a slot with an item.
-        /// Drag mode takes priority — hover sprite is not applied while dragging.
+        /// Changes the crosshair to Hand when hovering over a slot that has an item,
+        /// and restores Default on exit. Drag mode takes priority.
         /// Call from PuzzleInventorySlot on OnPointerEnter / OnPointerExit.
         /// </summary>
-        public void SetHoverSprite(bool isHover)
+        public void SetSlotHover(bool isHover)
         {
-            // FIX: If we are dragging, ignore UI hover exit events. 
-            // The drag state itself handles the cursor sprite.
             if (_isDragging) return;
 
-            _isOverUI = isHover;
-            ApplyCursorSprite(isHover ? _cursorHover : _cursorDefault);
+            InteractionUI.Instance?.SetCrosshair(isHover ? CrosshairMode.Hand : CrosshairMode.Default);
         }
 
+        /// <summary>
+        /// Switches the crosshair to Grab while the mouse button is held down on a slot with an item.
+        /// Hand is restored on release unless the cursor left the slot.
+        /// Call from PuzzleInventorySlot on OnPointerDown / OnPointerUp.
+        /// </summary>
+        public void SetSlotPress(bool isPressed)
+        {
+            if (_isDragging) return;
+
+            InteractionUI.Instance?.SetCrosshair(isPressed ? CrosshairMode.Grab : CrosshairMode.Hand);
+        }
         public void Show()
         {
             this.enabled = true;
@@ -252,14 +250,6 @@ namespace UI
         public void Hide()
         {
             this.enabled = false;
-        }
-
-        // ── Private helpers ────────────────────────────────────────────────────
-
-        private void ApplyCursorSprite(Sprite sprite)
-        {
-            if (_cursorImage == null) return;
-            _cursorImage.sprite = sprite;
         }
     }
 }

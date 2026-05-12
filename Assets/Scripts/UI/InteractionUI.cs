@@ -4,6 +4,35 @@ using UnityEngine.UI;
 using System.Collections;
 
 /// <summary>
+/// Maps every CrosshairMode to a sprite. Fully configurable in the Inspector.
+/// </summary>
+[System.Serializable]
+public class CrosshairSprites
+{
+    public Sprite Default;
+    public Sprite Hand;
+    public Sprite Grab;
+    public Sprite ItemDrag;
+    public Sprite Locked;
+    public Sprite Unlocked;
+    public Sprite Point;
+    public Sprite View;
+
+    /// <summary>Returns the sprite for the given mode, falling back to Default.</summary>
+    public Sprite GetSprite(CrosshairMode mode) => mode switch
+    {
+        CrosshairMode.Hand     => Hand     != null ? Hand     : Default,
+        CrosshairMode.Grab     => Grab     != null ? Grab     : Default,
+        CrosshairMode.ItemDrag => ItemDrag != null ? ItemDrag : Grab,
+        CrosshairMode.Locked   => Locked   != null ? Locked   : Default,
+        CrosshairMode.Unlocked => Unlocked != null ? Unlocked : Default,
+        CrosshairMode.Point    => Point    != null ? Point    : Default,
+        CrosshairMode.Read     => View     != null ? View     : Default,
+        _                      => Default
+    };
+}
+
+/// <summary>
 /// Handles the display of interaction hints and crosshair state changes.
 /// </summary>
 public class InteractionUI : MonoBehaviour
@@ -13,25 +42,10 @@ public class InteractionUI : MonoBehaviour
     [Header("Hint")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TextMeshProUGUI hintText;
-    [SerializeField] private Image interactionIcon;
-
-    [Header("Hint Icons")]
-    [SerializeField] private Sprite handIcon;
-    [SerializeField] private Sprite defaultIcon;
-    [SerializeField] private Sprite dragIcon;
 
     [Header("Crosshair")]
     [SerializeField] private Image crosshairImage;
-    [SerializeField] private Sprite crosshairDefault;
-    [SerializeField] private Sprite crosshairGrab;
-    [SerializeField] private Sprite crosshairHand;
-    [SerializeField] private Sprite crosshairItemDrag;
-    [SerializeField] private Sprite crosshairLocked;
-    [SerializeField] private Sprite crosshairPoint;
-    [SerializeField] private Sprite crosshairUnlocked;
-    [SerializeField] private Sprite crosshairView;
-
-    private Coroutine _blockedHintCoroutine;
+    [SerializeField] private CrosshairSprites crosshairSprites;
 
     private void Awake()
     {
@@ -58,19 +72,8 @@ public class InteractionUI : MonoBehaviour
 
         hintPanel.SetActive(visible);
 
-        if (visible)
-        {
-            if (hintText != null)
-                hintText.text = text;
-
-            if (interactionIcon != null)
-            {
-                bool isDraggable = crosshairMode == CrosshairMode.Grab || crosshairMode == CrosshairMode.ItemDrag;
-                Sprite icon = isPickable ? handIcon : (isDraggable ? dragIcon : defaultIcon);
-                interactionIcon.sprite = icon;
-                interactionIcon.gameObject.SetActive(icon != null);
-            }
-        }
+        if (visible && hintText != null)
+            hintText.text = text;
 
         SetCrosshair(visible ? crosshairMode : CrosshairMode.Default);
     }
@@ -81,18 +84,7 @@ public class InteractionUI : MonoBehaviour
     public void SetCrosshair(CrosshairMode mode)
     {
         if (crosshairImage == null) return;
-
-        crosshairImage.sprite = mode switch
-        {
-            CrosshairMode.Hand     => crosshairHand     != null ? crosshairHand     : crosshairDefault,
-            CrosshairMode.Locked   => crosshairLocked   != null ? crosshairLocked   : crosshairDefault,
-            CrosshairMode.Unlocked => crosshairUnlocked != null ? crosshairUnlocked : crosshairDefault,
-            CrosshairMode.Grab     => crosshairGrab     != null ? crosshairGrab     : crosshairDefault,
-            CrosshairMode.Read => crosshairView != null ? crosshairView : crosshairDefault,
-            CrosshairMode.Point     => crosshairPoint     != null ? crosshairPoint     : crosshairDefault,
-            CrosshairMode.ItemDrag => crosshairItemDrag != null ? crosshairItemDrag : crosshairGrab,
-            _                      => crosshairDefault
-        };
+        crosshairImage.sprite = crosshairSprites.GetSprite(mode);
     }
 
     /// <summary>

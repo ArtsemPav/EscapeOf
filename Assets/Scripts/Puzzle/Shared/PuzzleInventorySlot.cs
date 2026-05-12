@@ -10,7 +10,8 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Image))]
 public class PuzzleInventorySlot : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler,
-    IPointerEnterHandler, IPointerExitHandler
+    IPointerEnterHandler, IPointerExitHandler,
+    IPointerDownHandler, IPointerUpHandler
 {
     [SerializeField] private Image iconImage;
 
@@ -61,19 +62,31 @@ public class PuzzleInventorySlot : MonoBehaviour,
         RefreshIcon(dimmed);
     }
 
-    // ── Hover ─────────────────────────────────────────────────────────────────
+    // ── Hover & Press ─────────────────────────────────────────────────────────
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (!HasItem) return;
         ItemTooltip.Instance?.Show(Item, GetComponent<RectTransform>());
-        UI.PuzzleCursor.Instance?.SetHoverSprite(true);
+        UI.PuzzleCursor.Instance?.SetSlotHover(true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        UI.PuzzleCursor.Instance?.SetHoverSprite(false);
         ItemTooltip.Instance?.Hide();
+        UI.PuzzleCursor.Instance?.SetSlotHover(false);
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (!HasItem) return;
+        UI.PuzzleCursor.Instance?.SetSlotPress(true);
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        if (!HasItem) return;
+        UI.PuzzleCursor.Instance?.SetSlotPress(false);
     }
 
     // ── Drag ──────────────────────────────────────────────────────────────────

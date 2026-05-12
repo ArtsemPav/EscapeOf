@@ -178,7 +178,6 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (_puzzleMode != null && _puzzleMode.IsActive && !_isUnlocked)
         {
             ProcessInput();
-            UpdateUI();
         }
     }
 
