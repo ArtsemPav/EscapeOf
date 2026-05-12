@@ -346,7 +346,7 @@ namespace Escape.Core {
 
         /// <summary>Иконка прицела: замок если заперта, рука если можно открыть.</summary>
         public CrosshairMode GetCrosshairMode() {
-            if (!_isLocked || _isOpen) return CrosshairMode.Grab;
+            if (!_isLocked || _isOpen) return CrosshairMode.ItemDrag;
             bool hasKey = _requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey);
             return hasKey ? CrosshairMode.Unlocked : CrosshairMode.Locked;
         }

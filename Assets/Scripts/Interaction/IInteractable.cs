@@ -44,6 +44,9 @@ public enum CrosshairMode
     /// <summary>Read icon — object contains readable text (note, book, sign).</summary>
     Read,
 
+    /// <summary>Point icon.</summary>
+    Point,
+
     /// <summary>Item drag icon — displayed while dragging an item from PuzzleInventoryBar onto a 3D object.</summary>
     ItemDrag
 }

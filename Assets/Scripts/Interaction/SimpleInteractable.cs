@@ -11,7 +11,7 @@ public class SimpleInteractable : MonoBehaviour, IInteractable
     [SerializeField] private string _activeHintText = "Нажать";
     [SerializeField] private CrosshairMode _idleCrosshair = CrosshairMode.Hand;
     [SerializeField] private CrosshairMode _activeCrosshair = CrosshairMode.Grab;
-    [SerializeField] private bool _isPickable = false;
+    private bool _isPickable = false;
 
     [Header("Events")]
     [SerializeField] private UnityEngine.Events.UnityEvent _onInteract;

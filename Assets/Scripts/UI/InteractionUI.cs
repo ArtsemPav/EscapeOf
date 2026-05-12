@@ -23,12 +23,13 @@ public class InteractionUI : MonoBehaviour
     [Header("Crosshair")]
     [SerializeField] private Image crosshairImage;
     [SerializeField] private Sprite crosshairDefault;
-    [SerializeField] private Sprite crosshairHand;
-    [SerializeField] private Sprite crosshairLocked;
-    [SerializeField] private Sprite crosshairUnlocked;
     [SerializeField] private Sprite crosshairGrab;
-    [SerializeField] private Sprite crosshairRead;
+    [SerializeField] private Sprite crosshairHand;
     [SerializeField] private Sprite crosshairItemDrag;
+    [SerializeField] private Sprite crosshairLocked;
+    [SerializeField] private Sprite crosshairPoint;
+    [SerializeField] private Sprite crosshairUnlocked;
+    [SerializeField] private Sprite crosshairView;
 
     private Coroutine _blockedHintCoroutine;
 
@@ -87,7 +88,8 @@ public class InteractionUI : MonoBehaviour
             CrosshairMode.Locked   => crosshairLocked   != null ? crosshairLocked   : crosshairDefault,
             CrosshairMode.Unlocked => crosshairUnlocked != null ? crosshairUnlocked : crosshairDefault,
             CrosshairMode.Grab     => crosshairGrab     != null ? crosshairGrab     : crosshairDefault,
-            CrosshairMode.Read     => crosshairRead     != null ? crosshairRead     : crosshairDefault,
+            CrosshairMode.Read => crosshairView != null ? crosshairView : crosshairDefault,
+            CrosshairMode.Point     => crosshairPoint     != null ? crosshairPoint     : crosshairDefault,
             CrosshairMode.ItemDrag => crosshairItemDrag != null ? crosshairItemDrag : crosshairGrab,
             _                      => crosshairDefault
         };
