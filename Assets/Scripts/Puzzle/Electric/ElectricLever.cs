@@ -22,10 +22,10 @@ public class ElectricLever : MonoBehaviour, IInteractable
     [SerializeField] private float _rotationSpeed = 5f;
 
     [Header("Audio")]
+    [Tooltip("Played when the lever is pulled down.")]
     [SerializeField] private AudioClip _pullClip;
 
-    [SerializeField]
-    [Range(0f, 1f)]
+    [SerializeField, Range(0f, 1f)]
     private float _pullVolume = 0.8f;
 
     [Header("Interaction")]
@@ -41,11 +41,10 @@ public class ElectricLever : MonoBehaviour, IInteractable
     private bool _isPulled;  // one-shot: lever was already pulled
     private bool _isPulling; // true while animating toward pulled position, false while returning
 
-    private float       _currentDelta;
-    private float       _targetDelta;
-    private Vector3     _baseEuler;
-    private bool        _animating;
-    private AudioSource _audioSource;
+    private float   _currentDelta;
+    private float   _targetDelta;
+    private Vector3 _baseEuler;
+    private bool    _animating;
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
@@ -58,10 +57,10 @@ public class ElectricLever : MonoBehaviour, IInteractable
     /// <summary>Called by ElectricPuzzleController on Open/Close to gate world interaction.</summary>
     public void SetInteractionEnabled(bool enabled) => _interactionEnabled = enabled;
 
-    public bool CanInteract()        => _interactionEnabled && !_isPulled;
-    public string GetInteractText()  => _interactText;
-    public bool IsPickable()         => false;
-    public bool UseLMBClick          => false;
+    public bool CanInteract()               => _interactionEnabled && !_isPulled;
+    public string GetInteractText()         => _interactText;
+    public bool IsPickable()                => false;
+    public bool UseLMBClick                 => false;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
 
     /// <summary>Starts the pull animation. One-shot; subsequent calls are ignored.</summary>
@@ -74,8 +73,7 @@ public class ElectricLever : MonoBehaviour, IInteractable
         _targetDelta = _angleOnDelta;
         _animating   = true;
 
-        if (_pullClip != null)
-            _audioSource.PlayOneShot(_pullClip, _pullVolume);
+        AudioManager.Instance?.PlaySFX(_pullClip, _pullVolume);
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -109,11 +107,6 @@ public class ElectricLever : MonoBehaviour, IInteractable
     private void Awake()
     {
         _baseEuler = transform.localEulerAngles;
-
-        _audioSource              = gameObject.AddComponent<AudioSource>();
-        _audioSource.playOnAwake  = false;
-        _audioSource.spatialBlend = 1f;
-        _audioSource.loop         = false;
     }
 
     private void Update()

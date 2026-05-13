@@ -1,44 +1,44 @@
 using System;
 using System.Collections;
-using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
 /// Orchestrates the electric panel wire-connection puzzle.
-/// Follows the same Open/Close/Save pattern as MedallionBoxInteraction.
+/// Delegates camera, input blocking, ESC handling, and cursor management to
+/// <see cref="PuzzleModeController"/> — the same component used by all other puzzles.
 ///
 /// Flow:
-///   1. Player clicks the panel → Cinemachine camera blends in, UI panel opens, cursor is freed.
+///   1. Player clicks the panel → PuzzleModeController.EnterPuzzleMode() blends the camera in,
+///      frees the cursor, and blocks FPS input.
 ///   2. Mouse raycasts against terminal colliders using Camera.main.ScreenPointToRay.
 ///   3. LMB on a colored terminal → start wire drag; wire end follows the cursor in 3D.
 ///   4. LMB release on a neutral terminal → connect wire, evaluate solution.
 ///   5. LMB on an occupied terminal → lift the wire for redirection.
 ///   6. LMB on the lever → immediately resets all wires if wrong, or completes the puzzle if correct.
-///   7. RMB → cancel active drag without closing. ESC / WASD → close panel.
+///   7. RMB → cancel active drag without closing.
+///   8. ESC → handled automatically by PuzzleModeController via InputManager.
 ///
 /// Setup:
 ///   • Attach to the root "electric" GameObject (Interactable Layer + BoxCollider).
-///   • <see cref="_panelCamera"/> and <see cref="_lampLight"/> are found automatically in children
-///     if not assigned in the Inspector.
+///   • Add <see cref="PuzzleModeController"/> to the same GameObject and assign its camera.
+///   • <see cref="_lampLight"/> is found automatically in children if not assigned in the Inspector.
 ///   • Assign <see cref="_coloredTerminals"/> and <see cref="_neutralTerminals"/> in order 0..5.
 ///   • Assign <see cref="_puzzleData"/> (ElectricPuzzleData ScriptableObject).
 /// </summary>
 [RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(PuzzleModeController))]
 public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable, IPuzzleDropHandler
 {
     // ── Constants ─────────────────────────────────────────────────────────────
 
-    private const int TerminalCount    = 6;
+    private const int TerminalCount     = 6;
     private const int DisconnectedValue = -1;
 
     // ── Inspector ─────────────────────────────────────────────────────────────
 
     [Header("References")]
-    [Tooltip("CinemachineCamera that frames the panel. Leave empty to skip camera switch.")]
-    [SerializeField] private CinemachineCamera _panelCamera;
-
     [Tooltip("Root panel GameObject in Canvas — opened/closed via UIManager.")]
     [SerializeField] private GameObject _panel;
 
@@ -75,9 +75,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     [Tooltip("Hint text shown when the player looks at the panel before entering puzzle mode.")]
     [SerializeField] private string _interactText = "Осмотреть щиток";
 
-    [Tooltip("Duration of Cinemachine blend in/out in seconds.")]
-    [SerializeField] private float _blendDuration = 0.75f;
-
     [Tooltip("Layer mask of terminal colliders used for mouse raycasting while the panel is open.")]
     [SerializeField] private LayerMask _terminalLayer;
 
@@ -91,10 +88,31 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     [Tooltip("Simulation and rendering settings shared by all wires in this puzzle.")]
     [SerializeField] private ElectricWireSettings _wireSettings = new ElectricWireSettings();
 
+    [Header("Sounds")]
+    [Tooltip("Played when the fuse is inserted into the anchor.")]
+    [SerializeField] private AudioClip _fuseInsertClip;
+
+    [Tooltip("Played when a wire is connected to a neutral terminal.")]
+    [SerializeField] private AudioClip _wireConnectClip;
+
+    [Tooltip("Played when a wire is disconnected (picked up from a terminal).")]
+    [SerializeField] private AudioClip _wireDisconnectClip;
+
+    [Tooltip("Played when the puzzle is fully solved (lever pulled with correct wires).")]
+    [SerializeField] private AudioClip _solvedClip;
+
+    [Tooltip("Played when the lever snaps back after a wrong combination.")]
+    [SerializeField] private AudioClip _wrongPullClip;
+
+    [Header("Sound Volumes")]
+    [SerializeField, Range(0f, 1f)] private float _fuseInsertVolume    = 1f;
+    [SerializeField, Range(0f, 1f)] private float _wireConnectVolume   = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float _wireDisconnectVolume = 0.7f;
+    [SerializeField, Range(0f, 1f)] private float _solvedVolume        = 1f;
+    [SerializeField, Range(0f, 1f)] private float _wrongPullVolume     = 0.6f;
+
     [Header("Events")]
     [SerializeField] private UnityEvent _onPuzzleSolved;
-
-    [Header("Fuse")]
     [Tooltip("Items that can be applied to this puzzle (fuse). " +
              "Leave empty to disable the inventory bar for this puzzle.")]
     [SerializeField] private ItemData[] _acceptedItems;
@@ -121,12 +139,10 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     private ElectricWire     _activeWire;
     private ElectricTerminal _activeColoredTerminal;
 
-    private readonly int[] _connections = new int[TerminalCount];
-    private readonly ElectricWire[] _wires = new ElectricWire[TerminalCount];
+    private readonly int[]          _connections = new int[TerminalCount];
+    private readonly ElectricWire[] _wires       = new ElectricWire[TerminalCount];
 
-    private CinemachineBrain _brain;
-    private float            _originalBlendTime;
-    private Collider         _ownCollider;
+    private PuzzleModeController _controller;
 
     // Pending save state applied in Start()
     private bool   _pendingLoad;
@@ -173,33 +189,24 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
 
     // ── IInteractable — outer panel collider ──────────────────────────────────
 
-    public bool IsPickable()         => false;
-    public bool UseLMBClick          => true;
-    public string GetInteractText()  => _interactText;
-    public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
-    public bool CanInteract()        => !_isOpen && !_isSolved;
-    public void Interact()           => Open();
+    public bool IsPickable()                    => false;
+    public bool UseLMBClick                     => true;
+    public string GetInteractText()             => _interactText;
+    public CrosshairMode GetCrosshairMode()     => CrosshairMode.Hand;
+    public bool CanInteract()                   => !_isOpen && !_isSolved;
+    public void Interact()                      => Open();
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        _brain = Camera.main?.GetComponent<CinemachineBrain>();
-        if (_brain != null)
-            _originalBlendTime = _brain.DefaultBlend.Time;
+        _controller = GetComponent<PuzzleModeController>();
 
-        if (_panelCamera != null)
-            _panelCamera.gameObject.SetActive(false);
-
-        _ownCollider = GetComponent<Collider>();
-
-        // Auto-find references if not assigned in the inspector.
-        if (_lever == null)
-            _lever = GetComponentInChildren<ElectricLever>(includeInactive: true);
         if (_lampLight == null)
             _lampLight = GetComponentInChildren<Light>(includeInactive: true);
+        if (_lever == null)
+            _lever = GetComponentInChildren<ElectricLever>(includeInactive: true);
 
-        // Ensure wrong-pull particles are hidden at startup regardless of prefab state.
         if (_wrongPullParticles != null)
             _wrongPullParticles.gameObject.SetActive(false);
 
@@ -210,17 +217,35 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         SaveManager.Instance?.Register(this);
     }
 
+    private void OnEnable()
+    {
+        if (_controller != null)
+        {
+            _controller.OnEntered += HandleEntered;
+            _controller.OnExited  += HandleExited;
+            _controller.OnSolved  += HandleSolved;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (_controller != null)
+        {
+            _controller.OnEntered -= HandleEntered;
+            _controller.OnExited  -= HandleExited;
+            _controller.OnSolved  -= HandleSolved;
+        }
+    }
+
     private void Start()
     {
         if (_pendingLoad)
         {
             _pendingLoad = false;
             ApplyPendingLoad();
-            // Joint settling after all wires are loaded — resolves any remaining inter-wire overlaps
             ElectricWire.JointPresettle();
         }
 
-        // Restore fuse visual and lock the anchor after loading a saved game
         if (_fuseInserted)
         {
             var fuseItem = FindAcceptedItemById(_fuseItemId);
@@ -242,16 +267,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     private void Update()
     {
         if (!_isOpen) return;
-
-        var kb = Keyboard.current;
-        if (kb != null && (kb.escapeKey.wasPressedThisFrame
-            || kb.wKey.isPressed || kb.sKey.isPressed
-            || kb.aKey.isPressed || kb.dKey.isPressed))
-        {
-            CancelActiveDrag();
-            Close();
-            return;
-        }
 
         var mouse = Mouse.current;
         if (mouse == null) return;
@@ -276,17 +291,49 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
             HandleMouseRelease(mouse.position.ReadValue());
     }
 
+    // ── PuzzleModeController event handlers ───────────────────────────────────
+
+    private void HandleEntered()
+    {
+        _isOpen = true;
+
+        if (_panel != null)
+            UIManager.Instance?.OpenPanel(_panel);
+
+        PuzzleInventoryBar.Instance?.Show(this);
+        _lever?.SetInteractionEnabled(true);
+    }
+
+    private void HandleExited()
+    {
+        _isOpen = false;
+
+        CancelActiveDrag();
+        _lever?.SetInteractionEnabled(false);
+        PuzzleInventoryBar.Instance?.Hide();
+
+        if (_panel != null)
+        {
+            _panel.SetActive(false);
+            UIManager.Instance?.ClosePanel(_panel);
+        }
+    }
+
+    private void HandleSolved()
+    {
+        // Fired by PuzzleModeController.SetSolved() — no additional action needed here.
+    }
+
     // ── Mouse interaction ─────────────────────────────────────────────────────
 
     /// <summary>
     /// Called on LMB press. Starts a new wire drag, picks up an existing wire,
-    /// or interacts with the lever when wires are correctly connected.
+    /// or interacts with the lever.
     /// </summary>
     private void HandleMousePress(Vector2 screenPos)
     {
-        if (_activeWire != null) return; // already dragging
+        if (_activeWire != null) return;
 
-        // Check for lever interaction (lever is always interactable regardless of wire state).
         if (!_isSolved && TryInteractLever(screenPos))
             return;
 
@@ -298,25 +345,23 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
             if (terminal.IsFree)
                 StartDrag(terminal);
             else
-                PickUpWire(terminal); // lift existing wire from colored terminal
+                PickUpWire(terminal);
         }
-        else // Neutral
+        else
         {
             if (!terminal.IsFree)
-                PickUpWireFromNeutral(terminal); // lift existing wire from neutral terminal
+                PickUpWireFromNeutral(terminal);
         }
     }
 
     /// <summary>
-    /// Raycasts for the lever on the same layer mask as terminals and calls Interact if hit.
+    /// Raycasts for the lever and calls Interact if hit.
     /// If wires are incorrect, resets all connections immediately before the animation starts.
     /// Returns true if the lever was successfully clicked.
     /// </summary>
     private bool TryInteractLever(Vector2 screenPos)
     {
-        // Lever is locked until the fuse is inserted
         if (!_fuseInserted) return false;
-
         if (_lever == null || !_lever.CanInteract()) return false;
         if (Camera.main == null) return false;
 
@@ -328,8 +373,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
                  ?? hit.collider.GetComponentInParent<ElectricLever>();
         if (lever == null) return false;
 
-        // Wrong pull: scatter particles and wipe wires instantly on press,
-        // without waiting for the lever animation to finish.
         if (!_wiresCorrect)
         {
             PlayWrongPullParticles();
@@ -350,7 +393,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
 
         if (terminal != null && terminal.Type == ElectricTerminal.TerminalType.Neutral)
         {
-            // Free up the neutral slot if another wire already occupies it
             if (!terminal.IsFree)
                 DisconnectWireAtNeutral(terminal);
 
@@ -358,7 +400,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         }
         else
         {
-            // Released outside any neutral terminal → discard wire
             CancelActiveDrag();
         }
     }
@@ -381,9 +422,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         if (Camera.main == null) return;
 
         var ray = Camera.main.ScreenPointToRay(screenPos);
-
-        // Project onto an infinite plane at the terminal's depth, facing the camera.
-        // This is more reliable than a physics raycast — the wire end always sticks to the cursor.
         var plane = new Plane(-Camera.main.transform.forward,
                               _activeColoredTerminal.transform.position);
         if (plane.Raycast(ray, out float enter))
@@ -398,9 +436,9 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         Color color = _puzzleData != null ? _puzzleData.WireColors[colored.Index] : Color.white;
         wire.Init(colored.transform, colored.Index, color, _wireMaterial, _wireCapPrefab, _wireSettings);
 
-        _wires[colored.Index]   = wire;
-        _activeWire             = wire;
-        _activeColoredTerminal  = colored;
+        _wires[colored.Index]  = wire;
+        _activeWire            = wire;
+        _activeColoredTerminal = colored;
         colored.AttachWire(wire);
     }
 
@@ -413,6 +451,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         _activeWire            = null;
         _activeColoredTerminal = null;
 
+        PlaySFX(_wireConnectClip, _wireConnectVolume);
         EvaluateWires();
         SaveManager.Instance?.Save();
     }
@@ -448,6 +487,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         _activeWire            = wire;
         _activeColoredTerminal = colored;
 
+        PlaySFX(_wireDisconnectClip, _wireDisconnectVolume);
         EvaluateWires();
     }
 
@@ -470,6 +510,8 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
 
             _activeWire            = wire;
             _activeColoredTerminal = _coloredTerminals[i];
+
+            PlaySFX(_wireDisconnectClip, _wireDisconnectVolume);
             break;
         }
 
@@ -513,7 +555,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         if (_isSolved) return;
 
         bool correct = CheckSolution();
-        if (correct == _wiresCorrect) return; // no state change
+        if (correct == _wiresCorrect) return;
 
         _wiresCorrect = correct;
         UpdateLamp();
@@ -524,7 +566,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
 
     /// <summary>
     /// Called by <see cref="ElectricLever.OnPulled"/> when the lever animation completes.
-    /// Correct wires → puzzle fully solved and panel closes.
+    /// Correct wires → puzzle fully solved via PuzzleModeController.SetSolved().
     /// Wrong wires → wires were already cleared on press; only return the lever here.
     /// </summary>
     private void HandleLeverPulled()
@@ -533,20 +575,22 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         {
             _isSolved = true;
             if (_solvedObject != null) _solvedObject.SetActive(true);
+            PlaySFX(_solvedClip, _solvedVolume);
             _onPuzzleSolved?.Invoke();
             SaveManager.Instance?.Save();
-            Close();
+
+            // Delegate exit to PuzzleModeController — consistent with all other puzzles.
+            _controller?.SetSolved();
         }
         else
         {
-            // Wires were already cleared in TryInteractLever — just return the lever.
+            PlaySFX(_wrongPullClip, _wrongPullVolume);
             _lever?.Reset();
         }
     }
 
     /// <summary>
-    /// Activates the wrong-pull particle system, plays it once, then deactivates it
-    /// automatically when playback finishes so it stays hidden the rest of the time.
+    /// Activates the wrong-pull particle system, plays it once, then deactivates it.
     /// </summary>
     private void PlayWrongPullParticles()
     {
@@ -586,10 +630,8 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
             _connections[i] = DisconnectedValue;
         }
 
-        foreach (var terminal in _coloredTerminals)
-            terminal?.DetachWire();
-        foreach (var terminal in _neutralTerminals)
-            terminal?.DetachWire();
+        foreach (var terminal in _coloredTerminals) terminal?.DetachWire();
+        foreach (var terminal in _neutralTerminals)  terminal?.DetachWire();
 
         _wiresCorrect = false;
         UpdateLamp();
@@ -615,17 +657,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         UpdateLamp();
     }
 
-    /// <summary>Sets the indicator lamp color directly on the Light component.</summary>
-    private void SetLampColor(Color color)
-    {
-        if (_lampLight == null) return;
-        _lampLight.color = color;
-    }
-
-    /// <summary>
-    /// Updates the indicator lamp based on the complete puzzle state.
-    /// Lamp is disabled entirely when no fuse is inserted.
-    /// </summary>
+    /// <summary>Updates the indicator lamp based on the complete puzzle state.</summary>
     private void UpdateLamp()
     {
         if (_lampLight == null) return;
@@ -650,7 +682,7 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     public bool HandleDrop(ItemData item, Vector2 screenPosition)
     {
         if (item == null) return false;
-        if (_acceptedItems == null || System.Array.IndexOf(_acceptedItems, item) < 0) return false;
+        if (_acceptedItems == null || Array.IndexOf(_acceptedItems, item) < 0) return false;
         if (_fuseInserted) return false;
         if (_fuseAnchorCollider == null || Camera.main == null) return false;
 
@@ -658,7 +690,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         if (!Physics.Raycast(ray, out var hit, 50f, _terminalLayer, QueryTriggerInteraction.Collide))
             return false;
 
-        // Accept only a hit on the dedicated anchor collider
         if (hit.collider != _fuseAnchorCollider) return false;
 
         InsertFuse(item);
@@ -671,11 +702,11 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         _fuseInserted = true;
         _fuseItemId   = item.ItemId;
 
-        // Disable the drop-zone collider so it stops intercepting raycasts
         if (_fuseAnchorCollider != null)
             _fuseAnchorCollider.enabled = false;
 
         SpawnFuseVisual(item);
+        PlaySFX(_fuseInsertClip, _fuseInsertVolume);
         UpdateLamp();
         SaveManager.Instance?.Save();
     }
@@ -713,72 +744,8 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
 
     private void Open()
     {
-        if (_isOpen) return;
-        _isOpen = true;
-
-        if (_ownCollider != null) _ownCollider.enabled = false;
-
-        SetBlendDuration(_blendDuration);
-        if (_panelCamera != null) _panelCamera.gameObject.SetActive(true);
-
-        // If a Canvas panel is assigned, use the standard OpenPanel flow.
-        // Otherwise, push a modal state manually so cursor is freed and player input is blocked.
-        if (_panel != null)
-        {
-            UIManager.Instance?.OpenPanel(_panel);
-        }
-        else
-        {
-            UIManager.Instance?.PushModalState();
-            GameManager.Instance?.UpdateCursorState();
-        }
-
-        // Always show the inventory bar when entering puzzle mode
-        PuzzleInventoryBar.Instance?.Show(this);
-
-        // Enable lever world interaction only while puzzle is open
-        _lever?.SetInteractionEnabled(true);
-    }
-
-    private void Close()
-    {
-        if (!_isOpen) return;
-        _isOpen = false;
-
-        // Disable lever world interaction when leaving the puzzle
-        _lever?.SetInteractionEnabled(false);
-
-        PuzzleInventoryBar.Instance?.Hide();
-
-        if (_panel != null) _panel.SetActive(false);
-
-        SetBlendDuration(_blendDuration);
-        if (_panelCamera != null) _panelCamera.gameObject.SetActive(false);
-
-        StartCoroutine(RestoreAfterBlend());
-    }
-
-    private IEnumerator RestoreAfterBlend()
-    {
-        yield return null;
-        while (_brain != null && _brain.IsBlending) yield return null;
-
-        SetBlendDuration(_originalBlendTime);
-
-        if (_panel != null)
-            UIManager.Instance?.ClosePanel(_panel);
-        else
-            UIManager.Instance?.PopModalState();
-
-        if (_ownCollider != null) _ownCollider.enabled = true;
-    }
-
-    private void SetBlendDuration(float duration)
-    {
-        if (_brain == null) return;
-        var blend = _brain.DefaultBlend;
-        blend.Time = duration;
-        _brain.DefaultBlend = blend;
+        // Delegate entirely to PuzzleModeController — it fires OnEntered → HandleEntered.
+        _controller?.EnterPuzzleMode();
     }
 
     // ── Save restore ──────────────────────────────────────────────────────────
@@ -824,5 +791,12 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         go.transform.SetParent(transform);
         go.AddComponent<LineRenderer>();
         return go.AddComponent<ElectricWire>();
+    }
+
+    /// <summary>Routes SFX through AudioManager singleton — consistent with all other puzzle sounds.</summary>
+    private static void PlaySFX(AudioClip clip, float volume)
+    {
+        if (clip != null)
+            AudioManager.Instance?.PlaySFX(clip, volume);
     }
 }

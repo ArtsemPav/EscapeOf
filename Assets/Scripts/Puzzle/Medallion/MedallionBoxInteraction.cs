@@ -112,6 +112,10 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
         _animator   = GetComponent<Animator>();
         _controller = _controller != null ? _controller : GetComponent<PuzzleModeController>();
 
+        // Auto-populate _holes from children if the Inspector array was left empty.
+        if (_holes == null || _holes.Length == 0 || System.Array.TrueForAll(_holes, h => h == null))
+            _holes = GetComponentsInChildren<MedallionHole>(includeInactive: true);
+
         SaveManager.Instance?.Register(this);
     }
 

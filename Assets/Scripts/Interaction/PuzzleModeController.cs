@@ -115,6 +115,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private void Awake()
     {
+        // Auto-find the puzzle camera in children if not assigned in the Inspector.
+        if (_puzzleCamera == null)
+            _puzzleCamera = GetComponentInChildren<CinemachineCamera>(includeInactive: true);
+
         if (_puzzleCamera != null)
         {
             _puzzleCamera.gameObject.SetActive(false);
