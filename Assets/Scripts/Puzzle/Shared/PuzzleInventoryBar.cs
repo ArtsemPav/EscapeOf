@@ -430,6 +430,12 @@ public class PuzzleInventoryBar : MonoBehaviour
         rt.sizeDelta = new Vector2(ghostSize, ghostSize);
         rt.position = screenPos;
 
+        // Ensure ghost is behind the custom cursor if it exists
+        if (UI.PuzzleCursor.Instance != null)
+        {
+            go.transform.SetSiblingIndex(UI.PuzzleCursor.Instance.transform.GetSiblingIndex());
+        }
+
         _dragGhost = go.AddComponent<Image>();
         _dragGhost.sprite = sprite;
         _dragGhost.raycastTarget = false;

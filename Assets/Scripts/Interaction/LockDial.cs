@@ -64,6 +64,8 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     [Tooltip("If assigned, audio feedback will only play when this item is APPLIED to the dial.")]
     [SerializeField] private ItemData _requiredItemForAudio;
 
+
+
     [Tooltip("Looping clip played as an additional background layer while the puzzle is active (requires Required Item For Audio to be applied).")]
     [SerializeField] private AudioClip _puzzleBackgroundLayer;
 
@@ -82,6 +84,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     // ── State ──────────────────────────────────────────────────────────────────
 
+    private Collider _colliderLock;
     private int  _currentStep;
     private bool _isUnlocked;
     private int  _stepsPerRevolution;
@@ -137,8 +140,11 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         _stepsPerRevolution = Mathf.RoundToInt(FullRevolutionDegrees / _stepAngle);
         _targetRotation     = transform.localRotation;
-        _puzzleMode         = GetComponentInParent<PuzzleModeController>();
+        _colliderLock = GetComponent<BoxCollider>();
         _mainCamera         = Camera.main;
+        if (_puzzleMode == null) {
+            _puzzleMode = GetComponentInParent<PuzzleModeController>();
+        }
 
         if (_randomizeOnStart && !_isUnlocked)
         {
@@ -369,27 +375,34 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     /// <summary>
     /// Handles item application from the PuzzleInventoryBar.
     /// If the required item (stethoscope) is dropped, it enables advanced audio feedback.
+    /// When _colliderLock is assigned, the drop is only accepted when the release raycast hits that exact collider.
     /// </summary>
     public bool HandleDrop(ItemData item, Vector2 screenPosition)
     {
-        if (item == _requiredItemForAudio && !_isRequiredItemApplied)
+        if (item != _requiredItemForAudio || _isRequiredItemApplied) return false;
+
+        if (_colliderLock != null)
         {
-            _isRequiredItemApplied = true;
-            Debug.Log($"[{nameof(LockDial)}] {_requiredItemForAudio.itemName} applied to safe. Advanced audio feedback enabled.");
+            Camera cam = Camera.main;
+            if (cam == null) return false;
 
-            // Start the background layer if we are already in the puzzle mode
-            if (_puzzleMode != null && _puzzleMode.IsActive)
-            {
-                AudioManager.Instance?.MuteBackground();
-
-                if (_puzzleBackgroundLayer != null)
-                    AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
-            }
-
-            return true; // Item accepted and consumed from inventory
+            Ray ray = cam.ScreenPointToRay(screenPosition);
+            if (!Physics.Raycast(ray, out RaycastHit hit) || hit.collider != _colliderLock)
+                return false;
         }
 
-        return false;
+        _isRequiredItemApplied = true;
+        Debug.Log($"[{nameof(LockDial)}] {_requiredItemForAudio.itemName} applied to safe. Advanced audio feedback enabled.");
+
+        if (_puzzleMode != null && _puzzleMode.IsActive)
+        {
+            AudioManager.Instance?.MuteBackground();
+
+            if (_puzzleBackgroundLayer != null)
+                AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+        }
+
+        return true;
     }
 
     // ── IPuzzleDropTarget ──────────────────────────────────────────────────────
@@ -406,12 +419,12 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private void OnPuzzleEntered()
     {
-        if (!HasRequiredItem()) return;
+        if (_isRequiredItemApplied) {
+            AudioManager.Instance?.MuteBackground();
 
-        AudioManager.Instance?.MuteBackground();
-
-        if (_puzzleBackgroundLayer != null)
-            AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+            if (_puzzleBackgroundLayer != null)
+                AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+        }
     }
 
     private void OnPuzzleExited()
@@ -419,7 +432,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (!HasRequiredItem()) return;
 
         AudioManager.Instance?.StopBackgroundLayer();
-        AudioManager.Instance?.UnmuteBackground();
+        AudioManager.Instance?.PlayGameMusic();
     }
 
     // ── UI & Visuals ───────────────────────────────────────────────────────────

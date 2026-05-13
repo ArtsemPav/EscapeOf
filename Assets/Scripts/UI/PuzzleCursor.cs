@@ -68,6 +68,9 @@ namespace UI
                 Cursor.visible = false;
             }
 
+            // Ensure the cursor stays on top of other UI elements in the same Canvas
+            transform.SetAsLastSibling();
+
             // Ensure we start with the default sprite and clean state
             _isDragging = false;
             _draggedItem = null;
