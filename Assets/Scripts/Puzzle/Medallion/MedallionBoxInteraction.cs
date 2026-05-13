@@ -1,32 +1,32 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
 /// Attach to the chinesBox GameObject.
-/// On LMB click — activates ChinesBoxCamera and opens MedallionBoxPanel.
-/// Closes on: CloseButton click, ESC, WASD, or click on the left/right side zones.
-/// Player input is restored only after the camera blend-back animation finishes.
-/// Fires <see cref="OnPuzzleSolved"/> (UnityEvent) when all medallions are correctly placed.
-/// Implements ISaveable to persist puzzle state (which holes are filled, solved flag).
+/// Works with PuzzleModeController to manage puzzle state, camera, and input.
+/// Handles medallion UI, sounds, and the box open animation.
+///
+/// Animation contract:
+///   Animator must have a bool parameter "IsOpen".
+///   Setting it to true plays the open animation once; the box stays in that pose permanently.
 ///
 /// <para><b>Execution order: -7.</b> Must run after SaveManager (-10) so <see cref="LoadSaveData"/>
 /// is called before <c>Start</c>, and before MedallionCollectionTracker (-5) so
-/// <see cref="ApplyPendingLoad"/> fills the holes before the tracker's startup sync can
-/// trigger a <c>Save()</c> that would snapshot the holes as empty.</para>
+/// <see cref="ApplyPendingLoad"/> fills the holes before the tracker's startup sync.</para>
 /// </summary>
-[DefaultExecutionOrder(-7)] // After SaveManager (-10), before MedallionCollectionTracker (-5)
-[RequireComponent(typeof(Collider))]
-public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
+[DefaultExecutionOrder(-7)]
+public class MedallionBoxInteraction : MonoBehaviour, ISaveable
 {
+    private static readonly int AnimIsOpen  = Animator.StringToHash("IsOpen");
+    private static readonly int StateOpened = Animator.StringToHash("Opened");
+
+    // ── Inspector ─────────────────────────────────────────────────────────────
+
     [Header("References")]
-    [Tooltip("The CinemachineCamera that frames the box.")]
-    [SerializeField] private CinemachineCamera _boxCamera;
+    [SerializeField] private PuzzleModeController _controller;
 
     [Tooltip("Root panel GameObject in Canvas.")]
     [SerializeField] private GameObject _panel;
@@ -39,41 +39,51 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
              "Must match the MedallionHole expected items on Hole_0..4.")]
     [SerializeField] private ItemData[] _medallionOrder;
 
+    [Header("Holes")]
+    [Tooltip("All MedallionHole objects — used for coin sound subscriptions.")]
+    [SerializeField] private MedallionHole[] _holes;
+
     [Header("Settings")]
-    [SerializeField] private string _interactText = "Осмотреть шкатулку";
-
-    [Tooltip("Duration of camera blend in seconds (both zoom-in and zoom-out).")]
-    [SerializeField] private float _blendDuration = 0.75f;
-
-    [Tooltip("Fraction of screen width on each side that acts as a click-to-close zone. " +
-             "The center area is left free for box interaction.")]
+    [Tooltip("Fraction of screen width on each side that acts as a click-to-close zone.")]
     [Range(0.05f, 0.49f)]
     [SerializeField] private float _sideZoneWidth = 0.25f;
 
-    [Header("Events")]
-    [Tooltip("Fired when all medallions are placed in the correct holes.")]
-    [SerializeField] private UnityEvent _onPuzzleSolved;
+    [Header("Sounds")]
+    [Tooltip("Played once when the player opens / inspects the box.")]
+    [SerializeField] private AudioClip _openBoxClip;
+
+    [Tooltip("Played once when the puzzle is solved and the box opens.")]
+    [SerializeField] private AudioClip _solvedClip;
+
+    [Tooltip("Played when a medallion is dropped into a hole.")]
+    [SerializeField] private AudioClip _coinDropClip;
+
+    [Tooltip("Played when a medallion is retrieved from a hole.")]
+    [SerializeField] private AudioClip _coinPickupClip;
+
+    [Header("Sound Volumes")]
+    [SerializeField, Range(0f, 1f)] private float _openBoxVolume    = 1f;
+    [SerializeField, Range(0f, 1f)] private float _solvedVolume     = 1f;
+    [SerializeField, Range(0f, 1f)] private float _coinDropVolume   = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float _coinPickupVolume = 0.7f;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
-    private bool _isOpen;
     private bool _puzzleSolved;
+    private bool _boxOpenedOnce;
     private Button _closeButton;
     private readonly List<Button> _sideButtons = new();
-    private CinemachineBrain _brain;
-    private float _originalBlendTime;
+    private Animator _animator;
 
-    // Pending save data stored between LoadSaveData() and Start()
     private PuzzleSaveData? _pendingLoad;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => "medallion_puzzle";
 
-    /// <summary>Serializes solved flag and per-hole item IDs.</summary>
     public string GetSaveData()
     {
-        var boxUI = _panel?.GetComponent<MedallionBoxUI>();
+        var boxUI      = _panel?.GetComponent<MedallionBoxUI>();
         var holeStates = boxUI?.GetHoleStates() ?? Array.Empty<ItemData>();
 
         var ids = new string[holeStates.Length];
@@ -83,7 +93,6 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
         return JsonUtility.ToJson(new PuzzleSaveData { solved = _puzzleSolved, placedItemIds = ids });
     }
 
-    /// <summary>Stores the loaded data — applied in Start() once all systems are ready.</summary>
     public void LoadSaveData(string json)
     {
         _pendingLoad = JsonUtility.FromJson<PuzzleSaveData>(json);
@@ -96,115 +105,81 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
         public string[] placedItemIds;
     }
 
-    // ── IInteractable ─────────────────────────────────────────────────────────
-
-    public bool IsPickable() => false;
-    public bool UseLMBClick => true;
-    public string GetInteractText() => _interactText;
-    public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;
-
-    /// <summary>Box is interactable only when the panel is closed and puzzle is not yet solved.</summary>
-    public bool CanInteract() => !_isOpen && !_puzzleSolved;
-
-    /// <summary>Opens the camera view and panel.</summary>
-    public void Interact()
-    {
-        if (_isOpen) return;
-        Open();
-    }
-
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Awake()
     {
-        _brain = Camera.main?.GetComponent<CinemachineBrain>();
-        if (_brain != null)
-            _originalBlendTime = _brain.DefaultBlend.Time;
+        _animator   = GetComponent<Animator>();
+        _controller = _controller != null ? _controller : GetComponent<PuzzleModeController>();
 
-        // Register before SaveManager.Start() calls Load()
         SaveManager.Instance?.Register(this);
+    }
+
+    private void OnEnable()
+    {
+        if (_controller != null)
+        {
+            _controller.OnEntered += HandleEntered;
+            _controller.OnExited  += HandleExited;
+            _controller.OnSolved  += HandleSolved;
+        }
+
+        SubscribeToHoles();
+    }
+
+    private void OnDisable()
+    {
+        if (_controller != null)
+        {
+            _controller.OnEntered -= HandleEntered;
+            _controller.OnExited  -= HandleExited;
+            _controller.OnSolved  -= HandleSolved;
+        }
+
+        UnsubscribeFromHoles();
     }
 
     private void Start()
     {
         if (_panel != null)
         {
-            CreateSideZone("BackdropLeft",  new Vector2(0f, 0f),                   new Vector2(_sideZoneWidth, 1f));
-            CreateSideZone("BackdropRight", new Vector2(1f - _sideZoneWidth, 0f),  new Vector2(1f, 1f));
+            CreateSideZone("BackdropLeft",  new Vector2(0f, 0f),                  new Vector2(_sideZoneWidth, 1f));
+            CreateSideZone("BackdropRight", new Vector2(1f - _sideZoneWidth, 0f), new Vector2(1f, 1f));
 
             Transform t = _panel.transform.Find("CloseButton");
             if (t != null)
             {
                 _closeButton = t.GetComponent<Button>();
                 if (_closeButton != null)
-                    _closeButton.onClick.AddListener(Close);
+                    _closeButton.onClick.AddListener(RequestClose);
             }
         }
 
-        // Apply save data now that InventorySystem and MedallionBoxUI are both ready
         ApplyPendingLoad();
     }
 
     private void OnDestroy()
     {
         if (_closeButton != null)
-            _closeButton.onClick.RemoveListener(Close);
+            _closeButton.onClick.RemoveListener(RequestClose);
 
         foreach (var btn in _sideButtons)
-            if (btn != null) btn.onClick.RemoveListener(Close);
+            if (btn != null) btn.onClick.RemoveListener(RequestClose);
 
         SaveManager.Instance?.Unregister(this);
     }
 
-    private void Update()
+    // ── PuzzleModeController Event Handlers ───────────────────────────────────
+
+    /// <summary>Opens the panel, plays the inspect sound once, and binds the drop handler.</summary>
+    private void HandleEntered()
     {
-        if (!_isOpen) return;
-
-        var kb = Keyboard.current;
-        if (kb == null) return;
-
-        if (kb.escapeKey.wasPressedThisFrame
-            || kb.wKey.isPressed || kb.sKey.isPressed
-            || kb.aKey.isPressed || kb.dKey.isPressed)
+        // Play open sound only the first time the box is inspected.
+        if (!_boxOpenedOnce)
         {
-            Close();
+            _boxOpenedOnce = true;
+            PlaySFX(_openBoxClip, _openBoxVolume);
         }
-    }
-
-    // ── Private ───────────────────────────────────────────────────────────────
-
-    private void ApplyPendingLoad()
-    {
-        if (_pendingLoad == null) return;
-
-        var load = _pendingLoad.Value;
-        _pendingLoad = null;
-
-        // Restore coin visuals in holes.
-        // Called in Start() at order -7, before MedallionCollectionTracker.Start() (-5),
-        // so any Save() triggered by the tracker's startup sync captures the correct hole state.
-        if (load.placedItemIds != null && load.placedItemIds.Length > 0)
-        {
-            var boxUI = _panel?.GetComponent<MedallionBoxUI>();
-            boxUI?.RestoreState(load.placedItemIds, _medallionOrder);
-        }
-
-        // Restore solved state
-        if (load.solved)
-        {
-            _puzzleSolved = true;
-            if (_solvedObject != null)
-                _solvedObject.SetActive(true);
-        }
-    }
-
-    private void Open()
-    {
-        _isOpen = true;
-        SetBlendDuration(_blendDuration);
-
-        if (_boxCamera != null)
-            _boxCamera.gameObject.SetActive(true);
 
         if (_panel != null)
             UIManager.Instance?.OpenPanel(_panel);
@@ -215,10 +190,54 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
             boxUI.OnPuzzleSolved -= HandlePuzzleSolved;
             boxUI.OnPuzzleSolved += HandlePuzzleSolved;
             boxUI.Populate(_medallionOrder);
-
             PuzzleInventoryBar.Instance?.Show(boxUI);
         }
     }
+
+    /// <summary>Closes the panel when the player exits puzzle mode.</summary>
+    private void HandleExited()
+    {
+        if (_panel != null)
+            _panel.SetActive(false);
+
+        if (_panel != null)
+            UIManager.Instance?.ClosePanel(_panel);
+    }
+
+    /// <summary>
+    /// Called via OnSolved after SetSolved() completes (i.e. after the open animation).
+    /// Sound and animation are already handled in HandlePuzzleSolved — this is intentionally a no-op.
+    /// </summary>
+    private void HandleSolved() { }
+
+    // ── Hole Sound Subscriptions ──────────────────────────────────────────────
+
+    private void SubscribeToHoles()
+    {
+        if (_holes == null) return;
+        foreach (var hole in _holes)
+        {
+            if (hole == null) continue;
+            hole.OnFilled    += OnCoinDropped;
+            hole.OnRetrieved += OnCoinPickedUp;
+        }
+    }
+
+    private void UnsubscribeFromHoles()
+    {
+        if (_holes == null) return;
+        foreach (var hole in _holes)
+        {
+            if (hole == null) continue;
+            hole.OnFilled    -= OnCoinDropped;
+            hole.OnRetrieved -= OnCoinPickedUp;
+        }
+    }
+
+    private void OnCoinDropped()  => PlaySFX(_coinDropClip,    _coinDropVolume);
+    private void OnCoinPickedUp() => PlaySFX(_coinPickupClip,  _coinPickupVolume);
+
+    // ── MedallionBoxUI Handler ────────────────────────────────────────────────
 
     private void HandlePuzzleSolved()
     {
@@ -227,47 +246,81 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
         if (_solvedObject != null)
             _solvedObject.SetActive(true);
 
-        _onPuzzleSolved?.Invoke();
-        SaveManager.Instance?.Save();
-        ForceClose();
+        // Play the solved sound immediately when the puzzle is completed.
+        PlaySFX(_solvedClip, _solvedVolume);
+
+        // Trigger the open animation.
+        if (_animator != null)
+            _animator.SetBool(AnimIsOpen, true);
+
+        // Wait for the animation to finish before returning camera to the player.
+        StartCoroutine(WaitForOpenAnimationRoutine());
     }
 
-    private void Close()
+    /// <summary>
+    /// Waits until the Open animation finishes, then calls SetSolved to exit puzzle mode.
+    /// This prevents the camera from returning to the player mid-animation.
+    /// </summary>
+    private IEnumerator WaitForOpenAnimationRoutine()
     {
-        if (!_isOpen) return;
-        _isOpen = false;
-
-        PuzzleInventoryBar.Instance?.Hide();
-        SetBlendDuration(_blendDuration);
-
-        if (_panel != null)
-            _panel.SetActive(false);
-
-        if (_boxCamera != null)
-            _boxCamera.gameObject.SetActive(false);
-
-        StartCoroutine(RestoreInputAfterBlend());
-    }
-
-    private IEnumerator RestoreInputAfterBlend()
-    {
+        // Wait one frame so the transition to "Open" has started.
         yield return null;
 
-        while (_brain != null && _brain.IsBlending)
+        // Wait until the Animator has entered the "Open" state.
+        while (_animator != null &&
+               !_animator.GetCurrentAnimatorStateInfo(0).IsName("Open"))
             yield return null;
 
-        SetBlendDuration(_originalBlendTime);
+        // Wait until the "Open" animation has fully played.
+        while (_animator != null &&
+               _animator.GetCurrentAnimatorStateInfo(0).IsName("Open") &&
+               _animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+            yield return null;
 
-        if (_panel != null)
-            UIManager.Instance?.ClosePanel(_panel);
+        // Animation is done — now mark solved, exit puzzle mode, and save.
+        _controller?.SetSolved();
     }
 
-    private void SetBlendDuration(float duration)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private void RequestClose() => _controller?.ExitPuzzleMode();
+
+    /// <summary>Routes SFX through AudioManager singleton — consistent with all other puzzle sounds.</summary>
+    private static void PlaySFX(AudioClip clip, float volume)
     {
-        if (_brain == null) return;
-        var blend = _brain.DefaultBlend;
-        blend.Time = duration;
-        _brain.DefaultBlend = blend;
+        if (clip != null)
+            AudioManager.Instance?.PlaySFX(clip, volume);
+    }
+
+    private void ApplyPendingLoad()
+    {
+        if (_pendingLoad == null) return;
+
+        var load = _pendingLoad.Value;
+        _pendingLoad = null;
+
+        if (load.placedItemIds != null && load.placedItemIds.Length > 0)
+        {
+            var boxUI = _panel?.GetComponent<MedallionBoxUI>();
+            boxUI?.RestoreState(load.placedItemIds, _medallionOrder);
+        }
+
+        if (load.solved)
+        {
+            _puzzleSolved = true;
+
+            if (_solvedObject != null)
+                _solvedObject.SetActive(true);
+
+            // Restore animator to open state immediately — no animation plays on load.
+            if (_animator != null)
+            {
+                _animator.SetBool(AnimIsOpen, true);
+                _animator.Play(StateOpened, 0, 1f);
+            }
+
+            _controller?.SetSolved();
+        }
     }
 
     private void CreateSideZone(string zoneName, Vector2 anchorMin, Vector2 anchorMax)
@@ -293,10 +346,7 @@ public class MedallionBoxInteraction : MonoBehaviour, IInteractable, ISaveable
         cb.normalColor = cb.highlightedColor = cb.pressedColor = cb.selectedColor = Color.white;
         btn.colors = cb;
 
-        btn.onClick.AddListener(Close);
+        btn.onClick.AddListener(RequestClose);
         _sideButtons.Add(btn);
     }
-
-    /// <summary>Force-close from external code.</summary>
-    public void ForceClose() => Close();
 }

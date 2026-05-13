@@ -22,6 +22,12 @@ public class MedallionHole : MonoBehaviour
     [ColorUsage(false, true)]
     [SerializeField] private Color _highlightEmission = new Color(0.55f, 0.42f, 0.08f);
 
+    /// <summary>Raised when a medallion is successfully placed into this hole.</summary>
+    public event System.Action OnFilled;
+
+    /// <summary>Raised when a medallion is retrieved from this hole.</summary>
+    public event System.Action OnRetrieved;
+
     /// <summary>The medallion currently placed in this hole, or null if empty.</summary>
     public ItemData PlacedItem { get; private set; }
 
@@ -46,6 +52,7 @@ public class MedallionHole : MonoBehaviour
 
         PlacedItem = item;
         StartCoroutine(DropRoutine(prefab, dropHeight, dropDuration));
+        OnFilled?.Invoke();
     }
 
     /// <summary>
@@ -90,6 +97,7 @@ public class MedallionHole : MonoBehaviour
         if (_placedCoin != null)
             StartCoroutine(RiseRoutine(_placedCoin, riseHeight, riseDuration));
 
+        OnRetrieved?.Invoke();
         return item;
     }
 
