@@ -495,6 +495,81 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
   _coinMaterial: {fileID: 0}
   _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+--- !u!1 &6541555477546271026
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1033757911603552596}
+  - component: {fileID: 7494519070200810689}
+  m_Layer: 0
+  m_Name: ChinesBoxCamera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1033757911603552596
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6541555477546271026}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.2063779, y: -0.7722842, z: 0.30311626, w: -0.5187542}
+  m_LocalPosition: {x: -0.7990908, y: 1.0713562, z: 0.28238726}
+  m_LocalScale: {x: 2.3494656, y: 2.349466, z: 2.349466}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8775218397520376355}
+  m_LocalEulerAnglesHint: {x: 43.024, y: -90.75, z: 0.335}
+--- !u!114 &7494519070200810689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6541555477546271026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 8775218397520376355}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 40
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
 --- !u!1 &6983538794178832932
 GameObject:
   m_ObjectHideFlags: 0
@@ -770,7 +845,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8253978879230535833}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.9797451, z: 0, w: 0.20024869}
+  m_LocalRotation: {x: -0, y: 0.97974586, z: -0, w: 0.20024513}
   m_LocalPosition: {x: -7.28, y: 0.962, z: -7.3}
   m_LocalScale: {x: 0.4256285, y: 0.4256285, z: 0.4256285}
   m_ConstrainProportionsScale: 0
@@ -779,6 +854,7 @@ Transform:
   - {fileID: 3262163270706103009}
   - {fileID: 206592758866371814}
   - {fileID: 3172979437177853838}
+  - {fileID: 1033757911603552596}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 156.897, z: 0}
 --- !u!114 &7884574752926037293
@@ -808,9 +884,8 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  _sideZoneWidth: 0.184
   _openBoxClip: {fileID: 0}
-  _solvedClip: {fileID: 0}
+  _solvedClip: {fileID: 8300000, guid: 497b05a0002e3704facb39c3493e508a, type: 3}
   _coinDropClip: {fileID: 8300000, guid: 85baf5e28fc33df499021c32a824a085, type: 3}
   _coinPickupClip: {fileID: 8300000, guid: ce8dab0c2ba4ecf4dafe48d2517ab445, type: 3}
   _openBoxVolume: 1
@@ -830,7 +905,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
   _saveId: chinese_box_puzzle
-  _puzzleCamera: {fileID: 0}
+  _puzzleCamera: {fileID: 7494519070200810689}
   _blendDuration: 0.75
   _showInventoryBar: 1
   OnPuzzleModeEntered:

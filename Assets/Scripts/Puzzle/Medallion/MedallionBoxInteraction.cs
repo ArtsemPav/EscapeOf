@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 /// <summary>
 /// Attach to the chinesBox GameObject.
@@ -18,7 +16,7 @@ using UnityEngine.UI;
 /// <see cref="ApplyPendingLoad"/> fills the holes before the tracker's startup sync.</para>
 /// </summary>
 [DefaultExecutionOrder(-7)]
-public class MedallionBoxInteraction : MonoBehaviour, ISaveable
+public class MedallionBoxInteraction : MonoBehaviour, ISaveable, IPuzzleDropHandler
 {
     private static readonly int AnimIsOpen  = Animator.StringToHash("IsOpen");
     private static readonly int StateOpened = Animator.StringToHash("Opened");
@@ -43,11 +41,6 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
     [Tooltip("All MedallionHole objects — used for coin sound subscriptions.")]
     [SerializeField] private MedallionHole[] _holes;
 
-    [Header("Settings")]
-    [Tooltip("Fraction of screen width on each side that acts as a click-to-close zone.")]
-    [Range(0.05f, 0.49f)]
-    [SerializeField] private float _sideZoneWidth = 0.25f;
-
     [Header("Sounds")]
     [Tooltip("Played once when the player opens / inspects the box.")]
     [SerializeField] private AudioClip _openBoxClip;
@@ -71,8 +64,6 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
 
     private bool _puzzleSolved;
     private bool _boxOpenedOnce;
-    private Button _closeButton;
-    private readonly List<Button> _sideButtons = new();
     private Animator _animator;
 
     private PuzzleSaveData? _pendingLoad;
@@ -145,31 +136,11 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
 
     private void Start()
     {
-        if (_panel != null)
-        {
-            CreateSideZone("BackdropLeft",  new Vector2(0f, 0f),                  new Vector2(_sideZoneWidth, 1f));
-            CreateSideZone("BackdropRight", new Vector2(1f - _sideZoneWidth, 0f), new Vector2(1f, 1f));
-
-            Transform t = _panel.transform.Find("CloseButton");
-            if (t != null)
-            {
-                _closeButton = t.GetComponent<Button>();
-                if (_closeButton != null)
-                    _closeButton.onClick.AddListener(RequestClose);
-            }
-        }
-
         ApplyPendingLoad();
     }
 
     private void OnDestroy()
     {
-        if (_closeButton != null)
-            _closeButton.onClick.RemoveListener(RequestClose);
-
-        foreach (var btn in _sideButtons)
-            if (btn != null) btn.onClick.RemoveListener(RequestClose);
-
         SaveManager.Instance?.Unregister(this);
     }
 
@@ -194,16 +165,12 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
             boxUI.OnPuzzleSolved -= HandlePuzzleSolved;
             boxUI.OnPuzzleSolved += HandlePuzzleSolved;
             boxUI.Populate(_medallionOrder);
-            PuzzleInventoryBar.Instance?.Show(boxUI);
         }
     }
 
     /// <summary>Closes the panel when the player exits puzzle mode.</summary>
     private void HandleExited()
     {
-        if (_panel != null)
-            _panel.SetActive(false);
-
         if (_panel != null)
             UIManager.Instance?.ClosePanel(_panel);
     }
@@ -285,9 +252,20 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
         _controller?.SetSolved();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── IPuzzleDropHandler ────────────────────────────────────────────────────
 
-    private void RequestClose() => _controller?.ExitPuzzleMode();
+    /// <summary>
+    /// Delegates drop handling to MedallionBoxUI so that PuzzleModeController can find
+    /// this handler via GetComponentInChildren without requiring MedallionBoxUI to be
+    /// a child of this GameObject.
+    /// </summary>
+    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    {
+        var boxUI = _panel?.GetComponent<MedallionBoxUI>();
+        return boxUI != null && boxUI.HandleDrop(item, screenPosition);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     /// <summary>Routes SFX through AudioManager singleton — consistent with all other puzzle sounds.</summary>
     private static void PlaySFX(AudioClip clip, float volume)
@@ -327,30 +305,4 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable
         }
     }
 
-    private void CreateSideZone(string zoneName, Vector2 anchorMin, Vector2 anchorMax)
-    {
-        var go = new GameObject(zoneName, typeof(RectTransform));
-        go.transform.SetParent(_panel.transform, false);
-        go.transform.SetAsFirstSibling();
-
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = anchorMin;
-        rt.anchorMax = anchorMax;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        var img = go.AddComponent<Image>();
-        img.color = new Color(0f, 0f, 0f, 0f);
-        img.raycastTarget = true;
-
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = img;
-
-        var cb = btn.colors;
-        cb.normalColor = cb.highlightedColor = cb.pressedColor = cb.selectedColor = Color.white;
-        btn.colors = cb;
-
-        btn.onClick.AddListener(RequestClose);
-        _sideButtons.Add(btn);
-    }
 }

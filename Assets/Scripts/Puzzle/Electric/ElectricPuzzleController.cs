@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
@@ -10,7 +9,8 @@ using UnityEngine.InputSystem;
 /// <see cref="PuzzleModeController"/> — the same component used by all other puzzles.
 ///
 /// Flow:
-///   1. Player clicks the panel → PuzzleModeController.EnterPuzzleMode() blends the camera in,
+///   1. Player clicks the panel → PuzzleInteractable on the same GameObject calls
+///      PuzzleModeController.EnterPuzzleMode(), which blends the camera in,
 ///      frees the cursor, and blocks FPS input.
 ///   2. Mouse raycasts against terminal colliders using Camera.main.ScreenPointToRay.
 ///   3. LMB on a colored terminal → start wire drag; wire end follows the cursor in 3D.
@@ -22,14 +22,15 @@ using UnityEngine.InputSystem;
 ///
 /// Setup:
 ///   • Attach to the root "electric" GameObject (Interactable Layer + BoxCollider).
-///   • Add <see cref="PuzzleModeController"/> to the same GameObject and assign its camera.
+///   • Add <see cref="PuzzleModeController"/> and <see cref="PuzzleInteractable"/> to the same GameObject.
+///   • Set PuzzleModeController._showInventoryBar = true to show the fuse inventory bar.
 ///   • <see cref="_lampLight"/> is found automatically in children if not assigned in the Inspector.
 ///   • Assign <see cref="_coloredTerminals"/> and <see cref="_neutralTerminals"/> in order 0..5.
 ///   • Assign <see cref="_puzzleData"/> (ElectricPuzzleData ScriptableObject).
 /// </summary>
 [RequireComponent(typeof(Collider))]
 [RequireComponent(typeof(PuzzleModeController))]
-public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable, IPuzzleDropHandler
+public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHandler
 {
     // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -72,9 +73,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     [SerializeField] private ParticleSystem _wrongPullParticles;
 
     [Header("Settings")]
-    [Tooltip("Hint text shown when the player looks at the panel before entering puzzle mode.")]
-    [SerializeField] private string _interactText = "Осмотреть щиток";
-
     [Tooltip("Layer mask of terminal colliders used for mouse raycasting while the panel is open.")]
     [SerializeField] private LayerMask _terminalLayer;
 
@@ -112,7 +110,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
     [SerializeField, Range(0f, 1f)] private float _wrongPullVolume     = 0.6f;
 
     [Header("Events")]
-    [SerializeField] private UnityEvent _onPuzzleSolved;
     [Tooltip("Items that can be applied to this puzzle (fuse). " +
              "Leave empty to disable the inventory bar for this puzzle.")]
     [SerializeField] private ItemData[] _acceptedItems;
@@ -186,15 +183,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         Array.Resize(ref _pendingConnections, TerminalCount);
         _pendingLoad = true;
     }
-
-    // ── IInteractable — outer panel collider ──────────────────────────────────
-
-    public bool IsPickable()                    => false;
-    public bool UseLMBClick                     => true;
-    public string GetInteractText()             => _interactText;
-    public CrosshairMode GetCrosshairMode()     => CrosshairMode.Hand;
-    public bool CanInteract()                   => !_isOpen && !_isSolved;
-    public void Interact()                      => Open();
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -300,7 +288,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         if (_panel != null)
             UIManager.Instance?.OpenPanel(_panel);
 
-        PuzzleInventoryBar.Instance?.Show(this);
         _lever?.SetInteractionEnabled(true);
     }
 
@@ -310,13 +297,9 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
 
         CancelActiveDrag();
         _lever?.SetInteractionEnabled(false);
-        PuzzleInventoryBar.Instance?.Hide();
 
         if (_panel != null)
-        {
-            _panel.SetActive(false);
             UIManager.Instance?.ClosePanel(_panel);
-        }
     }
 
     private void HandleSolved()
@@ -576,7 +559,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
             _isSolved = true;
             if (_solvedObject != null) _solvedObject.SetActive(true);
             PlaySFX(_solvedClip, _solvedVolume);
-            _onPuzzleSolved?.Invoke();
             SaveManager.Instance?.Save();
 
             // Delegate exit to PuzzleModeController — consistent with all other puzzles.
@@ -738,14 +720,6 @@ public class ElectricPuzzleController : MonoBehaviour, IInteractable, ISaveable,
         foreach (var it in _acceptedItems)
             if (it != null && it.ItemId == id) return it;
         return null;
-    }
-
-    // ── Open / Close ──────────────────────────────────────────────────────────
-
-    private void Open()
-    {
-        // Delegate entirely to PuzzleModeController — it fires OnEntered → HandleEntered.
-        _controller?.EnterPuzzleMode();
     }
 
     // ── Save restore ──────────────────────────────────────────────────────────
