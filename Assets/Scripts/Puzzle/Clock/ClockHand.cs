@@ -196,6 +196,12 @@ public class ClockHand : MonoBehaviour, ISaveable
         if (_puzzleMode != null && _puzzleMode.IsActive && !_puzzleMode.IsSolved)
         {
             ProcessInput();
+
+            // Re-check after ProcessInput: solving the puzzle inside ProcessInput
+            // calls ExitPuzzleMode(), which fires OnExited and resets the cursor.
+            // UpdateHover/UpdateUI must not run afterwards or they would overwrite the reset.
+            if (!_puzzleMode.IsActive || _puzzleMode.IsSolved) return;
+
             UpdateHover();
             UpdateUI();
         }

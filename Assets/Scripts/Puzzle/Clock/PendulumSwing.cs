@@ -13,7 +13,8 @@ using UnityEngine;
 /// Phase at every peak boundary = integer * π, so cos(phase) = ±1 (extreme position).
 ///
 /// Falls back to wall-clock time when no tick data is available.
-/// Subscribes to PuzzleModeController.OnSolved in the parent hierarchy.
+/// Start/stop is controlled externally by ClockPuzzleController via
+/// <see cref="StartSwing"/> and <see cref="StopSwing"/>.
 /// </summary>
 public class PendulumSwing : MonoBehaviour
 {
@@ -28,7 +29,7 @@ public class PendulumSwing : MonoBehaviour
     [Tooltip("Local axis around which the pendulum swings.")]
     [SerializeField] private Vector3 _swingAxis = Vector3.forward;
 
-    [Tooltip("Speed in degrees/sec at which the pendulum settles to the bottom after the puzzle is solved.")]
+    [Tooltip("Speed in degrees/sec at which the pendulum settles to the bottom after being stopped.")]
     [SerializeField, Min(1f)] private float _settleSpeed = 90f;
 
     // ── Sync state ─────────────────────────────────────────────────────────────
@@ -41,9 +42,8 @@ public class PendulumSwing : MonoBehaviour
 
     // ── Other state ────────────────────────────────────────────────────────────
 
-    private Quaternion           _initialRotation;
-    private bool                 _isStopped;
-    private PuzzleModeController _puzzleMode;
+    private Quaternion _initialRotation;
+    private bool       _isStopped;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ public class PendulumSwing : MonoBehaviour
     /// Supplies audio sync data. The pendulum phase is driven by N intervals per
     /// loop, where N = number of detected peaks. Each interval is a half-swing
     /// between two consecutive peaks; the last interval wraps to peaks[0] of the
-    /// next loop. This guarantees seamless continuity at loop boundaries.
+    /// next loop.
     /// </summary>
     public void SetTickData(AudioSource audioSource, float[] peakTimes, float clipLength)
     {
@@ -69,23 +69,17 @@ public class PendulumSwing : MonoBehaviour
         _peakTimes   = null;
     }
 
+    /// <summary>Resumes pendulum swing. Called by ClockPuzzleController.</summary>
+    public void StartSwing() => _isStopped = false;
+
+    /// <summary>Halts pendulum swing and smoothly settles it to the rest position. Called by ClockPuzzleController.</summary>
+    public void StopSwing() => _isStopped = true;
+
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
     private void Awake()
     {
         _initialRotation = transform.localRotation;
-
-        _puzzleMode = GetComponentInParent<PuzzleModeController>();
-        if (_puzzleMode != null)
-            _puzzleMode.OnSolved += HandleSolved;
-        else
-            Debug.LogWarning($"[{nameof(PendulumSwing)}] PuzzleModeController not found in parent of {gameObject.name}.", this);
-    }
-
-    private void OnDestroy()
-    {
-        if (_puzzleMode != null)
-            _puzzleMode.OnSolved -= HandleSolved;
     }
 
     private void Update()
@@ -125,16 +119,8 @@ public class PendulumSwing : MonoBehaviour
         _elapsedTime += Mathf.Max(0f, dt);
 
         // ── Find surrounding peaks in absolute time ────────────────────────
-        // N intervals per loop. Interval i runs from peak[i] to peak[(i+1) % N],
-        // where the last interval wraps across the clip boundary:
-        //   peak[N-1] of cycle k  →  peak[0] of cycle k+1
-        //
-        // For time before the first peak in a loop (cycleTime < peaks[0]),
-        // we are still inside the wrap interval that began at peaks[N-1]
-        // of the PREVIOUS cycle — no extra interval is added.
-
-        int   N         = _peakTimes.Length;
-        float cycleTime = _elapsedTime % _clipLength;
+        int   N          = _peakTimes.Length;
+        float cycleTime  = _elapsedTime % _clipLength;
         int   fullCycles = Mathf.FloorToInt(_elapsedTime / _clipLength);
 
         float prevPeakAbs, nextPeakAbs;
@@ -142,14 +128,12 @@ public class PendulumSwing : MonoBehaviour
 
         if (cycleTime < _peakTimes[0])
         {
-            // Inside the wrap interval: peaks[N-1] of previous cycle → peaks[0] of this cycle.
-            prevPeakAbs  = (fullCycles - 1) * _clipLength + _peakTimes[N - 1];
-            nextPeakAbs  = fullCycles        * _clipLength + _peakTimes[0];
+            prevPeakAbs   = (fullCycles - 1) * _clipLength + _peakTimes[N - 1];
+            nextPeakAbs   = fullCycles        * _clipLength + _peakTimes[0];
             globalPeakIdx = fullCycles * N - 1;
         }
         else
         {
-            // Find i such that peaks[i] <= cycleTime; default to last interval.
             int i = N - 1;
             for (int j = 0; j < N - 1; j++)
             {
@@ -158,24 +142,15 @@ public class PendulumSwing : MonoBehaviour
 
             prevPeakAbs  = fullCycles * _clipLength + _peakTimes[i];
             nextPeakAbs  = (i < N - 1)
-                ? fullCycles * _clipLength + _peakTimes[i + 1]     // normal interval
-                : (fullCycles + 1) * _clipLength + _peakTimes[0];  // wrap interval
+                ? fullCycles * _clipLength + _peakTimes[i + 1]
+                : (fullCycles + 1) * _clipLength + _peakTimes[0];
             globalPeakIdx = fullCycles * N + i;
         }
 
         // ── Map to cosine angle ─────────────────────────────────────────────
-        // phase = (globalPeakIdx + u) * π
-        // cos(k * π) = ±1 at every integer k → pendulum at extreme at each peak.
         float dur   = nextPeakAbs - prevPeakAbs;
         float u     = dur > 0f ? Mathf.Clamp01((_elapsedTime - prevPeakAbs) / dur) : 0f;
         float phase = (globalPeakIdx + u) * Mathf.PI;
         return Mathf.Cos(phase) * _amplitude;
-    }
-
-    // ── Handlers ───────────────────────────────────────────────────────────────
-
-    private void HandleSolved()
-    {
-        _isStopped = true;
     }
 }

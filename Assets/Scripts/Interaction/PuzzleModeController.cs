@@ -98,10 +98,14 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         var data = JsonUtility.FromJson<SaveData>(json);
         _isSolved = data.isSolved;
 
+        // Fire only the UnityEvent (for visuals/UI wired in the Inspector).
+        // The C# OnSolved event is intentionally NOT raised here so that
+        // gameplay-side handlers (audio, animation, movement) do not trigger
+        // again on load. Each system should read IsSolved in its own Start()
+        // to restore its visual state silently.
         if (_isSolved)
         {
             OnPuzzleSolved?.Invoke();
-            OnSolved?.Invoke();
         }
     }
 
