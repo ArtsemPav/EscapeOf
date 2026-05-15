@@ -4,86 +4,98 @@ using UnityEngine;
 namespace EscapeOf.Puzzle.Laptop
 {
     /// <summary>
-    /// Manages open windows and the tab strip on the laptop desktop.
-    /// Supports multiple open files with tab switching and closing.
+    /// Manages open windows on the laptop desktop.
+    /// Supports multiple open files with focus management.
     /// Attach inside the DesktopScreen Canvas panel.
     /// </summary>
     public class LaptopWindowManager : MonoBehaviour
     {
         [Header("Containers")]
-        [SerializeField] private Transform _tabContainer;
         [SerializeField] private Transform _windowContainer;
 
         [Header("Prefabs")]
-        [SerializeField] private LaptopTabButton   _tabPrefab;
         [SerializeField] private LaptopTextWindow  _textWindowPrefab;
         [SerializeField] private LaptopImageWindow _imageWindowPrefab;
         [SerializeField] private LaptopAudioWindow _audioWindowPrefab;
         [SerializeField] private LaptopVideoWindow _videoWindowPrefab;
 
-        private readonly List<OpenEntry> _openWindows = new();
+        private readonly List<LaptopWindow> _openWindows = new();
         private LaptopWindow _activeWindow;
 
-        private struct OpenEntry
-        {
-            public LaptopTabButton Tab;
-            public LaptopWindow    Window;
-        }
+        private bool _isClosingAll;
 
-        /// <summary>Opens a file. If already open, switches to existing tab.</summary>
+        /// <summary>Opens a file. If already open, brings to front.</summary>
         public void OpenFile(LaptopFileData file)
         {
-            int existing = _openWindows.FindIndex(e => e.Window.FileData == file);
-            if (existing >= 0)
+            // Clean up any destroyed windows from the list
+            _openWindows.RemoveAll(w => w == null);
+
+            LaptopWindow existing = _openWindows.Find(w => w.FileData == file);
+            if (existing != null)
             {
-                ActivateWindow(_openWindows[existing].Window);
+                ActivateWindow(existing);
                 return;
             }
 
             LaptopWindow window = CreateWindow(file);
             if (window == null) return;
 
-            LaptopTabButton tab = Instantiate(_tabPrefab, _tabContainer);
-            tab.Setup(file.fileName,
-                () => ActivateWindow(window),
-                () => CloseWindow(window));
-
-            _openWindows.Add(new OpenEntry { Tab = tab, Window = window });
+            _openWindows.Add(window);
             ActivateWindow(window);
+        }
+
+        /// <summary>Called by window itself when closing.</summary>
+        public void NotifyWindowClosed(LaptopWindow window)
+        {
+            _openWindows.Remove(window);
+
+            if (_isClosingAll) return;
+
+            if (_activeWindow == window)
+            {
+                _activeWindow = _openWindows.Count > 0 ? _openWindows[_openWindows.Count - 1] : null;
+                if (_activeWindow != null) _activeWindow.SetVisible(true);
+            }
         }
 
         /// <summary>Closes all open windows. Called when exiting laptop mode.</summary>
         public void CloseAll()
         {
-            for (int i = _openWindows.Count - 1; i >= 0; i--)
-                CloseWindow(_openWindows[i].Window);
+            _isClosingAll = true;
+            try
+            {
+                for (int i = _openWindows.Count - 1; i >= 0; i--)
+                {
+                    var window = _openWindows[i];
+                    if (window != null)
+                    {
+                        window.Close();
+                    }
+                }
+                _openWindows.Clear();
+                _activeWindow = null;
+            }
+            finally
+            {
+                _isClosingAll = false;
+            }
         }
 
         private void ActivateWindow(LaptopWindow window)
         {
-            foreach (var entry in _openWindows)
+            // Clean up any destroyed windows from the list first
+            _openWindows.RemoveAll(w => w == null);
+
+            foreach (var w in _openWindows)
             {
-                bool isActive = entry.Window == window;
-                entry.Window.SetVisible(isActive);
-                entry.Tab.SetActive(isActive);
+                if (w != null)
+                    w.SetVisible(w == window);
             }
+            
             _activeWindow = window;
-        }
-
-        private void CloseWindow(LaptopWindow window)
-        {
-            int index = _openWindows.FindIndex(e => e.Window == window);
-            if (index < 0) return;
-
-            var entry = _openWindows[index];
-            Destroy(entry.Tab.gameObject);
-            entry.Window.Close();
-            _openWindows.RemoveAt(index);
-
-            if (_openWindows.Count > 0)
-                ActivateWindow(_openWindows[Mathf.Min(index, _openWindows.Count - 1)].Window);
-            else
-                _activeWindow = null;
+            
+            if (window != null)
+                window.transform.SetAsLastSibling();
         }
 
         private LaptopWindow CreateWindow(LaptopFileData file)

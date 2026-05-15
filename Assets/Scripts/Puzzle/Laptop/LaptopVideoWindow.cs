@@ -27,8 +27,9 @@ namespace EscapeOf.Puzzle.Laptop
         private RenderTexture _renderTexture;
         private bool          _isPrepared;
 
-        private void Awake()
+        protected override void Awake()
         {
+            base.Awake();
             _playButton.onClick.AddListener(Play);
             _pauseButton.onClick.AddListener(Pause);
             _stopButton.onClick.AddListener(Stop);

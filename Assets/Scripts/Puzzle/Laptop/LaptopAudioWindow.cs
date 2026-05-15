@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 namespace EscapeOf.Puzzle.Laptop
 {
-    /// <summary>Audio player window with play, pause, stop controls and a progress slider.</summary>
+    /// <summary>Audio player window with play, pause, stop controls, progress slider and spectrum visualizer (UI and Shader based).</summary>
     public class LaptopAudioWindow : LaptopWindow
     {
         [Header("Display")]
@@ -17,20 +17,39 @@ namespace EscapeOf.Puzzle.Laptop
         [SerializeField] private Button _stopButton;
         [SerializeField] private Slider _progressSlider;
 
+        [Header("Visualizer Settings")]
+        [SerializeField] private Material _visualizerMaterial;
+        private int _bandCount = 8;
+        [SerializeField] private float _smoothness = 15f;
+        [SerializeField] private float _spectrumMultiplier = 50f;
+
         [Header("Audio")]
         [SerializeField] private AudioSource _audioSource;
 
-        private void Awake()
+        private float[] _spectrum = new float[128];
+        private float[] _bands;
+        private static readonly int BandsPropertyId = Shader.PropertyToID("_Bands");
+
+        protected override void Awake()
         {
+            base.Awake();
             _playButton.onClick.AddListener(Play);
             _pauseButton.onClick.AddListener(Pause);
             _stopButton.onClick.AddListener(Stop);
 
             if (_progressSlider != null)
                 _progressSlider.onValueChanged.AddListener(OnSliderSeeked);
+
+            _bands = new float[_bandCount];
         }
 
         private void Update()
+        {
+            UpdateUI();
+            UpdateVisualizer();
+        }
+
+        private void UpdateUI()
         {
             if (_audioSource == null || !_audioSource.isPlaying
                 || _audioSource.clip == null || _audioSource.clip.length <= 0f) return;
@@ -41,6 +60,34 @@ namespace EscapeOf.Puzzle.Laptop
             if (_timeDisplay != null)
                 _timeDisplay.text = $"{FormatTime(_audioSource.time)} / "
                                   + FormatTime(_audioSource.clip.length);
+        }
+
+        private void UpdateVisualizer()
+        {
+            bool isPlaying = _audioSource != null && _audioSource.isPlaying;
+            
+            if (isPlaying)
+            {
+                _audioSource.GetSpectrumData(_spectrum, 0, FFTWindow.BlackmanHarris);
+                
+                // Calculate bands (shared for both UI and Shader)
+                for (int i = 0; i < _bands.Length; i++)
+                {
+                    float value = _spectrum[i] * _spectrumMultiplier;
+                    _bands[i] = Mathf.Lerp(_bands[i], value, Time.deltaTime * _smoothness);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < _bands.Length; i++)
+                    _bands[i] = Mathf.Lerp(_bands[i], 0f, Time.deltaTime * _smoothness);
+            }
+
+            // Apply to Shader
+            if (_visualizerMaterial != null)
+            {
+                _visualizerMaterial.SetFloatArray(BandsPropertyId, _bands);
+            }
         }
 
         protected override void OnOpen(LaptopFileData file)
