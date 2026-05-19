@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,26 +12,18 @@ namespace EscapeOf.Puzzle.Laptop
     public class LaptopDocumentWindow : LaptopWindow
     {
         [Header("Display")]
-        [SerializeField] private Image _pageDisplay;
+        [SerializeField] private Image _pageTemplate;
         [SerializeField] private TMP_Text _pageCounter;
         [SerializeField] private ScrollRect _scrollRect;
 
-        [Header("Navigation")]
-        [SerializeField] private Button _prevButton;
-        [SerializeField] private Button _nextButton;
-
-        private int _currentPageIndex;
         private LaptopDocumentFile _docFile;
-        private AspectRatioFitter _aspectRatioFitter;
+        private List<Image> _instantiatedPages = new List<Image>();
 
         protected override void Awake()
         {
             base.Awake();
-            if (_prevButton != null) _prevButton.onClick.AddListener(PrevPage);
-            if (_nextButton != null) _nextButton.onClick.AddListener(NextPage);
-            
-            if (_pageDisplay != null)
-                _aspectRatioFitter = _pageDisplay.GetComponent<AspectRatioFitter>();
+            if (_pageTemplate != null)
+                _pageTemplate.gameObject.SetActive(false);
         }
 
         protected override void OnOpen(LaptopFileData file)
@@ -38,53 +31,60 @@ namespace EscapeOf.Puzzle.Laptop
             if (!(file is LaptopDocumentFile doc)) return;
 
             _docFile = doc;
-            _currentPageIndex = 0;
             UpdateDisplay();
         }
 
         private void UpdateDisplay()
         {
+            // Clear previous pages
+            foreach (var page in _instantiatedPages)
+            {
+                if (page != null) Destroy(page.gameObject);
+            }
+            _instantiatedPages.Clear();
+
             if (_docFile == null || _docFile.pages == null || _docFile.pages.Length == 0)
             {
-                if (_pageCounter != null) _pageCounter.text = "0 / 0";
-                if (_prevButton != null) _prevButton.interactable = false;
-                if (_nextButton != null) _nextButton.interactable = false;
+                if (_pageCounter != null) _pageCounter.text = "0 pages";
                 return;
             }
 
-            if (_pageDisplay != null)
+            if (_pageTemplate == null || _scrollRect == null || _scrollRect.content == null)
             {
-                Sprite currentSprite = _docFile.pages[_currentPageIndex];
-                _pageDisplay.sprite = currentSprite;
+                Debug.LogError("LaptopDocumentWindow: Missing required references for display.");
+                return;
+            }
 
-                if (_aspectRatioFitter != null && currentSprite != null)
+            // Create a page for each sprite
+            for (int i = 0; i < _docFile.pages.Length; i++)
+            {
+                Sprite sprite = _docFile.pages[i];
+                if (sprite == null) continue;
+
+                Image newPage = Instantiate(_pageTemplate, _scrollRect.content);
+                newPage.gameObject.SetActive(true);
+                newPage.name = $"Page_{i + 1}";
+                newPage.sprite = sprite;
+                
+                // Update Aspect Ratio
+                var arf = newPage.GetComponent<AspectRatioFitter>();
+                if (arf != null)
                 {
-                    _aspectRatioFitter.aspectRatio = currentSprite.rect.width / currentSprite.rect.height;
+                    arf.aspectRatio = sprite.rect.width / sprite.rect.height;
                 }
+                
+                _instantiatedPages.Add(newPage);
             }
 
             if (_pageCounter != null)
-                _pageCounter.text = $"{_currentPageIndex + 1} / {_docFile.pages.Length}";
+                _pageCounter.text = $"{_docFile.pages.Length} pages";
 
-            if (_prevButton != null) _prevButton.interactable = _currentPageIndex > 0;
-            if (_nextButton != null) _nextButton.interactable = _currentPageIndex < _docFile.pages.Length - 1;
-
-            if (_scrollRect != null)
-                _scrollRect.verticalNormalizedPosition = 1f;
+            // Reset scroll to top
+            _scrollRect.verticalNormalizedPosition = 1f;
         }
 
-        public void NextPage()
-        {
-            if (_docFile == null || _currentPageIndex >= _docFile.pages.Length - 1) return;
-            _currentPageIndex++;
-            UpdateDisplay();
-        }
-
-        public void PrevPage()
-        {
-            if (_currentPageIndex <= 0) return;
-            _currentPageIndex--;
-            UpdateDisplay();
-        }
+        // Methods kept for potential external calls, but buttons will be hidden in prefab
+        public void NextPage() { }
+        public void PrevPage() { }
     }
-}
+    }
