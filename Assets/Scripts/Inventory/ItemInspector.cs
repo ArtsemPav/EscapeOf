@@ -53,8 +53,10 @@ public class ItemInspector : MonoBehaviour
     private GameObject _inspectionInstance;
     private GameObject _inspectionPivot;
     private GameObject _inspectionLight;
+    private GameObject _inspectionLightRim;
+    private GameObject _inspectionProbe;
     private bool _isInspecting;
-    private bool _ignoreInputThisFrame;
+private bool _ignoreInputThisFrame;
     private float _scaleInTimer;
 
     // True when the panel is open as a read-only preview from the inventory (no pickup).
@@ -314,14 +316,36 @@ public class ItemInspector : MonoBehaviour
         inspectionCamera.transform.position = itemCenter + new Vector3(0f, 0f, -5f);
         inspectionCamera.transform.LookAt(itemCenter);
 
-        // Создаём Point Light в пространстве инспекции
-        _inspectionLight = new GameObject("InspectionLight");
-        var light = _inspectionLight.AddComponent<Light>();
-        light.type      = LightType.Point;
-        light.range     = 10f;
-        light.intensity = 2f;
-        light.color     = Color.white;
-        _inspectionLight.transform.position = itemCenter + new Vector3(0.5f, 1f, -1.5f);
+        // Создаём основное освещение (Key Light)
+        _inspectionLight = new GameObject("InspectionLight_Key");
+        var lightKey = _inspectionLight.AddComponent<Light>();
+        lightKey.type      = LightType.Point;
+        lightKey.range     = 10f;
+        lightKey.intensity = 5f;
+        lightKey.color     = Color.white;
+        _inspectionLight.transform.position = itemCenter + new Vector3(1f, 1.5f, -2f);
+
+        // Создаём контурное освещение (Rim/Fill Light) для подчеркивания граней
+        _inspectionLightRim = new GameObject("InspectionLight_Rim");
+        var lightRim = _inspectionLightRim.AddComponent<Light>();
+        lightRim.type      = LightType.Point;
+        lightRim.range     = 10f;
+        lightRim.intensity = 3f;
+        lightRim.color     = new Color(0.9f, 0.95f, 1f); 
+        _inspectionLightRim.transform.position = itemCenter + new Vector3(-1.5f, 0.5f, 1f);
+
+        // Создаём Reflection Probe для отражений на стекле и металле
+        _inspectionProbe = new GameObject("InspectionReflectionProbe");
+        _inspectionProbe.transform.position = itemCenter;
+        var probe = _inspectionProbe.AddComponent<ReflectionProbe>();
+        probe.mode            = UnityEngine.Rendering.ReflectionProbeMode.Realtime;
+        probe.refreshMode     = UnityEngine.Rendering.ReflectionProbeRefreshMode.EveryFrame;
+        probe.importance      = 1;
+        probe.intensity       = 2.5f; // Повышенная интенсивность отражений
+        probe.size            = Vector3.one * 10f;
+        probe.cullingMask     = 1 << _inspectionLayer; 
+        probe.clearFlags      = UnityEngine.Rendering.ReflectionProbeClearFlags.SolidColor;
+        probe.backgroundColor = new Color(0.35f, 0.35f, 0.4f, 1f); // Светло-серый/голубой фон для бликов
 
         itemNameText.text = item.itemName;
         itemNameText.gameObject.SetActive(!_isPreviewMode);
@@ -401,6 +425,18 @@ public class ItemInspector : MonoBehaviour
         {
             Destroy(_inspectionLight);
             _inspectionLight = null;
+        }
+
+        if (_inspectionLightRim != null)
+        {
+            Destroy(_inspectionLightRim);
+            _inspectionLightRim = null;
+        }
+
+        if (_inspectionProbe != null)
+        {
+            Destroy(_inspectionProbe);
+            _inspectionProbe = null;
         }
 
         inspectionCamera.gameObject.SetActive(false);
