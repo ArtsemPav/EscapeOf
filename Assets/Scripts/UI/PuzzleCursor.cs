@@ -134,6 +134,9 @@ namespace UI
             HandleInteraction();
         }
 
+        public void SwithCursor(bool _hideHardwareCursor) {
+
+        }
         private void HandleInteraction()
         {
             Camera eventCamera = (_canvas != null && _canvas.worldCamera != null) ? _canvas.worldCamera : Camera.main;

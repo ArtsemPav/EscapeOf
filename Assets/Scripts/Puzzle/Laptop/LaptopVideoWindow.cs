@@ -78,6 +78,13 @@ namespace EscapeOf.Puzzle.Laptop
             ReleaseRenderTexture();
         }
 
+        /// <summary>Pauses video playback when the player exits puzzle mode.</summary>
+        public override void OnPuzzleExited()
+        {
+            if (_videoPlayer.isPlaying)
+                _videoPlayer.Pause();
+        }
+
         private void OnDestroy() => ReleaseRenderTexture();
 
         private void OnPrepared(VideoPlayer _)

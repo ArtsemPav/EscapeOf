@@ -19,6 +19,10 @@ namespace EscapeOf.Puzzle.Laptop
         [SerializeField] private LaptopAudioWindow _audioWindowPrefab;
         [SerializeField] private LaptopVideoWindow _videoWindowPrefab;
 
+        [Header("All Files")]
+        [Tooltip("All LaptopFileData assets available on this desktop. Used to restore the open window on load.")]
+        [SerializeField] private LaptopFileData[] _allFiles;
+
         private readonly List<LaptopWindow> _openWindows = new();
         private LaptopWindow _activeWindow;
 
@@ -79,6 +83,36 @@ namespace EscapeOf.Puzzle.Laptop
             {
                 _isClosingAll = false;
             }
+        }
+
+        /// <summary>Pauses media in all open windows without closing them. Called when exiting puzzle mode.</summary>
+        public void PauseMediaAll()
+        {
+            foreach (var window in _openWindows)
+            {
+                if (window != null)
+                    window.OnPuzzleExited();
+            }
+        }
+
+        /// <summary>Returns the fileId of the currently active window, or empty string if none.</summary>
+        public string ActiveFileId =>
+            _activeWindow != null && _activeWindow.FileData != null ? _activeWindow.FileData.fileId : string.Empty;
+
+        /// <summary>Finds a file by fileId in _allFiles and opens it. Returns true if found.</summary>
+        public bool TryOpenFileById(string fileId)
+        {
+            if (string.IsNullOrEmpty(fileId) || _allFiles == null) return false;
+            foreach (var file in _allFiles)
+            {
+                if (file != null && file.fileId == fileId)
+                {
+                    OpenFile(file);
+                    return true;
+                }
+            }
+            Debug.LogWarning($"[LaptopWindowManager] TryOpenFileById: no file found for id '{fileId}'.");
+            return false;
         }
 
         private void ActivateWindow(LaptopWindow window)

@@ -52,6 +52,9 @@ namespace EscapeOf.Puzzle.Laptop
             Destroy(gameObject);
         }
 
+        /// <summary>Called when the player exits puzzle mode. Override to pause media playback.</summary>
+        public virtual void OnPuzzleExited() { }
+
         protected abstract void OnOpen(LaptopFileData file);
         protected virtual  void OnClose() { }
     }

@@ -48,16 +48,25 @@ namespace EscapeOf.Puzzle.Laptop
         public string SaveId => _saveId;
 
         public string GetSaveData() =>
-            JsonUtility.ToJson(new SaveData { isUnlocked = _isUnlocked });
+            JsonUtility.ToJson(new SaveData
+            {
+                isUnlocked       = _isUnlocked,
+                lastOpenedFileId = _windowManager != null ? _windowManager.ActiveFileId : string.Empty,
+            });
 
         public void LoadSaveData(string json)
         {
             var data = JsonUtility.FromJson<SaveData>(json);
-            _isUnlocked = data.isUnlocked;
+            _isUnlocked       = data.isUnlocked;
+            _lastOpenedFileId = data.lastOpenedFileId;
         }
 
         [System.Serializable]
-        private struct SaveData { public bool isUnlocked; }
+        private struct SaveData
+        {
+            public bool   isUnlocked;
+            public string lastOpenedFileId;
+        }
 
         [ContextMenu("Generate Save ID")]
         private void GenerateSaveId()
@@ -72,8 +81,9 @@ namespace EscapeOf.Puzzle.Laptop
         // ── Private state ──────────────────────────────────────────────────────────
 
         private PuzzleModeController _puzzleMode;
-        private bool _isUnlocked;
-        private bool _isProcessing;
+        private bool   _isUnlocked;
+        private string _lastOpenedFileId;
+        private bool   _isProcessing;
 
         // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -81,6 +91,13 @@ namespace EscapeOf.Puzzle.Laptop
         {
             _puzzleMode = GetComponent<PuzzleModeController>();
             SaveManager.Instance?.Register(this);
+        }
+
+        private void Start()
+        {
+            // Apply saved screen state immediately so the render texture
+            // shows the correct screen before the player enters puzzle mode.
+            ApplyScreenState();
         }
 
         private void OnEnable()
@@ -129,16 +146,24 @@ namespace EscapeOf.Puzzle.Laptop
         private void HandleEntered()
         {
             _isProcessing = false;
+            ApplyScreenState();
 
+            if (!_isUnlocked && Keyboard.current != null)
+                Keyboard.current.onTextInput += OnCharacterTyped;
+        }
+
+        private void ApplyScreenState()
+        {
             if (_isUnlocked)
             {
                 ShowDesktop();
+
+                if (!string.IsNullOrEmpty(_lastOpenedFileId))
+                    _windowManager?.TryOpenFileById(_lastOpenedFileId);
             }
             else
             {
                 ShowLogin();
-                if (Keyboard.current != null)
-                    Keyboard.current.onTextInput += OnCharacterTyped;
             }
         }
 
@@ -147,7 +172,8 @@ namespace EscapeOf.Puzzle.Laptop
             if (Keyboard.current != null)
                 Keyboard.current.onTextInput -= OnCharacterTyped;
 
-            _windowManager?.CloseAll();
+            SaveManager.Instance?.Save();
+            _windowManager?.PauseMediaAll();
         }
 
         // ── Screens ────────────────────────────────────────────────────────────────

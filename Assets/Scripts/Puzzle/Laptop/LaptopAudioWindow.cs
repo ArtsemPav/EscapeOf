@@ -8,7 +8,6 @@ namespace EscapeOf.Puzzle.Laptop
     public class LaptopAudioWindow : LaptopWindow
     {
         [Header("Display")]
-        [SerializeField] private TMP_Text _trackName;
         [SerializeField] private TMP_Text _timeDisplay;
 
         [Header("Controls")]
@@ -95,8 +94,6 @@ namespace EscapeOf.Puzzle.Laptop
             if (!(file is LaptopAudioFile audioFile)) return;
 
             _audioSource.clip = audioFile.clip;
-
-            if (_trackName != null) _trackName.text = audioFile.fileName;
             _progressSlider?.SetValueWithoutNotify(0f);
 
             if (_timeDisplay != null && audioFile.clip != null)
@@ -104,6 +101,13 @@ namespace EscapeOf.Puzzle.Laptop
         }
 
         protected override void OnClose() => _audioSource.Stop();
+
+        /// <summary>Pauses audio playback when the player exits puzzle mode.</summary>
+        public override void OnPuzzleExited()
+        {
+            if (_audioSource.isPlaying)
+                _audioSource.Pause();
+        }
 
         /// <summary>Starts or resumes playback.</summary>
         public void Play()  { if (_audioSource.clip != null) _audioSource.Play(); }
