@@ -246,7 +246,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 2333773973770922936}
   m_HandleRect: {fileID: 4174585786983916013}
   m_Direction: 2
-  m_Value: 0.5000028
+  m_Value: 0.50000155
   m_Size: 0
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -457,7 +457,7 @@ MonoBehaviour:
   m_Content: {fileID: 9011298470904780428}
   m_Horizontal: 1
   m_Vertical: 1
-  m_MovementType: 1
+  m_MovementType: 2
   m_Elasticity: 0.1
   m_Inertia: 1
   m_DecelerationRate: 0.135
@@ -832,7 +832,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1259430098887915162}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 479047490620119246}
+        m_TargetAssemblyTypeName: EscapeOf.Puzzle.Laptop.LaptopImageWindow, Assembly-CSharp
+        m_MethodName: ZoomOut
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &4596849187274281338
 GameObject:
   m_ObjectHideFlags: 0
@@ -1015,7 +1027,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 813040280834098971}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 479047490620119246}
+        m_TargetAssemblyTypeName: EscapeOf.Puzzle.Laptop.LaptopImageWindow, Assembly-CSharp
+        m_MethodName: ResetZoom
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &4887480997845269221
 GameObject:
   m_ObjectHideFlags: 0
@@ -1322,7 +1346,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 6715037268589494543}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 479047490620119246}
+        m_TargetAssemblyTypeName: EscapeOf.Puzzle.Laptop.LaptopImageWindow, Assembly-CSharp
+        m_MethodName: ZoomIn
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &8397756493020260083
 GameObject:
   m_ObjectHideFlags: 0
@@ -1358,7 +1394,7 @@ RectTransform:
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: -0.00036621094}
   m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0, y: 1}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &8624481814816297669
 GameObject:
   m_ObjectHideFlags: 0
