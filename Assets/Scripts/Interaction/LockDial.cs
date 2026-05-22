@@ -432,6 +432,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (!HasRequiredItem()) return;
 
         AudioManager.Instance?.StopBackgroundLayer();
+        AudioManager.Instance?.UnmuteBackground();
         AudioManager.Instance?.PlayGameMusic();
     }
 

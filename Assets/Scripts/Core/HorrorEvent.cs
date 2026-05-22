@@ -234,4 +234,11 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         _targetVisible = false;
         _onDeactivated?.Invoke();
     }
+
+    /// <summary>Helper for UnityEvents in prefabs to play sound without scene dependencies.</summary>
+    public void PlayGlobalSFX(AudioClip clip)
+    {
+        if (AudioManager.Instance != null && clip != null)
+            AudioManager.Instance.PlaySFX(clip);
+    }
 }

@@ -21,8 +21,13 @@ public class AudioManager : MonoBehaviour {
     // ── Background mute state ──────────────────────────────────────────────────
 
     private bool _backgroundMuted;
-    private readonly List<AudioSource> _tracked3DLoops = new List<AudioSource>();
+    private class TrackedLoop {
+        public AudioSource source;
+        public float originalVolume;
+    }
+    private readonly List<TrackedLoop> _trackedLoops = new List<TrackedLoop>();
     private Coroutine _muteCoroutine;
+    private AudioSource _activeMusicSource;
 
     // ── Background layer state ─────────────────────────────────────────────────
 
@@ -58,6 +63,11 @@ public class AudioManager : MonoBehaviour {
 
     // Удобные методы-обертки
     public void PlayMenuMusic() {
+        _activeMusicSource = _menuMusicSource;
+        if (_backgroundMuted) return; // Stay silent if muted, but update target
+        
+        StopMuteCoroutine();
+
         // Перед началом плавного перехода перезапускаем музыку меню с нуля
         if (_menuMusicSource != null) {
             _menuMusicSource.Stop();
@@ -68,11 +78,24 @@ public class AudioManager : MonoBehaviour {
         StartCoroutine(FadeBetweenSources(_menuMusicSource, _gameMusicSource));
     }
     public void PlayGameMusic() {
+        _activeMusicSource = _gameMusicSource;
+        if (_backgroundMuted) return; // Stay silent if muted, but update target
+
+        StopMuteCoroutine();
+        
         // При возврате в игру просто плавно выводим громкость игрового источника
         StartCoroutine(FadeBetweenSources(_gameMusicSource, _menuMusicSource));
     }
 
-    public void PlaySFX(AudioClip clip, float volume = 1f) {
+    private void StopMuteCoroutine() {
+        if (_muteCoroutine != null) {
+            StopCoroutine(_muteCoroutine);
+            _muteCoroutine = null;
+        }
+    }
+
+    public void PlaySFX(AudioClip clip) => PlaySFX(clip, 1f);
+    public void PlaySFX(AudioClip clip, float volume) {
         if (clip != null)
             _sfxSource.PlayOneShot(clip, volume);
     }
@@ -92,7 +115,7 @@ public class AudioManager : MonoBehaviour {
         source.playOnAwake = false;
         source.Play();
 
-        _tracked3DLoops.Add(source);
+        _trackedLoops.Add(new TrackedLoop { source = source, originalVolume = volume });
         return source;
     }
 
@@ -181,32 +204,29 @@ public class AudioManager : MonoBehaviour {
         _backgroundMuted = false;
 
         float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
-        RestartMuteCoroutine(FadeBackgroundVolume(_backMusicVolume, duration));
+        RestartMuteCoroutine(FadeBackgroundVolume(1f, duration));
     }
 
     private void RestartMuteCoroutine(IEnumerator routine)
     {
-        if (_muteCoroutine != null) StopCoroutine(_muteCoroutine);
+        StopMuteCoroutine();
         _muteCoroutine = StartCoroutine(routine);
     }
 
-    private IEnumerator FadeBackgroundVolume(float targetVolume, float duration)
+    private IEnumerator FadeBackgroundVolume(float targetMultiplier, float duration)
     {
-        // Collect current volumes for music sources
-        float startMenuVol  = _menuMusicSource  != null ? _menuMusicSource.volume  : 0f;
-        float startGameVol  = _gameMusicSource   != null ? _gameMusicSource.volume  : 0f;
+        float startMenuVol = _menuMusicSource != null ? _menuMusicSource.volume : 0f;
+        float startGameVol = _gameMusicSource != null ? _gameMusicSource.volume : 0f;
 
-        // Snapshot 3D loop starting volumes (remove destroyed entries first)
-        _tracked3DLoops.RemoveAll(s => s == null);
-        float[] startLoopVols = new float[_tracked3DLoops.Count];
-        float[] targetLoopVols = new float[_tracked3DLoops.Count];
-        for (int i = 0; i < _tracked3DLoops.Count; i++)
-        {
-            startLoopVols[i]  = _tracked3DLoops[i].volume;
-            // When restoring, target the original non-zero volume stored in the source itself,
-            // but we don't persist it — use targetVolume ratio relative to _backMusicVolume.
-            targetLoopVols[i] = targetVolume <= 0f ? 0f : _tracked3DLoops[i].volume;
-        }
+        // Determine targets based on active source and multiplier
+        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? _backMusicVolume : 0f;
+        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? _backMusicVolume : 0f;
+
+        // Snapshot 3D loop starting volumes
+        _trackedLoops.RemoveAll(l => l.source == null);
+        float[] startLoopVols = new float[_trackedLoops.Count];
+        for (int i = 0; i < _trackedLoops.Count; i++)
+            startLoopVols[i] = _trackedLoops[i].source.volume;
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -215,26 +235,31 @@ public class AudioManager : MonoBehaviour {
             float t = Mathf.Clamp01(elapsed / duration);
 
             if (_menuMusicSource != null)
-                _menuMusicSource.volume = Mathf.Lerp(startMenuVol, Mathf.Min(targetVolume, startMenuVol), t);
+                _menuMusicSource.volume = Mathf.Lerp(startMenuVol, targetMenuVol, t);
             if (_gameMusicSource != null)
-                _gameMusicSource.volume = Mathf.Lerp(startGameVol, Mathf.Min(targetVolume, startGameVol), t);
+                _gameMusicSource.volume = Mathf.Lerp(startGameVol, targetGameVol, t);
 
-            _tracked3DLoops.RemoveAll(s => s == null);
-            for (int i = 0; i < _tracked3DLoops.Count && i < startLoopVols.Length; i++)
-                _tracked3DLoops[i].volume = Mathf.Lerp(startLoopVols[i], targetLoopVols[i], t);
+            for (int i = 0; i < _trackedLoops.Count; i++)
+            {
+                if (_trackedLoops[i].source != null)
+                {
+                    float loopTarget = targetMultiplier > 0f ? _trackedLoops[i].originalVolume : 0f;
+                    _trackedLoops[i].source.volume = Mathf.Lerp(startLoopVols[i], loopTarget, t);
+                }
+            }
 
             yield return null;
         }
 
         // Hard-set final values
-        if (_menuMusicSource != null)
-            _menuMusicSource.volume = Mathf.Min(targetVolume, startMenuVol);
-        if (_gameMusicSource != null)
-            _gameMusicSource.volume = Mathf.Min(targetVolume, startGameVol);
+        if (_menuMusicSource != null) _menuMusicSource.volume = targetMenuVol;
+        if (_gameMusicSource != null) _gameMusicSource.volume = targetGameVol;
 
-        _tracked3DLoops.RemoveAll(s => s == null);
-        for (int i = 0; i < _tracked3DLoops.Count && i < targetLoopVols.Length; i++)
-            _tracked3DLoops[i].volume = targetLoopVols[i];
+        foreach (var loop in _trackedLoops)
+        {
+            if (loop.source != null)
+                loop.source.volume = targetMultiplier > 0f ? loop.originalVolume : 0f;
+        }
 
         _muteCoroutine = null;
     }
@@ -245,7 +270,7 @@ public class AudioManager : MonoBehaviour {
         float startCurrentVol = currentSource.volume;
 
         while (t < _fadeDuration) {
-            t += Time.unscaledDeltaTime; // Работает даже при Time.timeScale = 0
+            t += Time.unscaledDeltaTime;
             float normalizedTime = t / _fadeDuration;
 
             if (targetSource != null)
@@ -260,8 +285,6 @@ public class AudioManager : MonoBehaviour {
         if (targetSource != null) targetSource.volume = _backMusicVolume;
         if (currentSource != null) currentSource.volume = 0.0f;
 
-        // Опционально: полностью останавливаем источник меню, когда он затих в игре,
-        // чтобы не тратить ресурсы, так как при следующем открытии меню он все равно перезапустится.
         if (currentSource == _menuMusicSource) {
             currentSource.Stop();
         }
