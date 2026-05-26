@@ -270,7 +270,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8293560159992358069
 Transform:
   m_ObjectHideFlags: 0
@@ -280,7 +280,7 @@ Transform:
   m_GameObject: {fileID: 7118887363851770081}
   serializedVersion: 2
   m_LocalRotation: {x: 0.010339479, y: 0.9935781, z: -0.09425108, w: -0.061745416}
-  m_LocalPosition: {x: 9.1, y: 60.8, z: 58.4}
+  m_LocalPosition: {x: 9.1, y: 60.8, z: 45.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -339,15 +339,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.015
+      value: 0.012
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.015
+      value: 0.012
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.015
+      value: 0.012
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
       propertyPath: m_LocalPosition.x
@@ -486,9 +486,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
       insertIndex: -1
       addedObject: {fileID: 787449024330179112}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 698794331257605527}
     - targetCorrespondingSourceObject: {fileID: 7680428038340611565, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3649974714792282511}
@@ -578,6 +575,7 @@ MonoBehaviour:
   _saveId: clock_puzzle
   _puzzleCamera: {fileID: 8723951160259072455}
   _blendDuration: 0.75
+  _showInventoryBar: 0
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -601,7 +599,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0447\u0430\u0441\u044B"
   _crosshairMode: 1
-  _controller: {fileID: 0}
+  _useExitPopup: 1
+  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
+  _exitPopupType: 2
+  _controller: {fileID: 2070388209982214210}
 --- !u!114 &787449024330179112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -615,26 +616,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ClockPuzzleController
   _targetHour: 6
-  _targetMinute: 0
+  _targetMinute: 20
   _toleranceMinutes: 0
   _minuteHandMinDistance: 15
   _hourHandMinDistance: 3
-  _onSolved:
-    m_PersistentCalls:
-      m_Calls: []
-  _onSolvedEvent: {fileID: 0}
---- !u!114 &698794331257605527
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3196629075353864940}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 277950f204bcd3e49b5bc23fc2060498, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ClockAmbience
+  _solveBehavior: 1
   _tickClip: {fileID: 8300000, guid: b20c527c1045b3548a52341dafc314dd, type: 3}
   _tickVolume: 0.8
   _tickMinDistance: 1
@@ -643,6 +629,35 @@ MonoBehaviour:
   _minPeakInterval: 0.15
   _chimeClip: {fileID: 8300000, guid: 6cf641f92c006a045893249cdea8863b, type: 3}
   _chimeVolume: 1
+  _moveOnSolve: 1
+  _moveAxis: 0
+  _moveAxisCustom: {x: 0, y: 1, z: 0}
+  _moveDistance: 0.5
+  _moveDuration: 10
+  _moveCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &5335499468430391888 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7680428038340611565, guid: 2916b46033c120f4eaa19b3988c3c177, type: 3}
