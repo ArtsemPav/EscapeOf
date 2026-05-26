@@ -25,21 +25,25 @@ Material:
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _ALPHAPREMULTIPLY_ON
   - _EMISSION
   - _NORMALMAP
+  - _SURFACE_TYPE_TRANSPARENT
   m_InvalidKeywords: []
   m_LightmapFlags: 3
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
+  m_CustomRenderQueue: 3000
   stringTagMap:
-    RenderType: Opaque
+    RenderType: Transparent
   disabledShaderPasses:
   - TransparentDepthPrepass
   - TransparentDepthPostpass
   - TransparentBackface
   - RayTracingPrepass
   - MOTIONVECTORS
+  - DepthOnly
+  - SHADOWCASTER
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -228,8 +232,8 @@ Material:
     - _DoubleSidedEnable: 0
     - _DoubleSidedGIMode: 0
     - _DoubleSidedNormalMode: 1
-    - _DstBlend: 0
-    - _DstBlendAlpha: 0
+    - _DstBlend: 10
+    - _DstBlendAlpha: 10
     - _EmissionScaleUI: 1
     - _EmissiveColorMode: 1
     - _EmissiveExposureWeight: 0
@@ -258,7 +262,7 @@ Material:
     - _IridescenceThickness: 1
     - _LinkDetailsWithBase: 1
     - _MaterialID: 1
-    - _Metallic: 1
+    - _Metallic: 0.279
     - _MetallicRemapMax: 1
     - _MetallicRemapMin: 0
     - _Mode: 0
@@ -282,7 +286,7 @@ Material:
     - _RefractionModel: 0
     - _RimPower: 3.4017856
     - _Shininess: 0.078125
-    - _Smoothness: 0.884
+    - _Smoothness: 0.246
     - _SmoothnessRemapMax: 1
     - _SmoothnessRemapMin: 0
     - _SmoothnessTextureChannel: 0
@@ -302,7 +306,7 @@ Material:
     - _StencilWriteMaskMV: 41
     - _SubsurfaceMask: 1
     - _SupportDecals: 1
-    - _Surface: 0
+    - _Surface: 1
     - _SurfaceType: 0
     - _TexWorldScale: 1
     - _TexWorldScaleEmissive: 1
@@ -327,11 +331,11 @@ Material:
     - _ZTestDepthEqualForOpaque: 3
     - _ZTestGBuffer: 4
     - _ZTestTransparent: 4
-    - _ZWrite: 1
+    - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 0.1764706}
     - _BaseColorMap_MipInfo: {r: 0, g: 0, b: 0, a: 0}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 0.1764706}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
     - _DoubleSidedConstants: {r: 1, g: 1, b: -1, a: 0}
     - _EmColor: {r: 0.41836074, g: 0.51226735, b: 0.53676474, a: 0}

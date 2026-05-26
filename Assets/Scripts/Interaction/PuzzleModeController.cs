@@ -56,6 +56,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     private CinemachineBrain _brain;
     private float            _originalBlendTime;
 
+    // High enough to override any player camera (PlayerCamera uses 1000).
+    private const int PuzzleCameraPriority = 2000;
+
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /// <summary>True while the puzzle mode is currently active.</summary>
@@ -194,6 +197,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (_puzzleCamera != null)
         {
             SetBlendDuration(_blendDuration);
+            _puzzleCamera.Priority = PuzzleCameraPriority;
             _puzzleCamera.gameObject.SetActive(true);
             StartCoroutine(RestoreBlendAfterTransition());
         }
@@ -236,6 +240,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (_puzzleCamera != null)
         {
             SetBlendDuration(_blendDuration);
+            _puzzleCamera.Priority = 0;
             _puzzleCamera.gameObject.SetActive(false);
             StartCoroutine(RestoreBlendAfterTransition());
         }
