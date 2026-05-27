@@ -31,8 +31,8 @@ public class DigitalLockSystem : MonoBehaviour
     [SerializeField] private PuzzleModeController _puzzleController;
 
     [Header("Audio")]
-    [Tooltip("Sound played when any digit, Clear, or Enter is pressed.")]
-    [SerializeField] private AudioClip _buttonPressSound;
+    [Tooltip("Sounds played when any digit, Clear, or Enter is pressed (randomly selected).")]
+    [SerializeField] private AudioClip[] _buttonPressSounds;
 
     [Tooltip("Sound played when the correct code is entered.")]
     [SerializeField] private AudioClip _successSound;
@@ -80,7 +80,7 @@ public class DigitalLockSystem : MonoBehaviour
         if (_currentInput.Length >= _maxCodeLength) return;
 
         _currentInput += digit.ToString();
-        PlaySound(_buttonPressSound);
+        PlayRandomButtonSound();
         UpdateDisplay();
     }
 
@@ -90,7 +90,7 @@ public class DigitalLockSystem : MonoBehaviour
     public void Clear()
     {
         _currentInput = string.Empty;
-        PlaySound(_buttonPressSound);
+        PlayRandomButtonSound();
         UpdateDisplay();
     }
 
@@ -116,6 +116,14 @@ public class DigitalLockSystem : MonoBehaviour
             PlaySound(_errorSound);
             StartCoroutine(ShowErrorRoutine());
         }
+    }
+
+    private void PlayRandomButtonSound()
+    {
+        if (_buttonPressSounds == null || _buttonPressSounds.Length == 0) return;
+        
+        int randomIndex = Random.Range(0, _buttonPressSounds.Length);
+        PlaySound(_buttonPressSounds[randomIndex]);
     }
 
     private void PlaySound(AudioClip clip)
