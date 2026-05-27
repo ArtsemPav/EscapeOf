@@ -52,11 +52,13 @@ namespace ChemicalPuzzle
         private static readonly int WobbleXId      = Shader.PropertyToID("_WobbleX");
         private static readonly int WobbleZId      = Shader.PropertyToID("_WobbleZ");
 
+        private MaterialPropertyBlock _propBlock;
+
         private void OnEnable()
         {
             _renderer   = GetComponent<Renderer>();
             _meshFilter = GetComponent<MeshFilter>();
-            _material   = Application.isPlaying ? _renderer.material : _renderer.sharedMaterial;
+            _propBlock  = new MaterialPropertyBlock();
             _lastPos    = transform.position;
             _lastRot    = transform.rotation;
             _initialized = false;
@@ -81,20 +83,22 @@ namespace ChemicalPuzzle
 
         private void Update()
         {
-            if (_material == null || _renderer == null) return;
+            if (_renderer == null) return;
 
             // В редакторе (не в игре) позволяем менять значение через материал
             #if UNITY_EDITOR
-            if (!Application.isPlaying && _material.HasProperty(FillAmountId))
+            if (!Application.isPlaying)
             {
-                // Если мы крутим ползунок в материале, обновляем значение в скрипте
-                // Но только если мы не в режиме анимации (в анимации приоритет у ключей)
-                if (!UnityEditor.AnimationMode.InAnimationMode())
+                _material = _renderer.sharedMaterial;
+                if (_material != null && _material.HasProperty(FillAmountId))
                 {
-                    float matFill = _material.GetFloat(FillAmountId);
-                    if (!Mathf.Approximately(matFill, fillFraction))
+                    if (!UnityEditor.AnimationMode.InAnimationMode())
                     {
-                        fillFraction = matFill;
+                        float matFill = _material.GetFloat(FillAmountId);
+                        if (!Mathf.Approximately(matFill, fillFraction))
+                        {
+                            fillFraction = matFill;
+                        }
                     }
                 }
             }
@@ -127,13 +131,15 @@ namespace ChemicalPuzzle
                 _lastRot = transform.rotation;
             }
 
-            // Sync with shader properties
-            _material.SetFloat(FillAmountId, fillFraction);
-            _material.SetFloat(LocalMeshMinId, _localMeshMin);
-            _material.SetFloat(LocalMeshMaxId, _localMeshMin + _localMeshHeight);
-            _material.SetVector(PivotWSId, transform.position);
-            _material.SetFloat(WobbleXId, _wobbleX);
-            _material.SetFloat(WobbleZId, _wobbleZ);
+            // Sync with shader properties using PropertyBlock
+            _renderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetFloat(FillAmountId, fillFraction);
+            _propBlock.SetFloat(LocalMeshMinId, _localMeshMin);
+            _propBlock.SetFloat(LocalMeshMaxId, _localMeshMin + _localMeshHeight);
+            _propBlock.SetVector(PivotWSId, transform.position);
+            _propBlock.SetFloat(WobbleXId, _wobbleX);
+            _propBlock.SetFloat(WobbleZId, _wobbleZ);
+            _renderer.SetPropertyBlock(_propBlock);
 
         #if UNITY_EDITOR
             if (!Application.isPlaying) UnityEditor.SceneView.RepaintAll();
@@ -142,9 +148,11 @@ namespace ChemicalPuzzle
 
         private void OnDisable()
         {
-            if (_material == null) return;
-            _material.SetFloat(WobbleXId, 0f);
-            _material.SetFloat(WobbleZId, 0f);
+            if (_renderer == null) return;
+            _renderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetFloat(WobbleXId, 0f);
+            _propBlock.SetFloat(WobbleZId, 0f);
+            _renderer.SetPropertyBlock(_propBlock);
         }
     }
 }

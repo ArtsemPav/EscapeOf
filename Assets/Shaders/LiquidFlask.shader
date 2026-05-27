@@ -110,9 +110,10 @@ Shader "Custom/LiquidFlask"
                 float wobble = relPos.x * _WobbleX + relPos.z * _WobbleZ;
                 float surfaceHeightWS = surfacePivotWS.y + wobble;
 
-                // Clipping с небольшим запасом (bias) для предотвращения мерцания крышки
+                // Clipping с динамическим запасом для корректного 0 и 1
                 float clipVal = surfaceHeightWS - IN.positionWS.y;
-                clip(clipVal + 0.005);
+                float bias = (_FillAmount <= 0.001) ? -0.1 : (_FillAmount >= 0.999 ? 0.1 : 0.005);
+                clip(clipVal + bias);
 
                 float noiseVal = Noise(IN.positionWS.xyz * _NoiseScale + float3(0, _Time.y * _NoiseSpeed, 0));
                 float3 liquidCol = lerp(_LiquidColor.rgb, _LiquidColor.rgb * noiseVal, _Turbidity);
@@ -193,7 +194,9 @@ ENDHLSL
                 float3 relPos = IN.positionWS - _PivotWS.xyz;
                 float wobble = relPos.x * _WobbleX + relPos.z * _WobbleZ;
                 
-                clip(surfacePivotWS.y + wobble - IN.positionWS.y);
+                float clipVal = surfacePivotWS.y + wobble - IN.positionWS.y;
+                float bias = (_FillAmount <= 0.001) ? -0.1 : (_FillAmount >= 0.999 ? 0.1 : 0.005);
+                clip(clipVal + bias);
                 return 0;
             }
             ENDHLSL
