@@ -2778,7 +2778,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &3174214203033791655
 Transform:
   m_ObjectHideFlags: 0
@@ -11016,6 +11016,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8380157826906577798, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: -6733177361254619370, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: -4025470130324596155, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1
@@ -11068,6 +11076,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2800250516343163423, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 3316992658331686828, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
@@ -11092,6 +11104,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8513859187771203891, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 8670761335428686811, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
@@ -11103,6 +11119,10 @@ PrefabInstance:
     - target: {fileID: 8670761335428686811, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8700725330082129686, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 8946660040297601765, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
       propertyPath: m_LocalRotation.w
@@ -11324,6 +11344,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2800250516343163423, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5456301001455594219}
+    - targetCorrespondingSourceObject: {fileID: -391268320553695201, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3109610780065505441}
   m_SourcePrefab: {fileID: 100100000, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
 --- !u!1 &1598757313969252290 stripped
 GameObject:
@@ -11450,6 +11473,33 @@ MonoBehaviour:
   _onInteract:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &1916650071432433390 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -391268320553695201, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
+  m_PrefabInstance: {fileID: 6919957423088043761}
+  m_PrefabAsset: {fileID: 0}
+--- !u!64 &3109610780065505441
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1916650071432433390}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 1
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -8803937527578110353, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
 --- !u!4 &2026702825645628436 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8946660040297601765, guid: 279d5e3e0ccdf784e902a2851a55a4f2, type: 3}
@@ -11675,11 +11725,11 @@ MonoBehaviour:
   _correctCombination: 0100000002000000030000000400000005000000
   _puzzleController: {fileID: 8431676527426461425}
   _cylinders:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 2116687598347060403}
+  - {fileID: 6592534356877716481}
+  - {fileID: 945045739088880125}
+  - {fileID: 5704768953575486986}
+  - {fileID: 8015580160027638770}
   _saveId: 
 --- !u!54 &3473853984940684570
 Rigidbody:
