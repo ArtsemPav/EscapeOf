@@ -10,4 +10,10 @@ public class CraftingRecipe : ScriptableObject
     public ItemData ingredientA;
     public ItemData ingredientB;
     public ItemData result;
+
+    [Tooltip("If true, the slot holding ingredientA is preserved after crafting (item is not consumed).")]
+    public bool conserveIngredientA;
+
+    [Tooltip("If true, the slot holding ingredientB is preserved after crafting (item is not consumed).")]
+    public bool conserveIngredientB;
 }

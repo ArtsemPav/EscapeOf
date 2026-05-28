@@ -377,8 +377,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     /// If the required item (stethoscope) is dropped, it enables advanced audio feedback.
     /// When _colliderLock is assigned, the drop is only accepted when the release raycast hits that exact collider.
     /// </summary>
-    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
+        replacement = null;
         if (item != _requiredItemForAudio || _isRequiredItemApplied) return false;
 
         if (_colliderLock != null)

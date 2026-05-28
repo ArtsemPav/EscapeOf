@@ -17,6 +17,12 @@ public class ItemTooltip : MonoBehaviour
     [SerializeField] private float panelWidth = 260f;
     [SerializeField] private float slotGap = 6f;
 
+    /// <summary>
+    /// Minimum canvas-space Y for the tooltip's bottom edge.
+    /// Keeps the tooltip above the puzzle inventory bar (≈ -290 puts it ~250 px from screen bottom).
+    /// </summary>
+    [SerializeField] private float _minimumCanvasY = -200f;
+
     private RectTransform _canvasRect;
     private Camera _uiCamera;
 
@@ -52,38 +58,24 @@ public class ItemTooltip : MonoBehaviour
 
     private void PositionNearSlot(RectTransform slotRect)
     {
-        // Rebuild layout first so panel.rect.height is accurate before choosing placement.
+        // Rebuild layout so ContentSizeFitter updates panel dimensions before positioning.
         LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
 
         Vector3[] corners = new Vector3[4];
         slotRect.GetWorldCorners(corners);
         // corners: [0]=BL  [1]=TL  [2]=TR  [3]=BR
 
-        Vector2 topScreen    = ((Vector2)corners[1] + (Vector2)corners[2]) * 0.5f;
-        Vector2 bottomScreen = ((Vector2)corners[0] + (Vector2)corners[3]) * 0.5f;
+        Vector2 topScreen = ((Vector2)corners[1] + (Vector2)corners[2]) * 0.5f;
 
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             _canvasRect, topScreen, _uiCamera, out Vector2 localTop);
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            _canvasRect, bottomScreen, _uiCamera, out Vector2 localBottom);
 
-        float panelHeight = panel.rect.height;
-        float canvasHalfY = _canvasRect.rect.size.y * 0.5f;
+        // Always place above the slot. Pivot at bottom so the panel grows upward.
+        // _minimumCanvasY enforces a floor so the tooltip never sinks into the inventory bar.
+        float bottomY = Mathf.Max(localTop.y + slotGap, _minimumCanvasY);
 
-        // Prefer above: pivot at bottom-center so panel grows upward from the slot's top edge.
-        bool fitsAbove = (localTop.y + slotGap + panelHeight) <= canvasHalfY;
-
-        if (fitsAbove)
-        {
-            panel.pivot = new Vector2(0.5f, 0f);
-            panel.localPosition = new Vector2(localTop.x, localTop.y + slotGap);
-        }
-        else
-        {
-            // Fall back to below: pivot at top-center, panel grows downward.
-            panel.pivot = new Vector2(0.5f, 1f);
-            panel.localPosition = new Vector2(localBottom.x, localBottom.y - slotGap);
-        }
+        panel.pivot = new Vector2(0.5f, 0f);
+        panel.localPosition = new Vector2(localTop.x, bottomY);
 
         ClampInsideCanvas();
     }

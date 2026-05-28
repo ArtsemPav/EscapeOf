@@ -661,8 +661,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     /// Raycasts against the Safeguardanchor collider — drop is valid only when
     /// the cursor lands on the anchor. The bar removes the item from inventory on true.
     /// </summary>
-    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
+        replacement = null;
         if (item == null) return false;
         if (_acceptedItems == null || Array.IndexOf(_acceptedItems, item) < 0) return false;
         if (_fuseInserted) return false;

@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1647174886331378096}
   m_Layer: 6
-  m_Name: ChemicalBottle
+  m_Name: stabilazerBottle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -96,13 +96,33 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 48aaf9deacd11784e9085dd8d3cfd96b, type: 2}
+    - target: {fileID: -5004740735922860266, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: -3289674471058131000, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 811c625e36cd9704398e31c41a5302f9, type: 2}
+    - target: {fileID: -1439446068405721328, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
       propertyPath: m_Name
       value: chemicalBottle
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6566767547146459770, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7638104345217537351, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 7651041999150293923, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -119,6 +139,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 543154978462485871}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4910995715566663695}
     - targetCorrespondingSourceObject: {fileID: -5004740735922860266, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7158555737329220071}
@@ -144,7 +167,11 @@ MonoBehaviour:
   correctionSpeed: 15
   maxWobble: 0.5
   wobbleSpeed: 1
-  recovery: 1
+  recovery: 1.02
+  _liquidColor: {r: 1, g: 0.6585131, b: 0, a: 1}
+  _surfaceColor: {r: 1, g: 0.3687851, b: 0, a: 1}
+  _emissionColor: {r: 0.9892183, g: 0.2833779, b: 0, a: 1}
+  _emissionPower: 0
 --- !u!4 &7034587741410870117 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bca505ca201d12e42b3a784ec205decc, type: 3}
@@ -176,3 +203,17 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.36, y: 3.23, z: 1.95}
   m_Center: {x: 0, y: 0.62, z: 0}
+--- !u!114 &4910995715566663695
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7697831449875749343}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: aeb18597063e5504688591ec0b4b1135, type: 2}
+  _saveId: pickable_medallion_earth4

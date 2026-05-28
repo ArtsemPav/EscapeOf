@@ -72,6 +72,12 @@ public class PuzzleInventoryBar : MonoBehaviour
 
     // ── Drag state ───────────────────────────────────────────────────────────
 
+    /// <summary>True while the player is dragging an item from the inventory bar.</summary>
+    public static bool IsDragging { get; private set; }
+
+    /// <summary>The item currently being dragged, or null when not dragging.</summary>
+    public static ItemData DraggedItem { get; private set; }
+
     private Image _dragGhost;
     private PuzzleInventorySlot _dragSource;
     private ItemData _dragItem;
@@ -172,6 +178,8 @@ public class PuzzleInventoryBar : MonoBehaviour
         _dragSource = slot;
         _dragItem = slot.Item;
         _isDragging = true;
+        IsDragging = true;
+        DraggedItem = slot.Item;
 
         slot.SetDragVisual(dimmed: true);
         SpawnGhost(slot.Item.icon, eventData.position);
@@ -186,8 +194,9 @@ public class PuzzleInventoryBar : MonoBehaviour
     }
 
     /// <summary>
-    /// Ends the drag — asks the active handler to accept the item.
-    /// If accepted, the item is removed from the inventory (bar refreshes via event).
+    /// Ends the drag — first checks whether the drop landed on another bar slot for crafting.
+    /// If crafting succeeds, inventory is updated automatically via OnInventoryChanged.
+    /// Otherwise asks the active handler to accept the item.
     /// If rejected, the slot icon is restored.
     /// </summary>
     public void OnSlotEndDrag(PuzzleInventorySlot slot, PointerEventData eventData)
@@ -196,17 +205,37 @@ public class PuzzleInventoryBar : MonoBehaviour
             return;
 
         _isDragging = false;
+        IsDragging = false;
+        DraggedItem = null;
         UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         DestroyGhost();
 
+        // Check if the drop landed on another bar slot for crafting.
+        PuzzleInventorySlot targetBarSlot = FindHoveredBarSlot(eventData, exclude: slot);
+        if (targetBarSlot != null && targetBarSlot.HasItem && _dragItem != null)
+        {
+            if (InventorySystem.Instance != null &&
+                InventorySystem.Instance.TryCombine(slot.SlotIndex, targetBarSlot.SlotIndex, out _))
+            {
+                // Craft succeeded — RefreshSlots will be called by OnInventoryChanged.
+                _dragSource = null;
+                _dragItem = null;
+                return;
+            }
+        }
+
         bool accepted = false;
+        ItemData replacement = null;
 
         if (_dragItem != null && _activeHandler != null)
-            accepted = _activeHandler.HandleDrop(_dragItem, eventData.position);
+            accepted = _activeHandler.HandleDrop(_dragItem, eventData.position, out replacement);
 
         if (accepted)
         {
-            InventorySystem.Instance?.RemoveItem(_dragItem);
+            if (replacement != null)
+                InventorySystem.Instance?.ReplaceItem(_dragItem, replacement);
+            else
+                InventorySystem.Instance?.RemoveItem(_dragItem);
             // RefreshSlots will be called by OnInventoryChanged event
         }
         else
@@ -214,13 +243,25 @@ public class PuzzleInventoryBar : MonoBehaviour
             // Return visual — item stays in inventory
             slot?.SetDragVisual(dimmed: false);
 
-            // Show warning only when there is an active puzzle handler to drop on
-            if (_dragItem != null && _activeHandler != null)
+            // Show warning only when there is an active puzzle handler and no bar slot was targeted.
+            if (_dragItem != null && _activeHandler != null && targetBarSlot == null)
                 PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
         }
 
         _dragSource = null;
         _dragItem = null;
+    }
+
+    /// <summary>
+    /// Called by PuzzleInventorySlot.OnDrop when a slot is dropped on top of another.
+    /// Attempts crafting between the two slots via InventorySystem.TryCombine.
+    /// This is a secondary path; the primary crafting path runs in OnSlotEndDrag.
+    /// </summary>
+    public void OnSlotDropReceived(PuzzleInventorySlot targetSlot, PuzzleInventorySlot sourceSlot)
+    {
+        // Primary crafting is handled in OnSlotEndDrag via eventData.hovered; this is a safety net.
+        if (!targetSlot.HasItem || sourceSlot == null) return;
+        InventorySystem.Instance?.TryCombine(sourceSlot.SlotIndex, targetSlot.SlotIndex, out _);
     }
 
     // ── Scroll ────────────────────────────────────────────────────────────────
@@ -263,6 +304,7 @@ public class PuzzleInventoryBar : MonoBehaviour
 
             slot.ApplyIconPadding(iconPadding);
             slot.Init(this);
+            slot.SlotIndex = i;
             slot.Clear();
             slot.gameObject.SetActive(false);
             _slotPool[i] = slot;
@@ -418,23 +460,47 @@ public class PuzzleInventoryBar : MonoBehaviour
 
     // ── Ghost ─────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Searches the hovered UI elements for a PuzzleInventorySlot belonging to this bar,
+    /// excluding the slot currently being dragged.
+    /// </summary>
+    private PuzzleInventorySlot FindHoveredBarSlot(PointerEventData eventData, PuzzleInventorySlot exclude)
+    {
+        foreach (var hoveredObj in eventData.hovered)
+        {
+            var slot = hoveredObj.GetComponent<PuzzleInventorySlot>();
+            if (slot != null && slot != exclude && IsPoolSlot(slot))
+                return slot;
+        }
+        return null;
+    }
+
+    private bool IsPoolSlot(PuzzleInventorySlot slot)
+    {
+        if (_slotPool == null) return false;
+        foreach (var poolSlot in _slotPool)
+            if (poolSlot == slot) return true;
+        return false;
+    }
+
+    // ── Ghost ──────────────────────────────────────────────────────────────────
+
     private void SpawnGhost(Sprite sprite, Vector2 screenPos)
     {
         if (_rootCanvas == null || sprite == null) return;
 
         var go = new GameObject("PuzzleDragGhost", typeof(RectTransform));
         go.transform.SetParent(_rootCanvas.transform, false);
-        go.transform.SetAsLastSibling();
+
+        // Override sorting so the ghost always renders above every other UI element
+        // on the same canvas, regardless of hierarchy position.
+        var overrideCanvas = go.AddComponent<Canvas>();
+        overrideCanvas.overrideSorting = true;
+        overrideCanvas.sortingOrder = _rootCanvas.sortingOrder + 100;
 
         var rt = go.GetComponent<RectTransform>();
         rt.sizeDelta = new Vector2(ghostSize, ghostSize);
         rt.position = screenPos;
-
-        // Ensure ghost is behind the custom cursor if it exists
-        if (UI.PuzzleCursor.Instance != null)
-        {
-            go.transform.SetSiblingIndex(UI.PuzzleCursor.Instance.transform.GetSiblingIndex());
-        }
 
         _dragGhost = go.AddComponent<Image>();
         _dragGhost.sprite = sprite;
@@ -456,6 +522,8 @@ public class PuzzleInventoryBar : MonoBehaviour
     {
         if (!_isDragging) return;
         _isDragging = false;
+        IsDragging = false;
+        DraggedItem = null;
         _dragSource?.SetDragVisual(dimmed: false);
         DestroyGhost();
         UI.PuzzleCursor.Instance?.SetDragMode(false, null);

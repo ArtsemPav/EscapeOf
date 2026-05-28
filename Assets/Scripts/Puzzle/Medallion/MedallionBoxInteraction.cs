@@ -259,10 +259,11 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable, IPuzzleDropHand
     /// this handler via GetComponentInChildren without requiring MedallionBoxUI to be
     /// a child of this GameObject.
     /// </summary>
-    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
+        replacement = null;
         var boxUI = _panel?.GetComponent<MedallionBoxUI>();
-        return boxUI != null && boxUI.HandleDrop(item, screenPosition);
+        return boxUI != null && boxUI.HandleDrop(item, screenPosition, out _);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

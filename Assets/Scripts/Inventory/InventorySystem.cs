@@ -171,6 +171,24 @@ public class InventorySystem : MonoBehaviour, ISaveable
         return false;
     }
 
+    /// <summary>
+    /// Replaces the first slot containing <paramref name="from"/> with <paramref name="to"/>.
+    /// Returns true when a replacement was made; false when <paramref name="from"/> was not found.
+    /// Does NOT compact slots — position is preserved intentionally.
+    /// </summary>
+    public bool ReplaceItem(ItemData from, ItemData to)
+    {
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] != from) continue;
+            _slots[i] = to;
+            OnInventoryChanged?.Invoke();
+            SaveManager.Instance?.Save();
+            return true;
+        }
+        return false;
+    }
+
     /// <summary>Returns true if the inventory contains the given item.</summary>
     public bool HasItem(ItemData item)
     {
@@ -194,7 +212,9 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
     /// <summary>
     /// Tries to combine items from two slots using registered recipes.
-    /// On success, places the result in the source slot and clears the target slot.
+    /// Respects conserveIngredientA / conserveIngredientB flags on the matched recipe:
+    /// the consumed slot receives the result; preserved slots are not modified.
+    /// If both ingredients are conserved, the result is added to the first free slot.
     /// </summary>
     public bool TryCombine(int sourceSlotIndex, int targetSlotIndex, out ItemData result)
     {
@@ -209,14 +229,45 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
         foreach (var recipe in recipes)
         {
-            bool match = (recipe.ingredientA == a && recipe.ingredientB == b)
-                      || (recipe.ingredientA == b && recipe.ingredientB == a);
+            bool aMatchesSource = recipe.ingredientA == a && recipe.ingredientB == b;
+            bool aMatchesTarget = recipe.ingredientA == b && recipe.ingredientB == a;
 
-            if (!match) continue;
+            if (!aMatchesSource && !aMatchesTarget) continue;
 
             result = recipe.result;
-            _slots[targetSlotIndex] = result;
-            _slots[sourceSlotIndex] = null;
+
+            // Determine which slot index holds ingredientA and which holds ingredientB.
+            int slotIndexA = aMatchesSource ? sourceSlotIndex : targetSlotIndex;
+            int slotIndexB = aMatchesSource ? targetSlotIndex : sourceSlotIndex;
+
+            if (!recipe.conserveIngredientA && !recipe.conserveIngredientB)
+            {
+                // Default behaviour: result goes into target slot, source slot is cleared.
+                _slots[targetSlotIndex] = result;
+                _slots[sourceSlotIndex] = null;
+            }
+            else if (!recipe.conserveIngredientA)
+            {
+                // Ingredient A is consumed: result replaces it; ingredient B stays untouched.
+                _slots[slotIndexA] = result;
+            }
+            else if (!recipe.conserveIngredientB)
+            {
+                // Ingredient B is consumed: result replaces it; ingredient A stays untouched.
+                _slots[slotIndexB] = result;
+            }
+            else
+            {
+                // Both ingredients are preserved: add result to the first free slot.
+                if (!AddItem(result))
+                {
+                    result = null;
+                    return false;
+                }
+                // AddItem already fires OnInventoryChanged, so return early.
+                return true;
+            }
+
             CompactSlots();
             OnInventoryChanged?.Invoke();
             return true;

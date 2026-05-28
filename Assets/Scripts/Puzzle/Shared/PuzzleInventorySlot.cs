@@ -10,6 +10,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Image))]
 public class PuzzleInventorySlot : MonoBehaviour,
     IBeginDragHandler, IDragHandler, IEndDragHandler,
+    IDropHandler,
     IPointerEnterHandler, IPointerExitHandler,
     IPointerDownHandler, IPointerUpHandler
 {
@@ -22,6 +23,9 @@ public class PuzzleInventorySlot : MonoBehaviour,
 
     /// <summary>True when the slot has an item assigned.</summary>
     public bool HasItem => Item != null;
+
+    /// <summary>Index of this slot in the pool, matching the corresponding InventorySystem slot index.</summary>
+    public int SlotIndex { get; set; }
 
     /// <summary>Injects the parent bar reference. Called once during pool creation.</summary>
     public void Init(PuzzleInventoryBar bar)
@@ -87,6 +91,19 @@ public class PuzzleInventorySlot : MonoBehaviour,
     {
         if (!HasItem) return;
         UI.PuzzleCursor.Instance?.SetSlotPress(false);
+    }
+
+    // ── Drop ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Notifies the bar that another slot was dropped onto this one.
+    /// The bar handles crafting or item swapping via TryCombine.
+    /// </summary>
+    public void OnDrop(PointerEventData eventData)
+    {
+        var sourceSlot = eventData.pointerDrag?.GetComponent<PuzzleInventorySlot>();
+        if (sourceSlot == null || sourceSlot == this) return;
+        _bar?.OnSlotDropReceived(this, sourceSlot);
     }
 
     // ── Drag ──────────────────────────────────────────────────────────────────

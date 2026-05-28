@@ -50,6 +50,7 @@ public class ItemInspector : MonoBehaviour
     private int _inspectionLayer;
     private ItemData _currentItem;
     private GameObject _worldObject;
+    private System.Action<ItemData> _onPickup;
     private GameObject _inspectionInstance;
     private GameObject _inspectionPivot;
     private GameObject _inspectionLight;
@@ -228,13 +229,21 @@ private bool _ignoreInputThisFrame;
     /// <summary>
     /// Shows 3D inspection view. If itemData has no inspectionPrefab, picks up directly.
     /// </summary>
-    public void BeginInspection(ItemData item, GameObject worldObject)
+    /// <param name="onPickup">
+    /// Optional callback invoked with the item when the player confirms pickup.
+    /// When provided, overrides the default <see cref="InventorySystem.AddItem"/> call —
+    /// the callback is responsible for adding the item to inventory.
+    /// </param>
+    public void BeginInspection(ItemData item, GameObject worldObject, System.Action<ItemData> onPickup = null)
     {
         if (item == null) return;
 
         if (item.inspectionPrefab == null)
         {
-            if (!InventorySystem.Instance.AddItem(item)) return;
+            if (onPickup != null)
+                onPickup(item);
+            else if (!InventorySystem.Instance.AddItem(item))
+                return;
             if (worldObject != null && worldObject.TryGetComponent(out PickableItem directPickable))
                 directPickable.NotifyPickedUp();
             Destroy(worldObject);
@@ -243,6 +252,7 @@ private bool _ignoreInputThisFrame;
 
         _currentItem = item;
         _worldObject = worldObject;
+        _onPickup = onPickup;
         _isPreviewMode = false;
         _mouseWasDragged = false;
 
@@ -381,11 +391,18 @@ private bool _ignoreInputThisFrame;
         if (_currentItem == null) return;
         if (!_isPreviewMode)
         {
-            if (!InventorySystem.Instance.AddItem(_currentItem))
+            if (_onPickup != null)
             {
-                // Inventory is full — close inspection without picking up; world object stays.
-                EndInspection();
-                return;
+                _onPickup(_currentItem);
+            }
+            else
+            {
+                if (!InventorySystem.Instance.AddItem(_currentItem))
+                {
+                    // Inventory is full — close inspection without picking up; world object stays.
+                    EndInspection();
+                    return;
+                }
             }
             if (_worldObject != null && _worldObject.TryGetComponent(out PickableItem pickable))
                 pickable.NotifyPickedUp();
@@ -406,6 +423,7 @@ private bool _ignoreInputThisFrame;
     {
         _isInspecting  = false;
         _isPreviewMode = false;
+        _onPickup      = null;
 
         // Восстанавливаем текстовые элементы — они могли быть скрыты в режиме превью
         if (itemNameText != null)

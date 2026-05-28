@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 namespace ChemicalPuzzle
@@ -20,7 +21,7 @@ namespace ChemicalPuzzle
         [Header("Fill")]
         [Tooltip("Доля заполнения: 0 = пусто, 1 = полная.")]
         [Range(0f, 1f)]
-        public float fillFraction = 0.5f;
+        public float fillFraction = 0f;
 
         [Tooltip("Скорость плавного следования foam-линии за целевым мировым Y.")]
         [SerializeField] private float correctionSpeed = 15f;
@@ -35,22 +36,37 @@ namespace ChemicalPuzzle
         private bool       _initialized;
         private Renderer   _renderer;
         private MeshFilter _meshFilter;
-        private Material   _material;
         private Vector3    _lastPos;
         private Quaternion _lastRot;
         private float      _wobbleAddX, _wobbleAddZ, _wobbleX, _wobbleZ;
         private float      _time;
 
+        [Header("Color")]
+        [Tooltip("Основной цвет жидкости (_LiquidColor).")]
+        [SerializeField] private Color _liquidColor = Color.white;
+        [Tooltip("Цвет поверхности/пены (_SurfaceColor).")]
+        [SerializeField] private Color _surfaceColor = Color.white;
+        [Tooltip("Цвет свечения жидкости (_EmissionColor).")]
+        [SerializeField] private Color _emissionColor = Color.black;
+        [Tooltip("Интенсивность свечения (_EmissionPower).")]
+        [SerializeField] private float _emissionPower = 0f;
+
+        private Coroutine _fillCoroutine;
+
         // Локальные границы меша — кэшируются один раз, не зависят от трансформа
         private float _localMeshMin;
         private float _localMeshHeight;
 
-        private static readonly int FillAmountId   = Shader.PropertyToID("_FillAmount");
-        private static readonly int LocalMeshMinId = Shader.PropertyToID("_LocalMeshMin");
-        private static readonly int LocalMeshMaxId = Shader.PropertyToID("_LocalMeshMax");
-        private static readonly int PivotWSId      = Shader.PropertyToID("_PivotWS");
-        private static readonly int WobbleXId      = Shader.PropertyToID("_WobbleX");
-        private static readonly int WobbleZId      = Shader.PropertyToID("_WobbleZ");
+        private static readonly int FillAmountId    = Shader.PropertyToID("_FillAmount");
+        private static readonly int LocalMeshMinId  = Shader.PropertyToID("_LocalMeshMin");
+        private static readonly int LocalMeshMaxId  = Shader.PropertyToID("_LocalMeshMax");
+        private static readonly int PivotWSId       = Shader.PropertyToID("_PivotWS");
+        private static readonly int WobbleXId       = Shader.PropertyToID("_WobbleX");
+        private static readonly int WobbleZId       = Shader.PropertyToID("_WobbleZ");
+        private static readonly int LiquidColorId   = Shader.PropertyToID("_LiquidColor");
+        private static readonly int SurfaceColorId  = Shader.PropertyToID("_SurfaceColor");
+        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int EmissionPowerId = Shader.PropertyToID("_EmissionPower");
 
         private MaterialPropertyBlock _propBlock;
 
@@ -85,25 +101,6 @@ namespace ChemicalPuzzle
         {
             if (_renderer == null) return;
 
-            // В редакторе (не в игре) позволяем менять значение через материал
-            #if UNITY_EDITOR
-            if (!Application.isPlaying)
-            {
-                _material = _renderer.sharedMaterial;
-                if (_material != null && _material.HasProperty(FillAmountId))
-                {
-                    if (!UnityEditor.AnimationMode.InAnimationMode())
-                    {
-                        float matFill = _material.GetFloat(FillAmountId);
-                        if (!Mathf.Approximately(matFill, fillFraction))
-                        {
-                            fillFraction = matFill;
-                        }
-                    }
-                }
-            }
-            #endif
-
             float dt = Application.isPlaying ? Time.deltaTime : 0.016f;
             if (dt <= 0) dt = 0.016f;
 
@@ -133,12 +130,16 @@ namespace ChemicalPuzzle
 
             // Sync with shader properties using PropertyBlock
             _renderer.GetPropertyBlock(_propBlock);
-            _propBlock.SetFloat(FillAmountId, fillFraction);
-            _propBlock.SetFloat(LocalMeshMinId, _localMeshMin);
-            _propBlock.SetFloat(LocalMeshMaxId, _localMeshMin + _localMeshHeight);
-            _propBlock.SetVector(PivotWSId, transform.position);
-            _propBlock.SetFloat(WobbleXId, _wobbleX);
-            _propBlock.SetFloat(WobbleZId, _wobbleZ);
+            _propBlock.SetFloat(FillAmountId,    fillFraction);
+            _propBlock.SetColor(LiquidColorId,   _liquidColor);
+            _propBlock.SetColor(SurfaceColorId,  _surfaceColor);
+            _propBlock.SetColor(EmissionColorId, _emissionColor);
+            _propBlock.SetFloat(EmissionPowerId, _emissionPower);
+            _propBlock.SetFloat(LocalMeshMinId,  _localMeshMin);
+            _propBlock.SetFloat(LocalMeshMaxId,  _localMeshMin + _localMeshHeight);
+            _propBlock.SetVector(PivotWSId,      transform.position);
+            _propBlock.SetFloat(WobbleXId,       _wobbleX);
+            _propBlock.SetFloat(WobbleZId,       _wobbleZ);
             _renderer.SetPropertyBlock(_propBlock);
 
         #if UNITY_EDITOR
@@ -153,6 +154,45 @@ namespace ChemicalPuzzle
             _propBlock.SetFloat(WobbleXId, 0f);
             _propBlock.SetFloat(WobbleZId, 0f);
             _renderer.SetPropertyBlock(_propBlock);
+        }
+
+        // ── Public API ────────────────────────────────────────────────────────
+
+        /// <summary>Overrides all liquid colors at runtime (e.g. from MixerController).</summary>
+        public void SetLiquidColor(Color liquid, Color surface, Color emission, float emissionPower)
+        {
+            _liquidColor   = liquid;
+            _surfaceColor  = surface;
+            _emissionColor = emission;
+            _emissionPower = emissionPower;
+        }
+
+        /// <summary>Shorthand: sets liquid and surface to the same color, no emission.</summary>
+        public void SetLiquidColor(Color color)
+        {
+            _liquidColor  = color;
+            _surfaceColor = color;
+        }
+
+        /// <summary>Smoothly animates fillFraction to <paramref name="target"/> over <paramref name="duration"/> seconds.</summary>
+        public void AnimateFillTo(float target, float duration)
+        {
+            if (_fillCoroutine != null) StopCoroutine(_fillCoroutine);
+            _fillCoroutine = StartCoroutine(FillRoutine(target, duration));
+        }
+
+        private IEnumerator FillRoutine(float target, float duration)
+        {
+            float start   = fillFraction;
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed      += Time.deltaTime;
+                fillFraction  = Mathf.Lerp(start, target, elapsed / duration);
+                yield return null;
+            }
+            fillFraction   = target;
+            _fillCoroutine = null;
         }
     }
 }

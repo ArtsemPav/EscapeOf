@@ -105,8 +105,9 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
     /// Attempts to place the dragged item on an empty hole via 3D raycast.
     /// Does NOT remove the item from inventory — PuzzleInventoryBar handles that.
     /// </summary>
-    public bool HandleDrop(ItemData item, Vector2 screenPosition)
+    public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
+        replacement = null;
         if (item == null || Camera.main == null) return false;
 
         // Only medallions belonging to this puzzle are accepted

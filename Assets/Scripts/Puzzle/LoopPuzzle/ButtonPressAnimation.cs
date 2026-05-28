@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -26,6 +27,9 @@ public class ButtonPressAnimation : MonoBehaviour
     private Vector3   _restPosition;
     private Coroutine _pressCoroutine;
 
+    /// <summary>Fired once each time Play() is called — before the animation begins.</summary>
+    public event Action OnPressed;
+
     private void Awake()
     {
         if (_pressTarget == null)
@@ -39,6 +43,8 @@ public class ButtonPressAnimation : MonoBehaviour
     /// <summary>Triggers the press-and-return animation. Safe to call while already animating.</summary>
     public void Play()
     {
+        OnPressed?.Invoke();
+
         if (_pressCoroutine != null)
             StopCoroutine(_pressCoroutine);
 

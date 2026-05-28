@@ -34,4 +34,26 @@ public class ItemData : ScriptableObject
     [Header("Usage")]
     [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
     public bool consumeOnUse = true;
+
+    private static readonly int LiquidColorId = Shader.PropertyToID("_LiquidColor");
+
+    /// <summary>
+    /// Returns the liquid color from the _LiquidColor property on the inspectionPrefab's material.
+    /// Falls back to Color.white if the prefab or property is absent.
+    /// </summary>
+    public Color GetLiquidColor()
+    {
+        if (inspectionPrefab == null) return Color.white;
+
+        foreach (var rend in inspectionPrefab.GetComponentsInChildren<Renderer>(includeInactive: true))
+        {
+            foreach (var mat in rend.sharedMaterials)
+            {
+                if (mat != null && mat.HasProperty(LiquidColorId))
+                    return mat.GetColor(LiquidColorId);
+            }
+        }
+
+        return Color.white;
+    }
 }
