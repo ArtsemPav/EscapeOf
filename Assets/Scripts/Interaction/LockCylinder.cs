@@ -11,8 +11,13 @@ public class LockCylinder : MonoBehaviour
     private const float StepAngle = -36f;
     private const float RotationSpeed = 360f;
 
+    [Header("Rotation Settings")]
     [SerializeField] private int _currentIndex = 0;
     [SerializeField] private Vector3 _rotationAxis = Vector3.up;
+
+    [Header("Audio")]
+    [Tooltip("Sound played when the cylinder rotates.")]
+    [SerializeField] private AudioClip _rotateSound;
 
     private Quaternion _targetRotation;
 
@@ -47,6 +52,12 @@ public class LockCylinder : MonoBehaviour
         {
             _currentIndex = (_currentIndex + 1) % 10;
         }
+
+        if (_rotateSound != null && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(_rotateSound, 1f);
+        }
+
         UpdateRotation(false);
     }
 

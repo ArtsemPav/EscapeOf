@@ -14,6 +14,10 @@ public class BoardPuzzlePipe : MonoBehaviour
     [SerializeField] private float _rotationDuration = 0.3f;
     [SerializeField] private Vector3 _rotationAxis = new Vector3(0, 0, 1);
 
+    [Header("Audio")]
+    [Tooltip("Sound played when the cylinder rotates.")]
+    [SerializeField] private AudioClip _rotateSound;
+
     private bool _isRotating = false;
     private bool _isLocked = false;
 
@@ -40,6 +44,12 @@ public class BoardPuzzlePipe : MonoBehaviour
     public void Rotate()
     {
         if (_isRotating || _isLocked) return;
+
+        if (_rotateSound != null && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(_rotateSound);
+        }
+
         StartCoroutine(RotateRoutine());
     }
 
