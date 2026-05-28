@@ -175,6 +175,9 @@ public class PuzzleInventoryBar : MonoBehaviour
     {
         if (slot == null || !slot.HasItem) return;
 
+        // Block new drags while the inspection/craft-preview window is open.
+        if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
+
         _dragSource = slot;
         _dragItem = slot.Item;
         _isDragging = true;
@@ -210,14 +213,24 @@ public class PuzzleInventoryBar : MonoBehaviour
         UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         DestroyGhost();
 
+        // Block all drop interactions while the inspection/craft-preview window is open.
+        if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting)
+        {
+            slot?.SetDragVisual(dimmed: false);
+            _dragSource = null;
+            _dragItem = null;
+            return;
+        }
+
         // Check if the drop landed on another bar slot for crafting.
         PuzzleInventorySlot targetBarSlot = FindHoveredBarSlot(eventData, exclude: slot);
         if (targetBarSlot != null && targetBarSlot.HasItem && _dragItem != null)
         {
             if (InventorySystem.Instance != null &&
-                InventorySystem.Instance.TryCombine(slot.SlotIndex, targetBarSlot.SlotIndex, out _))
+                InventorySystem.Instance.TryCombineDeferred(
+                    slot.SlotIndex, targetBarSlot.SlotIndex, out ItemData craftResult))
             {
-                // Craft succeeded — RefreshSlots will be called by OnInventoryChanged.
+                ShowCraftResult(craftResult);
                 _dragSource = null;
                 _dragItem = null;
                 return;
@@ -254,14 +267,44 @@ public class PuzzleInventoryBar : MonoBehaviour
 
     /// <summary>
     /// Called by PuzzleInventorySlot.OnDrop when a slot is dropped on top of another.
-    /// Attempts crafting between the two slots via InventorySystem.TryCombine.
-    /// This is a secondary path; the primary crafting path runs in OnSlotEndDrag.
+    /// Secondary path — primary crafting runs in OnSlotEndDrag.
     /// </summary>
     public void OnSlotDropReceived(PuzzleInventorySlot targetSlot, PuzzleInventorySlot sourceSlot)
     {
-        // Primary crafting is handled in OnSlotEndDrag via eventData.hovered; this is a safety net.
         if (!targetSlot.HasItem || sourceSlot == null) return;
-        InventorySystem.Instance?.TryCombine(sourceSlot.SlotIndex, targetSlot.SlotIndex, out _);
+
+        // Block while the inspection/craft-preview window is open.
+        if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
+
+        if (InventorySystem.Instance != null &&
+            InventorySystem.Instance.TryCombineDeferred(
+                sourceSlot.SlotIndex, targetSlot.SlotIndex, out ItemData craftResult))
+        {
+            ShowCraftResult(craftResult);
+        }
+    }
+
+    /// <summary>
+    /// Opens the ItemInspector preview for a freshly crafted item.
+    /// The item is added to inventory only when the player confirms (clicks).
+    /// Falls back to a direct AddItem call when the inspector is unavailable
+    /// or the item has no inspection prefab.
+    /// </summary>
+    private void ShowCraftResult(ItemData result)
+    {
+        if (result == null) return;
+
+        if (ItemInspector.Instance != null && result.inspectionPrefab != null)
+        {
+            ItemInspector.Instance.BeginInspection(result, null, item =>
+            {
+                InventorySystem.Instance?.AddItem(item);
+            });
+        }
+        else
+        {
+            InventorySystem.Instance?.AddItem(result);
+        }
     }
 
     // ── Scroll ────────────────────────────────────────────────────────────────

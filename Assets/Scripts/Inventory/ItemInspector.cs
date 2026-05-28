@@ -12,6 +12,9 @@ public class ItemInspector : MonoBehaviour
 {
     public static ItemInspector Instance { get; private set; }
 
+    /// <summary>True while any inspection or preview panel is open.</summary>
+    public bool IsInspecting => _isInspecting;
+
     [Header("Camera")]
     [SerializeField] private Camera inspectionCamera;
 

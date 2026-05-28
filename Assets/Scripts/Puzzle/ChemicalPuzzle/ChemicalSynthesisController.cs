@@ -29,6 +29,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     [Tooltip("Empty flask returned to inventory when a filled flask is loaded into a device.")]
     [SerializeField] private ItemData _amptyColba;
 
+    [Tooltip("All intermediate and ingredient flasks that must be removed from inventory when the puzzle is solved. " +
+             "Do NOT include the winning flask — it stays in inventory as the reward.")]
+    [SerializeField] private ItemData[] _puzzleItems;
+
     [Header("Drop Slots (Colliders)")]
     [Tooltip("centrifugaWheel Transform — hover detection is limited to this object and its children.")]
     [SerializeField] private Transform _centrifugeWheel;
@@ -81,6 +85,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     // ── State ─────────────────────────────────────────────────────────────────
 
     private bool _isSolved;
+
+    // Set to true in OnAnalyzerSuccess so the next OnAnalyzerFlaskReturned
+    // call (which delivers the winning flask) triggers the inventory cleanup.
+    private bool _pendingInventoryCleanup;
 
     // Pre-allocated buffer for zero-GC RaycastNonAlloc calls in Update.
     private readonly RaycastHit[] _hoverHitBuffer = new RaycastHit[16];
@@ -447,6 +455,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private void OnAnalyzerSuccess()
     {
         _isSolved = true;
+        _pendingInventoryCleanup = true;
         _puzzleMode?.SetSolved();
         AudioManager.Instance?.PlaySFX(_successClip);
         SaveManager.Instance?.Save();
@@ -461,5 +470,30 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     {
         if (flask == null) return;
         InventorySystem.Instance?.AddItem(flask);
+
+        // After the winning flask lands in inventory, purge all intermediate puzzle items.
+        if (_pendingInventoryCleanup)
+        {
+            _pendingInventoryCleanup = false;
+            ClearPuzzleItemsFromInventory();
+        }
+    }
+
+    /// <summary>
+    /// Removes every entry in <see cref="_puzzleItems"/> from the player's inventory.
+    /// Called once, right after the winning flask is delivered, so the player keeps
+    /// only the reward flask and loses all intermediate ingredients and by-products.
+    /// </summary>
+    private void ClearPuzzleItemsFromInventory()
+    {
+        if (_puzzleItems == null || InventorySystem.Instance == null) return;
+
+        foreach (ItemData item in _puzzleItems)
+        {
+            if (item == null) continue;
+
+            // Remove all copies of this item (player may have picked up duplicates).
+            while (InventorySystem.Instance.RemoveItem(item)) { }
+        }
     }
 }

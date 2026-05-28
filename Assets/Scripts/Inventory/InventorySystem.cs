@@ -211,6 +211,69 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
+    /// Attempts to combine items from two slots without placing the result into inventory.
+    /// If a matching recipe is found, the ingredients are consumed and <paramref name="result"/>
+    /// is returned for the caller to handle (e.g. show an inspection preview first).
+    /// <para>When both ingredients are conserved by the recipe, nothing is consumed and
+    /// <paramref name="result"/> is still returned — the caller decides how to proceed.</para>
+    /// Fires <see cref="OnInventoryChanged"/> only when at least one ingredient is consumed.
+    /// </summary>
+    public bool TryCombineDeferred(int sourceSlotIndex, int targetSlotIndex, out ItemData result)
+    {
+        ItemData a = GetItemAt(sourceSlotIndex);
+        ItemData b = GetItemAt(targetSlotIndex);
+
+        if (a == null || b == null)
+        {
+            result = null;
+            return false;
+        }
+
+        foreach (var recipe in recipes)
+        {
+            bool aMatchesSource = recipe.ingredientA == a && recipe.ingredientB == b;
+            bool aMatchesTarget = recipe.ingredientA == b && recipe.ingredientB == a;
+
+            if (!aMatchesSource && !aMatchesTarget) continue;
+
+            result = recipe.result;
+
+            int slotIndexA = aMatchesSource ? sourceSlotIndex : targetSlotIndex;
+            int slotIndexB = aMatchesSource ? targetSlotIndex : sourceSlotIndex;
+
+            bool inventoryChanged = false;
+
+            if (!recipe.conserveIngredientA && !recipe.conserveIngredientB)
+            {
+                _slots[sourceSlotIndex] = null;
+                _slots[targetSlotIndex] = null;
+                inventoryChanged = true;
+            }
+            else if (!recipe.conserveIngredientA)
+            {
+                _slots[slotIndexA] = null;
+                inventoryChanged = true;
+            }
+            else if (!recipe.conserveIngredientB)
+            {
+                _slots[slotIndexB] = null;
+                inventoryChanged = true;
+            }
+
+            if (inventoryChanged)
+            {
+                CompactSlots();
+                OnInventoryChanged?.Invoke();
+            }
+
+            return true;
+        }
+
+        result = null;
+        return false;
+    }
+
+    /// <summary>
     /// Tries to combine items from two slots using registered recipes.
     /// Respects conserveIngredientA / conserveIngredientB flags on the matched recipe:
     /// the consumed slot receives the result; preserved slots are not modified.
