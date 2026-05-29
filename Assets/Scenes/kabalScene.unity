@@ -1929,7 +1929,6 @@ MonoBehaviour:
   _allItems:
   - {fileID: 11400000, guid: 0f02e804407dbc14a8ddfbeb714ffd08, type: 2}
   - {fileID: 11400000, guid: 2b23404e592f36a489568c7324f2d953, type: 2}
-  - {fileID: 11400000, guid: 41aae378bbb74134cba03847172ce22a, type: 2}
   - {fileID: 11400000, guid: ae0626fcceabc2943b0cde4859f673a8, type: 2}
   - {fileID: 11400000, guid: a663a2e164064444aae064390c68c87f, type: 2}
   - {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
@@ -8569,17 +8568,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Assets.Scripts.UI.InteractionUI
   hintPanel: {fileID: 2004476329}
   hintText: {fileID: 1530977512}
-  interactionIcon: {fileID: 279557916}
-  handIcon: {fileID: 0}
-  defaultIcon: {fileID: 0}
-  dragIcon: {fileID: 0}
   crosshairImage: {fileID: 241456402}
-  crosshairDefault: {fileID: 21300000, guid: 317404d4919f3c54fbfcaaa1a3ff3bb9, type: 3}
-  crosshairHand: {fileID: 21300000, guid: c0081940ae6632940b662f7f1f8c0ca9, type: 3}
-  crosshairLocked: {fileID: 21300000, guid: 50edb777dd649b14ba3ee1181b96bc71, type: 3}
-  crosshairUnlocked: {fileID: 21300000, guid: ffa4ac81b427fd9448426b101aa90b75, type: 3}
-  crosshairGrab: {fileID: 21300000, guid: 6148ce22fd474c245aeb9206c2ca0652, type: 3}
-  crosshairRead: {fileID: 21300000, guid: 3c8a5a98cd3e8804fbabf816543c7400, type: 3}
+  crosshairSprites:
+    Default: {fileID: 0}
+    Hand: {fileID: 0}
+    Grab: {fileID: 0}
+    ItemDrag: {fileID: 0}
+    Locked: {fileID: 0}
+    Unlocked: {fileID: 0}
+    Point: {fileID: 0}
+    View: {fileID: 0}
 --- !u!1 &1430055674
 GameObject:
   m_ObjectHideFlags: 0
@@ -9134,6 +9132,8 @@ MonoBehaviour:
   scrollLeftButton: {fileID: 1080330678}
   scrollRightButton: {fileID: 743534997}
   visibleSlotCount: 10
+  _wrongItemMessage: "\u042D\u0442\u043E\u0442 \u043F\u0440\u0435\u0434\u043C\u0435\u0442
+    \u0441\u044E\u0434\u0430 \u043D\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u0438\u0442"
   slotSize: 140
   slotSpacing: 12
   ghostSize: 112
@@ -12395,6 +12395,7 @@ MonoBehaviour:
   descriptionText: {fileID: 1793692665}
   panelWidth: 520
   slotGap: 6
+  _minimumCanvasY: -200
 --- !u!1 &2112253385
 GameObject:
   m_ObjectHideFlags: 0

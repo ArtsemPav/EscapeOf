@@ -47,8 +47,13 @@ public class AnalyzerScreenController : MonoBehaviour
         SetActive(_scanningScreen, true);
         SetActive(_resultScreen, false);
 
-        if (_scanProgressBar != null) _scanProgressBar.fillAmount = 0f;
-        if (_scanPercentText  != null) _scanPercentText.text = "0%";
+        // Reset bar to zero width by collapsing the right anchor to the left.
+        // This approach is independent of Image.fillAmount / fillMethod so it
+        // works reliably on any Image type without needing a sprite.
+        if (_scanProgressBar != null)
+            SetBarPercent(0f);
+
+        if (_scanPercentText != null) _scanPercentText.text = "0%";
     }
 
     /// <summary>
@@ -56,8 +61,20 @@ public class AnalyzerScreenController : MonoBehaviour
     /// </summary>
     public void SetScanPercent(int percent)
     {
-        if (_scanProgressBar != null) _scanProgressBar.fillAmount = percent / 100f;
-        if (_scanPercentText  != null) _scanPercentText.text = $"{percent}%";
+        if (_scanProgressBar != null)
+            SetBarPercent(percent / 100f);
+
+        if (_scanPercentText != null) _scanPercentText.text = $"{percent}%";
+    }
+
+    /// <summary>Drives the progress bar by sliding anchorMax.x from 0 (empty) to 1 (full).</summary>
+    private void SetBarPercent(float t)
+    {
+        RectTransform rt = _scanProgressBar.rectTransform;
+        rt.anchorMin        = new Vector2(0f,                    rt.anchorMin.y);
+        rt.anchorMax        = new Vector2(Mathf.Clamp01(t),      rt.anchorMax.y);
+        rt.sizeDelta        = new Vector2(0f,                    rt.sizeDelta.y);
+        rt.anchoredPosition = new Vector2(0f,                    rt.anchoredPosition.y);
     }
 
     /// <summary>Shows the result screen with compound name, description, and success/fail verdict.</summary>
