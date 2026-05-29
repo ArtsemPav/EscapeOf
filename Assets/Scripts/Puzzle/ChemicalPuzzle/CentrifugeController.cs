@@ -10,9 +10,6 @@ using UnityEngine;
 /// </summary>
 public class CentrifugeController : ChemicalDeviceBase
 {
-    // ItemId of the input flask that the centrifuge considers "clean" and produces _cleanResult.
-    // DirtColba.asset has _itemId = "DirtLiquid" — all other accepted flasks produce _spoiledResult.
-    private const string CleanResultId = "DirtLiquid";
     private const int SlotCount = 3;
 
     [Header("References")]
@@ -35,6 +32,12 @@ public class CentrifugeController : ChemicalDeviceBase
     [Header("Ghost Preview")]
     [Tooltip("Optional material applied to the hover ghost. Leave null to use the item's own material.")]
     [SerializeField] private Material _ghostMaterial;
+
+    [Header("Equivalence Map")]
+    [Tooltip("Maps unknown flask variants to their identified counterparts. " +
+             "Allows an unknown flask to be accepted and treated as its identified version for CleanResultId matching. " +
+             "The whitelist only needs to list the identified version — unknown variants are normalised automatically.")]
+    [SerializeField] private IdentificationEntry[] _equivalenceMap;
 
     [Header("Flask Placement")]
     [Tooltip("Uniform scale applied to flask prefabs when placed into centrifuge slots. Tune until flasks match the physical centrifuge size.")]
@@ -60,6 +63,9 @@ public class CentrifugeController : ChemicalDeviceBase
     public Transform WheelTransform => _wheelTransform;
 
     [Header("Results")]
+    [Tooltip("The specific identified flask that produces the clean result when centrifuged. " +
+             "Uses object reference equality — unknown variants of the same item will not match.")]
+    [SerializeField] private ItemData _cleanInputItem;
     [SerializeField] private ItemData _cleanResult;
     [SerializeField] private ItemData _spoiledResult;
 
@@ -102,12 +108,15 @@ public class CentrifugeController : ChemicalDeviceBase
 
     /// <summary>
     /// Returns true when <paramref name="item"/> is in the accepted-items whitelist.
+    /// Unknown variants are normalised to their identified counterparts before the check,
+    /// so the whitelist only needs to list identified items.
     /// An empty whitelist rejects everything — fill it in the Inspector.
     /// </summary>
     public bool Accepts(ItemData item)
     {
         if (item == null || _acceptedItems == null || _acceptedItems.Length == 0) return false;
-        return System.Array.IndexOf(_acceptedItems, item) >= 0;
+        return System.Array.IndexOf(_acceptedItems, item) >= 0 ||
+               System.Array.IndexOf(_acceptedItems, Normalize(item)) >= 0;
     }
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
@@ -189,6 +198,9 @@ public class CentrifugeController : ChemicalDeviceBase
         {
             foreach (var rend in _hoverGhost.GetComponentsInChildren<Renderer>(true))
             {
+                // Preserve the liquid renderer's original materials so the flask colour is visible.
+                if (rend.gameObject.name == "liquid") continue;
+
                 var mats = new Material[rend.sharedMaterials.Length];
                 for (int i = 0; i < mats.Length; i++) mats[i] = _ghostMaterial;
                 rend.materials = mats;
@@ -296,7 +308,7 @@ public class CentrifugeController : ChemicalDeviceBase
         {
             if (_loadedFlasks[i] == null) continue;
 
-            ItemData result = _loadedFlasks[i].ItemId == CleanResultId
+            ItemData result = Normalize(_loadedFlasks[i]) == _cleanInputItem
                 ? _cleanResult
                 : _spoiledResult;
 
@@ -381,8 +393,20 @@ public class CentrifugeController : ChemicalDeviceBase
         return bounds.center;
     }
 
-    private int GetFirstEmptySlot()
+    /// <summary>
+    /// Returns the identified counterpart for <paramref name="item"/> when an equivalence
+    /// mapping exists, otherwise returns <paramref name="item"/> itself.
+    /// </summary>
+    private ItemData Normalize(ItemData item)
     {
+        if (item == null || _equivalenceMap == null) return item;
+        foreach (var entry in _equivalenceMap)
+            if (entry.unknown == item && entry.identified != null)
+                return entry.identified;
+        return item;
+    }
+
+    private int GetFirstEmptySlot()    {
         for (int i = 0; i < SlotCount; i++)
             if (_loadedFlasks[i] == null) return i;
         return -1;

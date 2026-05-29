@@ -86,6 +86,11 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     private bool _isSolved;
 
+    // Queue for device results that need sequential inspection panels.
+    // Multiple results (e.g. 3 centrifuge flasks) are shown one at a time so
+    // BeginInspection is never called while another inspection is already open.
+    private readonly Queue<ItemData> _pendingResults = new Queue<ItemData>();
+
     // Set to true in OnAnalyzerSuccess so the next OnAnalyzerFlaskReturned
     // call (which delivers the winning flask) triggers the inventory cleanup.
     private bool _pendingInventoryCleanup;
@@ -178,6 +183,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         UpdateCentrifugeHover();
         UpdateBurnerHover();
         UpdateAnalyzerHover();
+        UpdateMixerHover();
         UpdateClickRetrieve();
     }
 
@@ -263,6 +269,44 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         }
 
         _analyzer.HideHoverPreview();
+    }
+
+    /// <summary>
+    /// Each frame during a drag, pulses the mixer flask highlight when the cursor is above it
+    /// and the dragged item is accepted by the mixer.
+    /// </summary>
+    private void UpdateMixerHover()
+    {
+        if (_mixer == null) return;
+
+        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
+            !_mixer.Accepts(PuzzleInventoryBar.DraggedItem) || _mixer.IsFull || _mixer.IsBusy)
+        {
+            _mixer.HideHighlight();
+            return;
+        }
+
+        if (Mouse.current == null || Camera.main == null)
+        {
+            _mixer.HideHighlight();
+            return;
+        }
+
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+
+        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
+                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < hitCount; i++)
+        {
+            if (_mixerSlot != null && _hoverHitBuffer[i].collider == _mixerSlot)
+            {
+                _mixer.ShowHighlight();
+                return;
+            }
+        }
+
+        _mixer.HideHighlight();
     }
 
     /// <summary>
@@ -416,17 +460,36 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private void OnDeviceComplete(ItemData result)
     {
         if (result == null) return;
+        _pendingResults.Enqueue(result);
+        TryShowNextResult();
+    }
+
+    /// <summary>
+    /// Shows the next queued device result in the inspection panel.
+    /// Called after each pickup callback so results are presented one at a time.
+    /// </summary>
+    private void TryShowNextResult()
+    {
+        if (_pendingResults.Count == 0) return;
+
+        // If an inspection is already open, do nothing — the pickup callback will
+        // call TryShowNextResult again when the current inspection closes.
+        if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
+
+        ItemData result = _pendingResults.Dequeue();
 
         if (ItemInspector.Instance != null)
         {
             ItemInspector.Instance.BeginInspection(result, null, (item) =>
             {
                 InventorySystem.Instance?.AddItem(item);
+                TryShowNextResult();
             });
         }
         else
         {
             InventorySystem.Instance?.AddItem(result);
+            TryShowNextResult();
         }
     }
 
@@ -456,9 +519,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     {
         _isSolved = true;
         _pendingInventoryCleanup = true;
-        _puzzleMode?.SetSolved();
         AudioManager.Instance?.PlaySFX(_successClip);
-        SaveManager.Instance?.Save();
+
+        // SetSolved and Save are deferred to OnAnalyzerFlaskReturned so they fire
+        // only after the winning flask is in inventory and all puzzle items are purged.
     }
 
     private void OnAnalyzerFail()
@@ -471,18 +535,21 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (flask == null) return;
         InventorySystem.Instance?.AddItem(flask);
 
-        // After the winning flask lands in inventory, purge all intermediate puzzle items.
-        if (_pendingInventoryCleanup)
-        {
-            _pendingInventoryCleanup = false;
-            ClearPuzzleItemsFromInventory();
-        }
+        if (!_pendingInventoryCleanup) return;
+
+        // 1. Purge all intermediate puzzle items — winning flask is already in inventory.
+        _pendingInventoryCleanup = false;
+        ClearPuzzleItemsFromInventory();
+
+        // 2. Mark the puzzle solved and persist only after the inventory is clean.
+        _puzzleMode?.SetSolved();
+        SaveManager.Instance?.Save();
     }
 
     /// <summary>
     /// Removes every entry in <see cref="_puzzleItems"/> from the player's inventory.
-    /// Called once, right after the winning flask is delivered, so the player keeps
-    /// only the reward flask and loses all intermediate ingredients and by-products.
+    /// Called once after the winning flask is delivered, so the player keeps only the
+    /// reward flask and loses all intermediate ingredients, by-products, and empties.
     /// </summary>
     private void ClearPuzzleItemsFromInventory()
     {

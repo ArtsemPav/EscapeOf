@@ -43,7 +43,7 @@ public class ItemTooltip : MonoBehaviour
     {
         if (item == null) return;
 
-        itemNameText.text = item.itemName;
+        itemNameText.text    = item.itemName;
         descriptionText.text = item.description;
         panel.gameObject.SetActive(true);
 

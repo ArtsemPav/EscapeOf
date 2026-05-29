@@ -2,6 +2,14 @@ using System;
 using System.Collections;
 using UnityEngine;
 
+/// <summary>Pairs an unknown flask ItemData with the identified version the analyzer returns.</summary>
+[Serializable]
+public struct IdentificationEntry
+{
+    public ItemData unknown;
+    public ItemData identified;
+}
+
 /// <summary>
 /// Controls the analyzer device.
 /// Player drops a flask on analiseStoyka → LoadFlask spawns the visual at Colba_Analize.
@@ -26,6 +34,12 @@ public class AnalyzerController : MonoBehaviour
 
     [Tooltip("Desired uniform world-space scale for the flask visual while in the analyzer.")]
     [SerializeField] [Range(0.01f, 5f)] private float _flaskPlacementScale = 1f;
+
+    [Tooltip("Height above the slot from which the flask begins its drop animation.")]
+    [SerializeField] private float _dropHeight = 0.05f;
+
+    [Tooltip("Duration of the drop animation in seconds.")]
+    [SerializeField] private float _dropDuration = 0.4f;
 
     [Header("Arm Animation")]
     [Tooltip("How far the analizator arm descends in WORLD-SPACE meters. Converted to local units at runtime.")]
@@ -52,6 +66,17 @@ public class AnalyzerController : MonoBehaviour
     [Tooltip("Optional material applied to the hover ghost.")]
     [SerializeField] private Material _ghostMaterial;
 
+    [Header("Identification Map")]
+    [Tooltip("Maps every unknown flask ItemData to its identified counterpart. " +
+             "The analyzer swaps the returned item to the identified version after scanning.")]
+    [SerializeField] private IdentificationEntry[] _identificationMap;
+
+    [Tooltip("Amplitude of the bob animation for the hover ghost (world-space meters).")]
+    [SerializeField] private float _hoverBobAmplitude = 0.015f;
+
+    [Tooltip("Speed of the bob animation cycle.")]
+    [SerializeField] private float _hoverBobSpeed = 2.5f;
+
     // ── Events ─────────────────────────────────────────────────────────────────
 
     /// <summary>Fired after a successful analysis (win flask detected).</summary>
@@ -68,6 +93,7 @@ public class AnalyzerController : MonoBehaviour
     private ItemData   _loadedFlask;
     private GameObject _flaskObject;
     private GameObject _hoverGhost;
+    private Coroutine  _bobCoroutine;
     private bool       _isBusy;
     private float      _armRestY;
 
@@ -100,8 +126,11 @@ public class AnalyzerController : MonoBehaviour
     /// <summary>Returns true when <paramref name="item"/> is in the accepted-items list.</summary>
     public bool CanDrop(ItemData item)
     {
-        if (item == null || _acceptedItems == null || _acceptedItems.Length == 0) return false;
-        return Array.IndexOf(_acceptedItems, item) >= 0;
+        if (item == null) return false;
+        // Any flask that has an identification mapping can be analyzed.
+        if (Identify(item) != item) return true;
+        // Explicitly whitelisted items are also accepted.
+        return _acceptedItems != null && Array.IndexOf(_acceptedItems, item) >= 0;
     }
 
     /// <summary>Backward-compatible alias for CanDrop.</summary>
@@ -138,22 +167,25 @@ public class AnalyzerController : MonoBehaviour
 
         foreach (var col in _hoverGhost.GetComponentsInChildren<Collider>(true))
             col.enabled = false;
+
+        _bobCoroutine = StartCoroutine(BobGhostRoutine(_hoverGhost.transform.position));
     }
 
-    /// <summary>Destroys the hover ghost.</summary>
+    /// <summary>Destroys the hover ghost and stops bob animation.</summary>
     public void HideHoverPreview()
     {
-        if (_hoverGhost != null) { Destroy(_hoverGhost); _hoverGhost = null; }
+        if (_bobCoroutine != null) { StopCoroutine(_bobCoroutine); _bobCoroutine = null; }
+        if (_hoverGhost   != null) { Destroy(_hoverGhost); _hoverGhost = null; }
     }
 
-    /// <summary>Stores the flask data and spawns its visual at Colba_Analize.</summary>
+    /// <summary>Stores the flask data and drops its visual into the analyzer slot.</summary>
     public void LoadFlask(ItemData flask)
     {
         HideHoverPreview();
         _loadedFlask = flask;
 
         if (flask?.inspectionPrefab != null && _centerCollider != null)
-            SpawnFlaskVisual(flask.inspectionPrefab);
+            StartCoroutine(DropFlaskRoutine(flask.inspectionPrefab));
     }
 
     /// <summary>
@@ -175,7 +207,7 @@ public class AnalyzerController : MonoBehaviour
 
     // ── Private ────────────────────────────────────────────────────────────────
 
-    private void SpawnFlaskVisual(GameObject prefab)
+    private IEnumerator DropFlaskRoutine(GameObject prefab)
     {
         if (_flaskObject != null) { Destroy(_flaskObject); _flaskObject = null; }
 
@@ -185,11 +217,36 @@ public class AnalyzerController : MonoBehaviour
         _flaskObject = Instantiate(prefab, center, parent.rotation, parent);
         _flaskObject.transform.localScale = ComputeLocalScaleForWorldScale(parent, _flaskPlacementScale);
 
-        Vector3 offset = ComputeBoundsCenter(_flaskObject) - center;
-        _flaskObject.transform.position -= offset;
-
         foreach (var col in _flaskObject.GetComponentsInChildren<Collider>(true))
             col.enabled = false;
+
+        Vector3 centerOffset = ComputeBoundsCenter(_flaskObject) - center;
+        Vector3 endWorld     = center - centerOffset;
+        Vector3 startWorld   = endWorld + Vector3.up * _dropHeight;
+
+        _flaskObject.transform.position = startWorld;
+
+        float elapsed = 0f;
+        while (elapsed < _dropDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / _dropDuration);
+            _flaskObject.transform.position = Vector3.Lerp(startWorld, endWorld, t * t); // ease-in
+            yield return null;
+        }
+
+        _flaskObject.transform.position = endWorld;
+    }
+
+    private IEnumerator BobGhostRoutine(Vector3 basePos)
+    {
+        float t = 0f;
+        while (_hoverGhost != null)
+        {
+            t += Time.deltaTime * _hoverBobSpeed;
+            _hoverGhost.transform.position = basePos + Vector3.up * (_hoverBobAmplitude * (1f + Mathf.Sin(t)));
+            yield return null;
+        }
     }
 
     private void OnButtonPressed()
@@ -222,11 +279,13 @@ public class AnalyzerController : MonoBehaviour
         _screen?.SetScanPercent(100);
 
         // 3. Show result with compound name and description.
-        bool   isSuccess    = _loadedFlask.ItemId == _winItemId;
-        string compoundName = _loadedFlask.itemName;
-        string description  = string.IsNullOrEmpty(_loadedFlask.description)
+        // Resolve identified version — reveals the real name on screen even for unknown flasks.
+        ItemData identified  = Identify(_loadedFlask);
+        bool   isSuccess    = identified.ItemId == _winItemId;
+        string compoundName = identified.itemName;
+        string description  = string.IsNullOrEmpty(identified.description)
                               ? compoundName
-                              : _loadedFlask.description;
+                              : identified.description;
 
         _screen?.ShowResult(compoundName, description, isSuccess);
         yield return new WaitForSeconds(_resultDisplayDuration);
@@ -238,17 +297,19 @@ public class AnalyzerController : MonoBehaviour
         if (_flaskObject != null) { Destroy(_flaskObject); _flaskObject = null; }
         _screen?.ShowIdle();
 
-        // 6. Return flask and fire events.
-        ItemData returnedFlask = _loadedFlask;
+        // 6. Return the identified version so the player sees the real name in inventory.
+        ItemData returnedFlask = identified;
         _loadedFlask = null;
         _isBusy      = false;
 
-        OnFlaskReturned?.Invoke(returnedFlask);
-
+        // Fire success/fail first so subscribers (e.g. ChemicalSynthesisController) can set
+        // their cleanup flags before OnFlaskReturned delivers the flask to inventory.
         if (isSuccess)
             OnSuccess?.Invoke();
         else
             OnFail?.Invoke();
+
+        OnFlaskReturned?.Invoke(returnedFlask);
     }
 
     private IEnumerator MoveArmTo(float targetLocalY, float duration)
@@ -272,6 +333,19 @@ public class AnalyzerController : MonoBehaviour
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the identified counterpart for <paramref name="item"/> if a mapping exists,
+    /// otherwise returns <paramref name="item"/> itself.
+    /// </summary>
+    private ItemData Identify(ItemData item)
+    {
+        if (item == null || _identificationMap == null) return item;
+        foreach (var entry in _identificationMap)
+            if (entry.unknown == item && entry.identified != null)
+                return entry.identified;
+        return item;
+    }
 
     private static Vector3 ComputeLocalScaleForWorldScale(Transform parent, float worldScale)
     {

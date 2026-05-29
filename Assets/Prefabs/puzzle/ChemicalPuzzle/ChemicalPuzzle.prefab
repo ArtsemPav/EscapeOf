@@ -616,20 +616,27 @@ MonoBehaviour:
   _burner: {fileID: 5852487563247316957}
   _mixer: {fileID: 6767991610681979237}
   _analyzer: {fileID: 631601556610848675}
-  _centrifugeWheelRotationSpeed: 360
+  _centrifugeWheelRotationSpeed: 1440
   _amptyColba: {fileID: 11400000, guid: 0aa6e7d7c57488e4ab00474addaeb874, type: 2}
   _puzzleItems:
   - {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
-  - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
-  - {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
-  - {fileID: 11400000, guid: aeb18597063e5504688591ec0b4b1135, type: 2}
   - {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
-  - {fileID: 11400000, guid: e9a20f98cb064d6459a45ad118bc7a31, type: 2}
+  - {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
+  - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
   - {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
   - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
+  - {fileID: 11400000, guid: f757711c60bb02f4e8bc41d70d995b4d, type: 2}
+  - {fileID: 11400000, guid: ce7fd47dcf987d743a4f78023e57feee, type: 2}
+  - {fileID: 11400000, guid: dff8845d6abbd704795a18c8a5459fa5, type: 2}
+  - {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
+  - {fileID: 11400000, guid: 2c305123ed370144385dac10a28a335b, type: 2}
+  - {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
+  - {fileID: 11400000, guid: 0b07f864d7f72c94f9a0e24a6307155f, type: 2}
   - {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
   - {fileID: 11400000, guid: 0aa6e7d7c57488e4ab00474addaeb874, type: 2}
   - {fileID: 11400000, guid: f872c60c08853354a8f09e272de2a12b, type: 2}
+  - {fileID: 11400000, guid: e9a20f98cb064d6459a45ad118bc7a31, type: 2}
+  - {fileID: 11400000, guid: aeb18597063e5504688591ec0b4b1135, type: 2}
   _centrifugeWheel: {fileID: 1222586047460185243}
   _analyzerSlot: {fileID: 8265867447065727582}
   _burnerSlot: {fileID: 6875495640008718340}
@@ -2369,11 +2376,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7551793302073323907, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.3037
+      value: 0.297
       objectReference: {fileID: 0}
     - target: {fileID: 7551793302073323907, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.034
+      value: 0.04
       objectReference: {fileID: 0}
     - target: {fileID: 7551793302073323907, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2426,6 +2433,11 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 9201876017762947542}
   m_SourcePrefab: {fileID: 100100000, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
+--- !u!23 &1039873149973163064 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 6682901037450281943, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
+  m_PrefabInstance: {fileID: 5967322320770805743}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2718789546992248349 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8605011889913137650, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
@@ -2449,23 +2461,39 @@ MonoBehaviour:
   _liquidWobble: {fileID: 6559406645939632640}
   _fillAnimDuration: 0.6
   _fillPerPortion: 0.24
-  _glowRenderer: {fileID: 0}
+  _glowRenderer: {fileID: 1039873149973163064}
+  _hoverHighlightRenderer: {fileID: 1039873149973163064}
+  _highlightColor: {r: 0.6901961, g: 0.8784314, b: 0.9019608, a: 1}
+  _highlightPulseSpeed: 5
   _acceptedItems:
   - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
   - {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
   - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
   - {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
+  - {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
+  - {fileID: 11400000, guid: 2475dd3ac300eb842a3485c3b42e836c, type: 2}
+  _equivalenceMap:
+  - unknown: {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
+    identified: {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
+  - unknown: {fileID: 11400000, guid: dff8845d6abbd704795a18c8a5459fa5, type: 2}
+    identified: {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
+  - unknown: {fileID: 11400000, guid: ce7fd47dcf987d743a4f78023e57feee, type: 2}
+    identified: {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
+  - unknown: {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
+    identified: {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
+  - unknown: {fileID: 11400000, guid: f757711c60bb02f4e8bc41d70d995b4d, type: 2}
+    identified: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
   _slagItems:
   - {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
   _recipes:
   - ingredients:
     - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
     - {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
-    result: {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
+    result: {fileID: 11400000, guid: 2c305123ed370144385dac10a28a335b, type: 2}
   - ingredients:
     - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
     - {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
-    result: {fileID: 11400000, guid: 2475dd3ac300eb842a3485c3b42e836c, type: 2}
+    result: {fileID: 11400000, guid: 0b07f864d7f72c94f9a0e24a6307155f, type: 2}
   _spoiledResult: {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
 --- !u!65 &9201876017762947542
 BoxCollider:
@@ -2763,6 +2791,8 @@ MonoBehaviour:
   _screen: {fileID: 8659357066482781752}
   _centerCollider: {fileID: 8265867447065727582}
   _flaskPlacementScale: 1
+  _dropHeight: 0.05
+  _dropDuration: 0.4
   _diveDepth: 0.05
   _diveMoveDuration: 0.5
   _scanDuration: 5
@@ -2776,8 +2806,24 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
   - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
   - {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
-  - {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
   _ghostMaterial: {fileID: 0}
+  _identificationMap:
+  - unknown: {fileID: 11400000, guid: ce7fd47dcf987d743a4f78023e57feee, type: 2}
+    identified: {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
+  - unknown: {fileID: 11400000, guid: dff8845d6abbd704795a18c8a5459fa5, type: 2}
+    identified: {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
+  - unknown: {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
+    identified: {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
+  - unknown: {fileID: 11400000, guid: 2c305123ed370144385dac10a28a335b, type: 2}
+    identified: {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
+  - unknown: {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
+    identified: {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
+  - unknown: {fileID: 11400000, guid: 0b07f864d7f72c94f9a0e24a6307155f, type: 2}
+    identified: {fileID: 11400000, guid: 2475dd3ac300eb842a3485c3b42e836c, type: 2}
+  - unknown: {fileID: 11400000, guid: f757711c60bb02f4e8bc41d70d995b4d, type: 2}
+    identified: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
+  _hoverBobAmplitude: 0.015
+  _hoverBobSpeed: 2.5
 --- !u!114 &8659357066482781752
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2908,14 +2954,32 @@ MonoBehaviour:
   - {fileID: 2509538587857797922}
   _acceptedItems:
   - {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
-  _ghostMaterial: {fileID: 2100000, guid: c24b8b47eb1b4d04ea7f73992a5573a7, type: 2}
+  - {fileID: 11400000, guid: f757711c60bb02f4e8bc41d70d995b4d, type: 2}
+  - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
+  - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
+  - {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
+  - {fileID: 11400000, guid: 2475dd3ac300eb842a3485c3b42e836c, type: 2}
+  - {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
+  - {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
+  - {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
+  - {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
+  - {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
+  - {fileID: 11400000, guid: ce7fd47dcf987d743a4f78023e57feee, type: 2}
+  - {fileID: 11400000, guid: 0b07f864d7f72c94f9a0e24a6307155f, type: 2}
+  - {fileID: 11400000, guid: dff8845d6abbd704795a18c8a5459fa5, type: 2}
+  - {fileID: 11400000, guid: 2c305123ed370144385dac10a28a335b, type: 2}
+  _ghostMaterial: {fileID: 0}
+  _equivalenceMap:
+  - unknown: {fileID: 11400000, guid: f757711c60bb02f4e8bc41d70d995b4d, type: 2}
+    identified: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
   _flaskPlacementScale: 1
   _dropHeight: 0.05
   _dropDuration: 0.4
   _hoverBobAmplitude: 0.015
-  _hoverBobSpeed: 2.5
+  _hoverBobSpeed: 5
   _duration: 5
-  _cleanResult: {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
+  _cleanInputItem: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
+  _cleanResult: {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
   _spoiledResult: {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
 --- !u!114 &8808750700689352979
 MonoBehaviour:
@@ -3231,15 +3295,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6716995550214845903, guid: de4f3fcb8fbe1d548a4e69589bbd7872, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.324
+      value: 0.214
       objectReference: {fileID: 0}
     - target: {fileID: 6716995550214845903, guid: de4f3fcb8fbe1d548a4e69589bbd7872, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: 0.013
       objectReference: {fileID: 0}
     - target: {fileID: 6716995550214845903, guid: de4f3fcb8fbe1d548a4e69589bbd7872, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 6716995550214845903, guid: de4f3fcb8fbe1d548a4e69589bbd7872, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3314,10 +3378,12 @@ MonoBehaviour:
   _spotCollider: {fileID: 272518745800892633}
   _flameVFX: {fileID: 7841798663709320032}
   _duration: 5
-  _flaskPlacementScale: 0.04
+  _flaskPlacementScale: 0.821
   _dropHeight: 0.05
   _dropDuration: 0.4
-  _ghostMaterial: {fileID: 2100000, guid: c24b8b47eb1b4d04ea7f73992a5573a7, type: 2}
+  _ghostMaterial: {fileID: 0}
+  _hoverBobAmplitude: 0.015
+  _hoverBobSpeed: 2.5
   _droppableItems:
   - {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
   - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
@@ -3326,9 +3392,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
   - {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
   - {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
+  - {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
+  _equivalenceMap:
+  - unknown: {fileID: 11400000, guid: 2c305123ed370144385dac10a28a335b, type: 2}
+    identified: {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
   _successItems:
   - {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
-  _successResult: {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
+  _successResult: {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
   _spoiledResult: {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
 --- !u!65 &6875495640008718340
 BoxCollider:

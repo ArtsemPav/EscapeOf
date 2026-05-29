@@ -53,9 +53,27 @@ public class MixerController : ChemicalDeviceBase
     [Tooltip("Renderer that shows the glow effect while the mixer is locked.")]
     [SerializeField] private Renderer _glowRenderer;
 
+    [Header("Hover Highlight")]
+    [Tooltip("Renderer on the flask mesh that pulses when a valid item is dragged over the mixer. " +
+             "Auto-resolved to the first child MeshRenderer named 'mixColba' if left empty.")]
+    [SerializeField] private Renderer _hoverHighlightRenderer;
+
+    [Tooltip("Emission colour applied to _hoverHighlightRenderer during the hover pulse. " +
+             "Use HDR values > 1 for bloom.")]
+    [ColorUsage(showAlpha: false, hdr: true)]
+    [SerializeField] private Color _highlightColor = new Color(0f, 2f, 0.8f);
+
+    [Tooltip("Pulse frequency in Hz.")]
+    [SerializeField] [Range(0.5f, 5f)] private float _highlightPulseSpeed = 1.5f;
+
     [Header("Accepted Items")]
     [Tooltip("Whitelist of ItemData assets the mixer accepts. Leave empty to accept everything.")]
     [SerializeField] private ItemData[] _acceptedItems;
+
+    [Header("Equivalence Map")]
+    [Tooltip("Maps 'unknown' flask variants to their identified counterparts for acceptance and recipe matching. " +
+             "Recipes only need to list the identified version — unknown variants are normalised automatically.")]
+    [SerializeField] private IdentificationEntry[] _equivalenceMap;
 
     [Header("Slag Items")]
     [Tooltip("Items that contaminate the entire mix. If any loaded item is in this list the result is always _spoiledResult, regardless of other ingredients.")]
@@ -75,6 +93,13 @@ public class MixerController : ChemicalDeviceBase
     private bool _isLocked;
     private bool _containsSlag;
 
+    // ── Highlight state ────────────────────────────────────────────────────────
+
+    private bool _isHighlighted;
+    private Material _originalSharedMaterial;
+    private Material _highlightInstance;
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+
     // ── Properties ─────────────────────────────────────────────────────────────
 
     /// <summary>True when the mixer has reached its portion limit and is exporting.</summary>
@@ -90,19 +115,76 @@ public class MixerController : ChemicalDeviceBase
         // Auto-resolve the drop-zone collider if not wired in the Inspector.
         if (_dropZoneCollider == null)
             _dropZoneCollider = GetComponent<Collider>();
+
+        // Auto-resolve the hover highlight renderer (inner flask mesh named "mixColba").
+        if (_hoverHighlightRenderer == null)
+        {
+            foreach (var r in GetComponentsInChildren<MeshRenderer>(true))
+            {
+                if (r.gameObject.name == "mixColba")
+                {
+                    _hoverHighlightRenderer = r;
+                    break;
+                }
+            }
+        }
+    }
+
+    private void Update()
+    {
+        if (!_isHighlighted || _highlightInstance == null) return;
+
+        float t = 0.5f + 0.5f * Mathf.Sin(Time.time * _highlightPulseSpeed * Mathf.PI * 2f);
+        _highlightInstance.SetColor(EmissionColorId, _highlightColor * t);
+    }
+
+    private void OnDestroy()
+    {
+        if (_highlightInstance != null)
+            Destroy(_highlightInstance);
     }
 
     /// <summary>
     /// Returns true when <paramref name="item"/> is in the accepted-items whitelist.
+    /// Unknown variants are normalised to their identified counterpart before the check,
+    /// so the whitelist only needs to list identified items.
     /// An empty whitelist rejects everything — fill it in the Inspector.
     /// </summary>
     public bool Accepts(ItemData item)
     {
         if (item == null || _acceptedItems == null || _acceptedItems.Length == 0) return false;
-        return Array.IndexOf(_acceptedItems, item) >= 0;
+        return Array.IndexOf(_acceptedItems, item) >= 0 ||
+               Array.IndexOf(_acceptedItems, Normalize(item)) >= 0;
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
+
+    /// <summary>Starts the hover highlight pulse on the flask mesh.</summary>
+    public void ShowHighlight()
+    {
+        if (_hoverHighlightRenderer == null || _isHighlighted) return;
+        _isHighlighted = true;
+
+        // Build the highlight material instance once and reuse it.
+        if (_highlightInstance == null)
+        {
+            _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
+            _highlightInstance = new Material(_originalSharedMaterial);
+            _highlightInstance.EnableKeyword("_EMISSION");
+        }
+
+        _hoverHighlightRenderer.material = _highlightInstance;
+    }
+
+    /// <summary>Stops the hover highlight and restores the original shared material.</summary>
+    public void HideHighlight()
+    {
+        if (!_isHighlighted) return;
+        _isHighlighted = false;
+
+        if (_hoverHighlightRenderer != null && _originalSharedMaterial != null)
+            _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
+    }
 
     /// <summary>Adds a flask to the accumulator. Triggers export when the portion count is reached.</summary>
     public override void LoadFlask(ItemData input)
@@ -185,6 +267,8 @@ public class MixerController : ChemicalDeviceBase
     /// <summary>
     /// A recipe matches when every ingredient in the recipe is present in the current batch
     /// and the batch contains exactly as many items as the recipe requires.
+    /// Unknown items are normalised to their identified counterparts before comparison,
+    /// so recipes only need to list the identified versions.
     /// </summary>
     private bool RecipeMatches(MixingRecipe recipe)
     {
@@ -193,16 +277,40 @@ public class MixerController : ChemicalDeviceBase
 
         foreach (var required in recipe.ingredients)
         {
-            if (!_addedItems.Contains(required)) return false;
+            // Check whether any loaded item (possibly an unknown variant) normalises to the required ingredient.
+            bool found = false;
+            foreach (var loaded in _addedItems)
+            {
+                if (loaded == required || Normalize(loaded) == required)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return false;
         }
 
         return true;
     }
 
+    /// <summary>
+    /// Returns the identified counterpart for <paramref name="item"/> when an equivalence
+    /// mapping exists, otherwise returns <paramref name="item"/> itself.
+    /// </summary>
+    private ItemData Normalize(ItemData item)
+    {
+        if (item == null || _equivalenceMap == null) return item;
+        foreach (var entry in _equivalenceMap)
+            if (entry.unknown == item && entry.identified != null)
+                return entry.identified;
+        return item;
+    }
+
     private bool IsSlag(ItemData item)
     {
         if (_slagItems == null || _slagItems.Length == 0) return false;
-        return Array.IndexOf(_slagItems, item) >= 0;
+        return Array.IndexOf(_slagItems, item) >= 0 ||
+               Array.IndexOf(_slagItems, Normalize(item)) >= 0;
     }
 
     private void ResetMixer()
@@ -217,6 +325,12 @@ public class MixerController : ChemicalDeviceBase
     private void SetGlow(bool on)
     {
         if (_glowRenderer == null) return;
+
+        // Guard: never disable the main mesh renderer.
+        // _glowRenderer and _hoverHighlightRenderer point to the same object when no
+        // dedicated glow mesh exists — disabling it would make the entire mixer invisible.
+        if (!on && _glowRenderer == _hoverHighlightRenderer) return;
+
         _glowRenderer.enabled = on;
     }
 }

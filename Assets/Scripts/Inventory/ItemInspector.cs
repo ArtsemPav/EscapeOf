@@ -392,27 +392,33 @@ private bool _ignoreInputThisFrame;
     public void ConfirmPickup()
     {
         if (_currentItem == null) return;
-        if (!_isPreviewMode)
-        {
-            if (_onPickup != null)
-            {
-                _onPickup(_currentItem);
-            }
-            else
-            {
-                if (!InventorySystem.Instance.AddItem(_currentItem))
-                {
-                    // Inventory is full — close inspection without picking up; world object stays.
-                    EndInspection();
-                    return;
-                }
-            }
-            if (_worldObject != null && _worldObject.TryGetComponent(out PickableItem pickable))
-                pickable.NotifyPickedUp();
-            if (_worldObject != null) Destroy(_worldObject);
-            AudioManager.Instance?.PlaySFX(pickupClip);
-        }
+
+        // Capture locals before EndInspection clears them.
+        bool                   wasPreview  = _isPreviewMode;
+        ItemData               item        = _currentItem;
+        GameObject             worldObj    = _worldObject;
+        System.Action<ItemData> onPickup   = _onPickup;
+
+        // Close the panel first so _isInspecting is false before the callback fires.
+        // This allows callbacks (e.g. TryShowNextResult) to open the next inspection immediately.
         EndInspection();
+
+        if (wasPreview) return;
+
+        if (onPickup != null)
+        {
+            onPickup(item);
+        }
+        else
+        {
+            if (!InventorySystem.Instance.AddItem(item))
+                return; // Inventory full — world object stays.
+        }
+
+        if (worldObj != null && worldObj.TryGetComponent(out PickableItem pickable))
+            pickable.NotifyPickedUp();
+        if (worldObj != null) Destroy(worldObj);
+        AudioManager.Instance?.PlaySFX(pickupClip);
     }
 
     /// <summary>Closes the inspection without picking up the item.</summary>

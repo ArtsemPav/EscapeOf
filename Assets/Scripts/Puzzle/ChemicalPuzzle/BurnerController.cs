@@ -38,9 +38,20 @@ public class BurnerController : ChemicalDeviceBase
     [Tooltip("Optional material applied to the hover ghost. Reuse FlaskGhost.mat from the centrifuge.")]
     [SerializeField] private Material _ghostMaterial;
 
+    [Tooltip("Amplitude of the bob animation for the hover ghost (world-space meters).")]
+    [SerializeField] private float _hoverBobAmplitude = 0.015f;
+
+    [Tooltip("Speed of the bob animation cycle.")]
+    [SerializeField] private float _hoverBobSpeed = 2.5f;
+
     [Header("Droppable Items")]
     [Tooltip("All items that can be dropped on the burner (shows hover preview). Wrong items produce _spoiledResult.")]
     [SerializeField] private ItemData[] _droppableItems;
+
+    [Header("Equivalence Map")]
+    [Tooltip("Maps unknown flask variants to their identified counterparts for acceptance and success checks. " +
+             "_droppableItems and _successItems only need to list the identified version.")]
+    [SerializeField] private IdentificationEntry[] _equivalenceMap;
 
     [Header("Results")]
     [Tooltip("Items that produce _successResult when heated. Must be a subset of _droppableItems.")]
@@ -57,6 +68,7 @@ public class BurnerController : ChemicalDeviceBase
     private ItemData   _loadedFlask;
     private GameObject _flaskObject;
     private GameObject _hoverGhost;
+    private Coroutine  _bobCoroutine;
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -66,12 +78,14 @@ public class BurnerController : ChemicalDeviceBase
 
     /// <summary>
     /// Returns true when <paramref name="item"/> can be dropped on the burner.
+    /// Unknown variants are normalised to their identified counterparts before the check.
     /// Used by ChemicalSynthesisController for gating drops and the hover preview.
     /// </summary>
     public bool CanDrop(ItemData item)
     {
         if (item == null || _droppableItems == null || _droppableItems.Length == 0) return false;
-        return Array.IndexOf(_droppableItems, item) >= 0;
+        return Array.IndexOf(_droppableItems, item) >= 0 ||
+               Array.IndexOf(_droppableItems, Normalize(item)) >= 0;
     }
 
     /// <summary>The Spot collider used as the drop-zone by the orchestrator.</summary>
@@ -103,6 +117,9 @@ public class BurnerController : ChemicalDeviceBase
         {
             foreach (var rend in _hoverGhost.GetComponentsInChildren<Renderer>(true))
             {
+                // Preserve the liquid renderer's original materials so the flask colour is visible.
+                if (rend.gameObject.name == "liquid") continue;
+
                 var mats = new Material[rend.sharedMaterials.Length];
                 for (int i = 0; i < mats.Length; i++) mats[i] = _ghostMaterial;
                 rend.materials = mats;
@@ -111,12 +128,15 @@ public class BurnerController : ChemicalDeviceBase
 
         foreach (var col in _hoverGhost.GetComponentsInChildren<Collider>(true))
             col.enabled = false;
+
+        _bobCoroutine = StartCoroutine(BobGhostRoutine(_hoverGhost.transform.position));
     }
 
-    /// <summary>Destroys the hover ghost.</summary>
+    /// <summary>Destroys the hover ghost and stops the bob animation.</summary>
     public void HideHoverPreview()
     {
-        if (_hoverGhost != null) { Destroy(_hoverGhost); _hoverGhost = null; }
+        if (_bobCoroutine != null) { StopCoroutine(_bobCoroutine); _bobCoroutine = null; }
+        if (_hoverGhost   != null) { Destroy(_hoverGhost); _hoverGhost = null; }
     }
 
     /// <summary>Stores the flask data and spawns its visual on the burner spot.</summary>
@@ -193,10 +213,35 @@ public class BurnerController : ChemicalDeviceBase
     private bool IsSuccessItem(ItemData item)
     {
         if (_successItems == null || _successItems.Length == 0) return false;
-        return Array.IndexOf(_successItems, item) >= 0;
+        return Array.IndexOf(_successItems, item) >= 0 ||
+               Array.IndexOf(_successItems, Normalize(item)) >= 0;
+    }
+
+    /// <summary>
+    /// Returns the identified counterpart for <paramref name="item"/> when an equivalence
+    /// mapping exists, otherwise returns <paramref name="item"/> itself.
+    /// </summary>
+    private ItemData Normalize(ItemData item)
+    {
+        if (item == null || _equivalenceMap == null) return item;
+        foreach (var entry in _equivalenceMap)
+            if (entry.unknown == item && entry.identified != null)
+                return entry.identified;
+        return item;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private IEnumerator BobGhostRoutine(Vector3 basePos)
+    {
+        float t = 0f;
+        while (_hoverGhost != null)
+        {
+            t += Time.deltaTime * _hoverBobSpeed;
+            _hoverGhost.transform.position = basePos + Vector3.up * (_hoverBobAmplitude * (1f + Mathf.Sin(t)));
+            yield return null;
+        }
+    }
 
     /// <summary>
     /// Returns the world-space center where the flask should be placed.
