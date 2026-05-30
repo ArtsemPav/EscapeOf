@@ -44,6 +44,15 @@ public class BurnerController : ChemicalDeviceBase
     [Tooltip("Speed of the bob animation cycle.")]
     [SerializeField] private float _hoverBobSpeed = 2.5f;
 
+    [Header("Hover Highlight")]
+    [Tooltip("Renderer that lights up when a valid item is dragged over the burner. " +
+             "Auto-resolved to the first child MeshRenderer if left empty.")]
+    [SerializeField] private Renderer _hoverHighlightRenderer;
+
+    [Tooltip("Emission colour added on top of the material while a valid item hovers. " +
+             "Keep values below 1 for a subtle glow.")]
+    [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
+
     [Header("Droppable Items")]
     [Tooltip("All items that can be dropped on the burner (shows hover preview). Wrong items produce _spoiledResult.")]
     [SerializeField] private ItemData[] _droppableItems;
@@ -70,9 +79,21 @@ public class BurnerController : ChemicalDeviceBase
     private GameObject _hoverGhost;
     private Coroutine  _bobCoroutine;
 
+    // ── Highlight state ────────────────────────────────────────────────────────
+
+    private bool _isHighlighted;
+    private Material _originalSharedMaterial;
+    private Material _highlightInstance;
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
-    private void OnDestroy() => HideHoverPreview();
+    private void OnDestroy()
+    {
+        HideHoverPreview();
+        HideHighlight();
+        if (_highlightInstance != null) Destroy(_highlightInstance);
+    }
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -90,6 +111,36 @@ public class BurnerController : ChemicalDeviceBase
 
     /// <summary>The Spot collider used as the drop-zone by the orchestrator.</summary>
     public Collider DropZoneCollider => _spotCollider;
+
+    /// <summary>Enables a constant emission highlight on the burner mesh.</summary>
+    public void ShowHighlight()
+    {
+        if (_hoverHighlightRenderer == null)
+            _hoverHighlightRenderer = GetComponentInChildren<MeshRenderer>();
+
+        if (_hoverHighlightRenderer == null || _isHighlighted) return;
+        _isHighlighted = true;
+
+        if (_highlightInstance == null)
+        {
+            _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
+            _highlightInstance = new Material(_originalSharedMaterial);
+            _highlightInstance.EnableKeyword("_EMISSION");
+        }
+
+        _highlightInstance.SetColor(EmissionColorId, _highlightColor);
+        _hoverHighlightRenderer.material = _highlightInstance;
+    }
+
+    /// <summary>Removes the emission highlight and restores the original shared material.</summary>
+    public void HideHighlight()
+    {
+        if (!_isHighlighted) return;
+        _isHighlighted = false;
+
+        if (_hoverHighlightRenderer != null && _originalSharedMaterial != null)
+            _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
+    }
 
     /// <summary>
     /// Shows a ghost preview of <paramref name="item"/> at the flask spot.

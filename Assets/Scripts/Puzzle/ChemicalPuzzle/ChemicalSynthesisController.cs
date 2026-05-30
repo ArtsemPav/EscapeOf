@@ -20,6 +20,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     [SerializeField] private BurnerController     _burner;
     [SerializeField] private MixerController      _mixer;
     [SerializeField] private AnalyzerController   _analyzer;
+    [SerializeField] private TrashController      _trash;
 
     [Header("Centrifuge")]
     [Tooltip("Rotation speed of the centrifuge wheel in degrees per second.")]
@@ -32,6 +33,12 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     [Tooltip("All intermediate and ingredient flasks that must be removed from inventory when the puzzle is solved. " +
              "Do NOT include the winning flask — it stays in inventory as the reward.")]
     [SerializeField] private ItemData[] _puzzleItems;
+
+    [Header("Slag Variants")]
+    [Tooltip("Pool of all unknown-slag ItemData assets (UnknownSpoiledColba*). " +
+             "When any device returns a failure result that belongs to this pool, " +
+             "the result is re-rolled to a random entry — the player receives a different slag each time.")]
+    [SerializeField] private ItemData[] _unknownSlagVariants;
 
     [Header("Drop Slots (Colliders)")]
     [Tooltip("centrifugaWheel Transform — hover detection is limited to this object and its children.")]
@@ -95,6 +102,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     // call (which delivers the winning flask) triggers the inventory cleanup.
     private bool _pendingInventoryCleanup;
 
+    // Built from _unknownSlagVariants in Awake — O(1) membership test in RandomizeSlag.
+    private readonly HashSet<ItemData> _unknownSlagSet = new HashSet<ItemData>();
+
     // Pre-allocated buffer for zero-GC RaycastNonAlloc calls in Update.
     private readonly RaycastHit[] _hoverHitBuffer = new RaycastHit[16];
 
@@ -134,6 +144,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (_mixerSlot == null && _mixer != null)
             _mixerSlot = _mixer.DropZoneCollider ?? _mixer.GetComponent<Collider>();
 
+        if (_trash == null)
+            _trash = GetComponentInChildren<TrashController>(true);
+
         // ── Register events ───────────────────────────────────────────────────────
         SaveManager.Instance?.Register(this);
 
@@ -155,6 +168,11 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             _analyzer.OnFail    += OnAnalyzerFail;
             _analyzer.OnFlaskReturned += OnAnalyzerFlaskReturned;
         }
+
+        // ── Build unknown-slag lookup ──────────────────────────────────────────
+        if (_unknownSlagVariants != null)
+            foreach (ItemData slag in _unknownSlagVariants)
+                if (slag != null) _unknownSlagSet.Add(slag);
     }
 
     private void OnDestroy()
@@ -184,6 +202,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         UpdateBurnerHover();
         UpdateAnalyzerHover();
         UpdateMixerHover();
+        UpdateTrashHover();
         UpdateClickRetrieve();
     }
 
@@ -201,12 +220,14 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             !_centrifuge.Accepts(PuzzleInventoryBar.DraggedItem) || _centrifuge.IsFull || _centrifuge.IsBusy)
         {
             _centrifuge.HideHoverPreview();
+            _centrifuge.HideHighlight();
             return;
         }
 
         if (Mouse.current == null || Camera.main == null)
         {
             _centrifuge.HideHoverPreview();
+            _centrifuge.HideHighlight();
             return;
         }
 
@@ -219,19 +240,18 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         {
             Transform hitTransform = _hoverHitBuffer[i].collider.transform;
 
-            // Only match centrifugaWheel itself or its children (Colba_Centrifuga*).
-            // Avoids false positives from cenrtpokras (which parents both centrifuge
-            // and analyzer) and from analiseStoyka / analizator colliders.
             if (_centrifugeWheel != null &&
                 (hitTransform == _centrifugeWheel || hitTransform.IsChildOf(_centrifugeWheel)))
             {
                 int slotIdx = _centrifuge.GetNearestEmptySlotIndex(mousePos);
                 _centrifuge.ShowHoverPreview(slotIdx, PuzzleInventoryBar.DraggedItem);
+                _centrifuge.ShowHighlight();
                 return;
             }
         }
 
         _centrifuge.HideHoverPreview();
+        _centrifuge.HideHighlight();
     }
 
     /// <summary>
@@ -245,12 +265,14 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             !_analyzer.CanDrop(PuzzleInventoryBar.DraggedItem) || _isSolved)
         {
             _analyzer.HideHoverPreview();
+            _analyzer.HideHighlight();
             return;
         }
 
         if (Mouse.current == null || Camera.main == null)
         {
             _analyzer.HideHoverPreview();
+            _analyzer.HideHighlight();
             return;
         }
 
@@ -264,11 +286,13 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             if (_analyzerSlot != null && _hoverHitBuffer[i].collider == _analyzerSlot)
             {
                 _analyzer.ShowHoverPreview(PuzzleInventoryBar.DraggedItem);
+                _analyzer.ShowHighlight();
                 return;
             }
         }
 
         _analyzer.HideHoverPreview();
+        _analyzer.HideHighlight();
     }
 
     /// <summary>
@@ -310,6 +334,52 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     }
 
     /// <summary>
+    /// Each frame during a drag, highlights the trash bin when the cursor is above it
+    /// and the player is dragging any item.
+    /// </summary>
+    private void UpdateTrashHover()
+    {
+        if (_trash == null) return;
+
+        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
+            PuzzleInventoryBar.DraggedItem == _amptyColba)
+        {
+            _trash.HideHighlight();
+            return;
+        }
+
+        if (Mouse.current == null || Camera.main == null)
+        {
+            _trash.HideHighlight();
+            return;
+        }
+
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+
+        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
+                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider col = _hoverHitBuffer[i].collider;
+            if (_trash.DropZoneCollider != null && col == _trash.DropZoneCollider)
+            {
+                _trash.ShowHighlight();
+                return;
+            }
+
+            if (_trash.DropZoneCollider == null &&
+                col.GetComponentInParent<TrashController>() == _trash)
+            {
+                _trash.ShowHighlight();
+                return;
+            }
+        }
+
+        _trash.HideHighlight();
+    }
+
+    /// <summary>
     /// Each frame during a drag, shows a ghost flask over the burner when the cursor is above it.
     /// </summary>
     private void UpdateBurnerHover()
@@ -320,12 +390,14 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             !_burner.CanDrop(PuzzleInventoryBar.DraggedItem) || _burner.IsBusy)
         {
             _burner.HideHoverPreview();
+            _burner.HideHighlight();
             return;
         }
 
         if (Mouse.current == null || Camera.main == null)
         {
             _burner.HideHoverPreview();
+            _burner.HideHighlight();
             return;
         }
 
@@ -339,11 +411,13 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             if (_hoverHitBuffer[i].collider.GetComponentInParent<BurnerController>() == _burner)
             {
                 _burner.ShowHoverPreview(PuzzleInventoryBar.DraggedItem);
+                _burner.ShowHighlight();
                 return;
             }
         }
 
         _burner.HideHoverPreview();
+        _burner.HideHighlight();
     }
 
     // ── IPuzzleDropHandler ────────────────────────────────────────────────────
@@ -450,6 +524,30 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                 replacement = _amptyColba;
                 return true;
             }
+
+            // ── Trash: empties the flask, shows inspection panel for the empty one ──
+            if (_trash != null)
+            {
+                bool hitTrash = (_trash.DropZoneCollider != null && col == _trash.DropZoneCollider)
+                             || (_trash.DropZoneCollider == null &&
+                                 col.GetComponentInParent<TrashController>() == _trash);
+
+                if (hitTrash)
+                {
+                    // Empty flask cannot be discarded.
+                    if (item == _amptyColba) return false;
+
+                    // Show the empty flask via the inspection panel (same flow as devices).
+                    // Skip preview if the item is already empty — just discard it silently.
+                    if (item != _amptyColba && _amptyColba != null)
+                    {
+                        _pendingResults.Enqueue(_amptyColba);
+                        TryShowNextResult();
+                    }
+                    // Consume the dragged item — no replacement returned.
+                    return true;
+                }
+            }
         }
 
         return false;
@@ -457,10 +555,25 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     // ── Device Callbacks ──────────────────────────────────────────────────────
 
+    /// <summary>
+    /// If <paramref name="result"/> is a registered unknown-slag variant, picks a random one
+    /// from <see cref="_unknownSlagVariants"/>. This ensures the player receives a different-coloured
+    /// slag on each failure, adding to the puzzle's misdirection.
+    /// </summary>
+    private ItemData RandomizeSlag(ItemData result)
+    {
+        if (result == null || _unknownSlagVariants == null || _unknownSlagVariants.Length == 0)
+            return result;
+        if (!_unknownSlagSet.Contains(result))
+            return result;
+
+        return _unknownSlagVariants[UnityEngine.Random.Range(0, _unknownSlagVariants.Length)];
+    }
+
     private void OnDeviceComplete(ItemData result)
     {
         if (result == null) return;
-        _pendingResults.Enqueue(result);
+        _pendingResults.Enqueue(RandomizeSlag(result));
         TryShowNextResult();
     }
 
@@ -496,11 +609,12 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private void OnMixerComplete(ItemData result)
     {
         if (result == null) return;
+        ItemData finalResult = RandomizeSlag(result);
 
         // After the player picks up the mixed result, drain the liquid back to zero.
         if (ItemInspector.Instance != null)
         {
-            ItemInspector.Instance.BeginInspection(result, null, (item) =>
+            ItemInspector.Instance.BeginInspection(finalResult, null, (item) =>
             {
                 if (_amptyColba == null || InventorySystem.Instance == null ||
                     !InventorySystem.Instance.ReplaceItem(_amptyColba, item))
@@ -510,7 +624,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         }
         else
         {
-            InventorySystem.Instance?.AddItem(result);
+            InventorySystem.Instance?.AddItem(finalResult);
             _mixer?.ResetLiquid();
         }
     }

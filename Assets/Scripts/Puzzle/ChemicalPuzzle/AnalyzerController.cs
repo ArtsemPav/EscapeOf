@@ -66,6 +66,15 @@ public class AnalyzerController : MonoBehaviour
     [Tooltip("Optional material applied to the hover ghost.")]
     [SerializeField] private Material _ghostMaterial;
 
+    [Header("Hover Highlight")]
+    [Tooltip("Renderer that lights up when a valid item is dragged over the analyzer. " +
+             "Auto-resolved to the first child MeshRenderer if left empty.")]
+    [SerializeField] private Renderer _hoverHighlightRenderer;
+
+    [Tooltip("Emission colour added on top of the material while a valid item hovers. " +
+             "Keep values below 1 for a subtle glow.")]
+    [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
+
     [Header("Identification Map")]
     [Tooltip("Maps every unknown flask ItemData to its identified counterpart. " +
              "The analyzer swaps the returned item to the identified version after scanning.")]
@@ -97,6 +106,13 @@ public class AnalyzerController : MonoBehaviour
     private bool       _isBusy;
     private float      _armRestY;
 
+    // ── Highlight state ────────────────────────────────────────────────────────
+
+    private bool _isHighlighted;
+    private Material _originalSharedMaterial;
+    private Material _highlightInstance;
+    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     private void Awake()
@@ -113,6 +129,8 @@ public class AnalyzerController : MonoBehaviour
             _startButton.OnPressed -= OnButtonPressed;
 
         HideHoverPreview();
+        HideHighlight();
+        if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -122,6 +140,36 @@ public class AnalyzerController : MonoBehaviour
 
     /// <summary>The Colba_Analize collider used as the drop-zone by the orchestrator.</summary>
     public Collider DropZoneCollider => _centerCollider;
+
+    /// <summary>Enables a constant emission highlight on the analyzer mesh.</summary>
+    public void ShowHighlight()
+    {
+        if (_hoverHighlightRenderer == null)
+            _hoverHighlightRenderer = GetComponentInChildren<MeshRenderer>();
+
+        if (_hoverHighlightRenderer == null || _isHighlighted) return;
+        _isHighlighted = true;
+
+        if (_highlightInstance == null)
+        {
+            _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
+            _highlightInstance = new Material(_originalSharedMaterial);
+            _highlightInstance.EnableKeyword("_EMISSION");
+        }
+
+        _highlightInstance.SetColor(EmissionColorId, _highlightColor);
+        _hoverHighlightRenderer.material = _highlightInstance;
+    }
+
+    /// <summary>Removes the emission highlight and restores the original shared material.</summary>
+    public void HideHighlight()
+    {
+        if (!_isHighlighted) return;
+        _isHighlighted = false;
+
+        if (_hoverHighlightRenderer != null && _originalSharedMaterial != null)
+            _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
+    }
 
     /// <summary>Returns true when <paramref name="item"/> is in the accepted-items list.</summary>
     public bool CanDrop(ItemData item)

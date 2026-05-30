@@ -174,6 +174,9 @@ namespace ChemicalPuzzle
             _surfaceColor = color;
         }
 
+        /// <summary>Returns the current liquid color set on this component.</summary>
+        public Color LiquidColor => _liquidColor;
+
         /// <summary>Smoothly animates fillFraction to <paramref name="target"/> over <paramref name="duration"/> seconds.</summary>
         public void AnimateFillTo(float target, float duration)
         {

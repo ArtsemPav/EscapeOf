@@ -54,17 +54,13 @@ public class MixerController : ChemicalDeviceBase
     [SerializeField] private Renderer _glowRenderer;
 
     [Header("Hover Highlight")]
-    [Tooltip("Renderer on the flask mesh that pulses when a valid item is dragged over the mixer. " +
+    [Tooltip("Renderer on the flask mesh that lights up when a valid item is dragged over the mixer. " +
              "Auto-resolved to the first child MeshRenderer named 'mixColba' if left empty.")]
     [SerializeField] private Renderer _hoverHighlightRenderer;
 
-    [Tooltip("Emission colour applied to _hoverHighlightRenderer during the hover pulse. " +
-             "Use HDR values > 1 for bloom.")]
-    [ColorUsage(showAlpha: false, hdr: true)]
-    [SerializeField] private Color _highlightColor = new Color(0f, 2f, 0.8f);
-
-    [Tooltip("Pulse frequency in Hz.")]
-    [SerializeField] [Range(0.5f, 5f)] private float _highlightPulseSpeed = 1.5f;
+    [Tooltip("Emission colour added on top of the material while a valid item hovers. " +
+             "Keep values below 1 for a subtle glow; higher values increase bloom intensity.")]
+    [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
     [Header("Accepted Items")]
     [Tooltip("Whitelist of ItemData assets the mixer accepts. Leave empty to accept everything.")]
@@ -132,16 +128,11 @@ public class MixerController : ChemicalDeviceBase
 
     private void Update()
     {
-        if (!_isHighlighted || _highlightInstance == null) return;
-
-        float t = 0.5f + 0.5f * Mathf.Sin(Time.time * _highlightPulseSpeed * Mathf.PI * 2f);
-        _highlightInstance.SetColor(EmissionColorId, _highlightColor * t);
     }
 
     private void OnDestroy()
     {
-        if (_highlightInstance != null)
-            Destroy(_highlightInstance);
+        if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     /// <summary>
@@ -159,13 +150,12 @@ public class MixerController : ChemicalDeviceBase
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
-    /// <summary>Starts the hover highlight pulse on the flask mesh.</summary>
+    /// <summary>Enables a constant emission highlight on the flask mesh.</summary>
     public void ShowHighlight()
     {
         if (_hoverHighlightRenderer == null || _isHighlighted) return;
         _isHighlighted = true;
 
-        // Build the highlight material instance once and reuse it.
         if (_highlightInstance == null)
         {
             _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
@@ -173,10 +163,11 @@ public class MixerController : ChemicalDeviceBase
             _highlightInstance.EnableKeyword("_EMISSION");
         }
 
+        _highlightInstance.SetColor(EmissionColorId, _highlightColor);
         _hoverHighlightRenderer.material = _highlightInstance;
     }
 
-    /// <summary>Stops the hover highlight and restores the original shared material.</summary>
+    /// <summary>Removes the emission highlight and restores the original shared material.</summary>
     public void HideHighlight()
     {
         if (!_isHighlighted) return;
@@ -198,19 +189,34 @@ public class MixerController : ChemicalDeviceBase
         if (!_containsSlag && IsSlag(input))
             _containsSlag = true;
 
-        // Animate fill and tint.
+        // Animate fill.
         float fillTarget = Mathf.Clamp01(_addedItems.Count * _fillPerPortion);
         if (_liquidWobble != null)
-        {
             _liquidWobble.AnimateFillTo(fillTarget, _fillAnimDuration);
 
-            // Slag tints the liquid a sickly colour; otherwise use the item's own colour.
-            _liquidWobble.SetLiquidColor(_containsSlag
-                ? _spoiledResult != null ? _spoiledResult.GetLiquidColor() : Color.black
-                : input.GetLiquidColor());
+        bool willExport = _addedItems.Count >= _portionsToExport;
+
+        if (_liquidWobble != null)
+        {
+            if (willExport)
+            {
+                // Last flask: immediately show the result colour so the player sees
+                // what the mix produced before the export delay elapses.
+                ItemData previewResult = DetermineResult();
+                _liquidWobble.SetLiquidColor(
+                    previewResult != null ? previewResult.GetLiquidColor() : Color.white);
+            }
+            else
+            {
+                // Intermediate flask: tint to slag colour if contaminated, otherwise
+                // use the colour of the item that was just poured in.
+                _liquidWobble.SetLiquidColor(_containsSlag
+                    ? _spoiledResult != null ? _spoiledResult.GetLiquidColor() : Color.black
+                    : input.GetLiquidColor());
+            }
         }
 
-        if (_addedItems.Count >= _portionsToExport)
+        if (willExport)
         {
             _isLocked = true;
             IsBusy    = true;
@@ -234,9 +240,8 @@ public class MixerController : ChemicalDeviceBase
     {
         ItemData result = DetermineResult();
 
-        // Tint liquid to the result colour so the player sees what's being produced.
-        if (_liquidWobble != null && result != null)
-            _liquidWobble.SetLiquidColor(result.GetLiquidColor());
+        // Liquid colour is already set to the result in LoadFlask() when the last
+        // flask was poured, so no colour update is needed here.
 
         yield return new WaitForSeconds(_exportDelay);
 

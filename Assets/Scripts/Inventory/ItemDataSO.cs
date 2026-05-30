@@ -38,13 +38,22 @@ public class ItemData : ScriptableObject
     private static readonly int LiquidColorId = Shader.PropertyToID("_LiquidColor");
 
     /// <summary>
-    /// Returns the liquid color from the _LiquidColor property on the inspectionPrefab's material.
-    /// Falls back to Color.white if the prefab or property is absent.
+    /// Returns the liquid color for this item.
+    /// First checks for a <see cref="ChemicalPuzzle.LiquidWobble"/> component on the inspectionPrefab
+    /// (colba prefab variants store their color there as a serialized field override).
+    /// Falls back to reading the <c>_LiquidColor</c> property from the first matching material.
+    /// Returns <see cref="Color.white"/> if nothing is found.
     /// </summary>
     public Color GetLiquidColor()
     {
         if (inspectionPrefab == null) return Color.white;
 
+        // Priority: LiquidWobble component field (colba prefab variants store colour here).
+        var wobble = inspectionPrefab.GetComponentInChildren<ChemicalPuzzle.LiquidWobble>(includeInactive: true);
+        if (wobble != null)
+            return wobble.LiquidColor;
+
+        // Fallback: read _LiquidColor from the first material that declares it.
         foreach (var rend in inspectionPrefab.GetComponentsInChildren<Renderer>(includeInactive: true))
         {
             foreach (var mat in rend.sharedMaterials)
