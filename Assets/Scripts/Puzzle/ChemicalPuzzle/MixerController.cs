@@ -213,19 +213,26 @@ public class MixerController : ChemicalDeviceBase
         {
             if (willExport)
             {
-                // Last flask: immediately show the result colour so the player sees
-                // what the mix produced before the export delay elapses.
-                ItemData previewResult = DetermineResult();
-                _liquidWobble.SetLiquidColor(
-                    previewResult != null ? previewResult.GetLiquidColor() : Color.white);
+                // Last flask: if result is slag-contaminated, show the poured item's colour —
+                // the actual output is randomised by ChemicalSynthesisController, so using
+                // _spoiledResult here would show the wrong (often black) colour.
+                // For a clean recipe match, show the expected result colour.
+                Color previewColor;
+                if (_containsSlag)
+                    previewColor = input.GetLiquidColor();
+                else
+                {
+                    ItemData previewResult = DetermineResult();
+                    previewColor = previewResult != null ? previewResult.GetLiquidColor() : Color.white;
+                }
+                _liquidWobble.SetLiquidColor(previewColor);
             }
             else
             {
-                // Intermediate flask: tint to slag colour if contaminated, otherwise
-                // use the colour of the item that was just poured in.
-                _liquidWobble.SetLiquidColor(_containsSlag
-                    ? _spoiledResult != null ? _spoiledResult.GetLiquidColor() : Color.black
-                    : input.GetLiquidColor());
+                // Intermediate flask: always use the colour of the item just poured in.
+                // No need to special-case slag here — the poured slag is itself the
+                // correct visual reference (e.g. red slag → red liquid).
+                _liquidWobble.SetLiquidColor(input.GetLiquidColor());
             }
         }
 

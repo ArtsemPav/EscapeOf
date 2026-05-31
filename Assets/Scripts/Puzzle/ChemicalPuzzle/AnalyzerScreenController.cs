@@ -26,7 +26,6 @@ public class AnalyzerScreenController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _verdictText;
 
     private const string SuccessVerdict = "СИНТЕЗ УСПЕШЕН";
-    private const string FailVerdict    = "ВЕЩЕСТВО НЕ ИДЕНТИФИЦИРОВАНО";
 
     private void Awake() => ShowIdle();
 
@@ -91,7 +90,7 @@ public class AnalyzerScreenController : MonoBehaviour
             _descriptionText.text = description;
 
         if (_verdictText != null)
-            _verdictText.text = isSuccess ? SuccessVerdict : FailVerdict;
+            _verdictText.text = isSuccess ? SuccessVerdict : string.Empty;
     }
 
     // ── Private ────────────────────────────────────────────────────────────────

@@ -24,6 +24,12 @@ public class ButtonPressAnimation : MonoBehaviour
     [Tooltip("Duration of the return phase in seconds.")]
     [SerializeField] private float _returnDuration = 0.12f;
 
+    [Header("Audio")]
+    [Tooltip("Played once through AudioManager when the button is pressed.")]
+    [SerializeField] private AudioClip _pressClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _pressVolume = 1f;
+
     private Vector3   _restPosition;
     private Coroutine _pressCoroutine;
 
@@ -44,6 +50,9 @@ public class ButtonPressAnimation : MonoBehaviour
     public void Play()
     {
         OnPressed?.Invoke();
+
+        if (_pressClip != null)
+            AudioManager.Instance?.PlaySFX(_pressClip, _pressVolume);
 
         if (_pressCoroutine != null)
             StopCoroutine(_pressCoroutine);

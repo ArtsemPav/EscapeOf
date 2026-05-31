@@ -59,6 +59,9 @@ public class AnalyzerController : MonoBehaviour
     [SerializeField] private string _winItemId = DefaultWinId;
 
     [Header("Audio")]
+    [Tooltip("Played once when a flask is placed into the analyzer slot.")]
+    [SerializeField] private AudioClip _flaskDropClip;
+
     [Tooltip("Played once when the start button is pressed.")]
     [SerializeField] private AudioClip _startClip;
 
@@ -249,6 +252,7 @@ public class AnalyzerController : MonoBehaviour
     {
         HideHoverPreview();
         _loadedFlask = flask;
+        PlaySFX(_flaskDropClip);
 
         if (flask?.inspectionPrefab != null && _centerCollider != null)
             StartCoroutine(DropFlaskRoutine(flask.inspectionPrefab));
