@@ -177,6 +177,8 @@ MonoBehaviour:
   _renderers:
   - {fileID: 7589714055190517873}
   _highlightColor: {r: 0.6, g: 0.1, b: 0.1, a: 1}
+  _dropClip: {fileID: 0}
+  _dropVolume: 1
 --- !u!1 &2631268979778306379
 GameObject:
   m_ObjectHideFlags: 0
@@ -721,6 +723,67 @@ MonoBehaviour:
     identified: {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
   - unknown: {fileID: 11400000, guid: 0b07f864d7f72c94f9a0e24a6307155f, type: 2}
     identified: {fileID: 11400000, guid: 2475dd3ac300eb842a3485c3b42e836c, type: 2}
+  _synthesisSteps:
+  - label: "\u041D\u0430\u0433\u0440\u0435\u0442\u044C \u0441\u0443\u0431\u0441\u0442\u0440\u0430\u0442"
+    device: 0
+    burnerInputs:
+    - {fileID: 11400000, guid: 3fc9172d9c6e90048a0f3f5e775bdaf4, type: 2}
+    centrifugeInput: {fileID: 0}
+    successResult: {fileID: 11400000, guid: e918ce0ed0641384c828f78980727123, type: 2}
+    spoiledResult: {fileID: 11400000, guid: 9b6fc8a471f2dfa47bb77e5f391eab23, type: 2}
+    mixerIngredients: []
+    mixerResult: {fileID: 0}
+    analyzerWinItemId: 
+  - label: "\u0426\u0435\u043D\u0442\u0440\u0438\u0444\u0443\u0433\u0438\u0440\u043E\u0432\u0430\u0442\u044C
+      \u0433\u0440\u044F\u0437\u043D\u0443\u044E \u0436\u0438\u0434\u043A\u043E\u0441\u0442\u044C"
+    device: 1
+    burnerInputs: []
+    centrifugeInput: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
+    successResult: {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
+    spoiledResult: {fileID: 11400000, guid: 9b6fc8a471f2dfa47bb77e5f391eab23, type: 2}
+    mixerIngredients: []
+    mixerResult: {fileID: 0}
+    analyzerWinItemId: 
+  - label: "\u0421\u043C\u0435\u0448\u0430\u0442\u044C: \u0447\u0438\u0441\u0442\u0430\u044F
+      + \u0441\u0442\u0430\u0431\u0438\u043B\u0438\u0437\u0430\u0442\u043E\u0440
+      \u2192 \u0441\u0443\u0431\u0441\u0442\u0440\u0430\u0442"
+    device: 2
+    burnerInputs: []
+    centrifugeInput: {fileID: 0}
+    successResult: {fileID: 0}
+    spoiledResult: {fileID: 0}
+    mixerIngredients:
+    - {fileID: 11400000, guid: ac2ba22ac20b8dd4cb5095505a25cb98, type: 2}
+    - {fileID: 11400000, guid: faa22e4bf03cc5a4d81f7a0752d03c9e, type: 2}
+    mixerResult: {fileID: 11400000, guid: 2c305123ed370144385dac10a28a335b, type: 2}
+    analyzerWinItemId: 
+  - label: "\u0421\u043C\u0435\u0448\u0430\u0442\u044C: \u0430\u043A\u0442\u0438\u0432\u0430\u0442\u043E\u0440
+      + \u0440\u0435\u0430\u0433\u0435\u043D\u0442 \u2192 \u0441\u044B\u0432\u043E\u0440\u043E\u0442\u043A\u0430"
+    device: 2
+    burnerInputs: []
+    centrifugeInput: {fileID: 0}
+    successResult: {fileID: 0}
+    spoiledResult: {fileID: 0}
+    mixerIngredients:
+    - {fileID: 11400000, guid: 08be742f039ed5046b000151724491be, type: 2}
+    - {fileID: 11400000, guid: c1b2e254981f0b14798f118bf07f3e6f, type: 2}
+    mixerResult: {fileID: 11400000, guid: 0b07f864d7f72c94f9a0e24a6307155f, type: 2}
+    analyzerWinItemId: 
+  - label: "\u0410\u043D\u0430\u043B\u0438\u0437: \u0432\u044B\u0438\u0433\u0440\u0430\u0442\u044C
+      \u043F\u0440\u0438 SerumColba"
+    device: 3
+    burnerInputs: []
+    centrifugeInput: {fileID: 0}
+    successResult: {fileID: 0}
+    spoiledResult: {fileID: 0}
+    mixerIngredients: []
+    mixerResult: {fileID: 0}
+    analyzerWinItemId: SerumColba
+  _mixerSlagItems:
+  - {fileID: 11400000, guid: 5040b384021167549a8efdcb82eea49b, type: 2}
+  - {fileID: 11400000, guid: 6e53f4caaa954fc418067329851ec6d9, type: 2}
+  - {fileID: 11400000, guid: 23f527f65092c634ba1fcf8c5ad6a20a, type: 2}
+  _mixerSpoiledResult: {fileID: 11400000, guid: 9b6fc8a471f2dfa47bb77e5f391eab23, type: 2}
   _amptyColba: {fileID: 11400000, guid: 0aa6e7d7c57488e4ab00474addaeb874, type: 2}
   _puzzleItems:
   - {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
@@ -2621,6 +2684,13 @@ MonoBehaviour:
   _fillAnimDuration: 0.6
   _fillPerPortion: 0.15
   _glowRenderer: {fileID: 1039873149973163064}
+  _pourClip: {fileID: 0}
+  _mixLoopClip: {fileID: 0}
+  _mixLoopVolume: 0.7
+  _mixLoopMinDistance: 0.5
+  _mixLoopMaxDistance: 5
+  _mixCompleteClip: {fileID: 0}
+  _sfxVolume: 1
   _hoverHighlightRenderer: {fileID: 1039873149973163064}
   _highlightColor: {r: 0.6901961, g: 0.8784314, b: 0.9019608, a: 1}
   _slagItems:
@@ -2869,6 +2939,8 @@ MonoBehaviour:
   _pressDepth: 0.015
   _pressDuration: 0.06
   _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1
 --- !u!65 &7141066106168318891
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2963,6 +3035,15 @@ MonoBehaviour:
   _scanDuration: 5
   _resultDisplayDuration: 3
   _winItemId: SerumColba
+  _flaskDropClip: {fileID: 0}
+  _startClip: {fileID: 0}
+  _scanLoopClip: {fileID: 0}
+  _scanLoopVolume: 0.7
+  _scanLoopMinDistance: 0.5
+  _scanLoopMaxDistance: 5
+  _successClip: {fileID: 0}
+  _failClip: {fileID: 0}
+  _sfxVolume: 1
   _ghostMaterial: {fileID: 0}
   _hoverHighlightRenderer: {fileID: 1812696970049965182}
   _highlightColor: {r: 0.39764464, g: 0.39764464, b: 0.39764464, a: 1}
@@ -3025,6 +3106,8 @@ MonoBehaviour:
   _pressDepth: 0.015
   _pressDuration: 0.06
   _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1
 --- !u!65 &1344248342071421043
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3124,8 +3207,17 @@ MonoBehaviour:
   _hoverBobAmplitude: 0.015
   _hoverBobSpeed: 5
   _duration: 5
-  _cleanInputItem: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
-  _cleanResult: {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
+  _flaskDropClip: {fileID: 0}
+  _buttonClip: {fileID: 0}
+  _spinLoopClip: {fileID: 0}
+  _spinLoopVolume: 0.8
+  _spinLoopMinDistance: 0.5
+  _spinLoopMaxDistance: 6
+  _spinCompleteClip: {fileID: 0}
+  _sfxVolume: 1
+  _cleanMappings:
+  - input: {fileID: 11400000, guid: c7faf852c51176f448331d85f2b9ea1a, type: 2}
+    result: {fileID: 11400000, guid: 7b5f9501a8a9ae644aec1d8767c6cb43, type: 2}
   _spoiledResult: {fileID: 11400000, guid: 9b6fc8a471f2dfa47bb77e5f391eab23, type: 2}
 --- !u!114 &8808750700689352979
 MonoBehaviour:
@@ -3553,6 +3645,13 @@ MonoBehaviour:
   _flaskPlacementScale: 0.821
   _dropHeight: 0.05
   _dropDuration: 0.4
+  _flaskDropClip: {fileID: 0}
+  _burnLoopClip: {fileID: 0}
+  _burnLoopVolume: 0.8
+  _burnLoopMinDistance: 0.5
+  _burnLoopMaxDistance: 5
+  _burnCompleteClip: {fileID: 0}
+  _sfxVolume: 1
   _ghostMaterial: {fileID: 0}
   _hoverBobAmplitude: 0.015
   _hoverBobSpeed: 2.5

@@ -69,21 +69,11 @@ public class BurnerController : ChemicalDeviceBase
              "Keep values below 1 for a subtle glow.")]
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
-    [Header("Droppable Items")]
-    // _droppableItems removed — whitelist is now managed globally by ChemicalSynthesisController.
-
-    [Header("Equivalence Map")]
-    // _equivalenceMap removed — normalization is now handled by ChemicalSynthesisController.
-
-    [Header("Results")]
-    [Tooltip("Items that produce _successResult when heated. Must be a subset of _droppableItems.")]
-    [SerializeField] private ItemData[] _successItems;
-
-    [Tooltip("Result produced when a _successItems item is heated.")]
-    [SerializeField] private ItemData _successResult;
-
-    [Tooltip("Result produced when a non-success item is heated.")]
-    [SerializeField] private ItemData _spoiledResult;
+    // ── Results — set at runtime by ChemicalSynthesisController.ApplySynthesisRecipe() ──
+    // Configure in ChemicalSynthesisController → Synthesis Steps (Device: Burner).
+    private ItemData[] _successItems;
+    private ItemData   _successResult;
+    private ItemData   _spoiledResult;
 
     // ── Shared context (injected by ChemicalSynthesisController) ──────────────
 
@@ -91,6 +81,18 @@ public class BurnerController : ChemicalDeviceBase
 
     /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
     public void Initialize(IChemicalPuzzleContext context) => _context = context;
+
+    /// <summary>
+    /// Overrides the burner recipe at runtime from the central Synthesis Recipe plan.
+    /// Called by ChemicalSynthesisController.ApplySynthesisRecipe() in Awake.
+    /// Non-null arguments replace the values serialized directly on this component.
+    /// </summary>
+    public void ApplyRecipe(ItemData[] successItems, ItemData successResult, ItemData spoiledResult)
+    {
+        if (successItems  != null && successItems.Length  > 0) _successItems  = successItems;
+        if (successResult != null)                             _successResult = successResult;
+        if (spoiledResult != null)                             _spoiledResult = spoiledResult;
+    }
 
     // ── Runtime state ──────────────────────────────────────────────────────────
 

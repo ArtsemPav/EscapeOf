@@ -1,6 +1,25 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+
+/// <summary>
+/// Maps one specific input item to its centrifuge output.
+/// Add one entry per "clean" item the centrifuge can produce.
+/// Configure via ChemicalSynthesisController → Synthesis Steps (Device: Centrifuge).
+/// </summary>
+[Serializable]
+public struct CentrifugeMapping
+{
+    [Tooltip("The item (identified version) that produces Result when centrifuged.\n" +
+             "Unknown variants are normalised automatically via the shared equivalence map.\n" +
+             "Must also appear in _acceptedItems on ChemicalSynthesisController.")]
+    public ItemData input;
+
+    [Tooltip("Flask returned when this Input item is centrifuged.\n" +
+             "Typically the next step's input or a Mixer ingredient.")]
+    public ItemData result;
+}
 
 /// <summary>
 /// Controls the centrifuge device with three independent flask slots.
@@ -25,9 +44,6 @@ public class CentrifugeController : ChemicalDeviceBase
     [Tooltip("Transforms of the three visual slots (Colba_Centrifuga1 / 2 / 3).")]
     [SerializeField] private Transform[] _slotTransforms;
 
-    [Header("Accepted Items")]
-    // _acceptedItems removed — whitelist is now managed globally by ChemicalSynthesisController.
-
     [Header("Ghost Preview")]
     [Tooltip("Optional material applied to the hover ghost. Leave null to use the item's own material.")]
     [SerializeField] private Material _ghostMaterial;
@@ -41,8 +57,8 @@ public class CentrifugeController : ChemicalDeviceBase
              "Keep values below 1 for a subtle glow.")]
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
-    [Header("Equivalence Map")]
-    // _equivalenceMap removed — normalization is now handled by ChemicalSynthesisController.
+    // ── Results — set at runtime by ChemicalSynthesisController.ApplySynthesisRecipe() ──
+    // Configure in ChemicalSynthesisController → Synthesis Steps (Device: Centrifuge).
 
     [Header("Flask Placement")]
     [Tooltip("Uniform scale applied to flask prefabs when placed into centrifuge slots. Tune until flasks match the physical centrifuge size.")]
@@ -87,10 +103,13 @@ public class CentrifugeController : ChemicalDeviceBase
     public Transform WheelTransform => _wheelTransform;
 
     [Header("Results")]
-    [Tooltip("The specific identified flask that produces the clean result when centrifuged. " +
-             "Uses object reference equality — unknown variants of the same item will not match.")]
-    [SerializeField] private ItemData _cleanInputItem;
-    [SerializeField] private ItemData _cleanResult;
+    [Tooltip("Input→output pairs for the centrifuge.\n" +
+             "Each entry maps one identified item to its clean result.\n" +
+             "RECOMMENDED: Configure via ChemicalSynthesisController → Synthesis Steps (Device: Centrifuge).\n" +
+             "Values set there override this field at runtime.")]
+    [SerializeField] private CentrifugeMapping[] _cleanMappings;
+    [Tooltip("Flask returned when a centrifuged item matches no entry in _cleanMappings.\n" +
+             "RECOMMENDED: Configure via ChemicalSynthesisController → Synthesis Steps (Device: Centrifuge).")]
     [SerializeField] private ItemData _spoiledResult;
 
     // ── Shared context (injected by ChemicalSynthesisController) ──────────────
@@ -99,6 +118,18 @@ public class CentrifugeController : ChemicalDeviceBase
 
     /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
     public void Initialize(IChemicalPuzzleContext context) => _context = context;
+
+    /// <summary>
+    /// Overrides the centrifuge mappings at runtime from the central Synthesis Steps plan.
+    /// Called by ChemicalSynthesisController.ApplySynthesisRecipe() in Awake.
+    /// Each Centrifuge step in the plan adds one CentrifugeMapping entry.
+    /// Non-null / non-empty arguments replace values serialised on this component.
+    /// </summary>
+    public void ApplyRecipe(CentrifugeMapping[] cleanMappings, ItemData spoiledResult)
+    {
+        if (cleanMappings != null && cleanMappings.Length > 0) _cleanMappings = cleanMappings;
+        if (spoiledResult != null)                             _spoiledResult  = spoiledResult;
+    }
 
     // ── Per-slot state ─────────────────────────────────────────────────────────
 
@@ -383,9 +414,7 @@ public class CentrifugeController : ChemicalDeviceBase
         {
             if (_loadedFlasks[i] == null) continue;
 
-            ItemData result = Normalize(_loadedFlasks[i]) == _cleanInputItem
-                ? _cleanResult
-                : _spoiledResult;
+            ItemData result = GetResultForFlask(_loadedFlasks[i]);
 
             results.Add(result);
             _loadedFlasks[i] = null;
@@ -470,6 +499,26 @@ public class CentrifugeController : ChemicalDeviceBase
 
     /// <summary>Delegates normalisation to the shared puzzle context.</summary>
     private ItemData Normalize(ItemData item) => _context?.Normalize(item) ?? item;
+
+    /// <summary>
+    /// Looks up the output for <paramref name="flask"/> in <see cref="_cleanMappings"/>.
+    /// Checks both the original item and its normalised (identified) counterpart.
+    /// Returns <see cref="_spoiledResult"/> if no mapping matches.
+    /// </summary>
+    private ItemData GetResultForFlask(ItemData flask)
+    {
+        if (flask == null || _cleanMappings == null || _cleanMappings.Length == 0)
+            return _spoiledResult;
+
+        ItemData normalized = Normalize(flask);
+        foreach (CentrifugeMapping mapping in _cleanMappings)
+        {
+            if (mapping.input == null) continue;
+            if (mapping.input == flask || mapping.input == normalized)
+                return mapping.result ?? _spoiledResult;
+        }
+        return _spoiledResult;
+    }
 
     private void StopSpinLoop()
     {

@@ -55,7 +55,10 @@ public class AnalyzerController : MonoBehaviour
     [Tooltip("How long the result is shown before the arm retracts.")]
     [SerializeField] private float _resultDisplayDuration = 3f;
 
-    [Tooltip("ItemId of the flask that triggers OnSuccess.")]
+    [Tooltip("ItemId of the flask that triggers OnSuccess (puzzle win).\n" +
+             "RECOMMENDED: Set this via ChemicalSynthesisController → Synthesis Recipe — Step 4: Analyzer.\n" +
+             "The value there overrides this field at runtime if it is non-empty.\n" +
+             "This field acts as a fallback when the main controller leaves its field blank.")]
     [SerializeField] private string _winItemId = DefaultWinId;
 
     [Header("Audio")]
@@ -80,9 +83,6 @@ public class AnalyzerController : MonoBehaviour
 
     [SerializeField] [Range(0f, 1f)] private float _sfxVolume = 1f;
 
-    [Header("Accepted Items")]
-    // _acceptedItems removed — whitelist is now managed globally by ChemicalSynthesisController.
-
     [Header("Ghost Preview")]
     [Tooltip("Optional material applied to the hover ghost.")]
     [SerializeField] private Material _ghostMaterial;
@@ -96,14 +96,14 @@ public class AnalyzerController : MonoBehaviour
              "Keep values below 1 for a subtle glow.")]
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
-    [Header("Identification Map")]
-    // _identificationMap removed — merged into the shared equivalence map on ChemicalSynthesisController.
-
     [Tooltip("Amplitude of the bob animation for the hover ghost (world-space meters).")]
     [SerializeField] private float _hoverBobAmplitude = 0.015f;
 
     [Tooltip("Speed of the bob animation cycle.")]
     [SerializeField] private float _hoverBobSpeed = 2.5f;
+
+    // ── Win condition — set at runtime by ChemicalSynthesisController.ApplySynthesisRecipe() ──
+    // Configure in ChemicalSynthesisController → Synthesis Steps (Device: Analyzer).
 
     // ── Shared context (injected by ChemicalSynthesisController) ──────────────
 
@@ -112,9 +112,17 @@ public class AnalyzerController : MonoBehaviour
     /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
     public void Initialize(IChemicalPuzzleContext context) => _context = context;
 
-    // ── Events ─────────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Overrides the win-item identifier at runtime from the central Synthesis Steps plan.
+    /// Called by ChemicalSynthesisController.ApplySynthesisRecipe() in Awake.
+    /// </summary>
+    public void SetWinItemId(string winItemId)
+    {
+        if (!string.IsNullOrWhiteSpace(winItemId))
+            _winItemId = winItemId;
+    }
 
-    /// <summary>Fired after a successful analysis (win flask detected).</summary>
+    // ── Events ─────────────────────────────────────────────────────────────────
     public event Action OnSuccess;
 
     /// <summary>Fired after a failed analysis (wrong flask).</summary>

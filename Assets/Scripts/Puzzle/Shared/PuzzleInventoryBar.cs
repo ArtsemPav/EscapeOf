@@ -78,12 +78,23 @@ public class PuzzleInventoryBar : MonoBehaviour
     /// <summary>The item currently being dragged, or null when not dragging.</summary>
     public static ItemData DraggedItem { get; private set; }
 
+    /// <summary>
+    /// Inventory slot index of the item currently being dragged.
+    /// Set when drag begins; reset to -1 when drag ends.
+    /// Read by puzzle drop handlers (e.g. ChemicalSynthesisController) to know
+    /// which slot to return a result to.
+    /// </summary>
+    public static int DragSourceSlotIndex { get; private set; } = -1;
+
     private Image _dragGhost;
     private PuzzleInventorySlot _dragSource;
     private ItemData _dragItem;
     private bool _isDragging;
     private Canvas _rootCanvas;
     private CanvasGroup _canvasGroup;
+
+    // Set by OnSlotDropReceived to prevent double-handling in OnSlotEndDrag.
+    private bool _droppedOnInventorySlot;
 
     // Cached (barWidth - viewportWidth) / 2 — buttons + margins + gaps on one side.
     // Read once from the scene layout so the designer never needs to configure it manually.
@@ -183,6 +194,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         _isDragging = true;
         IsDragging = true;
         DraggedItem = slot.Item;
+        DragSourceSlotIndex = slot.SlotIndex;
 
         slot.SetDragVisual(dimmed: true);
         SpawnGhost(slot.Item.icon, eventData.position);
@@ -222,23 +234,21 @@ public class PuzzleInventoryBar : MonoBehaviour
             return;
         }
 
-        // Check if the drop landed on another bar slot for crafting.
-        PuzzleInventorySlot targetBarSlot = FindHoveredBarSlot(eventData, exclude: slot);
-        if (targetBarSlot != null && targetBarSlot.HasItem && _dragItem != null)
+        // If OnSlotDropReceived already handled this interaction (craft or swap), just clean up.
+        if (_droppedOnInventorySlot)
         {
-            if (InventorySystem.Instance != null &&
-                InventorySystem.Instance.TryCombineDeferred(
-                    slot.SlotIndex, targetBarSlot.SlotIndex, out ItemData craftResult))
-            {
-                ShowCraftResult(craftResult);
-                _dragSource = null;
-                _dragItem = null;
-                return;
-            }
+            _droppedOnInventorySlot = false;
+            slot?.SetDragVisual(dimmed: false);
+            _dragSource = null;
+            _dragItem = null;
+            return;
         }
 
         bool accepted = false;
         ItemData replacement = null;
+
+        // Capture the source slot before HandleDrop clears any state.
+        int sourceSlotIndex = _dragSource?.SlotIndex ?? -1;
 
         if (_dragItem != null && _activeHandler != null)
             accepted = _activeHandler.HandleDrop(_dragItem, eventData.position, out replacement);
@@ -248,7 +258,9 @@ public class PuzzleInventoryBar : MonoBehaviour
             if (replacement != null)
                 InventorySystem.Instance?.ReplaceItem(_dragItem, replacement);
             else
-                InventorySystem.Instance?.RemoveItem(_dragItem);
+                // Reserve the cleared slot so AddItem cannot claim it while the device
+                // is processing. The result is returned to exactly this slot via PlaceItemAt.
+                InventorySystem.Instance?.ClearSlot(sourceSlotIndex, reserve: true);
             // RefreshSlots will be called by OnInventoryChanged event
         }
         else
@@ -256,41 +268,52 @@ public class PuzzleInventoryBar : MonoBehaviour
             // Return visual — item stays in inventory
             slot?.SetDragVisual(dimmed: false);
 
-            // Show warning only when there is an active puzzle handler and no bar slot was targeted.
-            if (_dragItem != null && _activeHandler != null && targetBarSlot == null)
+            // Show warning only when there is an active puzzle handler.
+            if (_dragItem != null && _activeHandler != null)
                 PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
         }
 
+        DragSourceSlotIndex = -1;
         _dragSource = null;
         _dragItem = null;
     }
 
     /// <summary>
     /// Called by PuzzleInventorySlot.OnDrop when a slot is dropped on top of another.
-    /// Secondary path — primary crafting runs in OnSlotEndDrag.
+    /// Tries crafting first; if no recipe matches, swaps the two slot positions.
+    /// Sets _droppedOnInventorySlot so OnSlotEndDrag skips the handler-drop path.
     /// </summary>
     public void OnSlotDropReceived(PuzzleInventorySlot targetSlot, PuzzleInventorySlot sourceSlot)
     {
-        if (!targetSlot.HasItem || sourceSlot == null) return;
+        if (sourceSlot == null) return;
 
         // Block while the inspection/craft-preview window is open.
         if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
 
-        if (InventorySystem.Instance != null &&
+        // Try crafting only when both slots are occupied.
+        if (targetSlot.HasItem && sourceSlot.HasItem && InventorySystem.Instance != null &&
             InventorySystem.Instance.TryCombineDeferred(
                 sourceSlot.SlotIndex, targetSlot.SlotIndex, out ItemData craftResult))
         {
-            ShowCraftResult(craftResult);
+            _droppedOnInventorySlot = true;
+            // Pass the source slot so the result goes back to where the dragged item was.
+            ShowCraftResult(craftResult, sourceSlot.SlotIndex);
+            return;
         }
+
+        // No recipe match → swap slot positions.
+        // Works even when the target slot is empty — effectively moves the item.
+        InventorySystem.Instance?.SwapSlots(sourceSlot.SlotIndex, targetSlot.SlotIndex);
+        _droppedOnInventorySlot = true;
     }
 
     /// <summary>
     /// Opens the ItemInspector preview for a freshly crafted item.
-    /// The item is added to inventory only when the player confirms (clicks).
-    /// Falls back to a direct AddItem call when the inspector is unavailable
-    /// or the item has no inspection prefab.
+    /// The item is placed at <paramref name="originSlot"/> when the player confirms,
+    /// then the inventory is compacted to close any gap left by the consumed ingredient.
+    /// Falls back to AddItem when the inspector is unavailable or the item has no prefab.
     /// </summary>
-    private void ShowCraftResult(ItemData result)
+    private void ShowCraftResult(ItemData result, int originSlot)
     {
         if (result == null) return;
 
@@ -298,13 +321,31 @@ public class PuzzleInventoryBar : MonoBehaviour
         {
             ItemInspector.Instance.BeginInspection(result, null, item =>
             {
-                InventorySystem.Instance?.AddItem(item);
+                PlaceCraftResult(item, originSlot);
             });
         }
         else
         {
-            InventorySystem.Instance?.AddItem(result);
+            PlaceCraftResult(result, originSlot);
         }
+    }
+
+    /// <summary>
+    /// Places the craft result at <paramref name="originSlot"/> (or first available slot as
+    /// fallback via PlaceItemAt), then compacts the inventory to eliminate any remaining gaps.
+    /// </summary>
+    private void PlaceCraftResult(ItemData item, int originSlot)
+    {
+        var inv = InventorySystem.Instance;
+        if (inv == null) return;
+
+        if (originSlot >= 0)
+            inv.PlaceItemAt(originSlot, item);
+        else
+            inv.AddItem(item);
+
+        // Compact to close the hole left by the second consumed ingredient.
+        inv.Compact();
     }
 
     // ── Scroll ────────────────────────────────────────────────────────────────
@@ -567,6 +608,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         _isDragging = false;
         IsDragging = false;
         DraggedItem = null;
+        DragSourceSlotIndex = -1;
         _dragSource?.SetDragVisual(dimmed: false);
         DestroyGhost();
         UI.PuzzleCursor.Instance?.SetDragMode(false, null);

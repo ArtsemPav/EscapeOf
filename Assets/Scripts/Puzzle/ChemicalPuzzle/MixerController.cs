@@ -78,19 +78,11 @@ public class MixerController : ChemicalDeviceBase
              "Keep values below 1 for a subtle glow; higher values increase bloom intensity.")]
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
-    // _acceptedItems and _equivalenceMap removed — managed globally by ChemicalSynthesisController.
-
-    [Header("Slag Items")]
-    [Tooltip("Items that contaminate the entire mix. If any loaded item is in this list the result is always _spoiledResult, regardless of other ingredients.")]
-    [SerializeField] private ItemData[] _slagItems;
-
-    [Header("Recipes")]
-    [Tooltip("Ordered list of valid mixing recipes. First match wins.")]
-    [SerializeField] private MixingRecipe[] _recipes;
-
-    [Header("Results")]
-    [Tooltip("Returned when a mix is contaminated by a slag item or matches no recipe.")]
-    [SerializeField] private ItemData _spoiledResult;
+    // ── Results — set at runtime by ChemicalSynthesisController.ApplySynthesisRecipe() ──
+    // Configure in ChemicalSynthesisController → Synthesis Steps (Device: Mixer) and Mixer global fields.
+    private ItemData[]    _slagItems;
+    private MixingRecipe[] _recipes;
+    private ItemData      _spoiledResult;
 
     // ── Shared context (injected by ChemicalSynthesisController) ──────────────
 
@@ -99,11 +91,23 @@ public class MixerController : ChemicalDeviceBase
     /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
     public void Initialize(IChemicalPuzzleContext context) => _context = context;
 
+    /// <summary>
+    /// Overrides the mixer recipe and slag list at runtime from the central Synthesis Steps plan.
+    /// Called by ChemicalSynthesisController.ApplySynthesisRecipe() in Awake.
+    /// </summary>
+    public void ApplyRecipe(MixingRecipe[] recipes, ItemData[] slagItems, ItemData spoiledResult)
+    {
+        if (recipes       != null && recipes.Length    > 0) _recipes      = recipes;
+        if (slagItems     != null && slagItems.Length  > 0) _slagItems    = slagItems;
+        if (spoiledResult != null)                          _spoiledResult = spoiledResult;
+    }
+
     // ── Runtime state ──────────────────────────────────────────────────────────
 
     private readonly List<ItemData> _addedItems = new List<ItemData>();
-    private bool _isLocked;
-    private bool _containsSlag;
+    private bool     _isLocked;
+    private bool     _containsSlag;
+    private ItemData _slagSource;       // The specific slag item that contaminated the batch — used as the result.
     private AudioSource _mixLoopSource;
 
     // ── Highlight state ────────────────────────────────────────────────────────
@@ -141,10 +145,6 @@ public class MixerController : ChemicalDeviceBase
                 }
             }
         }
-    }
-
-    private void Update()
-    {
     }
 
     private void OnDestroy()
@@ -198,9 +198,12 @@ public class MixerController : ChemicalDeviceBase
 
         PlaySFX(_pourClip);
 
-        // Track slag contamination.
-        if (!_containsSlag && IsSlag(input))
+        // Track slag contamination — remember the specific item so the result colour matches.
+        if (IsSlag(input))
+        {
             _containsSlag = true;
+            _slagSource   = input;   // Always update: last slag poured wins the colour.
+        }
 
         // Animate fill.
         float fillTarget = Mathf.Clamp01(_addedItems.Count * _fillPerPortion);
@@ -213,13 +216,15 @@ public class MixerController : ChemicalDeviceBase
         {
             if (willExport)
             {
-                // Last flask: if result is slag-contaminated, show the poured item's colour —
-                // the actual output is randomised by ChemicalSynthesisController, so using
-                // _spoiledResult here would show the wrong (often black) colour.
-                // For a clean recipe match, show the expected result colour.
+                // Last flask: colour the liquid to match the final result.
+                // When slag-contaminated, use the colour of the actual slag that poisoned the
+                // batch (_slagSource) — not the last poured item — so the visual matches what
+                // the player will receive from the inspection panel.
                 Color previewColor;
                 if (_containsSlag)
-                    previewColor = input.GetLiquidColor();
+                    previewColor = (_slagSource != null)
+                        ? _slagSource.GetLiquidColor()
+                        : input.GetLiquidColor();
                 else
                 {
                     ItemData previewResult = DetermineResult();
@@ -278,9 +283,10 @@ public class MixerController : ChemicalDeviceBase
 
     private ItemData DetermineResult()
     {
-        // Slag overrides everything — no recipe can save a contaminated batch.
+        // Slag overrides everything: return the specific item that contaminated the batch.
+        // This ensures the result colour matches what the Mixer liquid is showing.
         if (_containsSlag)
-            return _spoiledResult;
+            return _slagSource ?? _spoiledResult;
 
         // Try each recipe in order; first full match wins.
         if (_recipes != null)
@@ -348,8 +354,9 @@ public class MixerController : ChemicalDeviceBase
     private void ResetMixer()
     {
         _addedItems.Clear();
-        _isLocked    = false;
+        _isLocked     = false;
         _containsSlag = false;
+        _slagSource   = null;
         SetGlow(false);
         // Liquid visual reset is deferred to ResetLiquid(), called after player picks up.
     }

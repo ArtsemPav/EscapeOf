@@ -3,6 +3,112 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Synthesis pipeline types — define the full puzzle solution chain here in
+// ChemicalSynthesisController's Inspector. Each SynthesisStep is one processing
+// event on one device. Values are injected into device controllers on Awake.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>Which physical device executes a synthesis step.</summary>
+public enum SynthesisDevice { Burner, Centrifuge, Mixer, Analyzer }
+
+/// <summary>
+/// One step in the synthesis chain. Choose a device, then fill ONLY the fields
+/// that belong to that device — the rest are ignored at runtime.
+///
+/// One SynthesisStep = one processing unit:
+///   Burner    — one set of valid inputs → one output
+///   Centrifuge — one input → one output  (add multiple steps for multiple mappings)
+///   Mixer     — one recipe: N ingredients → one output
+///   Analyzer  — win condition flask id
+/// </summary>
+[Serializable]
+public struct SynthesisStep
+{
+    [Tooltip("Label shown in the Inspector only — has no effect at runtime.\n" +
+             "Use it to describe the role of this step.\n" +
+             "Example: \"Heat the substrate\", \"Purify component A\", \"Mix serum\"")]
+    public string label;
+
+    [Tooltip("Which device processes this step.\n\n" +
+             "Fill ONLY the fields that match the chosen device:\n" +
+             "  BURNER     → BurnerInputs, SuccessResult, SpoiledResult\n" +
+             "  CENTRIFUGE → CentrifugeInput, SuccessResult, SpoiledResult\n" +
+             "  MIXER      → MixerIngredients, MixerResult  (= one recipe per step)\n" +
+             "  ANALYZER   → AnalyzerWinItemId\n\n" +
+             "HOW TO ADD ANOTHER STEP OF THE SAME DEVICE:\n" +
+             "  • CENTRIFUGE: add a new step with a different CentrifugeInput — the device\n" +
+             "    will produce different outputs for each configured input.\n" +
+             "  • MIXER: add a new step with a different ingredient list — each step is\n" +
+             "    one additional recipe. First fully-matched recipe wins.\n" +
+             "  • BURNER: add more entries to BurnerInputs in the existing step, or add\n" +
+             "    a new step if a different output is needed.")]
+    public SynthesisDevice device;
+
+    // ── Burner fields ────────────────────────────────────────────────────────
+
+    [Tooltip("BURNER — Items accepted as 'correct' input.\n" +
+             "All these produce SuccessResult when heated; anything else gives SpoiledResult.\n\n" +
+             "• Unknown variants are normalised via _equivalenceMap — list identified versions only.\n" +
+             "• Every item here MUST also appear in _acceptedItems (Global Item Registry).")]
+    public ItemData[] burnerInputs;
+
+    // ── Centrifuge fields ────────────────────────────────────────────────────
+
+    [Tooltip("CENTRIFUGE — The item that produces SuccessResult when centrifuged.\n" +
+             "Any other accepted item gives SpoiledResult.\n\n" +
+             "• Unknown variants are normalised automatically — list the identified version.\n" +
+             "• Must also appear in _acceptedItems.\n\n" +
+             "HOW TO ADD ANOTHER CENTRIFUGE MAPPING:\n" +
+             "  Add a new step with Device = Centrifuge and a different CentrifugeInput.\n" +
+             "  Each step adds one input→output pair; the centrifuge checks all of them.")]
+    public ItemData centrifugeInput;
+
+    // ── Burner & Centrifuge shared ───────────────────────────────────────────
+
+    [Tooltip("BURNER / CENTRIFUGE — Flask added to inventory when the correct item is processed.\n\n" +
+             "HOW TO CHAIN STEPS:\n" +
+             "  Set this as the input of the NEXT step that consumes it.\n" +
+             "  Example: Burner.SuccessResult = ColbaA → next Centrifuge.CentrifugeInput = ColbaA.\n" +
+             "  Also add it to _acceptedItems if it needs to be dropped into another device.")]
+    public ItemData successResult;
+
+    [Tooltip("BURNER / CENTRIFUGE — Flask returned when the wrong item is processed.\n" +
+             "Assign any UnknownSpoiledColba — the exact variant shown to the player is\n" +
+             "randomised from _unknownSlagVariants at runtime.")]
+    public ItemData spoiledResult;
+
+    // ── Mixer fields ─────────────────────────────────────────────────────────
+
+    [Tooltip("MIXER — All items that must be present simultaneously to match this recipe.\n" +
+             "Order does NOT matter — the Mixer checks presence only.\n\n" +
+             "• Unknown variants are normalised automatically — list identified versions.\n" +
+             "• All items must appear in _acceptedItems.\n\n" +
+             "HOW TO ADD ANOTHER RECIPE:\n" +
+             "  Add a new Mixer step with a different ingredient list.\n\n" +
+             "HOW TO CHANGE RECIPE PRIORITY:\n" +
+             "  Move Mixer steps up/down in the _synthesisSteps array —\n" +
+             "  the first fully-matched recipe wins.")]
+    public ItemData[] mixerIngredients;
+
+    [Tooltip("MIXER — Flask produced when all MixerIngredients are present.\n" +
+             "Typically the next step's input or the final product.")]
+    public ItemData mixerResult;
+
+    // ── Analyzer fields ──────────────────────────────────────────────────────
+
+    [Tooltip("ANALYZER — ItemId of the flask that wins the puzzle when analyzed.\n\n" +
+             "HOW TO SET:\n" +
+             "  1. Open the target ItemData asset in the Inspector.\n" +
+             "  2. Find 'Item Id' under the Save header.\n" +
+             "     If empty, Unity uses the asset FILE NAME as the id.\n" +
+             "  3. Paste that exact string here.\n\n" +
+             "EXAMPLE: asset named 'SerumColba.asset' → enter: SerumColba\n\n" +
+             "Unknown variants are resolved via _equivalenceMap before the id check —\n" +
+             "so UnknownSerumColba wins if it maps to SerumColba.")]
+    public string analyzerWinItemId;
+}
+
 /// <summary>
 /// Main orchestrator for the Chemical Synthesis puzzle.
 /// Implements IPuzzleDropHandler (routes item drops to the correct device via Raycast)
@@ -35,6 +141,52 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
              "Shared across all devices — configure once here. " +
              "Both the whitelist check and the analyzer identification use this table.")]
     [SerializeField] private IdentificationEntry[] _equivalenceMap;
+
+    // ─── Synthesis Pipeline ───────────────────────────────────────────────────
+    // Define the full puzzle solution path here as an ordered list of steps.
+    // Each step = one processing event on one device.
+    // Values are injected into device controllers on Awake.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Header("Synthesis Steps")]
+    [Tooltip("Ordered list of all processing steps in the puzzle chain.\n\n" +
+             "HOW TO READ THIS LIST:\n" +
+             "  Each entry is one step: a device + its recipe for that step.\n" +
+             "  The order in this list is for YOUR reference — it does NOT enforce\n" +
+             "  a play order; all devices are always accessible to the player.\n" +
+             "  The logical order is defined by which items feed into which devices.\n\n" +
+             "HOW TO ADD A NEW STEP:\n" +
+             "  1. Click '+' to add an entry.\n" +
+             "  2. Set Label (your notes) and Device.\n" +
+             "  3. Fill ONLY the fields that match the chosen device\n" +
+             "     (each field's tooltip shows which device it belongs to).\n\n" +
+             "HOW TO ADD ANOTHER CENTRIFUGE STEP (e.g. to purify a second component):\n" +
+             "  Add a new step, set Device = Centrifuge.\n" +
+             "  Set CentrifugeInput = the new item to purify.\n" +
+             "  Set SuccessResult = the purified output.\n" +
+             "  The centrifuge will then recognise both inputs and produce the correct output.\n\n" +
+             "HOW TO CHANGE THE SOLUTION ORDER:\n" +
+             "  Change SuccessResult of step N to match the input of step N+1.\n" +
+             "  Example: Burner.SuccessResult = ColbaA → Centrifuge.CentrifugeInput = ColbaA.\n\n" +
+             "IMPORTANT: All ItemData assets used as inputs/outputs MUST also appear in\n" +
+             "_acceptedItems (Global Item Registry) so they can be dropped into devices.")]
+    [SerializeField] private SynthesisStep[] _synthesisSteps;
+
+    [Header("Mixer — Contamination (global, applies to all Mixer steps)")]
+    [Tooltip("Items that contaminate the entire Mixer batch regardless of recipe.\n" +
+             "If ANY loaded flask is in this list, the result is always MixerSpoiledResult.\n\n" +
+             "HOW TO ADD A NEW SLAG COLOUR:\n" +
+             "  1. Create the ItemData asset (identified version).\n" +
+             "  2. Add it here.\n" +
+             "  3. Add it to _acceptedItems.\n" +
+             "  4. Add its unknown form to _equivalenceMap.\n" +
+             "  5. Add the unknown form to _unknownSlagVariants (Slag Variants section).")]
+    [SerializeField] private ItemData[] _mixerSlagItems;
+
+    [Tooltip("Flask returned when the Mixer mix is contaminated or no recipe step matched.\n" +
+             "Assign any UnknownSpoiledColba — the actual variant shown to the player is\n" +
+             "randomised from _unknownSlagVariants at runtime.")]
+    [SerializeField] private ItemData _mixerSpoiledResult;
 
     [Header("Items")]
     [Tooltip("Empty flask returned to inventory when a filled flask is loaded into a device.")]
@@ -129,10 +281,18 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     private bool _isSolved;
 
+    // Pairs a result item with the inventory slot index it should return to.
+    // -1 means "unknown origin" — falls back to AddItem (first empty slot).
+    private struct PendingResult
+    {
+        public ItemData item;
+        public int      originSlot;
+    }
+
     // Queue for device results that need sequential inspection panels.
     // Multiple results (e.g. 3 centrifuge flasks) are shown one at a time so
     // BeginInspection is never called while another inspection is already open.
-    private readonly Queue<ItemData> _pendingResults = new Queue<ItemData>();
+    private readonly Queue<PendingResult> _pendingResults = new Queue<PendingResult>();
 
     // Set to true in OnAnalyzerSuccess so the next OnAnalyzerFlaskReturned
     // call (which delivers the winning flask) triggers the inventory cleanup.
@@ -143,6 +303,14 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     // Pre-allocated buffer for zero-GC RaycastNonAlloc calls in Update.
     private readonly RaycastHit[] _hoverHitBuffer = new RaycastHit[16];
+
+    // ── Origin-slot tracking ──────────────────────────────────────────────────
+    // Each field remembers which inventory slot index the dragged item came from.
+    // Captured inside HandleDrop at drop time; used when the device returns a result.
+
+    private int _burnerOriginSlot    = -1;
+    private int _centrifugeOriginSlot = -1;
+    private int _analyzerOriginSlot   = -1;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -189,17 +357,22 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         _mixer?.Initialize(this);
         _analyzer?.Initialize(this);
 
+        // ── Push the central Synthesis Recipe into each device ────────────────────
+        // This is where the puzzle solution path (configured above) is applied.
+        // Device component fields serve as fallbacks when a recipe slot is left empty.
+        ApplySynthesisRecipe();
+
         // ── Register events ───────────────────────────────────────────────────────
         SaveManager.Instance?.Register(this);
 
         if (_centrifuge != null)
         {
             _centrifuge.WheelRotationSpeed = _centrifugeWheelRotationSpeed;
-            _centrifuge.OnProcessComplete += OnDeviceComplete;
+            _centrifuge.OnProcessComplete += OnCentrifugeComplete;
         }
 
         if (_burner != null)
-            _burner.OnProcessComplete += OnDeviceComplete;
+            _burner.OnProcessComplete += OnBurnerComplete;
 
         if (_mixer != null)
             _mixer.OnProcessComplete += OnMixerComplete;
@@ -217,15 +390,103 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                 if (slag != null) _unknownSlagSet.Add(slag);
     }
 
+    // ── Synthesis Pipeline Injection ──────────────────────────────────────────
+
+    /// <summary>
+    /// Aggregates all <see cref="_synthesisSteps"/> by device type and pushes the
+    /// collected configs into each device controller, making this the single source
+    /// of truth for the puzzle solution path.
+    ///
+    /// Multiple steps for the same device are merged:
+    ///   Burner     — all BurnerInputs arrays are concatenated into one whitelist.
+    ///   Centrifuge — each step adds one CentrifugeMapping (input → result).
+    ///   Mixer      — each step adds one MixingRecipe to the recipe list.
+    ///   Analyzer   — last step with a non-empty AnalyzerWinItemId wins.
+    ///
+    /// A device whose steps are all empty/null falls back to values already
+    /// serialised on the device component itself.
+    /// </summary>
+    private void ApplySynthesisRecipe()
+    {
+        if (_synthesisSteps == null || _synthesisSteps.Length == 0) return;
+
+        // ── Accumulate per-device data ────────────────────────────────────────
+        var burnerInputs    = new List<ItemData>();
+        ItemData burnerSuccess  = null;
+        ItemData burnerSpoiled  = null;
+
+        var centrifugeMappings  = new List<CentrifugeMapping>();
+        ItemData centrifugeSpoiled = null;
+
+        var mixerRecipes        = new List<MixingRecipe>();
+
+        string analyzerWinId    = "";
+
+        foreach (SynthesisStep step in _synthesisSteps)
+        {
+            switch (step.device)
+            {
+                case SynthesisDevice.Burner:
+                    if (step.burnerInputs != null)
+                        burnerInputs.AddRange(step.burnerInputs);
+                    if (step.successResult != null) burnerSuccess  = step.successResult;
+                    if (step.spoiledResult != null) burnerSpoiled  = step.spoiledResult;
+                    break;
+
+                case SynthesisDevice.Centrifuge:
+                    if (step.centrifugeInput != null)
+                        centrifugeMappings.Add(new CentrifugeMapping
+                        {
+                            input  = step.centrifugeInput,
+                            result = step.successResult
+                        });
+                    if (step.spoiledResult != null && centrifugeSpoiled == null)
+                        centrifugeSpoiled = step.spoiledResult;
+                    break;
+
+                case SynthesisDevice.Mixer:
+                    if (step.mixerIngredients != null && step.mixerIngredients.Length > 0)
+                        mixerRecipes.Add(new MixingRecipe
+                        {
+                            ingredients = step.mixerIngredients,
+                            result      = step.mixerResult
+                        });
+                    break;
+
+                case SynthesisDevice.Analyzer:
+                    if (!string.IsNullOrEmpty(step.analyzerWinItemId))
+                        analyzerWinId = step.analyzerWinItemId;
+                    break;
+            }
+        }
+
+        // ── Push into device controllers ──────────────────────────────────────
+        _burner?.ApplyRecipe(
+            burnerInputs.Count > 0 ? burnerInputs.ToArray() : null,
+            burnerSuccess,
+            burnerSpoiled);
+
+        _centrifuge?.ApplyRecipe(
+            centrifugeMappings.Count > 0 ? centrifugeMappings.ToArray() : null,
+            centrifugeSpoiled);
+
+        _mixer?.ApplyRecipe(
+            mixerRecipes.Count > 0 ? mixerRecipes.ToArray() : null,
+            _mixerSlagItems,
+            _mixerSpoiledResult);
+
+        _analyzer?.SetWinItemId(analyzerWinId);
+    }
+
     private void OnDestroy()
     {
         SaveManager.Instance?.Unregister(this);
 
         if (_centrifuge != null)
-            _centrifuge.OnProcessComplete -= OnDeviceComplete;
+            _centrifuge.OnProcessComplete -= OnCentrifugeComplete;
 
         if (_burner != null)
-            _burner.OnProcessComplete -= OnDeviceComplete;
+            _burner.OnProcessComplete -= OnBurnerComplete;
 
         if (_mixer != null)
             _mixer.OnProcessComplete -= OnMixerComplete;
@@ -513,6 +774,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         replacement = null;
         if (item == null || Camera.main == null) return false;
 
+        // Capture the inventory slot the dragged item came from — used to return
+        // the result back to the same position after device processing completes.
+        int originSlot = PuzzleInventoryBar.DragSourceSlotIndex;
+
         Ray ray = Camera.main.ScreenPointToRay(screenPosition);
         RaycastHit[] hits = Physics.RaycastAll(ray, Mathf.Infinity, _deviceLayerMask,
                                                QueryTriggerInteraction.Collide);
@@ -531,6 +796,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             {
                 if (!_centrifuge.Accepts(item) || _centrifuge.IsFull || _centrifuge.IsBusy) return false;
 
+                _centrifugeOriginSlot = originSlot;
                 int slotIdx = _centrifuge.GetNearestEmptySlotIndex(screenPosition);
                 _centrifuge.PrepareSlot(slotIdx);
                 _centrifuge.LoadFlask(item);
@@ -542,6 +808,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             {
                 if (_analyzer == null || !_analyzer.Accepts(item)) return false;
 
+                _analyzerOriginSlot = originSlot;
                 _analyzer.LoadFlask(item);
                 return true;
             }
@@ -551,6 +818,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             {
                 if (_burner == null || _burner.IsBusy || !_burner.CanDrop(item)) return false;
 
+                _burnerOriginSlot = originSlot;
                 _burner.LoadFlask(item);
                 _burner.ProcessLoadedFlask();
                 return true;
@@ -585,7 +853,8 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                     // Skip preview if the item is already empty — just discard it silently.
                     if (item != _amptyColba && _amptyColba != null)
                     {
-                        _pendingResults.Enqueue(_amptyColba);
+                        // Trash result (empty flask) has no origin slot — goes to first free.
+                        _pendingResults.Enqueue(new PendingResult { item = _amptyColba, originSlot = -1 });
                         TryShowNextResult();
                     }
                     // Consume the dragged item — no replacement returned.
@@ -614,10 +883,22 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         return _unknownSlagVariants[UnityEngine.Random.Range(0, _unknownSlagVariants.Length)];
     }
 
-    private void OnDeviceComplete(ItemData result)
+    private void OnBurnerComplete(ItemData result)
     {
         if (result == null) return;
-        _pendingResults.Enqueue(RandomizeSlag(result));
+        _pendingResults.Enqueue(new PendingResult { item = RandomizeSlag(result), originSlot = _burnerOriginSlot });
+        _burnerOriginSlot = -1;
+        TryShowNextResult();
+    }
+
+    private void OnCentrifugeComplete(ItemData result)
+    {
+        if (result == null) return;
+        // _centrifugeOriginSlot captures the last drag's source slot.
+        // For the typical single-flask case this is exact. For multi-flask batches,
+        // only the first result lands in the right slot; subsequent results fall
+        // back to first-available via PlaceItemAt's built-in fallback.
+        _pendingResults.Enqueue(new PendingResult { item = RandomizeSlag(result), originSlot = _centrifugeOriginSlot });
         TryShowNextResult();
     }
 
@@ -633,21 +914,34 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         // call TryShowNextResult again when the current inspection closes.
         if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
 
-        ItemData result = _pendingResults.Dequeue();
+        PendingResult pending = _pendingResults.Dequeue();
 
         if (ItemInspector.Instance != null)
         {
-            ItemInspector.Instance.BeginInspection(result, null, (item) =>
+            ItemInspector.Instance.BeginInspection(pending.item, null, (item) =>
             {
-                InventorySystem.Instance?.AddItem(item);
+                PlaceOrAddItem(item, pending.originSlot);
                 TryShowNextResult();
             });
         }
         else
         {
-            InventorySystem.Instance?.AddItem(result);
+            PlaceOrAddItem(pending.item, pending.originSlot);
             TryShowNextResult();
         }
+    }
+
+    /// <summary>
+    /// Places <paramref name="item"/> at <paramref name="originSlot"/> when that slot is still
+    /// empty, otherwise falls back to <see cref="InventorySystem.AddItem"/> (first free slot).
+    /// </summary>
+    private void PlaceOrAddItem(ItemData item, int originSlot)
+    {
+        if (item == null) return;
+        if (originSlot >= 0 && InventorySystem.Instance != null)
+            InventorySystem.Instance.PlaceItemAt(originSlot, item);
+        else
+            InventorySystem.Instance?.AddItem(item);
     }
 
     private void OnMixerComplete(ItemData result)
@@ -696,11 +990,14 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         bool doCleanup = _pendingInventoryCleanup;
         _pendingInventoryCleanup = false;
 
+        int originSlot = _analyzerOriginSlot;
+        _analyzerOriginSlot = -1;
+
         if (ItemInspector.Instance != null)
         {
             ItemInspector.Instance.BeginInspection(flask, null, (item) =>
             {
-                InventorySystem.Instance?.AddItem(item);
+                PlaceOrAddItem(item, originSlot);
 
                 if (doCleanup)
                 {
@@ -715,7 +1012,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         }
         else
         {
-            InventorySystem.Instance?.AddItem(flask);
+            PlaceOrAddItem(flask, originSlot);
 
             if (doCleanup)
             {
