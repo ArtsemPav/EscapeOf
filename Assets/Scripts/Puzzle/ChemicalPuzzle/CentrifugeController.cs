@@ -26,8 +26,7 @@ public class CentrifugeController : ChemicalDeviceBase
     [SerializeField] private Transform[] _slotTransforms;
 
     [Header("Accepted Items")]
-    [Tooltip("Whitelist of ItemData assets the centrifuge accepts. An empty list rejects everything.")]
-    [SerializeField] private ItemData[] _acceptedItems;
+    // _acceptedItems removed — whitelist is now managed globally by ChemicalSynthesisController.
 
     [Header("Ghost Preview")]
     [Tooltip("Optional material applied to the hover ghost. Leave null to use the item's own material.")]
@@ -43,10 +42,7 @@ public class CentrifugeController : ChemicalDeviceBase
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
     [Header("Equivalence Map")]
-    [Tooltip("Maps unknown flask variants to their identified counterparts. " +
-             "Allows an unknown flask to be accepted and treated as its identified version for CleanResultId matching. " +
-             "The whitelist only needs to list the identified version — unknown variants are normalised automatically.")]
-    [SerializeField] private IdentificationEntry[] _equivalenceMap;
+    // _equivalenceMap removed — normalization is now handled by ChemicalSynthesisController.
 
     [Header("Flask Placement")]
     [Tooltip("Uniform scale applied to flask prefabs when placed into centrifuge slots. Tune until flasks match the physical centrifuge size.")]
@@ -60,6 +56,25 @@ public class CentrifugeController : ChemicalDeviceBase
 
     [Header("Settings")]
     [SerializeField] private float _duration = 5f;
+
+    [Header("Audio")]
+    [Tooltip("Played once when a flask is dropped into a slot.")]
+    [SerializeField] private AudioClip _flaskDropClip;
+
+    [Tooltip("Played once when the start button is pressed.")]
+    [SerializeField] private AudioClip _buttonClip;
+
+    [Tooltip("Looping 3D sound played during the spin cycle.")]
+    [SerializeField] private AudioClip _spinLoopClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _spinLoopVolume = 0.8f;
+    [SerializeField] private float _spinLoopMinDistance = 0.5f;
+    [SerializeField] private float _spinLoopMaxDistance = 6f;
+
+    [Tooltip("Played once when the spin cycle completes.")]
+    [SerializeField] private AudioClip _spinCompleteClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _sfxVolume = 1f;
 
     /// <summary>
     /// Rotation speed of the centrifuge wheel in degrees per second.
@@ -78,12 +93,21 @@ public class CentrifugeController : ChemicalDeviceBase
     [SerializeField] private ItemData _cleanResult;
     [SerializeField] private ItemData _spoiledResult;
 
+    // ── Shared context (injected by ChemicalSynthesisController) ──────────────
+
+    private IChemicalPuzzleContext _context;
+
+    /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
+    public void Initialize(IChemicalPuzzleContext context) => _context = context;
+
     // ── Per-slot state ─────────────────────────────────────────────────────────
 
     private readonly ItemData[]   _loadedFlasks       = new ItemData[SlotCount];
     private readonly GameObject[] _loadedFlaskObjects  = new GameObject[SlotCount];
 
     private int _pendingSlotIndex = -1;
+
+    private AudioSource _spinLoopSource;
 
     // ── Hover preview ──────────────────────────────────────────────────────────
 
@@ -123,17 +147,10 @@ public class CentrifugeController : ChemicalDeviceBase
     }
 
     /// <summary>
-    /// Returns true when <paramref name="item"/> is in the accepted-items whitelist.
-    /// Unknown variants are normalised to their identified counterparts before the check,
-    /// so the whitelist only needs to list identified items.
-    /// An empty whitelist rejects everything — fill it in the Inspector.
+    /// Returns true when <paramref name="item"/> is accepted by the puzzle's global whitelist.
+    /// Unknown variants are normalised automatically via the shared equivalence map.
     /// </summary>
-    public bool Accepts(ItemData item)
-    {
-        if (item == null || _acceptedItems == null || _acceptedItems.Length == 0) return false;
-        return System.Array.IndexOf(_acceptedItems, item) >= 0 ||
-               System.Array.IndexOf(_acceptedItems, Normalize(item)) >= 0;
-    }
+    public bool Accepts(ItemData item) => _context?.IsAccepted(item) ?? false;
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -150,6 +167,7 @@ public class CentrifugeController : ChemicalDeviceBase
 
         HideHoverPreview();
         HideHighlight();
+        StopSpinLoop();
         if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
@@ -285,6 +303,7 @@ public class CentrifugeController : ChemicalDeviceBase
         _loadedFlasks[slotIdx] = input;
 
         HideHoverPreview();
+        PlaySFX(_flaskDropClip);
 
         if (input.inspectionPrefab != null &&
             _slotTransforms != null && slotIdx < _slotTransforms.Length &&
@@ -325,6 +344,7 @@ public class CentrifugeController : ChemicalDeviceBase
     private void OnButtonPressed()
     {
         if (!HasAnyFlask || IsBusy) return;
+        PlaySFX(_buttonClip);
         StartSpin();
     }
 
@@ -338,6 +358,10 @@ public class CentrifugeController : ChemicalDeviceBase
     {
         float remaining = _duration;
 
+        _spinLoopSource = AudioManager.Instance != null
+            ? AudioManager.Instance.Play3DLoop(_spinLoopClip, transform, _spinLoopVolume, _spinLoopMinDistance, _spinLoopMaxDistance)
+            : null;
+
         while (remaining > 0f)
         {
             _screen?.UpdateTimer(remaining);
@@ -348,6 +372,9 @@ public class CentrifugeController : ChemicalDeviceBase
             remaining -= Time.deltaTime;
             yield return null;
         }
+
+        StopSpinLoop();
+        PlaySFX(_spinCompleteClip);
 
         // Collect all results before clearing slot state.
         var results = new List<ItemData>(SlotCount);
@@ -441,18 +468,18 @@ public class CentrifugeController : ChemicalDeviceBase
         return bounds.center;
     }
 
-    /// <summary>
-    /// Returns the identified counterpart for <paramref name="item"/> when an equivalence
-    /// mapping exists, otherwise returns <paramref name="item"/> itself.
-    /// </summary>
-    private ItemData Normalize(ItemData item)
+    /// <summary>Delegates normalisation to the shared puzzle context.</summary>
+    private ItemData Normalize(ItemData item) => _context?.Normalize(item) ?? item;
+
+    private void StopSpinLoop()
     {
-        if (item == null || _equivalenceMap == null) return item;
-        foreach (var entry in _equivalenceMap)
-            if (entry.unknown == item && entry.identified != null)
-                return entry.identified;
-        return item;
+        if (_spinLoopSource == null) return;
+        Destroy(_spinLoopSource.gameObject);
+        _spinLoopSource = null;
     }
+
+    /// <summary>Plays a one-shot SFX through AudioManager if a clip is assigned.</summary>
+    private void PlaySFX(AudioClip clip) { if (clip != null) AudioManager.Instance?.PlaySFX(clip, _sfxVolume); }
 
     private int GetFirstEmptySlot()    {
         for (int i = 0; i < SlotCount; i++)

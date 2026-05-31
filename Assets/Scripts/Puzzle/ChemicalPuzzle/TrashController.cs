@@ -17,6 +17,12 @@ public class TrashController : MonoBehaviour
     [Tooltip("Emission color applied when highlighting (non-HDR keeps it subtle).")]
     [SerializeField] private Color _highlightColor = new Color(0.6f, 0.1f, 0.1f, 1f);
 
+    [Header("Audio")]
+    [Tooltip("Played once when an item is discarded into the trash.")]
+    [SerializeField] private AudioClip _dropClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _dropVolume = 1f;
+
     /// <summary>The collider that acts as the trash drop zone.</summary>
     public Collider DropZoneCollider => _dropZoneCollider;
 
@@ -69,5 +75,12 @@ public class TrashController : MonoBehaviour
         _highlightActive = false;
         for (int i = 0; i < _renderers.Length; i++)
             _renderers[i].material = _originalMaterials[i];
+    }
+
+    /// <summary>Plays the drop sound through AudioManager when an item is discarded.</summary>
+    public void PlayDropSound()
+    {
+        if (_dropClip != null)
+            AudioManager.Instance?.PlaySFX(_dropClip, _dropVolume);
     }
 }

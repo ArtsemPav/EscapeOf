@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 /// Attach to the root ChemicalPuzzle GameObject.
 /// </summary>
 [RequireComponent(typeof(PuzzleModeController))]
-public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, ISaveable
+public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, ISaveable, IChemicalPuzzleContext
 {
     [Header("Puzzle")]
     [SerializeField] private PuzzleModeController _puzzleMode;
@@ -25,6 +25,16 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     [Header("Centrifuge")]
     [Tooltip("Rotation speed of the centrifuge wheel in degrees per second.")]
     [SerializeField] private float _centrifugeWheelRotationSpeed = 360f;
+
+    [Header("Global Item Registry")]
+    [Tooltip("All ItemData assets accepted by any device in the puzzle. " +
+             "Unknown variants are normalised automatically — only list the identified versions here.")]
+    [SerializeField] private ItemData[] _acceptedItems;
+
+    [Tooltip("Maps every unknown flask variant to its identified counterpart. " +
+             "Shared across all devices — configure once here. " +
+             "Both the whitelist check and the analyzer identification use this table.")]
+    [SerializeField] private IdentificationEntry[] _equivalenceMap;
 
     [Header("Items")]
     [Tooltip("Empty flask returned to inventory when a filled flask is loaded into a device.")]
@@ -63,6 +73,32 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     [Header("Save")]
     [SerializeField] private string _saveId = "chemical_synthesis";
+
+    // ── IChemicalPuzzleContext ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns true when <paramref name="item"/> (or its normalised counterpart)
+    /// is listed in the global <see cref="_acceptedItems"/> whitelist.
+    /// </summary>
+    public bool IsAccepted(ItemData item)
+    {
+        if (item == null || _acceptedItems == null || _acceptedItems.Length == 0) return false;
+        return System.Array.IndexOf(_acceptedItems, item) >= 0 ||
+               System.Array.IndexOf(_acceptedItems, Normalize(item)) >= 0;
+    }
+
+    /// <summary>
+    /// Returns the identified counterpart for <paramref name="item"/> from the shared
+    /// equivalence map, or <paramref name="item"/> itself when no mapping exists.
+    /// </summary>
+    public ItemData Normalize(ItemData item)
+    {
+        if (item == null || _equivalenceMap == null) return item;
+        foreach (var entry in _equivalenceMap)
+            if (entry.unknown == item && entry.identified != null)
+                return entry.identified;
+        return item;
+    }
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -146,6 +182,12 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
         if (_trash == null)
             _trash = GetComponentInChildren<TrashController>(true);
+
+        // ── Inject shared context into all device controllers ─────────────────────
+        _centrifuge?.Initialize(this);
+        _burner?.Initialize(this);
+        _mixer?.Initialize(this);
+        _analyzer?.Initialize(this);
 
         // ── Register events ───────────────────────────────────────────────────────
         SaveManager.Instance?.Register(this);
@@ -537,6 +579,8 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                     // Empty flask cannot be discarded.
                     if (item == _amptyColba) return false;
 
+                    _trash.PlayDropSound();
+
                     // Show the empty flask via the inspection panel (same flow as devices).
                     // Skip preview if the item is already empty — just discard it silently.
                     if (item != _amptyColba && _amptyColba != null)
@@ -647,17 +691,39 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private void OnAnalyzerFlaskReturned(ItemData flask)
     {
         if (flask == null) return;
-        InventorySystem.Instance?.AddItem(flask);
 
-        if (!_pendingInventoryCleanup) return;
-
-        // 1. Purge all intermediate puzzle items — winning flask is already in inventory.
+        // Capture and clear the flag immediately so the lambda can't fire cleanup twice.
+        bool doCleanup = _pendingInventoryCleanup;
         _pendingInventoryCleanup = false;
-        ClearPuzzleItemsFromInventory();
 
-        // 2. Mark the puzzle solved and persist only after the inventory is clean.
-        _puzzleMode?.SetSolved();
-        SaveManager.Instance?.Save();
+        if (ItemInspector.Instance != null)
+        {
+            ItemInspector.Instance.BeginInspection(flask, null, (item) =>
+            {
+                InventorySystem.Instance?.AddItem(item);
+
+                if (doCleanup)
+                {
+                    // 1. Purge all intermediate puzzle items — winning flask is now in inventory.
+                    ClearPuzzleItemsFromInventory();
+
+                    // 2. Mark the puzzle solved and persist only after the inventory is clean.
+                    _puzzleMode?.SetSolved();
+                    SaveManager.Instance?.Save();
+                }
+            });
+        }
+        else
+        {
+            InventorySystem.Instance?.AddItem(flask);
+
+            if (doCleanup)
+            {
+                ClearPuzzleItemsFromInventory();
+                _puzzleMode?.SetSolved();
+                SaveManager.Instance?.Save();
+            }
+        }
     }
 
     /// <summary>

@@ -34,6 +34,22 @@ public class BurnerController : ChemicalDeviceBase
     [Tooltip("Duration of the drop animation in seconds.")]
     [SerializeField] private float _dropDuration = 0.4f;
 
+    [Header("Audio")]
+    [Tooltip("Played once when the flask lands on the burner spot.")]
+    [SerializeField] private AudioClip _flaskDropClip;
+
+    [Tooltip("Looping 3D sound played while the flame is active.")]
+    [SerializeField] private AudioClip _burnLoopClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _burnLoopVolume = 0.8f;
+    [SerializeField] private float _burnLoopMinDistance = 0.5f;
+    [SerializeField] private float _burnLoopMaxDistance = 5f;
+
+    [Tooltip("Played once when heating completes.")]
+    [SerializeField] private AudioClip _burnCompleteClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _sfxVolume = 1f;
+
     [Header("Ghost Preview")]
     [Tooltip("Optional material applied to the hover ghost. Reuse FlaskGhost.mat from the centrifuge.")]
     [SerializeField] private Material _ghostMaterial;
@@ -54,13 +70,10 @@ public class BurnerController : ChemicalDeviceBase
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
     [Header("Droppable Items")]
-    [Tooltip("All items that can be dropped on the burner (shows hover preview). Wrong items produce _spoiledResult.")]
-    [SerializeField] private ItemData[] _droppableItems;
+    // _droppableItems removed — whitelist is now managed globally by ChemicalSynthesisController.
 
     [Header("Equivalence Map")]
-    [Tooltip("Maps unknown flask variants to their identified counterparts for acceptance and success checks. " +
-             "_droppableItems and _successItems only need to list the identified version.")]
-    [SerializeField] private IdentificationEntry[] _equivalenceMap;
+    // _equivalenceMap removed — normalization is now handled by ChemicalSynthesisController.
 
     [Header("Results")]
     [Tooltip("Items that produce _successResult when heated. Must be a subset of _droppableItems.")]
@@ -72,12 +85,20 @@ public class BurnerController : ChemicalDeviceBase
     [Tooltip("Result produced when a non-success item is heated.")]
     [SerializeField] private ItemData _spoiledResult;
 
+    // ── Shared context (injected by ChemicalSynthesisController) ──────────────
+
+    private IChemicalPuzzleContext _context;
+
+    /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
+    public void Initialize(IChemicalPuzzleContext context) => _context = context;
+
     // ── Runtime state ──────────────────────────────────────────────────────────
 
     private ItemData   _loadedFlask;
     private GameObject _flaskObject;
     private GameObject _hoverGhost;
     private Coroutine  _bobCoroutine;
+    private AudioSource _burnLoopSource;
 
     // ── Highlight state ────────────────────────────────────────────────────────
 
@@ -92,22 +113,18 @@ public class BurnerController : ChemicalDeviceBase
     {
         HideHoverPreview();
         HideHighlight();
+        StopBurnLoop();
         if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns true when <paramref name="item"/> can be dropped on the burner.
-    /// Unknown variants are normalised to their identified counterparts before the check.
+    /// Returns true when <paramref name="item"/> is accepted by the puzzle's global whitelist.
+    /// Unknown variants are normalised automatically via the shared equivalence map.
     /// Used by ChemicalSynthesisController for gating drops and the hover preview.
     /// </summary>
-    public bool CanDrop(ItemData item)
-    {
-        if (item == null || _droppableItems == null || _droppableItems.Length == 0) return false;
-        return Array.IndexOf(_droppableItems, item) >= 0 ||
-               Array.IndexOf(_droppableItems, Normalize(item)) >= 0;
-    }
+    public bool CanDrop(ItemData item) => _context?.IsAccepted(item) ?? false;
 
     /// <summary>The Spot collider used as the drop-zone by the orchestrator.</summary>
     public Collider DropZoneCollider => _spotCollider;
@@ -245,13 +262,23 @@ public class BurnerController : ChemicalDeviceBase
         // Wait for drop animation to finish before igniting.
         yield return new WaitForSeconds(_dropDuration);
 
+        PlaySFX(_flaskDropClip);
+
         if (_flameVFX != null)
             _flameVFX.SetActive(true);
 
+        _burnLoopSource = AudioManager.Instance != null
+            ? AudioManager.Instance.Play3DLoop(_burnLoopClip, transform, _burnLoopVolume, _burnLoopMinDistance, _burnLoopMaxDistance)
+            : null;
+
         yield return new WaitForSeconds(_duration);
+
+        StopBurnLoop();
 
         if (_flameVFX != null)
             _flameVFX.SetActive(false);
+
+        PlaySFX(_burnCompleteClip);
 
         if (_flaskObject != null) { Destroy(_flaskObject); _flaskObject = null; }
 
@@ -268,18 +295,18 @@ public class BurnerController : ChemicalDeviceBase
                Array.IndexOf(_successItems, Normalize(item)) >= 0;
     }
 
-    /// <summary>
-    /// Returns the identified counterpart for <paramref name="item"/> when an equivalence
-    /// mapping exists, otherwise returns <paramref name="item"/> itself.
-    /// </summary>
-    private ItemData Normalize(ItemData item)
+    /// <summary>Delegates normalisation to the shared puzzle context.</summary>
+    private ItemData Normalize(ItemData item) => _context?.Normalize(item) ?? item;
+
+    private void StopBurnLoop()
     {
-        if (item == null || _equivalenceMap == null) return item;
-        foreach (var entry in _equivalenceMap)
-            if (entry.unknown == item && entry.identified != null)
-                return entry.identified;
-        return item;
+        if (_burnLoopSource == null) return;
+        Destroy(_burnLoopSource.gameObject);
+        _burnLoopSource = null;
     }
+
+    /// <summary>Plays a one-shot SFX through AudioManager if a clip is assigned.</summary>
+    private void PlaySFX(AudioClip clip) { if (clip != null) AudioManager.Instance?.PlaySFX(clip, _sfxVolume); }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 

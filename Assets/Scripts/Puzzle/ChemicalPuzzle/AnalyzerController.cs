@@ -58,9 +58,27 @@ public class AnalyzerController : MonoBehaviour
     [Tooltip("ItemId of the flask that triggers OnSuccess.")]
     [SerializeField] private string _winItemId = DefaultWinId;
 
+    [Header("Audio")]
+    [Tooltip("Played once when the start button is pressed.")]
+    [SerializeField] private AudioClip _startClip;
+
+    [Tooltip("Looping 3D sound played during the scanning phase.")]
+    [SerializeField] private AudioClip _scanLoopClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _scanLoopVolume = 0.7f;
+    [SerializeField] private float _scanLoopMinDistance = 0.5f;
+    [SerializeField] private float _scanLoopMaxDistance = 5f;
+
+    [Tooltip("Played once when analysis returns a successful (win) result.")]
+    [SerializeField] private AudioClip _successClip;
+
+    [Tooltip("Played once when analysis returns a failed result.")]
+    [SerializeField] private AudioClip _failClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _sfxVolume = 1f;
+
     [Header("Accepted Items")]
-    [Tooltip("All flasks the analyzer accepts. Wrong items get an analysis result but are returned.")]
-    [SerializeField] private ItemData[] _acceptedItems;
+    // _acceptedItems removed — whitelist is now managed globally by ChemicalSynthesisController.
 
     [Header("Ghost Preview")]
     [Tooltip("Optional material applied to the hover ghost.")]
@@ -76,15 +94,20 @@ public class AnalyzerController : MonoBehaviour
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
     [Header("Identification Map")]
-    [Tooltip("Maps every unknown flask ItemData to its identified counterpart. " +
-             "The analyzer swaps the returned item to the identified version after scanning.")]
-    [SerializeField] private IdentificationEntry[] _identificationMap;
+    // _identificationMap removed — merged into the shared equivalence map on ChemicalSynthesisController.
 
     [Tooltip("Amplitude of the bob animation for the hover ghost (world-space meters).")]
     [SerializeField] private float _hoverBobAmplitude = 0.015f;
 
     [Tooltip("Speed of the bob animation cycle.")]
     [SerializeField] private float _hoverBobSpeed = 2.5f;
+
+    // ── Shared context (injected by ChemicalSynthesisController) ──────────────
+
+    private IChemicalPuzzleContext _context;
+
+    /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
+    public void Initialize(IChemicalPuzzleContext context) => _context = context;
 
     // ── Events ─────────────────────────────────────────────────────────────────
 
@@ -105,6 +128,7 @@ public class AnalyzerController : MonoBehaviour
     private Coroutine  _bobCoroutine;
     private bool       _isBusy;
     private float      _armRestY;
+    private AudioSource _scanLoopSource;
 
     // ── Highlight state ────────────────────────────────────────────────────────
 
@@ -130,6 +154,7 @@ public class AnalyzerController : MonoBehaviour
 
         HideHoverPreview();
         HideHighlight();
+        StopScanLoop();
         if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
@@ -171,15 +196,8 @@ public class AnalyzerController : MonoBehaviour
             _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
     }
 
-    /// <summary>Returns true when <paramref name="item"/> is in the accepted-items list.</summary>
-    public bool CanDrop(ItemData item)
-    {
-        if (item == null) return false;
-        // Any flask that has an identification mapping can be analyzed.
-        if (Identify(item) != item) return true;
-        // Explicitly whitelisted items are also accepted.
-        return _acceptedItems != null && Array.IndexOf(_acceptedItems, item) >= 0;
-    }
+    /// <summary>Returns true when <paramref name="item"/> is accepted by the puzzle's global whitelist.</summary>
+    public bool CanDrop(ItemData item) => _context?.IsAccepted(item) ?? false;
 
     /// <summary>Backward-compatible alias for CanDrop.</summary>
     public bool Accepts(ItemData item) => CanDrop(item);
@@ -300,6 +318,7 @@ public class AnalyzerController : MonoBehaviour
     private void OnButtonPressed()
     {
         if (_loadedFlask == null || _isBusy) return;
+        PlaySFX(_startClip);
         StartCoroutine(AnalyzeCoroutine());
     }
 
@@ -316,6 +335,11 @@ public class AnalyzerController : MonoBehaviour
 
         // 2. Scanning — count from 0 to 100%.
         _screen?.ShowScanning();
+
+        _scanLoopSource = AudioManager.Instance != null
+            ? AudioManager.Instance.Play3DLoop(_scanLoopClip, transform, _scanLoopVolume, _scanLoopMinDistance, _scanLoopMaxDistance)
+            : null;
+
         float elapsed = 0f;
         while (elapsed < _scanDuration)
         {
@@ -325,6 +349,8 @@ public class AnalyzerController : MonoBehaviour
             yield return null;
         }
         _screen?.SetScanPercent(100);
+
+        StopScanLoop();
 
         // 3. Show result with compound name and description.
         // Resolve identified version — reveals the real name on screen even for unknown flasks.
@@ -336,6 +362,8 @@ public class AnalyzerController : MonoBehaviour
                               : identified.description;
 
         _screen?.ShowResult(compoundName, description, isSuccess);
+        PlaySFX(isSuccess ? _successClip : _failClip);
+
         yield return new WaitForSeconds(_resultDisplayDuration);
 
         // 4. Arm ascends.
@@ -383,17 +411,21 @@ public class AnalyzerController : MonoBehaviour
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Returns the identified counterpart for <paramref name="item"/> if a mapping exists,
-    /// otherwise returns <paramref name="item"/> itself.
+    /// Returns the identified counterpart for <paramref name="item"/> via the shared
+    /// puzzle context's equivalence map. Returns <paramref name="item"/> itself if
+    /// no mapping exists.
     /// </summary>
-    private ItemData Identify(ItemData item)
+    private ItemData Identify(ItemData item) => _context?.Normalize(item) ?? item;
+
+    private void StopScanLoop()
     {
-        if (item == null || _identificationMap == null) return item;
-        foreach (var entry in _identificationMap)
-            if (entry.unknown == item && entry.identified != null)
-                return entry.identified;
-        return item;
+        if (_scanLoopSource == null) return;
+        Destroy(_scanLoopSource.gameObject);
+        _scanLoopSource = null;
     }
+
+    /// <summary>Plays a one-shot SFX through AudioManager if a clip is assigned.</summary>
+    private void PlaySFX(AudioClip clip) { if (clip != null) AudioManager.Instance?.PlaySFX(clip, _sfxVolume); }
 
     private static Vector3 ComputeLocalScaleForWorldScale(Transform parent, float worldScale)
     {

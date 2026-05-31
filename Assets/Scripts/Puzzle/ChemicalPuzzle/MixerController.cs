@@ -53,6 +53,22 @@ public class MixerController : ChemicalDeviceBase
     [Tooltip("Renderer that shows the glow effect while the mixer is locked.")]
     [SerializeField] private Renderer _glowRenderer;
 
+    [Header("Audio")]
+    [Tooltip("Played once each time a flask is poured into the mixer.")]
+    [SerializeField] private AudioClip _pourClip;
+
+    [Tooltip("Looping 3D sound played during the export delay after the last flask.")]
+    [SerializeField] private AudioClip _mixLoopClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _mixLoopVolume = 0.7f;
+    [SerializeField] private float _mixLoopMinDistance = 0.5f;
+    [SerializeField] private float _mixLoopMaxDistance = 5f;
+
+    [Tooltip("Played once when the mix is exported.")]
+    [SerializeField] private AudioClip _mixCompleteClip;
+
+    [SerializeField] [Range(0f, 1f)] private float _sfxVolume = 1f;
+
     [Header("Hover Highlight")]
     [Tooltip("Renderer on the flask mesh that lights up when a valid item is dragged over the mixer. " +
              "Auto-resolved to the first child MeshRenderer named 'mixColba' if left empty.")]
@@ -62,14 +78,7 @@ public class MixerController : ChemicalDeviceBase
              "Keep values below 1 for a subtle glow; higher values increase bloom intensity.")]
     [SerializeField] private Color _highlightColor = new Color(0f, 0.5f, 0.3f);
 
-    [Header("Accepted Items")]
-    [Tooltip("Whitelist of ItemData assets the mixer accepts. Leave empty to accept everything.")]
-    [SerializeField] private ItemData[] _acceptedItems;
-
-    [Header("Equivalence Map")]
-    [Tooltip("Maps 'unknown' flask variants to their identified counterparts for acceptance and recipe matching. " +
-             "Recipes only need to list the identified version — unknown variants are normalised automatically.")]
-    [SerializeField] private IdentificationEntry[] _equivalenceMap;
+    // _acceptedItems and _equivalenceMap removed — managed globally by ChemicalSynthesisController.
 
     [Header("Slag Items")]
     [Tooltip("Items that contaminate the entire mix. If any loaded item is in this list the result is always _spoiledResult, regardless of other ingredients.")]
@@ -83,11 +92,19 @@ public class MixerController : ChemicalDeviceBase
     [Tooltip("Returned when a mix is contaminated by a slag item or matches no recipe.")]
     [SerializeField] private ItemData _spoiledResult;
 
+    // ── Shared context (injected by ChemicalSynthesisController) ──────────────
+
+    private IChemicalPuzzleContext _context;
+
+    /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
+    public void Initialize(IChemicalPuzzleContext context) => _context = context;
+
     // ── Runtime state ──────────────────────────────────────────────────────────
 
     private readonly List<ItemData> _addedItems = new List<ItemData>();
     private bool _isLocked;
     private bool _containsSlag;
+    private AudioSource _mixLoopSource;
 
     // ── Highlight state ────────────────────────────────────────────────────────
 
@@ -132,21 +149,15 @@ public class MixerController : ChemicalDeviceBase
 
     private void OnDestroy()
     {
+        StopMixLoop();
         if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     /// <summary>
-    /// Returns true when <paramref name="item"/> is in the accepted-items whitelist.
-    /// Unknown variants are normalised to their identified counterpart before the check,
-    /// so the whitelist only needs to list identified items.
-    /// An empty whitelist rejects everything — fill it in the Inspector.
+    /// Returns true when <paramref name="item"/> is accepted by the puzzle's global whitelist.
+    /// Unknown variants are normalised automatically via the shared equivalence map.
     /// </summary>
-    public bool Accepts(ItemData item)
-    {
-        if (item == null || _acceptedItems == null || _acceptedItems.Length == 0) return false;
-        return Array.IndexOf(_acceptedItems, item) >= 0 ||
-               Array.IndexOf(_acceptedItems, Normalize(item)) >= 0;
-    }
+    public bool Accepts(ItemData item) => _context?.IsAccepted(item) ?? false;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -184,6 +195,8 @@ public class MixerController : ChemicalDeviceBase
         if (!Accepts(input)) return;
 
         _addedItems.Add(input);
+
+        PlaySFX(_pourClip);
 
         // Track slag contamination.
         if (!_containsSlag && IsSlag(input))
@@ -243,7 +256,14 @@ public class MixerController : ChemicalDeviceBase
         // Liquid colour is already set to the result in LoadFlask() when the last
         // flask was poured, so no colour update is needed here.
 
+        _mixLoopSource = AudioManager.Instance != null
+            ? AudioManager.Instance.Play3DLoop(_mixLoopClip, transform, _mixLoopVolume, _mixLoopMinDistance, _mixLoopMaxDistance)
+            : null;
+
         yield return new WaitForSeconds(_exportDelay);
+
+        StopMixLoop();
+        PlaySFX(_mixCompleteClip);
 
         ResetMixer();
         CompleteWithResult(result);
@@ -298,18 +318,18 @@ public class MixerController : ChemicalDeviceBase
         return true;
     }
 
-    /// <summary>
-    /// Returns the identified counterpart for <paramref name="item"/> when an equivalence
-    /// mapping exists, otherwise returns <paramref name="item"/> itself.
-    /// </summary>
-    private ItemData Normalize(ItemData item)
+    /// <summary>Delegates normalisation to the shared puzzle context.</summary>
+    private ItemData Normalize(ItemData item) => _context?.Normalize(item) ?? item;
+
+    private void StopMixLoop()
     {
-        if (item == null || _equivalenceMap == null) return item;
-        foreach (var entry in _equivalenceMap)
-            if (entry.unknown == item && entry.identified != null)
-                return entry.identified;
-        return item;
+        if (_mixLoopSource == null) return;
+        Destroy(_mixLoopSource.gameObject);
+        _mixLoopSource = null;
     }
+
+    /// <summary>Plays a one-shot SFX through AudioManager if a clip is assigned.</summary>
+    private void PlaySFX(AudioClip clip) { if (clip != null) AudioManager.Instance?.PlaySFX(clip, _sfxVolume); }
 
     private bool IsSlag(ItemData item)
     {
