@@ -93,8 +93,12 @@ public class PuzzleInventoryBar : MonoBehaviour
     private Canvas _rootCanvas;
     private CanvasGroup _canvasGroup;
 
-    // Set by OnSlotDropReceived to prevent double-handling in OnSlotEndDrag.
+    // Set by OnSlotDropReceived to signal that a slot-to-slot interaction occurred.
+    // Actual execution (swap or craft) is deferred to OnSlotEndDrag so the device
+    // drop can take priority when the cursor is also over a 3D device collider.
     private bool _droppedOnInventorySlot;
+    private PuzzleInventorySlot _pendingSwapSource;
+    private PuzzleInventorySlot _pendingSwapTarget;
 
     // Cached (barWidth - viewportWidth) / 2 — buttons + margins + gaps on one side.
     // Read once from the scene layout so the designer never needs to configure it manually.
@@ -196,6 +200,11 @@ public class PuzzleInventoryBar : MonoBehaviour
         DraggedItem = slot.Item;
         DragSourceSlotIndex = slot.SlotIndex;
 
+        // Clear any stale state from a previous interaction.
+        _droppedOnInventorySlot = false;
+        _pendingSwapSource = null;
+        _pendingSwapTarget = null;
+
         slot.SetDragVisual(dimmed: true);
         SpawnGhost(slot.Item.icon, eventData.position);
         UI.PuzzleCursor.Instance?.SetDragMode(true, _dragItem);
@@ -209,10 +218,11 @@ public class PuzzleInventoryBar : MonoBehaviour
     }
 
     /// <summary>
-    /// Ends the drag — first checks whether the drop landed on another bar slot for crafting.
-    /// If crafting succeeds, inventory is updated automatically via OnInventoryChanged.
-    /// Otherwise asks the active handler to accept the item.
-    /// If rejected, the slot icon is restored.
+    /// Ends the drag — tries the 3D device drop FIRST via the active handler.
+    /// Only if the device does not accept the item does it fall back to executing
+    /// the pending slot swap or craft recorded by OnSlotDropReceived.
+    /// This order ensures device drops always win over accidental slot interactions,
+    /// even when a slot's RectTransform overlaps the device area in screen space.
     /// </summary>
     public void OnSlotEndDrag(PuzzleInventorySlot slot, PointerEventData eventData)
     {
@@ -231,30 +241,29 @@ public class PuzzleInventoryBar : MonoBehaviour
             slot?.SetDragVisual(dimmed: false);
             _dragSource = null;
             _dragItem = null;
-            return;
-        }
-
-        // If OnSlotDropReceived already handled this interaction (craft or swap), just clean up.
-        if (_droppedOnInventorySlot)
-        {
             _droppedOnInventorySlot = false;
-            slot?.SetDragVisual(dimmed: false);
-            _dragSource = null;
-            _dragItem = null;
+            _pendingSwapSource = null;
+            _pendingSwapTarget = null;
             return;
         }
 
+        // Capture source slot before any state is mutated.
+        int sourceSlotIndex = _dragSource?.SlotIndex ?? -1;
+
+        // ── 1. Try device drop first ──────────────────────────────────────────
         bool accepted = false;
         ItemData replacement = null;
-
-        // Capture the source slot before HandleDrop clears any state.
-        int sourceSlotIndex = _dragSource?.SlotIndex ?? -1;
 
         if (_dragItem != null && _activeHandler != null)
             accepted = _activeHandler.HandleDrop(_dragItem, eventData.position, out replacement);
 
         if (accepted)
         {
+            // Device accepted — discard any pending slot interaction.
+            _droppedOnInventorySlot = false;
+            _pendingSwapSource = null;
+            _pendingSwapTarget = null;
+
             if (replacement != null)
                 InventorySystem.Instance?.ReplaceItem(_dragItem, replacement);
             else
@@ -263,12 +272,20 @@ public class PuzzleInventoryBar : MonoBehaviour
                 InventorySystem.Instance?.ClearSlot(sourceSlotIndex, reserve: true);
             // RefreshSlots will be called by OnInventoryChanged event
         }
+        // ── 2. Device didn't take it — execute pending slot swap/craft ────────
+        else if (_droppedOnInventorySlot)
+        {
+            ExecutePendingSlotDrop();
+            slot?.SetDragVisual(dimmed: false);
+            _droppedOnInventorySlot = false;
+            _pendingSwapSource = null;
+            _pendingSwapTarget = null;
+        }
+        // ── 3. Nothing accepted the drop — restore item visual ─────────────────
         else
         {
-            // Return visual — item stays in inventory
             slot?.SetDragVisual(dimmed: false);
 
-            // Show warning only when there is an active puzzle handler.
             if (_dragItem != null && _activeHandler != null)
                 PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
         }
@@ -279,9 +296,9 @@ public class PuzzleInventoryBar : MonoBehaviour
     }
 
     /// <summary>
-    /// Called by PuzzleInventorySlot.OnDrop when a slot is dropped on top of another.
-    /// Tries crafting first; if no recipe matches, swaps the two slot positions.
-    /// Sets _droppedOnInventorySlot so OnSlotEndDrag skips the handler-drop path.
+    /// Called by PuzzleInventorySlot.OnDrop when one slot is dropped on top of another.
+    /// Only records the intention — does NOT execute yet.
+    /// Execution is deferred to OnSlotEndDrag so the 3D device drop can take priority.
     /// </summary>
     public void OnSlotDropReceived(PuzzleInventorySlot targetSlot, PuzzleInventorySlot sourceSlot)
     {
@@ -290,21 +307,34 @@ public class PuzzleInventoryBar : MonoBehaviour
         // Block while the inspection/craft-preview window is open.
         if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
 
+        // Record the pending interaction — actual swap/craft happens in OnSlotEndDrag.
+        _droppedOnInventorySlot = true;
+        _pendingSwapSource = sourceSlot;
+        _pendingSwapTarget = targetSlot;
+    }
+
+    /// <summary>
+    /// Executes the slot-to-slot interaction recorded by OnSlotDropReceived.
+    /// Tries crafting first; falls back to swapping positions (including into empty slots).
+    /// </summary>
+    private void ExecutePendingSlotDrop()
+    {
+        var source = _pendingSwapSource;
+        var target = _pendingSwapTarget;
+        if (source == null || target == null) return;
+
         // Try crafting only when both slots are occupied.
-        if (targetSlot.HasItem && sourceSlot.HasItem && InventorySystem.Instance != null &&
+        if (target.HasItem && source.HasItem && InventorySystem.Instance != null &&
             InventorySystem.Instance.TryCombineDeferred(
-                sourceSlot.SlotIndex, targetSlot.SlotIndex, out ItemData craftResult))
+                source.SlotIndex, target.SlotIndex, out ItemData craftResult))
         {
-            _droppedOnInventorySlot = true;
-            // Pass the source slot so the result goes back to where the dragged item was.
-            ShowCraftResult(craftResult, sourceSlot.SlotIndex);
+            ShowCraftResult(craftResult, source.SlotIndex);
             return;
         }
 
         // No recipe match → swap slot positions.
         // Works even when the target slot is empty — effectively moves the item.
-        InventorySystem.Instance?.SwapSlots(sourceSlot.SlotIndex, targetSlot.SlotIndex);
-        _droppedOnInventorySlot = true;
+        InventorySystem.Instance?.SwapSlots(source.SlotIndex, target.SlotIndex);
     }
 
     /// <summary>
@@ -614,6 +644,9 @@ public class PuzzleInventoryBar : MonoBehaviour
         UI.PuzzleCursor.Instance?.SetDragMode(false, null);
         _dragSource = null;
         _dragItem = null;
+        _droppedOnInventorySlot = false;
+        _pendingSwapSource = null;
+        _pendingSwapTarget = null;
     }
 
     // ── Visibility ────────────────────────────────────────────────────────────

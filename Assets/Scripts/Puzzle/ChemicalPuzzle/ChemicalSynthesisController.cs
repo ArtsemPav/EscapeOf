@@ -760,6 +760,24 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                 ItemData flask = _analyzer.TryRetrieveFlask();
                 if (flask != null) { InventorySystem.Instance?.AddItem(flask); return; }
             }
+
+            // ── Mixer: retrieve the single poured flask (only while not locked) ──
+            if (_mixerSlot != null && hit.collider == _mixerSlot &&
+                _mixer != null && !_mixer.IsFull && !_mixer.IsBusy)
+            {
+                ItemData flask = _mixer.TryRetrieveFlask();
+                if (flask != null)
+                {
+                    // The empty-colba replacement was placed in inventory when the flask
+                    // was dropped; swap it back for the original flask.
+                    if (_amptyColba != null && InventorySystem.Instance != null &&
+                        !InventorySystem.Instance.ReplaceItem(_amptyColba, flask))
+                        InventorySystem.Instance.AddItem(flask);
+                    else if (_amptyColba == null)
+                        InventorySystem.Instance?.AddItem(flask);
+                    return;
+                }
+            }
         }
     }
 

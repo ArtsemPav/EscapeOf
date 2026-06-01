@@ -259,6 +259,42 @@ public class MixerController : ChemicalDeviceBase
         _liquidWobble?.AnimateFillTo(0f, _fillAnimDuration);
     }
 
+    /// <summary>
+    /// Attempts to retrieve the last poured flask when the mixer has not yet been locked
+    /// (i.e. fewer than <see cref="_portionsToExport"/> flasks have been added and export
+    /// has not started). Returns the removed item, or null when retrieval is not allowed.
+    /// Resets liquid animation to the new fill level and clears slag state if the mixer
+    /// becomes empty again.
+    /// </summary>
+    public ItemData TryRetrieveFlask()
+    {
+        if (_isLocked || _addedItems.Count == 0) return null;
+
+        ItemData flask = _addedItems[_addedItems.Count - 1];
+        _addedItems.RemoveAt(_addedItems.Count - 1);
+
+        // Recalculate slag state from remaining items.
+        _containsSlag = false;
+        _slagSource   = null;
+        foreach (ItemData remaining in _addedItems)
+        {
+            if (!IsSlag(remaining)) continue;
+            _containsSlag = true;
+            _slagSource   = remaining;
+        }
+
+        // Animate fill level back down.
+        float fillTarget = Mathf.Clamp01(_addedItems.Count * _fillPerPortion);
+        _liquidWobble?.AnimateFillTo(fillTarget, _fillAnimDuration);
+
+        // Reset liquid colour when the mixer is now empty.
+        if (_addedItems.Count == 0)
+            _liquidWobble?.SetLiquidColor(Color.white);
+
+        PlaySFX(_pourClip);
+        return flask;
+    }
+
     // ── Private logic ──────────────────────────────────────────────────────────
 
     private IEnumerator ExportCoroutine()
