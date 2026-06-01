@@ -51,22 +51,40 @@ namespace ChemicalPuzzle
         [Tooltip("Интенсивность свечения (_EmissionPower).")]
         [SerializeField] private float _emissionPower = 0f;
 
+        [Header("Transparency & Refraction")]
+        [Tooltip("Непрозрачность жидкости: 1 = полностью непрозрачная, 0 = невидима.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _opacity = 0.82f;
+        [Tooltip("Сила преломления фона сквозь жидкость. Требует Opaque Texture в URP Asset (уже включено).")]
+        [Range(0f, 0.08f)]
+        [SerializeField] private float _refractionStrength = 0.03f;
+        [Tooltip("Хроматическая аберрация при преломлении — лёгкое радужное расщепление краёв.")]
+        [Range(0f, 0.02f)]
+        [SerializeField] private float _chromaticAberration = 0.004f;
+        [Tooltip("Затемнение к низу колбы: 0 = равномерно, 1 = дно полностью чёрное.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _depthDarken = 0.5f;
+
         private Coroutine _fillCoroutine;
 
         // Локальные границы меша — кэшируются один раз, не зависят от трансформа
         private float _localMeshMin;
         private float _localMeshHeight;
 
-        private static readonly int FillAmountId    = Shader.PropertyToID("_FillAmount");
-        private static readonly int LocalMeshMinId  = Shader.PropertyToID("_LocalMeshMin");
-        private static readonly int LocalMeshMaxId  = Shader.PropertyToID("_LocalMeshMax");
-        private static readonly int PivotWSId       = Shader.PropertyToID("_PivotWS");
-        private static readonly int WobbleXId       = Shader.PropertyToID("_WobbleX");
-        private static readonly int WobbleZId       = Shader.PropertyToID("_WobbleZ");
-        private static readonly int LiquidColorId   = Shader.PropertyToID("_LiquidColor");
-        private static readonly int SurfaceColorId  = Shader.PropertyToID("_SurfaceColor");
-        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
-        private static readonly int EmissionPowerId = Shader.PropertyToID("_EmissionPower");
+        private static readonly int FillAmountId          = Shader.PropertyToID("_FillAmount");
+        private static readonly int LocalMeshMinId        = Shader.PropertyToID("_LocalMeshMin");
+        private static readonly int LocalMeshMaxId        = Shader.PropertyToID("_LocalMeshMax");
+        private static readonly int PivotWSId             = Shader.PropertyToID("_PivotWS");
+        private static readonly int WobbleXId             = Shader.PropertyToID("_WobbleX");
+        private static readonly int WobbleZId             = Shader.PropertyToID("_WobbleZ");
+        private static readonly int LiquidColorId         = Shader.PropertyToID("_LiquidColor");
+        private static readonly int SurfaceColorId        = Shader.PropertyToID("_SurfaceColor");
+        private static readonly int EmissionColorId       = Shader.PropertyToID("_EmissionColor");
+        private static readonly int EmissionPowerId       = Shader.PropertyToID("_EmissionPower");
+        private static readonly int OpacityId             = Shader.PropertyToID("_Opacity");
+        private static readonly int RefractionStrengthId  = Shader.PropertyToID("_RefractionStrength");
+        private static readonly int ChromaticAberrationId = Shader.PropertyToID("_ChromaticAberration");
+        private static readonly int DepthDarkenId         = Shader.PropertyToID("_DepthDarken");
 
         private MaterialPropertyBlock _propBlock;
 
@@ -130,16 +148,20 @@ namespace ChemicalPuzzle
 
             // Sync with shader properties using PropertyBlock
             _renderer.GetPropertyBlock(_propBlock);
-            _propBlock.SetFloat(FillAmountId,    fillFraction);
-            _propBlock.SetColor(LiquidColorId,   _liquidColor);
-            _propBlock.SetColor(SurfaceColorId,  _surfaceColor);
-            _propBlock.SetColor(EmissionColorId, _emissionColor);
-            _propBlock.SetFloat(EmissionPowerId, _emissionPower);
-            _propBlock.SetFloat(LocalMeshMinId,  _localMeshMin);
-            _propBlock.SetFloat(LocalMeshMaxId,  _localMeshMin + _localMeshHeight);
-            _propBlock.SetVector(PivotWSId,      transform.position);
-            _propBlock.SetFloat(WobbleXId,       _wobbleX);
-            _propBlock.SetFloat(WobbleZId,       _wobbleZ);
+            _propBlock.SetFloat(FillAmountId,           fillFraction);
+            _propBlock.SetColor(LiquidColorId,          _liquidColor);
+            _propBlock.SetColor(SurfaceColorId,         _surfaceColor);
+            _propBlock.SetColor(EmissionColorId,        _emissionColor);
+            _propBlock.SetFloat(EmissionPowerId,        _emissionPower);
+            _propBlock.SetFloat(LocalMeshMinId,         _localMeshMin);
+            _propBlock.SetFloat(LocalMeshMaxId,         _localMeshMin + _localMeshHeight);
+            _propBlock.SetVector(PivotWSId,             transform.position);
+            _propBlock.SetFloat(WobbleXId,              _wobbleX);
+            _propBlock.SetFloat(WobbleZId,              _wobbleZ);
+            _propBlock.SetFloat(OpacityId,              _opacity);
+            _propBlock.SetFloat(RefractionStrengthId,   _refractionStrength);
+            _propBlock.SetFloat(ChromaticAberrationId,  _chromaticAberration);
+            _propBlock.SetFloat(DepthDarkenId,          _depthDarken);
             _renderer.SetPropertyBlock(_propBlock);
 
         #if UNITY_EDITOR
@@ -176,6 +198,15 @@ namespace ChemicalPuzzle
 
         /// <summary>Returns the current liquid color set on this component.</summary>
         public Color LiquidColor => _liquidColor;
+
+        /// <summary>Sets opacity and refraction at runtime (e.g. per liquid type).</summary>
+        public void SetTransparency(float opacity, float refractionStrength, float chromaticAberration = 0.004f, float depthDarken = 0.35f)
+        {
+            _opacity             = Mathf.Clamp01(opacity);
+            _refractionStrength  = Mathf.Clamp(refractionStrength, 0f, 0.08f);
+            _chromaticAberration = Mathf.Clamp(chromaticAberration, 0f, 0.02f);
+            _depthDarken         = Mathf.Clamp01(depthDarken);
+        }
 
         /// <summary>Smoothly animates fillFraction to <paramref name="target"/> over <paramref name="duration"/> seconds.</summary>
         public void AnimateFillTo(float target, float duration)
