@@ -12,12 +12,13 @@ GameObject:
   - component: {fileID: 3300000}
   - component: {fileID: 2300000}
   - component: {fileID: 2133268461147892987}
-  m_Layer: 0
+  - component: {fileID: 1644600654176928316}
+  m_Layer: 6
   m_Name: locker_door_B.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 4294967295
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &400000
 Transform:
@@ -113,6 +114,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8696869, y: 1.5375459, z: 0.066111945}
   m_Center: {x: 0.43487272, y: 0.1971885, z: -0.033055972}
+--- !u!114 &1644600654176928316
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 0
+  _isLocked: 1
+  _requiredKey: {fileID: 0}
+  _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u044C
+    \u0437\u0430\u043C\u043E\u043A"
+  _lockedJiggleFraction: 0.02
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _pivot: {fileID: 5070416116353435448}
+  _rotationAxis: 1
+  _maxOpenAngle: -90
+  _dragSensitivity: 1
+  _friction: 5
+  _maxVelocity: 1.2
+  _lockedSnapBackSpeed: 8
+  _openLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _latchClip: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
+  _lockedClip: {fileID: 0}
+  _unlockClip: {fileID: 0}
+  _unlockAjarFraction: 0.12
+  _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
+  _saveId: door_locker_top_right
 --- !u!1 &100002
 GameObject:
   m_ObjectHideFlags: 0
@@ -125,12 +162,13 @@ GameObject:
   - component: {fileID: 3300002}
   - component: {fileID: 2300002}
   - component: {fileID: 8361289234372626515}
-  m_Layer: 0
+  - component: {fileID: 2331725174984256806}
+  m_Layer: 6
   m_Name: locker_door_B.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 4294967295
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &400002
 Transform:
@@ -226,6 +264,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8696869, y: 1.5375459, z: 0.066111945}
   m_Center: {x: 0.43484327, y: 0.1971885, z: -0.033055972}
+--- !u!114 &2331725174984256806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 0
+  _isLocked: 1
+  _requiredKey: {fileID: 0}
+  _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u044C
+    \u0437\u0430\u043C\u043E\u043A"
+  _lockedJiggleFraction: 0.02
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _pivot: {fileID: 2031843944830404020}
+  _rotationAxis: 1
+  _maxOpenAngle: 90
+  _dragSensitivity: 1
+  _friction: 5
+  _maxVelocity: 1.2
+  _lockedSnapBackSpeed: 8
+  _openLoopClip: {fileID: 0}
+  _closeLoopClip: {fileID: 0}
+  _latchClip: {fileID: 0}
+  _lockedClip: {fileID: 0}
+  _unlockClip: {fileID: 0}
+  _unlockAjarFraction: 0.12
+  _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
+  _saveId: door_locker_top_left
 --- !u!1 &100004
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,7 +312,8 @@ GameObject:
   - component: {fileID: 3300004}
   - component: {fileID: 2300004}
   - component: {fileID: 2731328250377305228}
-  m_Layer: 0
+  - component: {fileID: 3147359319030232104}
+  m_Layer: 6
   m_Name: locker_dor_A.R
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -253,13 +328,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 100004}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: -0.095, z: -0.038}
+  m_LocalRotation: {x: -1, y: 0, z: 0, w: 0}
+  m_LocalPosition: {x: 0, y: -0.095, z: -0.005}
   m_LocalScale: {x: -1, y: -1, z: -1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4840610516258689395}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: -180, y: 0, z: 0}
 --- !u!33 &3300004
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -338,6 +413,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8696869, y: 1.4181468, z: 0.066111945}
   m_Center: {x: 0.43489364, y: 0.00000047683716, z: -0.033055972}
+--- !u!114 &3147359319030232104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100004}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 0
+  _isLocked: 0
+  _requiredKey: {fileID: 0}
+  _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
+    \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
+  _lockedJiggleFraction: 0.02
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _pivot: {fileID: 4840610516258689395}
+  _rotationAxis: 1
+  _maxOpenAngle: -90
+  _dragSensitivity: 1
+  _friction: 5
+  _maxVelocity: 1.2
+  _lockedSnapBackSpeed: 8
+  _openLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _latchClip: {fileID: 8300000, guid: 5dfe0488f509574449df570724cca748, type: 3}
+  _lockedClip: {fileID: 0}
+  _unlockClip: {fileID: 0}
+  _unlockAjarFraction: 0.12
+  _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
+  _saveId: door_locker_bot_right
 --- !u!1 &100006
 GameObject:
   m_ObjectHideFlags: 0
@@ -350,12 +461,13 @@ GameObject:
   - component: {fileID: 3300006}
   - component: {fileID: 2300006}
   - component: {fileID: 2310723343725271678}
-  m_Layer: 0
+  - component: {fileID: 3061750209133788535}
+  m_Layer: 6
   m_Name: locker_door_A.L
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 4294967295
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &400006
 Transform:
@@ -450,6 +562,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.8696869, y: 1.4181468, z: 0.066111945}
   m_Center: {x: 0.43484327, y: -0.0000009536743, z: -0.033055972}
+--- !u!114 &3061750209133788535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100006}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 0
+  _isLocked: 0
+  _requiredKey: {fileID: 0}
+  _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
+    \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
+  _lockedJiggleFraction: 0.02
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _pivot: {fileID: 7559439754867678001}
+  _rotationAxis: 1
+  _maxOpenAngle: 90
+  _dragSensitivity: 1
+  _friction: 5
+  _maxVelocity: 1.2
+  _lockedSnapBackSpeed: 8
+  _openLoopClip: {fileID: 8300000, guid: a111e6603bdd0564db0de000cd7910db, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
+  _latchClip: {fileID: 8300000, guid: 27b6608a752842a4f99541fbb96b15f5, type: 3}
+  _lockedClip: {fileID: 0}
+  _unlockClip: {fileID: 0}
+  _unlockAjarFraction: 0.12
+  _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
+  _saveId: door_locker_bot_left
 --- !u!1 &100008
 GameObject:
   m_ObjectHideFlags: 0
@@ -487,6 +635,9 @@ Transform:
   - {fileID: 7559439754867678001}
   - {fileID: 2031843944830404020}
   - {fileID: 5070416116353435448}
+  - {fileID: 2638635609285504591}
+  - {fileID: 7629475964344070061}
+  - {fileID: 2635464718802430608}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3300008
@@ -1004,7 +1155,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7559439754867678001}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: pivot_bot_left
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1060,3 +1211,189 @@ Transform:
   - {fileID: 3619492697176683903}
   m_Father: {fileID: 400008}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &2635464718802563088
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 400008}
+    m_Modifications:
+    - target: {fileID: 100000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_Name
+      value: medicine_box_D
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.619
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.699
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.189
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.6722452
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.14230208
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.17360023
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.7054783
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -3.074
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 25.773
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 92.06
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+--- !u!4 &2635464718802430608 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400000, guid: 4fcc496154c3aa04a9f42a495d570930, type: 3}
+  m_PrefabInstance: {fileID: 2635464718802563088}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2638635609285899471
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 400008}
+    m_Modifications:
+    - target: {fileID: 100000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_Name
+      value: medicine_big_A
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.057
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.367
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.267
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+--- !u!4 &2638635609285504591 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400000, guid: e5228629531f2fc439cf50f3af0fafc7, type: 3}
+  m_PrefabInstance: {fileID: 2638635609285899471}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &7629475964344202541
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 400008}
+    m_Modifications:
+    - target: {fileID: 100000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_Name
+      value: medicine_box_A
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.401
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.655
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.259
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.96279943
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.27021703
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 31.354
+      objectReference: {fileID: 0}
+    - target: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+--- !u!4 &7629475964344070061 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 400000, guid: c5bb142eb3b66a043b4b2429fd3f8034, type: 3}
+  m_PrefabInstance: {fileID: 7629475964344202541}
+  m_PrefabAsset: {fileID: 0}
