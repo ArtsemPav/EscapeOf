@@ -18,6 +18,7 @@ public class MetamorfCylinderButton : MonoBehaviour, IInteractable
     [Header("Animation")]
     [SerializeField] private float _rotationDuration = 0.4f;
     [SerializeField] private float _stepAngle = 90f;
+    [SerializeField] private Vector3 _rotationAxis = Vector3.up;
 
     // ── Events ────────────────────────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ public class MetamorfCylinderButton : MonoBehaviour, IInteractable
 
         // 2. Animate cumulative rotation of THIS cylinder
         Quaternion startRotation = transform.localRotation;
-        Quaternion endRotation = startRotation * Quaternion.Euler(0, _stepAngle, 0);
+        Quaternion endRotation = startRotation * Quaternion.AngleAxis(_stepAngle, _rotationAxis);
 
         float elapsed = 0f;
         while (elapsed < _rotationDuration)
