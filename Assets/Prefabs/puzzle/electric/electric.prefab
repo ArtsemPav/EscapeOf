@@ -466,7 +466,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &4783154951223584812
 Transform:
   m_ObjectHideFlags: 0
@@ -476,7 +476,7 @@ Transform:
   m_GameObject: {fileID: 875844296560550842}
   serializedVersion: 2
   m_LocalRotation: {x: 0.14066838, y: -0, z: 0.00000002235174, w: 0.99005675}
-  m_LocalPosition: {x: -0.027, y: 0.474, z: -0.651}
+  m_LocalPosition: {x: 0.098, y: 0.474, z: -0.912}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3332,6 +3332,8 @@ GameObject:
   - component: {fileID: 5393650801852089394}
   - component: {fileID: 8626835362965292500}
   - component: {fileID: 5438285451633496540}
+  - component: {fileID: 2312606357073352547}
+  - component: {fileID: 2779821456989741896}
   m_Layer: 6
   m_Name: electric
   m_TagString: Untagged
@@ -3423,7 +3425,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.62, y: 0.52, z: 0.42}
+  m_Size: {x: 0.62, y: 0.52, z: 0.08}
   m_Center: {x: 0, y: 0.27, z: 0}
 --- !u!114 &5438285451633496540
 MonoBehaviour:
@@ -3437,7 +3439,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a5beea22ec9c794e9012d2970fe089b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ElectricPuzzleController
-  _panelCamera: {fileID: 5602348601490503328}
   _panel: {fileID: 0}
   _coloredTerminals:
   - {fileID: 7664297293828010320}
@@ -3460,31 +3461,79 @@ MonoBehaviour:
   _lampSolvedColor: {r: 0, g: 1, b: 0, a: 1}
   _lever: {fileID: 3408917051194073340}
   _wrongPullParticles: {fileID: 6830710946398679214}
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0449\u0438\u0442\u043E\u043A"
-  _blendDuration: 0.75
   _terminalLayer:
     serializedVersion: 2
     m_Bits: 64
   _wireCapPrefab: {fileID: 6459429035476011660, guid: 7c4453b077b0da9419c13b6dd13f0c87, type: 3}
   _wireMaterial: {fileID: 2100000, guid: 468acb6e217dbcf438449604bc2e7863, type: 2}
   _wireSettings:
-    segmentCount: 12
+    segmentCount: 20
     slackFactor: 1.08
     minWireLength: 0.08
     gravity: -9.81
     damping: 0.12
     wireWidthStart: 0.007
     wireWidthEnd: 0.007
-    maxDragDistance: 0.3
+    maxDragDistance: 0.36
     repulsionRadius: 0.025
-  _onPuzzleSolved:
-    m_PersistentCalls:
-      m_Calls: []
+  _fuseInsertClip: {fileID: 8300000, guid: fa8cd96c3b7098b4a9f0fbff8efdf7e1, type: 3}
+  _wireConnectClip: {fileID: 8300000, guid: 11f6c6576af22be4dacf77f30fd18615, type: 3}
+  _wireDisconnectClip: {fileID: 8300000, guid: 49af84b91be1de245a32393870d6ce67, type: 3}
+  _solvedClip: {fileID: 0}
+  _wrongPullClip: {fileID: 0}
+  _fuseInsertVolume: 1
+  _wireConnectVolume: 0.8
+  _wireDisconnectVolume: 0.7
+  _solvedVolume: 1
+  _wrongPullVolume: 0.6
   _acceptedItems:
   - {fileID: 11400000, guid: 8019a527ff1b4f249926940f055914c9, type: 2}
   _fuseAnchorCollider: {fileID: 7664305070036696878}
   _fuseAnchorTransform: {fileID: 4160317411173200316}
   _fusePrefab: {fileID: 7631248805466190850, guid: 8705b067130f6e0468c4456a6052478c, type: 3}
+--- !u!114 &2312606357073352547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4724777933155425928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
+  _saveId: electric_puzzle_mode
+  _puzzleCamera: {fileID: 5602348601490503328}
+  _blendDuration: 0.75
+  _showInventoryBar: 1
+  OnPuzzleModeEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleModeExited:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleSolved:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &2779821456989741896
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4724777933155425928}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0449\u0438\u0442\u043E\u043A"
+  _crosshairMode: 1
+  _useExitPopup: 0
+  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
+  _exitPopupType: 0
+  _controller: {fileID: 2312606357073352547}
 --- !u!1 &4725573293326998187
 GameObject:
   m_ObjectHideFlags: 0
@@ -3586,6 +3635,8 @@ GameObject:
   - component: {fileID: 5461697093714355910}
   - component: {fileID: 2381183714341453277}
   - component: {fileID: 330197636138951523}
+  - component: {fileID: 2934648492546540738}
+  - component: {fileID: 5994974494778998535}
   m_Layer: 6
   m_Name: pCube18
   m_TagString: Untagged
@@ -3601,13 +3652,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4838016179088782675}
   serializedVersion: 2
-  m_LocalRotation: {x: -5.4253577e-18, y: -0.73935723, z: 5.264443e-18, w: 0.6733135}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.30857316, y: 0.26183522, z: -0.15724859}
   m_LocalScale: {x: 0.00623019, y: 0.0058225403, z: 0.00623019}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5393650801852089394}
-  m_LocalEulerAnglesHint: {x: 0, y: -95.353, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &2381183714341453277
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -3665,6 +3716,63 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &2934648492546540738
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4838016179088782675}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 100.00001, y: 100, z: 4.6013036}
+  m_Center: {x: -50.413883, y: 0.0000019073486, z: -1.057881}
+--- !u!114 &5994974494778998535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4838016179088782675}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 0
+  _isLocked: 0
+  _requiredKey: {fileID: 0}
+  _requirementHint: "\u0420\u0430\u0441\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439
+    \u0449\u0438\u0442\u043E\u043A"
+  _lockedJiggleFraction: 0.02
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _pivot: {fileID: 5461697093714355910}
+  _rotationAxis: 1
+  _maxOpenAngle: -180
+  _dragSensitivity: 1
+  _friction: 5
+  _maxVelocity: 1.2
+  _lockedSnapBackSpeed: 8
+  _openLoopClip: {fileID: 0}
+  _closeLoopClip: {fileID: 0}
+  _latchClip: {fileID: 0}
+  _lockedClip: {fileID: 8300000, guid: e6591fa135fba5c4d93d23c21d104827, type: 3}
+  _unlockClip: {fileID: 8300000, guid: 18e8d0d7e6ea0434e9dbab1214e74a26, type: 3}
+  _unlockAjarFraction: 0.12
+  _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
+  _saveId: _doorElectric
 --- !u!1 &4920099738502643251
 GameObject:
   m_ObjectHideFlags: 0
@@ -6489,7 +6597,7 @@ Transform:
   m_GameObject: {fileID: 8672264877814331972}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7090704, z: -0, w: 0.7051378}
-  m_LocalPosition: {x: 0.07, y: 0.33, z: -0.191}
+  m_LocalPosition: {x: 0.156, y: 0.33, z: -0.171}
   m_LocalScale: {x: 0.9999999, y: 1, z: 0.9999999}
   m_ConstrainProportionsScale: 0
   m_Children: []
