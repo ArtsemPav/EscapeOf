@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -13,6 +14,8 @@ using UnityEngine;
 /// </summary>
 public class MedallionHole : MonoBehaviour
 {
+    private static readonly Quaternion CoinRotation = Quaternion.Euler(0f, -90f, 0f);
+
     [Header("Coin Animation")]
     [Tooltip("Optional material override for the spawned coin. Leave null to use prefab default.")]
     [SerializeField] private Material _coinMaterial;
@@ -68,7 +71,15 @@ public class MedallionHole : MonoBehaviour
 
         PlacedItem = item;
 
-        var coin = Instantiate(prefab, transform.position, transform.rotation, transform);
+        var coin = Instantiate(prefab, transform.position, Quaternion.identity, transform);
+        StripInteractableComponents(coin);
+        
+        // The coin prefab's localScale is tuned for world placement (as a pickable item).
+        // Inside the hole, we need scale (1,1,1) so the mesh fills the hole properly.
+        coin.transform.localScale = Vector3.one;
+        // Flip 180° on X so the symbol face points up.
+        coin.transform.localRotation = CoinRotation;
+
         _placedCoin = coin;
         CacheRenderer(coin);
 
@@ -118,6 +129,46 @@ public class MedallionHole : MonoBehaviour
     // ── Private ───────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Strips all interactable/pickable components and colliders from the instantiated coin
+    /// so FPSController cannot detect it as an interactive world object.
+    /// Uses DestroyImmediate for ISaveable components to prevent them from overwriting
+    /// the original world object's save state in SaveManager.
+    /// </summary>
+    private static void StripInteractableComponents(GameObject coin)
+    {
+        // Remove ISaveable components immediately to prevent SaveManager registry overwrites.
+        var saveables = coin.GetComponentsInChildren<MonoBehaviour>(true)
+            .Where(mb => mb is ISaveable)
+            .ToArray();
+
+        foreach (var mb in saveables)
+            DestroyImmediate(mb);
+
+        // Remove remaining IInteractable components (deferred Destroy is fine here).
+        var interactables = coin.GetComponentsInChildren<MonoBehaviour>(true)
+            .Where(mb => mb is IInteractable)
+            .ToArray();
+
+        foreach (var mb in interactables)
+            Destroy(mb);
+
+        // Remove colliders so the coin cannot be hit by FPSController raycasts.
+        var colliders = coin.GetComponentsInChildren<Collider>(true);
+        foreach (var col in colliders)
+            Destroy(col);
+
+        // Set layer to Default for the root and all children.
+        SetLayerRecursively(coin, 0);
+    }
+
+    private static void SetLayerRecursively(GameObject go, int layer)
+    {
+        go.layer = layer;
+        for (int i = 0; i < go.transform.childCount; i++)
+            SetLayerRecursively(go.transform.GetChild(i).gameObject, layer);
+    }
+
+    /// <summary>
     /// Caches the renderer of a freshly instantiated coin and enables the emission keyword
     /// on its material instance so <see cref="Highlight"/> can drive emission via property block.
     /// </summary>
@@ -136,7 +187,15 @@ public class MedallionHole : MonoBehaviour
         Vector3 endPos   = transform.position;
         Vector3 startPos = endPos + Vector3.up * dropHeight;
 
-        var coin = Instantiate(prefab, startPos, transform.rotation, transform);
+        var coin = Instantiate(prefab, startPos, Quaternion.identity, transform);
+        StripInteractableComponents(coin);
+
+        // The coin prefab's localScale is tuned for world placement (as a pickable item).
+        // Inside the hole, we need scale (1,1,1) so the mesh fills the hole properly.
+        coin.transform.localScale = Vector3.one;
+        // Flip 180° on X so the symbol face points up.
+        coin.transform.localRotation = CoinRotation;
+
         _placedCoin = coin;
         CacheRenderer(coin);
 

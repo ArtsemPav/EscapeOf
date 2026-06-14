@@ -74,8 +74,8 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable, IPuzzleDropHand
 
     public string GetSaveData()
     {
-        var boxUI      = _panel?.GetComponent<MedallionBoxUI>();
-        var holeStates = boxUI?.GetHoleStates() ?? Array.Empty<ItemData>();
+        var boxUI      = (_panel != null) ? _panel.GetComponent<MedallionBoxUI>() : null;
+        var holeStates = (boxUI != null) ? boxUI.GetHoleStates() : Array.Empty<ItemData>();
 
         var ids = new string[holeStates.Length];
         for (int i = 0; i < holeStates.Length; i++)
@@ -159,7 +159,7 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable, IPuzzleDropHand
         if (_panel != null)
             UIManager.Instance?.OpenPanel(_panel);
 
-        var boxUI = _panel?.GetComponent<MedallionBoxUI>();
+        var boxUI = (_panel != null) ? _panel.GetComponent<MedallionBoxUI>() : null;
         if (boxUI != null)
         {
             boxUI.OnPuzzleSolved -= HandlePuzzleSolved;
@@ -262,7 +262,7 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable, IPuzzleDropHand
     public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
         replacement = null;
-        var boxUI = _panel?.GetComponent<MedallionBoxUI>();
+        var boxUI = (_panel != null) ? _panel.GetComponent<MedallionBoxUI>() : null;
         return boxUI != null && boxUI.HandleDrop(item, screenPosition, out _);
     }
 
@@ -284,13 +284,17 @@ public class MedallionBoxInteraction : MonoBehaviour, ISaveable, IPuzzleDropHand
 
         if (load.placedItemIds != null && load.placedItemIds.Length > 0)
         {
-            var boxUI = _panel?.GetComponent<MedallionBoxUI>();
+            var boxUI = (_panel != null) ? _panel.GetComponent<MedallionBoxUI>() : null;
             boxUI?.RestoreState(load.placedItemIds, _medallionOrder);
         }
 
         if (load.solved)
         {
             _puzzleSolved = true;
+
+            // Ensure MedallionBoxUI blocks retrieval even if holes don't match order.
+            var boxUI = (_panel != null) ? _panel.GetComponent<MedallionBoxUI>() : null;
+            boxUI?.MarkSolved();
 
             if (_solvedObject != null)
                 _solvedObject.SetActive(true);

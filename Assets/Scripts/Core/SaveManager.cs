@@ -42,6 +42,10 @@ public class SaveManager : MonoBehaviour
     // Snapshot collected the moment Save() is requested — before any Destroy() runs.
     private GameSaveData _pendingSnapshot;
 
+    // Set to true after the initial Load() in Start() completes.
+    // Used to distinguish scene-load registration from runtime clones.
+    private bool _initialLoadComplete;
+
     /// <summary>Fired after every successful write. SaveIndicatorUI subscribes to show the on-screen label.</summary>
     public event Action OnSaved;
 
@@ -59,6 +63,7 @@ public class SaveManager : MonoBehaviour
     private void Start()
     {
         Load(defaultSlot);
+        _initialLoadComplete = true;
     }
 
     private void Update()
@@ -125,9 +130,19 @@ public class SaveManager : MonoBehaviour
         {
             var existingUnityObj = existing as UnityEngine.Object;
             var newUnityObj      = saveable as UnityEngine.Object;
+
             if (existingUnityObj != null && existingUnityObj != newUnityObj)
             {
                 Debug.LogWarning($"[SaveManager] Register: '{saveable.SaveId}' already held by '{existingUnityObj.name}' — ignoring duplicate registration from '{newUnityObj?.name}'.", this);
+                return;
+            }
+
+            // After the initial scene load, a destroyed entry was intentionally left registered
+            // (e.g. a collected PickableItem keeping its "collected=true" snapshot data alive).
+            // Do NOT let runtime clones (puzzle coin visuals, inspection previews) overwrite it.
+            if (existingUnityObj == null && _initialLoadComplete)
+            {
+                Debug.Log($"[SaveManager] Register: '{saveable.SaveId}' retained destroyed entry — blocking runtime clone from '{newUnityObj?.name}'.");
                 return;
             }
         }

@@ -3,6 +3,8 @@ using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Service component that handles entering / exiting puzzle mode for a puzzle GameObject.
@@ -55,6 +57,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private CinemachineBrain _brain;
     private float            _originalBlendTime;
+
+    private LensDistortion _lensDistortion;
+    private bool           _wasLensDistortionActive;
 
     // High enough to override any player camera (PlayerCamera uses 1000).
     private const int PuzzleCameraPriority = 2000;
@@ -187,6 +192,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (_isActive || _isSolved) return;
 
         _isActive = true;
+        DisableLensDistortion();
 
         // Enable child interactables when entering puzzle mode (e.g. puzzle buttons/elements).
         SetChildInteractablesEnabled(true);
@@ -199,7 +205,11 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
             SetBlendDuration(_blendDuration);
             _puzzleCamera.Priority = PuzzleCameraPriority;
             _puzzleCamera.gameObject.SetActive(true);
-            StartCoroutine(RestoreBlendAfterTransition());
+
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(RestoreBlendAfterTransition());
+            }
         }
 
         // Block FPS input and prevent GameManager from opening the pause menu on Esc.
@@ -230,6 +240,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (!_isActive) return;
 
         _isActive = false;
+        RestoreLensDistortion();
 
         // Disable child interactables when exiting puzzle mode.
         SetChildInteractablesEnabled(false);
@@ -242,7 +253,17 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
             SetBlendDuration(_blendDuration);
             _puzzleCamera.Priority = 0;
             _puzzleCamera.gameObject.SetActive(false);
-            StartCoroutine(RestoreBlendAfterTransition());
+
+            if (gameObject.activeInHierarchy)
+            {
+                StartCoroutine(RestoreBlendAfterTransition());
+            }
+            else
+            {
+                // If the object is being destroyed or disabled, restore blend time immediately 
+                // since we can't start a coroutine to wait for the transition.
+                SetBlendDuration(_originalBlendTime);
+            }
         }
 
         // Restore FPS input and decrement the modal panel counter.
@@ -340,5 +361,32 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     {
         yield return null;
         ExitPuzzleMode();
+    }
+
+    private void DisableLensDistortion()
+    {
+        var volumes = FindObjectsByType<Volume>(FindObjectsSortMode.None);
+        foreach (var v in volumes)
+        {
+            if (v.profile != null && v.profile.TryGet<LensDistortion>(out var ld))
+            {
+                if (ld.active)
+                {
+                    _lensDistortion = ld;
+                    _wasLensDistortionActive = true;
+                    ld.active = false;
+                }
+            }
+        }
+    }
+
+    private void RestoreLensDistortion()
+    {
+        if (_lensDistortion != null && _wasLensDistortionActive)
+        {
+            _lensDistortion.active = true;
+            _lensDistortion = null;
+            _wasLensDistortionActive = false;
+        }
     }
 }

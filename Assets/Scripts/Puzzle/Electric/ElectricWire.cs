@@ -110,7 +110,7 @@ public class ElectricWire : MonoBehaviour
         if (_capEnd != null)
         {
             _capEnd.rotation = endAnchor.rotation;
-            _capEnd.position = endAnchor.position;
+            PlaceCapAtPoint(_capEnd, _capEndAnchorChild, endAnchor.position);
         }
 
         // Pins are at the cap anchor children — the wire-contact points on each cap
@@ -171,7 +171,7 @@ public class ElectricWire : MonoBehaviour
         else
         {
             if (_capEnd != null)
-                _capEnd.position = _dragEndPoint;
+                PlaceCapAtPoint(_capEnd, _capEndAnchorChild, _dragEndPoint);
 
             endPin = _capEndAnchorChild != null
                 ? _capEndAnchorChild.position
@@ -222,10 +222,23 @@ public class ElectricWire : MonoBehaviour
         // that would otherwise stretch along the ribbon and create dark banding.
         _lineMaterial.SetTexture("_BaseMap", null);
         _lineMaterial.SetColor("_BaseColor", color);
+        
+        // Adjust smoothness to make the wire catch light better from different angles.
+        // 0.9 is too shiny and can look black at many angles; 0.5 is more like rubber.
+        if (_lineMaterial.HasProperty("_Smoothness"))
+            _lineMaterial.SetFloat("_Smoothness", 0.5f);
 
         _lineRenderer.sharedMaterial = _lineMaterial;
         _lineRenderer.startColor     = Color.white;
         _lineRenderer.endColor       = Color.white;
+
+        // Copy Light Layers (Rendering Layer Mask) from the puzzle body to ensure
+        // the dynamic wire mesh is affected by the same lights as the rest of the puzzle.
+        var rootController = GetComponentInParent<ElectricPuzzleController>();
+        if (rootController != null)
+        {
+            _lineRenderer.renderingLayerMask = rootController.RenderingLayerMask;
+        }
     }
 
     private void SpawnCaps(GameObject capPrefab, Transform startTerminal)
@@ -234,11 +247,11 @@ public class ElectricWire : MonoBehaviour
 
         _capStart = SpawnCap(capPrefab, "WireCap_Start", out _capStartAnchorChild);
         _capStart.rotation = startTerminal.rotation * Quaternion.Euler(0f, 180f, 0f);
-        _capStart.position = startTerminal.position;
+        PlaceCapAtPoint(_capStart, _capStartAnchorChild, startTerminal.position);
 
         _capEnd = SpawnCap(capPrefab, "WireCap_End", out _capEndAnchorChild);
         _capEnd.rotation = startTerminal.rotation;
-        _capEnd.position = startTerminal.position;
+        PlaceCapAtPoint(_capEnd, _capEndAnchorChild, startTerminal.position);
     }
 
     private Transform SpawnCap(GameObject prefab, string capName, out Transform anchorChild)
@@ -247,6 +260,16 @@ public class ElectricWire : MonoBehaviour
         go.name = capName;
         go.transform.SetParent(null);
         anchorChild = go.transform.Find("anchor");
+
+        // Sync Light Layers for the caps as well.
+        var rootController = GetComponentInParent<ElectricPuzzleController>();
+        if (rootController != null)
+        {
+            var capRenderers = go.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in capRenderers)
+                r.renderingLayerMask = rootController.RenderingLayerMask;
+        }
+
         return go.transform;
     }
 

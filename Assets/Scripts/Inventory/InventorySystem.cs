@@ -328,6 +328,26 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
+    /// Releases a slot reservation without placing any item into it.
+    /// Call this when a puzzle permanently consumes an item and will never return a result
+    /// to the reserved slot (e.g. the medallion box).
+    /// </summary>
+    public void ReleaseReservation(int slotIndex)
+    {
+        _reservedSlots.Remove(slotIndex);
+    }
+
+    /// <summary>
+    /// Releases all slot reservations at once.
+    /// Use when a puzzle that permanently consumes items needs to return them to inventory
+    /// without worrying about which specific slots were reserved.
+    /// </summary>
+    public void ReleaseAllReservations()
+    {
+        _reservedSlots.Clear();
+    }
+
+    /// <summary>
     /// Compacts all slots, shifting non-null items to the left and eliminating gaps.
     /// Call this after a deferred result has been placed to clean up any remaining holes.
     /// Fires <see cref="OnInventoryChanged"/> and triggers a save.

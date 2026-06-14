@@ -39,11 +39,14 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
     // Hover state — tracks which filled hole the cursor is currently over
     private MedallionHole _hoveredHole;
 
+    // When true, medallions can no longer be retrieved from the holes.
+    private bool _solved;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Update()
     {
-        if (Mouse.current == null) return;
+        if (_solved || Mouse.current == null) return;
 
         var mousePos = Mouse.current.position.ReadValue();
         bool overUI  = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
@@ -72,12 +75,23 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         _medallionOrder = medallionOrder;
     }
 
+    /// <summary>
+    /// Forcefully marks the puzzle as solved, preventing any further retrieval.
+    /// Called by <see cref="MedallionBoxInteraction"/> when restoring a solved state from save.
+    /// </summary>
+    public void MarkSolved()
+    {
+        _solved = true;
+        ClearHover();
+    }
+
     /// <summary>Returns the item currently placed in each hole (null if empty). Used by the save system.</summary>
     public ItemData[] GetHoleStates()
     {
+        if (_holes == null) return Array.Empty<ItemData>();
         var states = new ItemData[_holes.Length];
         for (int i = 0; i < _holes.Length; i++)
-            states[i] = _holes[i].PlacedItem;
+            states[i] = (_holes[i] != null) ? _holes[i].PlacedItem : null;
         return states;
     }
 
@@ -97,6 +111,9 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
             if (item != null)
                 _holes[i].FillImmediate(item, _coinPrefab);
         }
+
+        // If all holes are now filled correctly, lock retrieval.
+        CheckVictorySilent();
     }
 
     // ── IPuzzleDropHandler ────────────────────────────────────────────────────
@@ -175,8 +192,15 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         var hole = hit.collider.GetComponent<MedallionHole>();
         if (hole == null || !hole.IsFilled) return;
 
-        // Guard: do not remove medallion from hole if inventory has no room.
-        if (InventorySystem.Instance == null || InventorySystem.Instance.IsFull) return;
+        // Release all stale reservations left by previous medallion drops,
+        // then compact the inventory so AddItem finds the leftmost free slot.
+        var inv = InventorySystem.Instance;
+        if (inv == null) return;
+
+        inv.ReleaseAllReservations();
+        inv.Compact();
+
+        if (inv.IsFull) return;
 
         var item = hole.Retrieve(_dropHeight, _dropDuration);
         if (item == null) return;
@@ -185,7 +209,7 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         ClearHover();
 
         // Edge case: inventory filled between the guard and AddItem — restore medallion immediately.
-        if (!InventorySystem.Instance.AddItem(item))
+        if (!inv.AddItem(item))
             hole.FillImmediate(item, _coinPrefab);
     }
 
@@ -200,7 +224,22 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
             if (_holes[i].PlacedItem != _medallionOrder[i]) return;
         }
 
+        _solved = true;
+        ClearHover();
         OnPuzzleSolved?.Invoke();
+    }
+
+    /// <summary>Sets <see cref="_solved"/> without firing the event. Used when restoring from a save.</summary>
+    private void CheckVictorySilent()
+    {
+        if (_medallionOrder == null || _holes.Length != _medallionOrder.Length) return;
+
+        for (int i = 0; i < _holes.Length; i++)
+        {
+            if (_holes[i].PlacedItem != _medallionOrder[i]) return;
+        }
+
+        _solved = true;
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────

@@ -82,6 +82,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("Material applied to wire LineRenderers. Leave empty for a default unlit material.")]
     [SerializeField] private Material _wireMaterial;
 
+    [Tooltip("Optional: Renderer to copy Light Layers from. If empty, the script will find one in children.")]
+    [SerializeField] private Renderer _referenceRenderer;
+
     [Header("Wire Settings")]
     [Tooltip("Simulation and rendering settings shared by all wires in this puzzle.")]
     [SerializeField] private ElectricWireSettings _wireSettings = new ElectricWireSettings();
@@ -140,6 +143,13 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     private readonly ElectricWire[] _wires       = new ElectricWire[TerminalCount];
 
     private PuzzleModeController _controller;
+    private uint                 _cachedRenderingLayerMask;
+
+    /// <summary>
+    /// Returns the rendering layer mask (Light Layers) that should be applied to dynamic wires.
+    /// This is either copied from the assigned Reference Renderer or found in children.
+    /// </summary>
+    public uint RenderingLayerMask => _cachedRenderingLayerMask;
 
     // Pending save state applied in Start()
     private bool   _pendingLoad;
@@ -189,6 +199,15 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     private void Awake()
     {
         _controller = GetComponent<PuzzleModeController>();
+
+        // Cache the rendering layer mask for wires.
+        if (_referenceRenderer == null)
+            _referenceRenderer = GetComponentInChildren<Renderer>();
+        
+        if (_referenceRenderer != null)
+            _cachedRenderingLayerMask = _referenceRenderer.renderingLayerMask;
+        else
+            _cachedRenderingLayerMask = 1; // Default layer mask if nothing found.
 
         if (_lampLight == null)
             _lampLight = GetComponentInChildren<Light>(includeInactive: true);
@@ -452,6 +471,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         _activeColoredTerminal = null;
 
         EvaluateWires();
+        SaveManager.Instance?.Save();
     }
 
     private void PickUpWire(ElectricTerminal colored)
@@ -472,6 +492,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         PlaySFX(_wireDisconnectClip, _wireDisconnectVolume);
         EvaluateWires();
+        SaveManager.Instance?.Save();
     }
 
     /// <summary>
@@ -499,6 +520,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         }
 
         EvaluateWires();
+        SaveManager.Instance?.Save();
     }
 
     private void DisconnectWireAtNeutral(ElectricTerminal neutral)
@@ -515,6 +537,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         }
 
         EvaluateWires();
+        SaveManager.Instance?.Save();
     }
 
     // ── Solution check ────────────────────────────────────────────────────────
