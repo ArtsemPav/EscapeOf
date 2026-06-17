@@ -46,6 +46,10 @@ namespace Escape.Core {
         [SerializeField] private float _maxVelocity = 1.2f;
         [Tooltip("Speed at which a locked door snaps back to closed after a jiggle attempt.")]
         [SerializeField] private float _lockedSnapBackSpeed = 8f;
+        [Tooltip("Minimum release velocity (fraction/sec) to trigger a fling to fully open or closed. 0 = disabled.")]
+        [SerializeField] private float _flingThreshold = 0.9f;
+        [Tooltip("Speed of the fling animation to fully open or closed (fraction/sec).")]
+        [SerializeField] private float _flingSpeed = 2.0f;
 
         [Header("Audio")]
         [Tooltip("Зацикленный звук — играет пока дверь движется в сторону открытия.")]
@@ -80,6 +84,8 @@ namespace Escape.Core {
         private bool    _snappingBack;        // true after locked jiggle — lerp back to 0
         private bool    _isUnlockAnimating;   // true while smoothly swinging ajar after unlock
         private float   _unlockAjarTarget;    // target fraction for the unlock swing
+        private bool    _flinging;            // true while coasting to fully open or closed after a sharp release
+        private float   _flingTarget;         // 0 = fully closed, 1 = fully open
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
 
@@ -98,9 +104,10 @@ namespace Escape.Core {
         private enum LoopState { None, Opening, Closing }
         private LoopState _currentLoop = LoopState.None;
 
-        private const float MinDragFraction     = 0.04f;
-        private const float MinDragVelocity     = 0.08f;
-        private const float MotionLoopThreshold = 0.02f; // min |velocity| to keep loop alive
+        private const float MinDragFraction       = 0.04f;
+        private const float MinDragVelocity       = 0.08f;
+        private const float MotionLoopThreshold   = 0.02f; // min |velocity| to keep loop alive
+        private const float MaxDeltaFractionPerFrame = 0.15f; // caps single-frame jump regardless of mouse speed
 
         // ── ISaveable ────────────────────────────────────────────────────────────
 
@@ -211,6 +218,22 @@ namespace Escape.Core {
                 return;
             }
 
+            // ── Fling to fully open / closed ─────────────────────────────────────
+            if (_flinging) {
+                float prev    = _openFraction;
+                _openFraction = Mathf.MoveTowards(_openFraction, _flingTarget, _flingSpeed * Time.deltaTime);
+                UpdateMotionLoop();
+                CheckLatch(prev, _openFraction);
+                ApplyAngle();
+                if (Mathf.Approximately(_openFraction, _flingTarget)) {
+                    _openFraction = _flingTarget;
+                    _flinging     = false;
+                    _dragActive   = _flingTarget > 0.5f;
+                    StopMotionLoops();
+                }
+                return;
+            }
+
             if (Mathf.Abs(_velocity) > 0.0001f) {
                 float prev    = _openFraction;
                 _openFraction = Mathf.Clamp(_openFraction + _velocity * Time.deltaTime, 0f, 1f);
@@ -238,6 +261,7 @@ namespace Escape.Core {
             _isDragging        = true;
             _dragActive        = true;
             _snappingBack      = false;
+            _flinging          = false;
             _isUnlockAnimating = false;
             _isLockedDrag      = _isLocked && !_isOpen;
             _dragStartFraction = _openFraction;
@@ -277,11 +301,15 @@ namespace Escape.Core {
 
             if (openDirMag < 0.5f) return;
 
-            float screenPerFraction = Mathf.Abs(_maxOpenAngle) * Mathf.Deg2Rad
-                                      * (openDirMag / 0.5f);
-
-            float input        = Vector2.Dot(mouseDelta, openDir / openDirMag);
-            float deltaFraction = input * _dragSensitivity / Mathf.Max(screenPerFraction, 0.01f);
+            float input = Vector2.Dot(mouseDelta, openDir / openDirMag);
+            // Sensitivity is tied to screen height so it stays consistent regardless of
+            // camera distance, door angle, or mouse DPI.
+            // _dragSensitivity 1.0 = half screen height covers the full door range.
+            float deltaFraction = Mathf.Clamp(
+                input * _dragSensitivity / Mathf.Max(Screen.height * 0.5f, 1f),
+                -MaxDeltaFractionPerFrame,
+                MaxDeltaFractionPerFrame
+            );
 
             float maxFraction = _isLockedDrag ? _lockedJiggleFraction : 1f;
             float prev         = _openFraction;
@@ -315,6 +343,17 @@ namespace Escape.Core {
             if (trivial) {
                 _velocity   = 0f;
                 _dragActive = false;
+                return;
+            }
+
+            // Fling to fully open or closed on a sharp release.
+            // Checked after trivial so micro-movements never trigger a fling.
+            if (_flingThreshold > 0f && Mathf.Abs(_velocity) >= _flingThreshold) {
+                _flingTarget = _velocity > 0f ? 1f : 0f;
+                _flinging    = true;
+                _isOpen      = _flingTarget > 0.5f;
+                _velocity    = 0f;
+                SaveManager.Instance?.Save();
                 return;
             }
 
