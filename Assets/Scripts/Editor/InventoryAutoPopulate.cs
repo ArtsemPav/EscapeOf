@@ -3,22 +3,15 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// Automatically scans Assets/Data/Items for ItemData assets and Assets/Data/Recipes
+/// Scans Assets/Data/Items for ItemData assets and Assets/Data/Recipes
 /// for CraftingRecipe assets, then writes them into every InventorySystem found in the
-/// open scenes. Runs on domain reload and whenever files in those folders change.
-/// Use Tools → Inventory → Refresh Items and Recipes for an on-demand refresh.
+/// open scenes. Refreshes automatically when files in those folders change (via InventoryAssetWatcher).
+/// Use Tools > Inventory > Refresh Items and Recipes for an on-demand refresh.
 /// </summary>
-[InitializeOnLoad]
 public static class InventoryAutoPopulate
 {
     private const string ItemsFolder   = "Assets/Data/Items";
     private const string RecipesFolder = "Assets/Data/Recipes";
-
-    static InventoryAutoPopulate()
-    {
-        // Delay so the editor is fully initialized before we touch scene objects.
-        EditorApplication.delayCall += Refresh;
-    }
 
     /// <summary>Scans Data folders and updates InventorySystem in the open scene(s).</summary>
     [MenuItem("Tools/Inventory/Refresh Items and Recipes")]
