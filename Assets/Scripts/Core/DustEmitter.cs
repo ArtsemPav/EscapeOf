@@ -10,41 +10,45 @@ public class DustEmitter : MonoBehaviour
 {
     [Header("Sprites")]
     [Tooltip("List of dust sprites to randomly assign to each particle.")]
-    [SerializeField] private Sprite[] _dustSprites;
+    public Sprite[] _dustSprites;
 
     [Header("Emission")]
     [Tooltip("Number of dust particles emitted per second.")]
-    [SerializeField] private float _emissionRate = 40f;
+    public float _emissionRate = 40f;
 
     [Header("Particle Lifetime & Size")]
     [Tooltip("Minimum lifetime of a single particle in seconds.")]
-    [SerializeField] private float _lifetimeMin = 5f;
+    public float _lifetimeMin = 5f;
     [Tooltip("Maximum lifetime of a single particle in seconds.")]
-    [SerializeField] private float _lifetimeMax = 10f;
+    public float _lifetimeMax = 10f;
     [Tooltip("Minimum particle size.")]
-    [SerializeField] private float _sizeMin = 0.04f;
+    public float _sizeMin = 0.04f;
     [Tooltip("Maximum particle size.")]
-    [SerializeField] private float _sizeMax = 0.12f;
+    public float _sizeMax = 0.12f;
 
     [Header("Speed")]
     [Tooltip("Minimum initial particle speed.")]
-    [SerializeField] private float _speedMin = 0.01f;
+    public float _speedMin = 0.01f;
     [Tooltip("Maximum initial particle speed.")]
-    [SerializeField] private float _speedMax = 0.05f;
+    public float _speedMax = 0.05f;
 
     [Header("Spawn Volume")]
     [Tooltip("Half-extents of the box volume in which particles spawn.")]
-    [SerializeField] private Vector3 _boxSize = new Vector3(4f, 2f, 4f);
+    public Vector3 _boxSize = new Vector3(4f, 2f, 4f);
 
     [Header("Color")]
     [Tooltip("Base dust tint color.")]
-    [SerializeField] private Color _dustColor = new Color(0.95f, 0.9f, 0.8f, 0.8f);
+    public Color _dustColor = new Color(0.95f, 0.9f, 0.8f, 0.8f);
 
     [Header("Turbulence")]
     [Tooltip("Strength of noise-based turbulence applied to particles.")]
-    [SerializeField] private float _noiseStrength = 0.08f;
+    public float _noiseStrength = 0.08f;
     [Tooltip("Frequency of the noise field.")]
-    [SerializeField] private float _noiseFrequency = 0.3f;
+    public float _noiseFrequency = 0.3f;
+
+    [Header("Rendering")]
+    [Tooltip("URP Rendering Layer Mask to match room lighting.")]
+    public uint _renderingLayerMask = 1;
 
     private ParticleSystem _ps;
 
@@ -54,8 +58,11 @@ public class DustEmitter : MonoBehaviour
         ConfigureParticleSystem();
     }
 
-    private void ConfigureParticleSystem()
+    public void ConfigureParticleSystem()
     {
+        if (_ps == null) _ps = GetComponent<ParticleSystem>();
+        if (_ps == null) return;
+
         // --- Main module ---
         var main = _ps.main;
         main.loop = true;
@@ -131,6 +138,7 @@ public class DustEmitter : MonoBehaviour
         var psRenderer = _ps.GetComponent<ParticleSystemRenderer>();
         psRenderer.renderMode = ParticleSystemRenderMode.Billboard;
         psRenderer.sortingOrder = 0;
+        psRenderer.renderingLayerMask = _renderingLayerMask;
     }
 
     private void ConfigureTextureSheetAnimation()
