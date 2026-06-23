@@ -26,7 +26,7 @@ public class BurnerController : ChemicalDeviceBase
 
     [Header("Flask Placement")]
     [Tooltip("Desired uniform world-space scale for the flask prefab while it sits on the burner.")]
-    [SerializeField] [Range(0.001f, 1f)] private float _flaskPlacementScale = 0.15f;
+    [SerializeField] [Min(0.001f)] private float _flaskPlacementScale = 0.15f;
 
     [Tooltip("Height above the spot from which the flask begins its drop animation.")]
     [SerializeField] private float _dropHeight = 0.05f;

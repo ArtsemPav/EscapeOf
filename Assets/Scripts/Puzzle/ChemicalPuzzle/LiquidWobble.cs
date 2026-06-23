@@ -6,14 +6,9 @@ namespace ChemicalPuzzle
     /// <summary>
     /// Управляет жидкостью в колбе.
     ///
-    /// Dual-plane подход:
-    ///   _LocalFillY  — порог в локальном (mesh) пространстве.
-    ///                  Clip по локальному Y сохраняет РЕАЛЬНЫЙ 3D-объём при любом наклоне,
-    ///                  т.к. для произвольной формы меша локальный Y-срез — это всегда
-    ///                  та же доля геометрии, независимо от поворота объекта в мире.
-    ///   _FillWorldY  — мировой Y для foam-полосы.
-    ///                  Даёт визуально горизонтальную линию поверхности.
-    ///                  Рассчитывается через TransformPoint центральной точки заполнения.
+    /// Использует material instance вместо MaterialPropertyBlock,
+    /// т.к. SRP Batcher в URP игнорирует PropertyBlock для свойств
+    /// внутри CBUFFER_START(UnityPerMaterial).
     /// </summary>
     [ExecuteAlways]
     public class LiquidWobble : MonoBehaviour
@@ -32,10 +27,9 @@ namespace ChemicalPuzzle
         [SerializeField] private float wobbleSpeed = 4f;
         [SerializeField] private float recovery    = 1.5f;
 
-        private float      _fillWorldY;
-        private bool       _initialized;
         private Renderer   _renderer;
         private MeshFilter _meshFilter;
+        private Material   _materialInstance;
         private Vector3    _lastPos;
         private Quaternion _lastRot;
         private float      _wobbleAddX, _wobbleAddZ, _wobbleX, _wobbleZ;
@@ -86,18 +80,36 @@ namespace ChemicalPuzzle
         private static readonly int ChromaticAberrationId = Shader.PropertyToID("_ChromaticAberration");
         private static readonly int DepthDarkenId         = Shader.PropertyToID("_DepthDarken");
 
-        private MaterialPropertyBlock _propBlock;
-
         private void OnEnable()
         {
             _renderer   = GetComponent<Renderer>();
             _meshFilter = GetComponent<MeshFilter>();
-            _propBlock  = new MaterialPropertyBlock();
             _lastPos    = transform.position;
             _lastRot    = transform.rotation;
-            _initialized = false;
 
             CacheLocalMeshBounds();
+            EnsureMaterialInstance();
+        }
+
+        /// <summary>
+        /// Создаёт уникальный экземпляр материала для этого рендерера.
+        /// В Edit Mode используем sharedMaterial напрямую (без инстанса),
+        /// чтобы не загрязнять ассет.
+        /// </summary>
+        private void EnsureMaterialInstance()
+        {
+            if (_renderer == null) return;
+
+            if (Application.isPlaying)
+            {
+                // renderer.material автоматически создаёт instance
+                _materialInstance = _renderer.material;
+            }
+            else
+            {
+                // В Edit Mode работаем с shared (без инстансирования)
+                _materialInstance = _renderer.sharedMaterial;
+            }
         }
 
         private void CacheLocalMeshBounds()
@@ -117,7 +129,7 @@ namespace ChemicalPuzzle
 
         private void Update()
         {
-            if (_renderer == null) return;
+            if (_renderer == null || _materialInstance == null) return;
 
             float dt = Application.isPlaying ? Time.deltaTime : 0.016f;
             if (dt <= 0) dt = 0.016f;
@@ -125,7 +137,7 @@ namespace ChemicalPuzzle
             if (Application.isPlaying)
             {
                 _time += dt;
-                
+
                 _wobbleAddX = Mathf.Lerp(_wobbleAddX, 0f, dt * recovery);
                 _wobbleAddZ = Mathf.Lerp(_wobbleAddZ, 0f, dt * recovery);
 
@@ -146,23 +158,22 @@ namespace ChemicalPuzzle
                 _lastRot = transform.rotation;
             }
 
-            // Sync with shader properties using PropertyBlock
-            _renderer.GetPropertyBlock(_propBlock);
-            _propBlock.SetFloat(FillAmountId,           fillFraction);
-            _propBlock.SetColor(LiquidColorId,          _liquidColor);
-            _propBlock.SetColor(SurfaceColorId,         _surfaceColor);
-            _propBlock.SetColor(EmissionColorId,        _emissionColor);
-            _propBlock.SetFloat(EmissionPowerId,        _emissionPower);
-            _propBlock.SetFloat(LocalMeshMinId,         _localMeshMin);
-            _propBlock.SetFloat(LocalMeshMaxId,         _localMeshMin + _localMeshHeight);
-            _propBlock.SetVector(PivotWSId,             transform.position);
-            _propBlock.SetFloat(WobbleXId,              _wobbleX);
-            _propBlock.SetFloat(WobbleZId,              _wobbleZ);
-            _propBlock.SetFloat(OpacityId,              _opacity);
-            _propBlock.SetFloat(RefractionStrengthId,   _refractionStrength);
-            _propBlock.SetFloat(ChromaticAberrationId,  _chromaticAberration);
-            _propBlock.SetFloat(DepthDarkenId,          _depthDarken);
-            _renderer.SetPropertyBlock(_propBlock);
+            // Передаём свойства напрямую в material instance —
+            // SRP Batcher корректно обрабатывает per-material свойства.
+            _materialInstance.SetFloat(FillAmountId,           fillFraction);
+            _materialInstance.SetColor(LiquidColorId,          _liquidColor);
+            _materialInstance.SetColor(SurfaceColorId,         _surfaceColor);
+            _materialInstance.SetColor(EmissionColorId,        _emissionColor);
+            _materialInstance.SetFloat(EmissionPowerId,        _emissionPower);
+            _materialInstance.SetFloat(LocalMeshMinId,         _localMeshMin);
+            _materialInstance.SetFloat(LocalMeshMaxId,         _localMeshMin + _localMeshHeight);
+            _materialInstance.SetVector(PivotWSId,             transform.position);
+            _materialInstance.SetFloat(WobbleXId,              _wobbleX);
+            _materialInstance.SetFloat(WobbleZId,              _wobbleZ);
+            _materialInstance.SetFloat(OpacityId,              _opacity);
+            _materialInstance.SetFloat(RefractionStrengthId,   _refractionStrength);
+            _materialInstance.SetFloat(ChromaticAberrationId,  _chromaticAberration);
+            _materialInstance.SetFloat(DepthDarkenId,          _depthDarken);
 
         #if UNITY_EDITOR
             if (!Application.isPlaying) UnityEditor.SceneView.RepaintAll();
@@ -171,11 +182,19 @@ namespace ChemicalPuzzle
 
         private void OnDisable()
         {
-            if (_renderer == null) return;
-            _renderer.GetPropertyBlock(_propBlock);
-            _propBlock.SetFloat(WobbleXId, 0f);
-            _propBlock.SetFloat(WobbleZId, 0f);
-            _renderer.SetPropertyBlock(_propBlock);
+            if (_materialInstance == null) return;
+            _materialInstance.SetFloat(WobbleXId, 0f);
+            _materialInstance.SetFloat(WobbleZId, 0f);
+        }
+
+        private void OnDestroy()
+        {
+            // Уничтожаем инстанс материала, чтобы не было утечек
+            if (Application.isPlaying && _materialInstance != null)
+            {
+                Destroy(_materialInstance);
+                _materialInstance = null;
+            }
         }
 
         // ── Public API ────────────────────────────────────────────────────────

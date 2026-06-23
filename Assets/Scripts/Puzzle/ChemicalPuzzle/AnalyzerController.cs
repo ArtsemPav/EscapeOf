@@ -33,7 +33,7 @@ public class AnalyzerController : MonoBehaviour
     [SerializeField] private Collider _centerCollider;
 
     [Tooltip("Desired uniform world-space scale for the flask visual while in the analyzer.")]
-    [SerializeField] [Range(0.01f, 5f)] private float _flaskPlacementScale = 1f;
+    [SerializeField] [Min(0.001f)] private float _flaskPlacementScale = 1f;
 
     [Tooltip("Height above the slot from which the flask begins its drop animation.")]
     [SerializeField] private float _dropHeight = 0.05f;

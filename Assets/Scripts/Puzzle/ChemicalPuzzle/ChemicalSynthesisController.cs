@@ -252,6 +252,53 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         return item;
     }
 
+    /// <summary>
+    /// Returns true when <paramref name="item"/> belongs to the chemical puzzle
+    /// (input, output, slag variant, or equivalence-map entry).
+    /// Unlike <see cref="IsAccepted"/>, this includes ALL puzzle-known items,
+    /// not just the device-input whitelist.
+    /// </summary>
+    public bool IsPuzzleItem(ItemData item)
+    {
+        if (item == null) return false;
+        return _allPuzzleItems.Contains(item);
+    }
+
+    /// <summary>
+    /// Populates <see cref="_allPuzzleItems"/> with every item the puzzle references:
+    /// accepted inputs, synthesis results, slag variants, equivalence map entries,
+    /// puzzle-cleanup items, and the empty flask.
+    /// </summary>
+    private void BuildAllPuzzleItemsSet()
+    {
+        void Add(ItemData item) { if (item != null) _allPuzzleItems.Add(item); }
+        void AddRange(ItemData[] items) { if (items != null) foreach (var i in items) Add(i); }
+
+        AddRange(_acceptedItems);
+        AddRange(_unknownSlagVariants);
+        AddRange(_mixerSlagItems);
+        Add(_amptyColba);
+        Add(_mixerSpoiledResult);
+
+        if (_equivalenceMap != null)
+            foreach (var entry in _equivalenceMap)
+            {
+                Add(entry.unknown);
+                Add(entry.identified);
+            }
+
+        if (_synthesisSteps != null)
+            foreach (var step in _synthesisSteps)
+            {
+                AddRange(step.burnerInputs);
+                Add(step.centrifugeInput);
+                Add(step.successResult);
+                Add(step.spoiledResult);
+                AddRange(step.mixerIngredients);
+                Add(step.mixerResult);
+            }
+    }
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
@@ -300,6 +347,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     // Built from _unknownSlagVariants in Awake — O(1) membership test in RandomizeSlag.
     private readonly HashSet<ItemData> _unknownSlagSet = new HashSet<ItemData>();
+
+    // Complete set of all items the puzzle knows about (inputs, outputs, slag, equivalence map).
+    // Used by the trash to reject non-puzzle items (e.g. jars) while accepting any puzzle result.
+    private readonly HashSet<ItemData> _allPuzzleItems = new HashSet<ItemData>();
 
     // Pre-allocated buffer for zero-GC RaycastNonAlloc calls in Update.
     private readonly RaycastHit[] _hoverHitBuffer = new RaycastHit[16];
@@ -388,6 +439,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (_unknownSlagVariants != null)
             foreach (ItemData slag in _unknownSlagVariants)
                 if (slag != null) _unknownSlagSet.Add(slag);
+
+        // ── Build complete puzzle-item set for trash validation ───────────────
+        BuildAllPuzzleItemsSet();
     }
 
     // ── Synthesis Pipeline Injection ──────────────────────────────────────────
@@ -645,7 +699,8 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (_trash == null) return;
 
         if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            PuzzleInventoryBar.DraggedItem == _amptyColba)
+            PuzzleInventoryBar.DraggedItem == _amptyColba ||
+            !IsPuzzleItem(PuzzleInventoryBar.DraggedItem))
         {
             _trash.HideHighlight();
             return;
@@ -864,6 +919,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                 {
                     // Empty flask cannot be discarded.
                     if (item == _amptyColba) return false;
+
+                    // Only puzzle-relevant items can be trashed (reject jars and other non-puzzle items).
+                    if (!IsPuzzleItem(item)) return false;
 
                     _trash.PlayDropSound();
 
