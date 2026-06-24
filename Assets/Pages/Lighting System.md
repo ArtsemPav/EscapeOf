@@ -75,6 +75,19 @@ LightingSystem.Instance.OnPowerChanged      += (isPowered) => { };
 LightingSystem.Instance.OnZoneSwitchChanged += (zoneId, isSwitchedOn) => { };
 ```
 
+### Render suppression (visibility culling)
+
+`LightingSystem` also exposes a separate suppression layer used by the Room Visibility System:
+
+```csharp
+// Force-hide a zone's lights for performance, independent of power/switch state.
+LightingSystem.Instance.SetZoneRenderSuppressed("Corridor", suppressed: true);
+```
+
+`RoomVisibilityManager` calls this per zone every time the active room set changes: a zone is
+suppressed unless some currently-visible room owns it. This is why a `ZoneId` can be shared across
+rooms (e.g. stairs lights use `ZoneId="Corridor"`) without conflicts — see the Room Visibility System page.
+
 ### Save data
 
 `LightingSystem` serialises master power state and every zone's switch state into JSON via `ISaveable`. No manual setup required.
@@ -157,7 +170,7 @@ ElectricPanel component
 
 URP shadow atlas fills up quickly with many spotlights. Per zone, designate **1–2 key lamps** to cast shadows (`Shadow Type = Soft Shadows`). Set all remaining lamps to `Shadow Type = No Shadows`.
 
-When a zone is disabled (`light.enabled = false`), those lights exit the shadow atlas entirely, reducing GPU load automatically whenever rooms are unlit.
+When a zone is disabled (`light.enabled = false`), those lights exit the shadow atlas entirely, reducing GPU load automatically whenever rooms are unlit. The Room Visibility System leverages this by suppressing zones for rooms the player can't currently see (see its page).
 
 ---
 

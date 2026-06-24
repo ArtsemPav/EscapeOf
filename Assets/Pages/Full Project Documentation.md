@@ -933,13 +933,18 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera)
 
 **Файл:** `Assets/Scripts/Room/RoomController.cs`
 
-Компонент на корневом объекте комнаты. При блокировке отключает коллайдеры у всех `IInteractable` дочерних объектов — геометрия остаётся видимой, но взаимодействие невозможно.
+Компонент на корневом объекте комнаты. Отвечает за две задачи: блокировку взаимодействий и куллинг геометрии/света.
+
+- **Блокировка:** при `Lock()` отключает коллайдеры у всех `IInteractable` дочерних объектов — геометрия остаётся видимой, но взаимодействие невозможно.
+- **Куллинг:** на `Awake` собирает рендереры (включённые на старте) и `ZoneId`-ы дочерних `LightZone`. `SetGeometryActive(bool)` переключает только эти рендереры. Свет подавляется централизованно через `RoomVisibilityManager` + `LightingSystem`.
 
 ```csharp
 room.Unlock();        // разрешить взаимодействие
 room.Lock();          // запретить взаимодействие
 bool IsUnlocked;      // текущее состояние
 Volume LocalVolume;   // локальный Volume этой комнаты (read-only)
+IReadOnlyList<string> ZoneIds;     // зоны света этой комнаты
+room.SetGeometryActive(bool);      // вкл/выкл рендереры (используется менеджером видимости)
 ```
 
 ### Пост-процессинг на комнату
@@ -953,6 +958,13 @@ Volume LocalVolume;   // локальный Volume этой комнаты (read
 | Поле | Что назначить |
 |---|---|
 | `Local Volume` | Локальный `Volume` этой комнаты (необязательно) |
+| `Trigger Zones` | Пары `{ Trigger, VisibleRooms }`: какой `RoomTrigger` какие комнаты держит видимыми |
+
+### Система видимости (производительность)
+
+Помимо `RoomController` система куллинга включает `RoomVisibilityManager` (синглтон, держит активный набор комнат как объединение всех триггеров, в которых стоит игрок) и `RoomTrigger` (триггер-объём, сообщающий о входе/выходе). Полное описание, правила настройки и грабли — в отдельной странице **Room Visibility System**.
+
+> ВАЖНО: для сцены нельзя запекать Unity Occlusion Culling — он перекрывает `Renderer.enabled` и прячет геометрию, видимую через дверные проёмы.
 
 ---
 
@@ -1029,7 +1041,15 @@ Assets/
 │   │   └── PopupMessage.cs         # Данные одного сообщения
 │   │
 │   ├── Room/
-│   │   └── RoomController.cs       # Блокировка/разблокировка комнаты
+│   │   ├── RoomController.cs        # Блокировка/разблокировка + куллинг геометрии
+│   │   ├── RoomTrigger.cs           # Триггер-объём видимости
+│   │   └── RoomVisibilityManager.cs # Менеджер видимости комнат (синглтон)
+│   │
+│   ├── Lighting/
+│   │   ├── LightingSystem.cs        # Синглтон света, ISaveable, подавление зон
+│   │   ├── LightGroup.cs            # Компонент LightZone + FlickerMode
+│   │   ├── LightSwitch.cs           # Выключатель комнаты (IInteractable)
+│   │   └── ElectricPanel.cs         # Главный щиток (IInteractable)
 │   │
 │   ├── Buttons/
 │   │   ├── BaseButton.cs           # Базовый класс кнопки

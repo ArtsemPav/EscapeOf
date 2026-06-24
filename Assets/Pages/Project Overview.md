@@ -12,6 +12,8 @@ Escape Room от первого лица. Один игрок, 5 комнат, �
 - Drag Interaction System — физические двери и ящики.
 - Audio System — BGM, SFX, аудиовизуальная синхронизация.
 - Horror System — хоррор-события: триггеры, эффекты, сохранение.
+- Lighting System — зоны света, щиток, выключатели, мерцание.
+- Room Visibility System — куллинг геометрии и света комнат по триггерам (производительность).
 
 ## Ядро проекта
 
@@ -41,7 +43,8 @@ Assets/Scripts/
 ├── Inventory/      # InventorySystem, ItemDataSO, CraftingRecipe, PickableItem, ItemInspector
 │   └── UI/         # InventoryUI, InventorySlot, DraggableItem, InventoryItemPreview, ...
 ├── Flashlight/     # FlashlightController, FlashlightConfig, HiddenWallSign, FlashlightLagFollow
-├── Room/           # RoomController
+├── Room/           # RoomController, RoomTrigger, RoomVisibilityManager
+├── Lighting/       # LightingSystem, LightZone (LightGroup), LightSwitch, ElectricPanel
 ├── Buttons/        # BaseButton, CloseBtn, ResumeBtn, ResetProgressBtn
 ├── UI/             # UIPanel, CodeLockUI, InteractionUI, NoteUI, PopupMessageSystem, ...
 ├── Data/           # GameSaveData, NoteData
