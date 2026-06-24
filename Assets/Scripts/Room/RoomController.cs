@@ -6,8 +6,9 @@ using UnityEngine.Rendering;
 /// Manages the interactive state of a single room.
 /// Lock/Unlock controls whether the player can interact with objects inside.
 /// Holds the room's light zones and an optional local post-processing Volume.
-/// Light rendering is gated centrally by LightingSystem; this component only reports
-/// its zones and toggles their performance suppression via SetRenderingActive().
+/// For performance culling it reports its light zones to RoomVisibilityManager and
+/// toggles its own geometry via SetGeometryActive(); light suppression itself is applied
+/// centrally by LightingSystem because a ZoneId can be shared across rooms.
 /// </summary>
 public class RoomController : MonoBehaviour
 {

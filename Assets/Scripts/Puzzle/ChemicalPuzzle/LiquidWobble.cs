@@ -30,6 +30,7 @@ namespace ChemicalPuzzle
         private Renderer   _renderer;
         private MeshFilter _meshFilter;
         private Material   _materialInstance;
+        private bool       _ownsMaterialInstance;
         private Vector3    _lastPos;
         private Quaternion _lastRot;
         private float      _wobbleAddX, _wobbleAddZ, _wobbleX, _wobbleZ;
@@ -102,13 +103,15 @@ namespace ChemicalPuzzle
 
             if (Application.isPlaying)
             {
-                // renderer.material автоматически создаёт instance
+                // renderer.material автоматически создаёт instance, которым владеем мы
                 _materialInstance = _renderer.material;
+                _ownsMaterialInstance = true;
             }
             else
             {
                 // В Edit Mode работаем с shared (без инстансирования)
                 _materialInstance = _renderer.sharedMaterial;
+                _ownsMaterialInstance = false;
             }
         }
 
@@ -189,11 +192,13 @@ namespace ChemicalPuzzle
 
         private void OnDestroy()
         {
-            // Уничтожаем инстанс материала, чтобы не было утечек
-            if (Application.isPlaying && _materialInstance != null)
+            // Уничтожаем только тот инстанс, который создали сами, чтобы никогда не
+            // пытаться удалить шаренный ассет (например, при рекомпиляции в Play Mode).
+            if (_ownsMaterialInstance && _materialInstance != null)
             {
                 Destroy(_materialInstance);
                 _materialInstance = null;
+                _ownsMaterialInstance = false;
             }
         }
 

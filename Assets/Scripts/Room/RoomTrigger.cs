@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,6 +8,8 @@ using UnityEngine;
 /// corridor can use several triggers each lighting a different group of rooms. The owning
 /// room is always kept visible, so it never needs to be added to the list manually.
 /// If no list is configured, it falls back to the parent RoomController.
+/// Reports both entry and exit so the manager can keep the union of all overlapping
+/// triggers visible, preventing culled geometry when the player half-steps between rooms.
 /// Requires a Collider with isTrigger = true.
 /// </summary>
 [RequireComponent(typeof(Collider))]
@@ -19,14 +22,19 @@ public class RoomTrigger : MonoBehaviour
     private RoomController[] _activeRooms;
 
     /// <summary>
-    /// Sets the rooms this trigger renders. The owner room is always included so the room
-    /// the player stands in is never culled. Called by the owning RoomController on Awake.
+    /// Adds the given rooms to the set this trigger renders. The owner room is always
+    /// included so the room the player stands in is never culled. Called by the owning
+    /// RoomController on Awake. This MERGES with any rooms a previous caller already
+    /// configured, so when several RoomControllers reference the same trigger their lists
+    /// combine instead of the last one silently overwriting the others.
     /// </summary>
     public void Configure(RoomController owner, RoomController[] visibleRooms)
     {
-        var rooms = new List<RoomController>();
+        var rooms = _activeRooms != null
+            ? new List<RoomController>(_activeRooms)
+            : new List<RoomController>();
 
-        if (owner != null)
+        if (owner != null && !rooms.Contains(owner))
             rooms.Add(owner);
 
         if (visibleRooms != null)
@@ -58,9 +66,36 @@ public class RoomTrigger : MonoBehaviour
         var manager = RoomVisibilityManager.Instance;
         if (manager == null) return;
 
+        manager.EnterTrigger(this, ResolveRooms());
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.GetComponentInParent<FPSController>() == null) return;
+
+        var manager = RoomVisibilityManager.Instance;
+        if (manager == null) return;
+
+        manager.ExitTrigger(this);
+    }
+
+    private void OnDisable()
+    {
+        // Make sure a disabled/destroyed trigger never stays registered as occupied.
+        if (RoomVisibilityManager.Instance != null)
+            RoomVisibilityManager.Instance.ExitTrigger(this);
+    }
+
+    /// <summary>
+    /// Returns the rooms this trigger keeps visible: the configured list if present,
+    /// otherwise the fallback parent room.
+    /// </summary>
+    private RoomController[] ResolveRooms()
+    {
         if (_activeRooms != null && _activeRooms.Length > 0)
-            manager.SetVisibleRooms(this, _activeRooms);
-        else if (_room != null)
-            manager.SetCurrentRoom(_room);
+            return _activeRooms;
+        if (_room != null)
+            return new[] { _room };
+        return Array.Empty<RoomController>();
     }
 }

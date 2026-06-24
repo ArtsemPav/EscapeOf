@@ -3,9 +3,12 @@ using UnityEngine;
 
 /// <summary>
 /// Performance light/geometry culling driven by the player's physical location.
-/// RoomTrigger volumes call SetCurrentRoom() when the player enters a room; only the
-/// current room and its whitelisted Visible Rooms are rendered, everything else is
-/// suppressed. Acts as a safety layer on top of occlusion culling.
+/// Tracks every RoomTrigger the player currently overlaps and keeps the UNION of their
+/// configured room lists rendered. Because overlapping triggers are combined instead of
+/// the last one winning, partially stepping into a room while still standing in a corridor
+/// keeps both visible, so backing out never leaves culled geometry (holes in walls).
+/// Everything outside the active set is suppressed. Acts as a safety layer on top of
+/// occlusion culling.
 /// </summary>
 public class RoomVisibilityManager : MonoBehaviour
 {
@@ -14,11 +17,13 @@ public class RoomVisibilityManager : MonoBehaviour
     [Tooltip("Rooms rendered at game start, before the player enters any trigger.")]
     [SerializeField] private RoomController[] _startingRooms;
 
-    [Tooltip("Logs which room becomes current and which rooms stay visible on each switch.")]
+    [Tooltip("Logs which triggers are occupied and which rooms stay visible on each change.")]
     [SerializeField] private bool _debugLogging;
 
     private RoomController[] _allRooms;
-    private object _currentSource;
+
+    // Triggers the player is currently inside, mapped to the rooms each one keeps visible.
+    private readonly Dictionary<RoomTrigger, IReadOnlyList<RoomController>> _occupiedTriggers = new();
     private readonly HashSet<RoomController> _activeRooms = new();
     private readonly HashSet<string> _activeZones = new();
     private readonly HashSet<string> _allZones = new();
@@ -51,45 +56,62 @@ public class RoomVisibilityManager : MonoBehaviour
     private void Start()
     {
         if (_startingRooms != null && _startingRooms.Length > 0)
-            SetVisibleRooms(null, _startingRooms);
+            SetActiveRoomsDirect(_startingRooms, "Start");
     }
 
     /// <summary>
-    /// Makes the given room the only active one and refreshes rendering. Fallback used by
-    /// a RoomTrigger that has no configured room list.
+    /// Registers a trigger the player has just entered along with the rooms it keeps visible,
+    /// then recomputes the active set as the union of all currently occupied triggers.
     /// </summary>
-    public void SetCurrentRoom(RoomController room)
+    public void EnterTrigger(RoomTrigger trigger, IReadOnlyList<RoomController> rooms)
     {
-        if (room == null || _allRooms == null) return;
-        if (ReferenceEquals(_currentSource, room)) return;
-        _currentSource = room;
+        if (trigger == null || _allRooms == null) return;
+        _occupiedTriggers[trigger] = rooms;
+        RecomputeActiveRooms($"Enter '{trigger.name}'");
+    }
 
+    /// <summary>
+    /// Removes a trigger the player has left and recomputes the active set from the triggers
+    /// that remain. If the player is no longer inside any trigger, the last visible set is
+    /// kept to avoid culling geometry during gaps between trigger volumes.
+    /// </summary>
+    public void ExitTrigger(RoomTrigger trigger)
+    {
+        if (trigger == null || _allRooms == null) return;
+        if (!_occupiedTriggers.Remove(trigger)) return;
+
+        if (_occupiedTriggers.Count > 0)
+            RecomputeActiveRooms($"Exit '{trigger.name}'");
+    }
+
+    /// <summary>
+    /// Rebuilds the active room set as the union of every currently occupied trigger's list.
+    /// </summary>
+    private void RecomputeActiveRooms(string sourceName)
+    {
         _activeRooms.Clear();
-        _activeRooms.Add(room);
-
-        ApplyActiveRooms(room.name);
+        foreach (var rooms in _occupiedTriggers.Values)
+        {
+            if (rooms == null) continue;
+            foreach (var room in rooms)
+                if (room != null) _activeRooms.Add(room);
+        }
+        ApplyActiveRooms(sourceName);
     }
 
     /// <summary>
-    /// Makes the given explicit set of rooms the active ones, regardless of any room
-    /// whitelist. Lets a single trigger render an arbitrary group of rooms, so a long
-    /// corridor can be split into multiple trigger zones each lighting different rooms.
-    /// Called by RoomTrigger when it has its own Visible Rooms list.
+    /// Sets the active rooms to an explicit list, bypassing the occupied-trigger union.
+    /// Used for the initial starting state.
     /// </summary>
-    public void SetVisibleRooms(RoomTrigger source, IReadOnlyList<RoomController> rooms)
+    private void SetActiveRoomsDirect(IReadOnlyList<RoomController> rooms, string sourceName)
     {
-        if (_allRooms == null) return;
-        if (source != null && ReferenceEquals(_currentSource, source)) return;
-        _currentSource = source;
-
         _activeRooms.Clear();
         if (rooms != null)
         {
             foreach (var room in rooms)
                 if (room != null) _activeRooms.Add(room);
         }
-
-        ApplyActiveRooms(source != null ? source.name : "Trigger");
+        ApplyActiveRooms(sourceName);
     }
 
     /// <summary>
@@ -126,7 +148,7 @@ public class RoomVisibilityManager : MonoBehaviour
             var visible = new List<string>();
             foreach (var r in _activeRooms)
                 if (r != null) visible.Add(r.name);
-            Debug.Log($"[RoomVisibility] Source: '{sourceName}'. Visible: {string.Join(", ", visible)}");
+            Debug.Log($"[RoomVisibility] Source: '{sourceName}'. Occupied triggers: {_occupiedTriggers.Count}. Visible: {string.Join(", ", visible)}");
         }
     }
 }
