@@ -56,6 +56,10 @@ public class ResolutionManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        // Enforce a strict 60 FPS limit on startup to prevent GPU from overheating, regardless of monitor refresh rate
+        QualitySettings.vSyncCount = 0; // Turn off VSync so Application.targetFrameRate is strictly respected at 60 FPS
+        Application.targetFrameRate = 60;
+
         if (applyOnStart && persist && PlayerPrefs.HasKey(KeyWidth))
         {
             int w = PlayerPrefs.GetInt(KeyWidth);

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
 using TMPro;
@@ -146,12 +146,11 @@ namespace SlimUI.ModernMenu{
 			}
 
 
-			// check vsync
-			if(QualitySettings.vSyncCount == 0){
-				vsynctext.GetComponent<TMP_Text>().text = "off";
-			}
-			else if(QualitySettings.vSyncCount == 1){
-				vsynctext.GetComponent<TMP_Text>().text = "on";
+			// check vsync - always force VSync off and targetFrameRate to 60 to guarantee 60 FPS limit on any monitor
+			QualitySettings.vSyncCount = 0;
+			Application.targetFrameRate = 60;
+			if(vsynctext != null && vsynctext.GetComponent<TMP_Text>() != null){
+				vsynctext.GetComponent<TMP_Text>().text = "off (Locked 60 FPS)";
 			}
 
 			// check mouse inverse
@@ -351,14 +350,14 @@ namespace SlimUI.ModernMenu{
 		}
 
 		public void vsync (){
-			if(QualitySettings.vSyncCount == 0){
-				QualitySettings.vSyncCount = 1;
-				vsynctext.GetComponent<TMP_Text>().text = "on";
+			// Force VSync OFF and frame rate strictly limited to 60 FPS under all conditions to prevent GPU overheating
+			QualitySettings.vSyncCount = 0;
+			Application.targetFrameRate = 60;
+			if(vsynctext != null && vsynctext.GetComponent<TMP_Text>() != null){
+				vsynctext.GetComponent<TMP_Text>().text = "off (Locked 60 FPS)";
 			}
-			else if(QualitySettings.vSyncCount == 1){
-				QualitySettings.vSyncCount = 0;
-				vsynctext.GetComponent<TMP_Text>().text = "off";
-			}
+			PlayerPrefs.SetInt("VSync", 0);
+			PlayerPrefs.Save();
 		}
 
 		public void InvertMouse (){
