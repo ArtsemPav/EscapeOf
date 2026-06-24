@@ -44,6 +44,9 @@ public class LightingSystem : MonoBehaviour, ISaveable
     // zoneId → switch state (true = switch is ON). Default true when first seen.
     private readonly Dictionary<string, bool> _switchStates = new();
 
+    // Zones suppressed for performance (player not in/near them). Not persisted to saves.
+    private readonly HashSet<string> _suppressedZones = new();
+
     // Active fade coroutines per zone
     private readonly Dictionary<string, Coroutine> _fadeCoroutines = new();
 
@@ -127,8 +130,7 @@ public class LightingSystem : MonoBehaviour, ISaveable
             _switchStates[zone.ZoneId] = true;
 
         // Apply current state immediately so the light starts correct.
-        bool shouldBeOn = _isPowered && _switchStates[zone.ZoneId];
-        zone.SetActive(shouldBeOn);
+        zone.SetActive(IsZoneActive(zone.ZoneId));
     }
 
     /// <summary>Called automatically by LightZone.OnDestroy().</summary>
@@ -168,8 +170,7 @@ public class LightingSystem : MonoBehaviour, ISaveable
         _switchStates[zoneId] = on;
         OnZoneSwitchChanged?.Invoke(zoneId, on);
 
-        bool shouldBeOn = _isPowered && on;
-        ApplyToZone(zoneId, shouldBeOn);
+        ApplyToZone(zoneId, IsZoneActive(zoneId));
         SaveManager.Instance?.Save();
     }
 
@@ -187,18 +188,38 @@ public class LightingSystem : MonoBehaviour, ISaveable
         return _switchStates.TryGetValue(zoneId, out bool state) ? state : true;
     }
 
-    /// <summary>Returns true if the zone is both powered and switched on.</summary>
+    /// <summary>Returns true if the zone is both powered and switched on (gameplay state, ignores performance suppression).</summary>
     public bool IsZoneLit(string zoneId) => _isPowered && GetZoneSwitchState(zoneId);
+
+    // ── Performance Suppression API ───────────────────────────────────────────
+
+    /// <summary>
+    /// Performance layer: suppresses or restores a zone's rendering independently of gameplay state.
+    /// A suppressed zone stays dark even when powered and switched on. Not persisted to saves.
+    /// </summary>
+    public void SetZoneRenderSuppressed(string zoneId, bool suppressed)
+    {
+        if (string.IsNullOrEmpty(zoneId)) return;
+
+        bool changed = suppressed ? _suppressedZones.Add(zoneId) : _suppressedZones.Remove(zoneId);
+        if (!changed) return;
+
+        ApplyToZone(zoneId, IsZoneActive(zoneId));
+    }
+
+    /// <summary>True if the zone is currently suppressed for performance.</summary>
+    public bool IsZoneRenderSuppressed(string zoneId) => _suppressedZones.Contains(zoneId);
+
+    /// <summary>Final on/off state combining gameplay (power, switch) and performance suppression.</summary>
+    private bool IsZoneActive(string zoneId) =>
+        _isPowered && GetZoneSwitchState(zoneId) && !_suppressedZones.Contains(zoneId);
 
     // ── Internals ─────────────────────────────────────────────────────────────
 
     private void RefreshAllZones()
     {
         foreach (var zoneId in _zones.Keys)
-        {
-            bool shouldBeOn = _isPowered && GetZoneSwitchState(zoneId);
-            ApplyToZone(zoneId, shouldBeOn);
-        }
+            ApplyToZone(zoneId, IsZoneActive(zoneId));
     }
 
     private void ApplyToZone(string zoneId, bool on)

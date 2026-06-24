@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -24,6 +25,9 @@ public class GameManager : MonoBehaviour, ISaveable
     public int CurrentRoomIndex => _currentRoomIndex;
     public int TotalRooms => rooms != null ? rooms.Length : 0;
     public bool IsPaused => _isPaused;
+
+    /// <summary>All rooms in progression order. Used by RoomVisibilityManager for light culling.</summary>
+    public IReadOnlyList<RoomController> Rooms => rooms;
 
     /// <summary>
     /// Returns the local Volume of the currently active room, or null if not assigned.
