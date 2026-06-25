@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 3300000}
   - component: {fileID: 2300000}
   - component: {fileID: 25426258693926055}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: cupboard_A
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -66,7 +66,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 514
+  m_RenderingLayerMask: 576
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 0acf6535c943020419146deb54e176e7, type: 2}
@@ -112,8 +112,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.8671112, y: 1.012994, z: 0.69}
-  m_Center: {x: 0, y: 0.506497, z: -0.029664226}
+  m_Size: {x: 0.8671112, y: 0.04, z: 0.69}
+  m_Center: {x: 0, y: 0.99, z: -0.029664226}
 --- !u!1 &100002
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,12 +126,13 @@ GameObject:
   - component: {fileID: 3300002}
   - component: {fileID: 2300002}
   - component: {fileID: 6500000}
-  m_Layer: 0
+  - component: {fileID: 2757594986582919189}
+  m_Layer: 6
   m_Name: cupboard_drawer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 4294967295
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &400002
 Transform:
@@ -178,7 +179,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 514
+  m_RenderingLayerMask: 576
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 0acf6535c943020419146deb54e176e7, type: 2}
@@ -226,6 +227,27 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.6955073, y: 0.21760893, z: 0.04}
   m_Center: {x: 0, y: 0.022141885, z: -0.33}
+--- !u!114 &2757594986582919189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100002}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe43e7c0bb69d4046afa6aff0ff4e5fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DrawerDrag
+  _openDirection: {x: 0, y: 0, z: -0.9}
+  _openDistance: 0.65
+  _dragSensitivity: 1
+  _invertAxis: 0
+  _snapSpeed: 8
+  _snapThreshold: 0.25
+  _openClip: {fileID: 8300000, guid: d036e5fdebf99c94594e146b4ffaa85c, type: 3}
+  _openVolume: 0.8
+  _interactText: "\u041F\u043E\u0442\u044F\u043D\u0443\u0442\u044C"
 --- !u!1 &100004
 GameObject:
   m_ObjectHideFlags: 0
@@ -238,12 +260,13 @@ GameObject:
   - component: {fileID: 3300004}
   - component: {fileID: 2300004}
   - component: {fileID: 6500002}
-  m_Layer: 0
+  - component: {fileID: 4149919645713594515}
+  m_Layer: 6
   m_Name: cupboard_door
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 4294967295
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &400004
 Transform:
@@ -290,7 +313,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 514
+  m_RenderingLayerMask: 576
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 0acf6535c943020419146deb54e176e7, type: 2}
@@ -338,3 +361,42 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.6953567, y: 0.47373664, z: 0.048999596}
   m_Center: {x: 0.34767836, y: 0.000000022351742, z: -0.024499608}
+--- !u!114 &4149919645713594515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100004}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _isOpen: 0
+  _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
+  _requiredKey: {fileID: 0}
+  _requirementHint: 
+  _lockedJiggleFraction: 0.05
+  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _pivot: {fileID: 400004}
+  _rotationAxis: 1
+  _maxOpenAngle: 120
+  _dragSensitivity: 0.4
+  _friction: 5
+  _maxVelocity: 1.2
+  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
+  _openLoopClip: {fileID: 0}
+  _closeLoopClip: {fileID: 0}
+  _latchClip: {fileID: 0}
+  _lockedClip: {fileID: 0}
+  _unlockClip: {fileID: 0}
+  _unlockAjarFraction: 0.12
+  _unlockAjarSpeed: 0.6
+  _motionVolume: 0.7
+  _saveId: 

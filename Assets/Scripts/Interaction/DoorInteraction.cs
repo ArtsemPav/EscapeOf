@@ -7,6 +7,13 @@ namespace Escape.Core {
     public enum DoorRotationAxis { X, Y, Z }
 
     /// <summary>
+    /// Способ открытия двери.
+    /// Drag — физическое перетаскивание мышью (удерживай ЛКМ и двигай).
+    /// Click — одиночный клик ЛКМ плавно открывает/закрывает дверь за заданное время.
+    /// </summary>
+    public enum DoorOpenMode { Drag, Click }
+
+    /// <summary>
     /// Обрабатывает логику взаимодействия, проверку ключей и состояние двери.
     /// Поддерживает физическое перетаскивание (IDraggable): удерживай LMB и двигай мышью.
     /// Заперта дверь — слегка поддаётся при попытке потянуть и возвращается назад.
@@ -17,6 +24,12 @@ namespace Escape.Core {
         [Header("Door State")]
         [SerializeField] private bool _isOpen = false;
         [SerializeField] private bool _isLocked = false;
+
+        [Header("Open Mode")]
+        [Tooltip("Drag — перетаскивание мышью. Click — одиночный клик ЛКМ плавно открывает/закрывает дверь за заданное время.")]
+        [SerializeField] private DoorOpenMode _openMode = DoorOpenMode.Drag;
+        [Tooltip("Время полного открытия/закрытия двери в режиме Click (в секундах).")]
+        [SerializeField] [Min(0.05f)] private float _openDuration = 1f;
 
         [Header("Lock Settings")]
         [SerializeField] private ItemData _requiredKey;
@@ -86,6 +99,8 @@ namespace Escape.Core {
         private float   _unlockAjarTarget;    // target fraction for the unlock swing
         private bool    _flinging;            // true while coasting to fully open or closed after a sharp release
         private float   _flingTarget;         // 0 = fully closed, 1 = fully open
+        private bool    _isClickAnimating;    // true while smoothly opening/closing after a single click (Click mode)
+        private float   _clickTarget;         // 0 = fully closed, 1 = fully open — target for the click animation
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
 
@@ -218,6 +233,26 @@ namespace Escape.Core {
                 return;
             }
 
+            // ── Click-driven open/close ──────────────────────────────────────────
+            if (_isClickAnimating) {
+                float prev  = _openFraction;
+                float speed = _openDuration > 0.0001f ? 1f / _openDuration : 1000f;
+                _openFraction = Mathf.MoveTowards(_openFraction, _clickTarget, speed * Time.deltaTime);
+                // Drive the motion loop by signalling direction through velocity.
+                _velocity = _clickTarget > prev ? speed : -speed;
+                UpdateMotionLoop();
+                CheckLatch(prev, _openFraction);
+                ApplyAngle();
+                if (Mathf.Approximately(_openFraction, _clickTarget)) {
+                    _openFraction     = _clickTarget;
+                    _isClickAnimating = false;
+                    _dragActive       = _clickTarget > 0.5f;
+                    _velocity         = 0f;
+                    StopMotionLoops();
+                }
+                return;
+            }
+
             // ── Fling to fully open / closed ─────────────────────────────────────
             if (_flinging) {
                 float prev    = _openFraction;
@@ -258,6 +293,12 @@ namespace Escape.Core {
 
         /// <summary>Called by FPSController when LMB is pressed while looking at the door.</summary>
         public void OnDragStart(Vector3 hitPoint) {
+            // Click mode: a single LMB press toggles the door open/closed over _openDuration.
+            if (_openMode == DoorOpenMode.Click) {
+                ToggleClick();
+                return;
+            }
+
             _isDragging        = true;
             _dragActive        = true;
             _snappingBack      = false;
@@ -281,6 +322,9 @@ namespace Escape.Core {
 
         /// <summary>Called every frame while LMB is held.</summary>
         public void OnDrag(Vector2 mouseDelta) {
+            // Click mode ignores continuous drag — the door animates on its own.
+            if (_openMode == DoorOpenMode.Click) return;
+
             Camera cam = Camera.main;
             if (cam == null || _pivot == null) return;
 
@@ -327,6 +371,9 @@ namespace Escape.Core {
 
         /// <summary>Called when LMB is released. Door coasts via inertia to its natural stop.</summary>
         public void OnDragEnd() {
+            // Click mode handles everything in ToggleClick/Update — nothing to do on release.
+            if (_openMode == DoorOpenMode.Click) return;
+
             bool wasLockedDrag = _isLockedDrag;
             _isDragging   = false;
             _isLockedDrag = false;
@@ -413,6 +460,32 @@ namespace Escape.Core {
         }
 
         // ── Private helpers ──────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Click mode: starts a smooth open/close animation toward the opposite state.
+        /// A locked, closed door only plays the locked sound and stays shut.
+        /// </summary>
+        private void ToggleClick() {
+            if (_isLocked && !_isOpen) {
+                AudioManager.Instance.PlaySFX(_lockedClip);
+                return;
+            }
+
+            _clickTarget       = _isOpen ? 0f : 1f;
+            _isOpen            = _clickTarget > 0.5f;
+            _isClickAnimating  = true;
+            _dragActive        = true;
+
+            // Cancel any other motion modes so they don't fight the click animation.
+            _isDragging        = false;
+            _isLockedDrag      = false;
+            _snappingBack      = false;
+            _flinging          = false;
+            _isUnlockAnimating = false;
+            _velocity          = 0f;
+
+            SaveManager.Instance?.Save();
+        }
 
         private void ApplyAngle() {
             if (_pivot == null) return;
