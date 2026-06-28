@@ -174,6 +174,9 @@ public class AnalyzerController : MonoBehaviour
     /// <summary>True while the analysis cycle is running (arm moving or scanning).</summary>
     public bool IsBusy => _isBusy;
 
+    /// <summary>True when a flask is currently placed in the analyzer slot (before or during analysis).</summary>
+    public bool HasFlask => _loadedFlask != null;
+
     /// <summary>The Colba_Analize collider used as the drop-zone by the orchestrator.</summary>
     public Collider DropZoneCollider => _centerCollider;
 

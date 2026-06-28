@@ -334,6 +334,15 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     {
         public ItemData item;
         public int      originSlot;
+        /// <summary>
+        /// When set, the result replaces one existing instance of this item in inventory
+        /// (in-place, preserving slot position) instead of being placed at originSlot.
+        /// Used by the mixer so the produced flask takes the place of exactly one empty
+        /// flask, leaving the remaining empties untouched.
+        /// </summary>
+        public ItemData replaceTarget;
+        /// <summary>Optional action invoked after the item is placed in inventory.</summary>
+        public System.Action onPickup;
     }
 
     // Queue for device results that need sequential inspection panels.
@@ -363,6 +372,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private int _centrifugeOriginSlot = -1;
     private int _analyzerOriginSlot   = -1;
 
+    // Counts how many _amptyColba placeholders the mixer has placed in inventory
+    // (one per portion poured). Decremented on mid-process retrieval; cleared when
+    // the mixer completes so OnMixerComplete knows how many to remove up-front.
+    private int _mixerPendingAmpties;
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Awake()
@@ -619,7 +632,8 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (_analyzer == null) return;
 
         if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            !_analyzer.CanDrop(PuzzleInventoryBar.DraggedItem) || _isSolved)
+            !_analyzer.CanDrop(PuzzleInventoryBar.DraggedItem) || _isSolved ||
+            _analyzer.IsBusy || _analyzer.HasFlask)
         {
             _analyzer.HideHoverPreview();
             _analyzer.HideHighlight();
@@ -820,16 +834,19 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             if (_mixerSlot != null && hit.collider == _mixerSlot &&
                 _mixer != null && !_mixer.IsFull && !_mixer.IsBusy)
             {
+                // Retrieval is a strict 1:1 swap: the empty-colba placeholder (placed when
+                // the flask was poured) is exchanged back for the flask. If no placeholder
+                // exists anywhere in inventory, retrieval is blocked — never add a flask
+                // out of thin air.
+                bool hasAmpty = _amptyColba != null && InventorySystem.Instance != null &&
+                                InventorySystem.Instance.HasItem(_amptyColba);
+                if (!hasAmpty) return;
+
                 ItemData flask = _mixer.TryRetrieveFlask();
                 if (flask != null)
                 {
-                    // The empty-colba replacement was placed in inventory when the flask
-                    // was dropped; swap it back for the original flask.
-                    if (_amptyColba != null && InventorySystem.Instance != null &&
-                        !InventorySystem.Instance.ReplaceItem(_amptyColba, flask))
-                        InventorySystem.Instance.AddItem(flask);
-                    else if (_amptyColba == null)
-                        InventorySystem.Instance?.AddItem(flask);
+                    InventorySystem.Instance.ReplaceItem(_amptyColba, flask);
+                    if (_mixerPendingAmpties > 0) _mixerPendingAmpties--;
                     return;
                 }
             }
@@ -879,7 +896,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             // ── Analyzer ──────────────────────────────────────────────────────
             if (_analyzerSlot != null && col == _analyzerSlot)
             {
-                if (_analyzer == null || !_analyzer.Accepts(item)) return false;
+                if (_analyzer == null || _analyzer.IsBusy || _analyzer.HasFlask || !_analyzer.Accepts(item)) return false;
 
                 _analyzerOriginSlot = originSlot;
                 _analyzer.LoadFlask(item);
@@ -887,9 +904,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             }
 
             // ── Burner ────────────────────────────────────────────────────────
-            if (_burnerSlot != null && col == _burnerSlot)
+            if (_burner != null && col.GetComponentInParent<BurnerController>() == _burner)
             {
-                if (_burner == null || _burner.IsBusy || !_burner.CanDrop(item)) return false;
+                if (_burner.IsBusy || !_burner.CanDrop(item)) return false;
 
                 _burnerOriginSlot = originSlot;
                 _burner.LoadFlask(item);
@@ -904,6 +921,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
                 _mixer.LoadFlask(item);
                 _mixer.ProcessLoadedFlask();
+                _mixerPendingAmpties++;   // track that one _amptyColba placeholder was placed
                 replacement = _amptyColba;
                 return true;
             }
@@ -996,15 +1014,37 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         {
             ItemInspector.Instance.BeginInspection(pending.item, null, (item) =>
             {
-                PlaceOrAddItem(item, pending.originSlot);
+                PlacePendingResult(pending, item);
+                pending.onPickup?.Invoke();
                 TryShowNextResult();
             });
         }
         else
         {
-            PlaceOrAddItem(pending.item, pending.originSlot);
+            PlacePendingResult(pending, pending.item);
+            pending.onPickup?.Invoke();
             TryShowNextResult();
         }
+    }
+
+    /// <summary>
+    /// Writes a pending result into inventory. When <see cref="PendingResult.replaceTarget"/>
+    /// is set and still present, the result swaps in place of that item (preserving its slot
+    /// and leaving any other copies untouched). Otherwise it falls back to the origin-slot /
+    /// first-free placement.
+    /// </summary>
+    private void PlacePendingResult(PendingResult pending, ItemData item)
+    {
+        if (item == null) return;
+
+        if (pending.replaceTarget != null && InventorySystem.Instance != null &&
+            InventorySystem.Instance.HasItem(pending.replaceTarget))
+        {
+            InventorySystem.Instance.ReplaceItem(pending.replaceTarget, item);
+            return;
+        }
+
+        PlaceOrAddItem(item, pending.originSlot);
     }
 
     /// <summary>
@@ -1025,22 +1065,24 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (result == null) return;
         ItemData finalResult = RandomizeSlag(result);
 
-        // After the player picks up the mixed result, drain the liquid back to zero.
-        if (ItemInspector.Instance != null)
+        // Each portion poured into the mixer left an empty flask (_amptyColba) in the
+        // player's inventory. Combining the liquids yields ONE mixed flask, which fills
+        // exactly ONE of those empties — the remaining empty flasks stay in inventory.
+        // So we hand the result back via a replace-in-place against _amptyColba instead
+        // of removing every placeholder. This conserves the player's glassware: pouring
+        // two filled flasks leaves them with one mixed flask + one empty flask.
+        _mixerPendingAmpties = 0;
+
+        // Drain the liquid after the player picks up the result.
+        MixerController mixerRef = _mixer;
+        _pendingResults.Enqueue(new PendingResult
         {
-            ItemInspector.Instance.BeginInspection(finalResult, null, (item) =>
-            {
-                if (_amptyColba == null || InventorySystem.Instance == null ||
-                    !InventorySystem.Instance.ReplaceItem(_amptyColba, item))
-                    InventorySystem.Instance?.AddItem(item);
-                _mixer?.ResetLiquid();
-            });
-        }
-        else
-        {
-            InventorySystem.Instance?.AddItem(finalResult);
-            _mixer?.ResetLiquid();
-        }
+            item          = finalResult,
+            originSlot    = -1,
+            replaceTarget = _amptyColba,
+            onPickup      = () => mixerRef?.ResetLiquid()
+        });
+        TryShowNextResult();
     }
 
     private void OnAnalyzerSuccess()

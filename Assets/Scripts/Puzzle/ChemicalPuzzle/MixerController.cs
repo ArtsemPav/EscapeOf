@@ -122,6 +122,9 @@ public class MixerController : ChemicalDeviceBase
     /// <summary>True when the mixer has reached its portion limit and is exporting.</summary>
     public bool IsFull => _isLocked;
 
+    /// <summary>Number of flasks currently accumulated in the mixer (before the portion limit).</summary>
+    public int LoadedCount => _addedItems.Count;
+
     /// <summary>The collider used as the drop-zone by the orchestrator.</summary>
     public Collider DropZoneCollider => _dropZoneCollider;
 

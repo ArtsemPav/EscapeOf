@@ -292,9 +292,46 @@ private bool _ignoreInputThisFrame;
         _waitForMouseRelease  = false;
     }
 
+    /// <summary>
+    /// Instantiates the inspection prefab as a throwaway visual clone. Many item prefabs
+    /// double as world pickups and carry gameplay components (PickableItem, colliders) that
+    /// register with SaveManager on Awake — a preview must never do that, as it collides with
+    /// the real world object's SaveId. The clone is created under a temporarily inactive holder
+    /// so its Awake is deferred, the gameplay components are stripped, and only then is it
+    /// activated as a pure visual.
+    /// </summary>
+    private GameObject InstantiatePreview(GameObject prefab)
+    {
+        GameObject holder = new GameObject("InspectionHolder");
+        holder.SetActive(false);
+
+        GameObject clone = Instantiate(prefab, holder.transform);
+        StripPreviewGameplayComponents(clone);
+
+        // Reparent out of the inactive holder; the clone's surviving components run Awake now.
+        clone.transform.SetParent(null, worldPositionStays: false);
+        clone.transform.SetPositionAndRotation(InspectionOrigin, Quaternion.identity);
+        Destroy(holder);
+        return clone;
+    }
+
+    /// <summary>
+    /// Removes save-registering components from a preview clone before it is activated, so it
+    /// stays a visual-only object. Uses DestroyImmediate because the strip must complete while
+    /// the clone is still inactive — before any Awake/OnEnable could run on reactivation.
+    /// </summary>
+    private void StripPreviewGameplayComponents(GameObject clone)
+    {
+        // PickableItem (and any other ISaveable) registers with SaveManager on Awake; a
+        // throwaway preview must not, since it shares the world object's SaveId.
+        foreach (var behaviour in clone.GetComponentsInChildren<MonoBehaviour>(true))
+            if (behaviour is ISaveable)
+                DestroyImmediate(behaviour);
+    }
+
     private void SpawnPreview(ItemData item)
     {
-        _inspectionInstance = Instantiate(item.inspectionPrefab, InspectionOrigin, Quaternion.identity);
+        _inspectionInstance = InstantiatePreview(item.inspectionPrefab);
         SetLayerRecursively(_inspectionInstance, _inspectionLayer);
 
         // Вычисляем геометрический центр модели по bounds всех рендереров.
