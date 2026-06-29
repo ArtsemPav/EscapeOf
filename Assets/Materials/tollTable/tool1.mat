@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: chemicalAmpty
-  m_Shader: {fileID: 4800000, guid: 4c1c9e07b8850034980e10b8f301375a, type: 3}
+  m_Name: tool1
+  m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -17,7 +17,8 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
+  stringTagMap:
+    RenderType: Opaque
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
@@ -88,51 +89,29 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
-    - _ChromaticAberration: 0.004
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
     - _Cutoff: 0.5
-    - _DepthDarken: 0.667
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
-    - _EdgeSmoothness: 0.29
-    - _EmissionPower: 0
     - _EnvironmentReflections: 1
-    - _FillAmount: 0
-    - _FillScale: 7.5
-    - _FillWorldY: 1.1090561
-    - _FoamWidth: 0.06
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _LocalFillY: 14.090272
-    - _LocalMeshMax: 45.941498
-    - _LocalMeshMin: -25.762619
     - _Metallic: 0
-    - _Mutnost: 0
-    - _NoiseScale: 6.28
-    - _NoiseSpeed: 1.39
     - _OcclusionStrength: 1
-    - _Opacity: 0.82
     - _Parallax: 0.005
-    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _RefractionStrength: 0.03
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
-    - _SurfaceWidth: 0.405
-    - _Turbidity: 1
-    - _WobbleX: 0
-    - _WobbleZ: 0
-    - _WoobleZ: 0
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
@@ -140,14 +119,10 @@ Material:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _LiquidCenter: {r: -0.759, g: 1.6392323, b: -2.141078, a: 0}
-    - _LiquidColor: {r: 0.18, g: 0.12, b: 0.06, a: 1}
-    - _PivotWS: {r: 0.37965024, g: 1.2675273, b: -9.52246, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
-    - _SurfaceColor: {r: 0.22, g: 0.15, b: 0.08, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &913905857900432464
+--- !u!114 &8322883311558817784
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
