@@ -21,6 +21,9 @@ public class RoomTrigger : MonoBehaviour
 
     private RoomController[] _activeRooms;
 
+    /// <summary>True while the player is currently inside this trigger volume.</summary>
+    public bool IsPlayerInside { get; private set; }
+
     /// <summary>
     /// Adds the given rooms to the set this trigger renders. The owner room is always
     /// included so the room the player stands in is never culled. Called by the owning
@@ -63,6 +66,8 @@ public class RoomTrigger : MonoBehaviour
     {
         if (other.GetComponentInParent<FPSController>() == null) return;
 
+        IsPlayerInside = true;
+
         var manager = RoomVisibilityManager.Instance;
         if (manager == null) return;
 
@@ -72,6 +77,8 @@ public class RoomTrigger : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (other.GetComponentInParent<FPSController>() == null) return;
+
+        IsPlayerInside = false;
 
         var manager = RoomVisibilityManager.Instance;
         if (manager == null) return;

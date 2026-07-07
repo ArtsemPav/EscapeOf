@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 namespace Escape.Core {
@@ -85,6 +86,10 @@ namespace Escape.Core {
         [Header("Save")]
         [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
         [SerializeField] private string _saveId;
+
+        [Header("Events")]
+        [Tooltip("Fired when the door reaches the fully closed position (openFraction → 0).")]
+        [SerializeField] private UnityEvent _onDoorClosed;
 
         // ── Runtime state ────────────────────────────────────────────────────────
 
@@ -447,6 +452,18 @@ namespace Escape.Core {
 
         /// <summary>Unlocks the door programmatically without opening it.</summary>
         public void Unlock() => _isLocked = false;
+
+        /// <summary>Locks the door programmatically. Does not change open state.</summary>
+        public void Lock() => _isLocked = true;
+
+        /// <summary>True when the door is open.</summary>
+        public bool IsOpen => _isOpen;
+
+        /// <summary>True when the door is locked.</summary>
+        public bool IsLocked => _isLocked;
+
+        /// <summary>True when the door is physically fully closed (openFraction ≈ 0).</summary>
+        public bool IsFullyClosed => _openFraction <= 0.001f;
 
         /// <summary>Unlocks and smoothly swings the door ajar. Wire to CodeLock.OnUnlocked.</summary>
         public void UnlockAndOpen() {

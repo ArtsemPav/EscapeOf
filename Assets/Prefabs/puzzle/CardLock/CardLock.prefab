@@ -25,13 +25,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5068279102244283763}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.2512875, y: -0.10459677, z: 0.027326094, w: 0.9618562}
-  m_LocalPosition: {x: 0.98, y: 1.276, z: -2.87}
+  m_LocalRotation: {x: 0.17284505, y: 0.70596796, z: -0.18443571, w: 0.6616021}
+  m_LocalPosition: {x: -0.82, y: 0.489, z: 0.269}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1953851375682813428}
-  m_LocalEulerAnglesHint: {x: 25.649, y: 167.588, z: 0}
+  m_LocalEulerAnglesHint: {x: 29.283, y: 93.716, z: 0}
 --- !u!114 &7195847927223147877
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -180,6 +180,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 90
       objectReference: {fileID: 0}
+    - target: {fileID: 2198722832617347305, guid: 4a311703b0f1853448b1c7430eec64bd, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 3807080404078805486, guid: 4a311703b0f1853448b1c7430eec64bd, type: 3}
       propertyPath: m_Name
       value: IdCard
@@ -280,12 +284,20 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5760403806269593146, guid: f625cf698b7ca674996e3f45d0114790, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
+    - target: {fileID: 5760403806269593146, guid: f625cf698b7ca674996e3f45d0114790, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 94bdf57125303f44f98a239d2140b744, type: 2}
     - target: {fileID: 6453657805179066431, guid: f625cf698b7ca674996e3f45d0114790, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6859100834369473389, guid: f625cf698b7ca674996e3f45d0114790, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6859100834369473389, guid: f625cf698b7ca674996e3f45d0114790, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -375,8 +387,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Puzzle.CardLockPuzzleController
   _targetDoor: {fileID: 0}
   _requiredCard: {fileID: 0}
-  _cardSlideClip: {fileID: 0}
-  _doorUnlockClip: {fileID: 0}
+  _cardSlideClip: {fileID: 8300000, guid: 40225f45ebec1eb429f96fe6155b4bfe, type: 3}
+  _doorUnlockClip: {fileID: 8300000, guid: 02032b0a5e88b2e42a3244ff1f547b72, type: 3}
   _cardSlideVolume: 1
   _doorUnlockVolume: 1
   _delayBeforeReturnControl: 1.5

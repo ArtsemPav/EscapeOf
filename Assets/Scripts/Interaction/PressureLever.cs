@@ -30,6 +30,10 @@ public class PressureLever : MonoBehaviour, IInteractable
     [SerializeField] private float _rotationSpeed = 8f;
 
     [Header("Audio")]
+    [Tooltip("AudioSource for the switch sound. " +
+             "Assign a child GameObject with an AudioSource you positioned in the scene. " +
+             "If left empty, one is created on this GameObject at runtime.")]
+    [SerializeField] private AudioSource _audioSource;
     [SerializeField] private AudioClip _switchClip;
     [SerializeField] [Range(0f, 1f)] private float _switchVolume = 0.8f;
 
@@ -54,17 +58,20 @@ public class PressureLever : MonoBehaviour, IInteractable
     private float _currentDelta;
     private float _targetDelta;
     private Vector3 _baseEuler;
-    private AudioSource _audioSource;
     private PressurePuzzle _puzzle;
 
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
     {
-        _audioSource = gameObject.AddComponent<AudioSource>();
-        _audioSource.playOnAwake  = false;
-        _audioSource.spatialBlend = 1f;
-        _audioSource.loop         = false;
+        // Use assigned AudioSource or create a fallback on this GameObject.
+        if (_audioSource == null)
+        {
+            _audioSource = gameObject.AddComponent<AudioSource>();
+            _audioSource.playOnAwake  = false;
+            _audioSource.spatialBlend = 1f;
+            _audioSource.loop         = false;
+        }
 
         _puzzle = GetComponentInParent<PressurePuzzle>();
 
@@ -94,8 +101,14 @@ public class PressureLever : MonoBehaviour, IInteractable
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
-    /// <summary>Disables interaction once the puzzle is solved.</summary>
-    public bool CanInteract() => _puzzle == null || !_puzzle.IsSolved;
+    /// <summary>
+    /// Levers are interactable only when:
+    /// - The puzzle is activated (door closed + player inside + steam supplied)
+    /// - The puzzle is not yet solved
+    /// - The system is not in a reset state
+    /// </summary>
+    public bool CanInteract() =>
+        _puzzle != null && _puzzle.IsActivated && !_puzzle.IsSolved && !_puzzle.IsResetting;
 
     /// <summary>Toggles the lever and notifies the puzzle controller.</summary>
     public void Interact()
