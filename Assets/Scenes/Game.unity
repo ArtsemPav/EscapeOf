@@ -990,10 +990,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 310981217}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 50, y: -85.96}
+  m_SizeDelta: {x: 76, y: 63.48}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &76497580
 MonoBehaviour:
@@ -2964,7 +2964,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 0}
+  m_SizeDelta: {x: 100, y: 127.7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &310981218
 MonoBehaviour:
@@ -3892,12 +3892,12 @@ Light:
   m_Type: 0
   m_Color: {r: 1, g: 0.96, b: 0.88, a: 1}
   m_Intensity: 0
-  m_Range: 20
-  m_SpotAngle: 60
+  m_Range: 12.3
+  m_SpotAngle: 110.883224
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
   m_Shadows:
-    m_Type: 2
+    m_Type: 0
     m_Resolution: -1
     m_CustomResolution: -1
     m_Strength: 0.8
@@ -9221,7 +9221,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1430593377
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9950,10 +9950,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 310981217}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 50, y: -30.11}
+  m_SizeDelta: {x: 76, y: 40.22}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1625643242
 MonoBehaviour:
@@ -10504,6 +10504,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7324631692716549911, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _targetDoor
+      value: 
+      objectReference: {fileID: 2027474868}
     - target: {fileID: 8329112063454171103, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: _panel
       value: 
@@ -11436,6 +11440,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2007397158}
   m_CullTransparentMesh: 1
+--- !u!114 &2027474868 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5501017368648640701, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
 --- !u!1 &2038931435
 GameObject:
   m_ObjectHideFlags: 0
