@@ -434,7 +434,6 @@ namespace Escape.Core {
         public CrosshairMode GetCrosshairMode() {
             if (!_isLocked || _isOpen) return CrosshairMode.ItemDrag;
             bool hasKey = _requiredKey != null && InventorySystem.Instance.HasItem(_requiredKey);
-            Debug.Log($"[Door] GetCrosshairMode: _isLocked={_isLocked}, _isOpen={_isOpen}, hasKey={hasKey}");
             return hasKey ? CrosshairMode.Unlocked : CrosshairMode.Locked;
         }
 
@@ -457,7 +456,6 @@ namespace Escape.Core {
             _isUnlockAnimating = true;
             _unlockAjarTarget  = _unlockAjarFraction;
             _dragActive        = true;
-            Debug.Log($"[Door] UnlockAndOpen: _isLocked set to {_isLocked}, _isOpen={_isOpen}");
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX(_unlockClip);
         }
