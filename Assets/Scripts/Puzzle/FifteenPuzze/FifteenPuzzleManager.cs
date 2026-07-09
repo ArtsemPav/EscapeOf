@@ -232,11 +232,8 @@ namespace PuzzleGame
 
         private Vector3 GetWorldPosition(int x, int y)
         {
-            // Grid layout centered around local origin (X and Y axis)
-            float offsetX = (width - 1) * spacing * 0.5f;
-            float offsetY = (height - 1) * spacing * 0.5f;
-            // Changed from (x, 0, -y) to (x, y, 0) logic
-            return new Vector3(x * spacing - offsetX, -y * spacing + offsetY, 0);
+            // Grid layout starting from the top-left corner (local origin)
+            return new Vector3(x * spacing, -y * spacing, 0);
         }
 
         private void Shuffle(int moves)
