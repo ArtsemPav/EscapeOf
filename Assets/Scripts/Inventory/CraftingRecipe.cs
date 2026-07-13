@@ -11,6 +11,9 @@ public class CraftingRecipe : ScriptableObject
     public ItemData ingredientB;
     public ItemData result;
 
+    [Tooltip("Optional second output. If set, this item is also produced alongside the main result and placed in the first free inventory slot.")]
+    public ItemData secondaryResult;
+
     [Tooltip("If true, the slot holding ingredientA is preserved after crafting (item is not consumed).")]
     public bool conserveIngredientA;
 

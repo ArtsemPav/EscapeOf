@@ -21,31 +21,27 @@ public class HiddenWallSign : MonoBehaviour
     private static readonly int EdgeSoftnessId      = Shader.PropertyToID("_EdgeSoftness");
     private static readonly int RadialFalloffId     = Shader.PropertyToID("_RadialFalloff");
     private static readonly int MaxVisibleDistId    = Shader.PropertyToID("_MaxVisibleDist");
-    private static readonly int MinDistAlphaId      = Shader.PropertyToID("_MinDistAlpha");
     private static readonly int EmissionColorId     = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionIntensityId = Shader.PropertyToID("_EmissionIntensity");
 
     [Tooltip("The flashlight mode that makes this sign visible.")]
-    [SerializeField] private FlashlightMode visibleInMode = FlashlightMode.Blue;
+    [SerializeField] private FlashlightMode visibleInMode = FlashlightMode.UV;
 
-    [Tooltip("Reference to the scene's FlashlightController.")]
+    [Tooltip("Reference to the scene's FlashlightController. " +
+             "If not assigned, automatically found via FlashlightController.Instance at runtime.")]
     [SerializeField] private FlashlightController flashlight;
 
     [Header("Beam Shape")]
     [Tooltip("How soft the cone boundary is (cosine space). 0 = hard cut, 0.12 = very soft.")]
-    [SerializeField] [Range(0f, 0.12f)]  private float edgeSoftness = 0.05f;
+    [SerializeField] [Range(0f, 0.12f)] private float edgeSoftness = 0.05f;
 
     [Tooltip("How quickly brightness drops from the beam center toward its edge. " +
              "1 = linear, 2 = quadratic, higher = tighter bright center.")]
-    [SerializeField] [Range(0.5f, 4f)]   private float radialFalloff = 1.5f;
+    [SerializeField] [Range(0.5f, 4f)] private float radialFalloff = 1.5f;
 
     [Header("Distance Fade")]
     [Tooltip("Distance in metres at which the sign becomes barely visible.")]
-    [SerializeField] [Min(0.1f)]         private float maxVisibleDistance = 2f;
-
-    [Tooltip("Minimum alpha multiplier at and beyond MaxVisibleDistance. " +
-             "0 = fully invisible, 0.05 = barely visible.")]
-    [SerializeField] [Range(0f, 0.2f)]   private float minDistAlpha = 0.04f;
+    [SerializeField] [Min(0.1f)] private float maxVisibleDistance = 2f;
 
     [Header("Emission / Glow")]
     [Tooltip("HDR color of the inscription glow. Requires Bloom in the scene's Volume profile.")]
@@ -54,12 +50,13 @@ public class HiddenWallSign : MonoBehaviour
 
     [Tooltip("Emission multiplier. Values above 1 feed URP Bloom. " +
              "Raise Bloom Threshold in the Volume profile if glow is too wide.")]
-    [SerializeField] [Range(0f, 10f)]    private float emissionIntensity = 2f;
+    [SerializeField] [Range(0f, 10f)] private float emissionIntensity = 2f;
 
-    private SpriteRenderer        _renderer;
-    private Light                 _flashlightLight;
+    private SpriteRenderer _renderer;
+    private Light _flashlightLight;
     private MaterialPropertyBlock _propertyBlock;
-    private bool                  _isVisible;
+    private bool _isVisible;
+    private bool _subscribed;
 
     private void Awake()
     {
@@ -70,53 +67,74 @@ public class HiddenWallSign : MonoBehaviour
         if (shader != null)
             _renderer.material = new Material(shader);
         else
-            Debug.LogError($"[HiddenWallSign] Shader '{ShaderName}' not found. " +
-                           "Make sure HiddenWallSign.shader exists in the project.", this);
+            Debug.LogError($"[HiddenWallSign] Shader '{ShaderName}' not found.", this);
 
         _propertyBlock = new MaterialPropertyBlock();
-
-        if (flashlight != null)
-            _flashlightLight = flashlight.GetComponent<Light>();
     }
 
     private void OnEnable()
     {
-        if (flashlight != null)
-            flashlight.OnModeChanged += HandleModeChanged;
+        TrySubscribe();
+    }
+
+    private void Start()
+    {
+        TrySubscribe();
     }
 
     private void OnDisable()
     {
-        if (flashlight != null)
-            flashlight.OnModeChanged -= HandleModeChanged;
+        if (!_subscribed || flashlight == null) return;
+        flashlight.OnModeChanged -= HandleModeChanged;
+        _subscribed = false;
     }
 
-    // Runs after all Updates so the flashlight transform is at its final position for the frame.
-    private void LateUpdate()
+    private void TrySubscribe()
     {
-        if (!_isVisible || _flashlightLight == null)
-            return;
+        if (_subscribed) return;
 
-        Transform lt           = flashlight.transform;
-        float     halfAngleRad = _flashlightLight.spotAngle * 0.5f * Mathf.Deg2Rad;
+        if (flashlight == null && FlashlightController.Instance != null)
+            flashlight = FlashlightController.Instance;
 
-        _renderer.GetPropertyBlock(_propertyBlock);
-        _propertyBlock.SetVector(FlashlightPosId,    lt.position);
-        _propertyBlock.SetVector(FlashlightDirId,    lt.forward);
-        _propertyBlock.SetFloat(SpotAngleCosId,      Mathf.Cos(halfAngleRad));
-        _propertyBlock.SetFloat(EdgeSoftnessId,      edgeSoftness);
-        _propertyBlock.SetFloat(RadialFalloffId,     radialFalloff);
-        _propertyBlock.SetFloat(MaxVisibleDistId,    maxVisibleDistance);
-        _propertyBlock.SetFloat(MinDistAlphaId,      minDistAlpha);
-        _propertyBlock.SetColor(EmissionColorId,     emissionColor);
-        _propertyBlock.SetFloat(EmissionIntensityId, emissionIntensity);
-        _renderer.SetPropertyBlock(_propertyBlock);
+        if (flashlight == null) return;
+
+        _flashlightLight = flashlight.GetComponent<Light>();
+        flashlight.OnModeChanged += HandleModeChanged;
+        _subscribed = true;
+
+        UpdateVisibility();
     }
 
-    // Shows or hides the sprite based on the current flashlight mode and on/off state.
     private void HandleModeChanged(FlashlightMode newMode)
     {
-        _isVisible        = flashlight.IsOn && newMode == visibleInMode;
+        UpdateVisibility();
+    }
+
+    private void UpdateVisibility()
+    {
+        if (flashlight == null) return;
+
+        _isVisible = flashlight.IsOn && flashlight.CurrentMode == visibleInMode;
         _renderer.enabled = _isVisible;
+    }
+
+    private void LateUpdate()
+    {
+        if (!_isVisible || _flashlightLight == null || flashlight == null)
+            return;
+
+        Transform lt = flashlight.transform;
+        float halfAngleRad = _flashlightLight.spotAngle * 0.5f * Mathf.Deg2Rad;
+
+        _renderer.GetPropertyBlock(_propertyBlock);
+        _propertyBlock.SetVector(FlashlightPosId, lt.position);
+        _propertyBlock.SetVector(FlashlightDirId, lt.forward);
+        _propertyBlock.SetFloat(SpotAngleCosId, Mathf.Cos(halfAngleRad));
+        _propertyBlock.SetFloat(EdgeSoftnessId, edgeSoftness);
+        _propertyBlock.SetFloat(RadialFalloffId, radialFalloff);
+        _propertyBlock.SetFloat(MaxVisibleDistId, maxVisibleDistance);
+        _propertyBlock.SetColor(EmissionColorId, emissionColor);
+        _propertyBlock.SetFloat(EmissionIntensityId, emissionIntensity);
+        _renderer.SetPropertyBlock(_propertyBlock);
     }
 }

@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Describes the light properties for one flashlight state (on or off).
+/// Describes the light properties for a flashlight mode when it is ON.
 /// </summary>
 [System.Serializable]
 public class FlashlightState
@@ -18,13 +18,11 @@ public class FlashlightState
 public enum FlashlightMode
 {
     Normal,
-    Blue,
-    Red,
     UV
 }
 
 /// <summary>
-/// Describes a single switchable flashlight mode: which inventory item unlocks it
+/// Describes a single flashlight mode: which inventory item unlocks it
 /// and what light properties it uses when on.
 /// </summary>
 [System.Serializable]
@@ -33,7 +31,7 @@ public class FlashlightModeConfig
     [Tooltip("The mode identifier used by HiddenWallSign and other systems.")]
     public FlashlightMode mode = FlashlightMode.Normal;
 
-    [Tooltip("Inventory condition that must be met to unlock this mode (e.g. Blue Lens in inventory). " +
+    [Tooltip("Inventory condition that must be met to unlock this mode (e.g. UV Flashlight in inventory). " +
              "Leave null for the default Normal mode which is always available.")]
     public InventoryCondition requiredItem;
 
@@ -43,8 +41,8 @@ public class FlashlightModeConfig
 
 /// <summary>
 /// ScriptableObject that defines all configurable parameters of the flashlight:
-/// the inventory condition required to use it, the list of switchable modes,
-/// the base off state, and the transition speed.
+/// the inventory condition required to use it, the list of modes,
+/// and the transition speed.
 /// </summary>
 [CreateAssetMenu(menuName = "Game/Flashlight Config")]
 public class FlashlightConfig : ScriptableObject
@@ -54,8 +52,9 @@ public class FlashlightConfig : ScriptableObject
     public InventoryCondition operatingCondition;
 
     [Header("Modes")]
-    [Tooltip("List of available modes in cycle order. The first entry is used as the default (Normal). " +
-             "Modes with an unmet requiredItem are skipped during cycling.")]
+    [Tooltip("List of available modes in priority order. The first entry is the default (Normal). " +
+             "Modes are auto-detected from inventory — the last matching mode (whose requiredItem is met) takes priority. " +
+             "Modes with null requiredItem are always available and serve as fallback.")]
     public FlashlightModeConfig[] modes = new FlashlightModeConfig[]
     {
         new FlashlightModeConfig
@@ -63,16 +62,6 @@ public class FlashlightConfig : ScriptableObject
             mode    = FlashlightMode.Normal,
             onState = new FlashlightState { intensity = 3.5f, range = 20f, spotAngle = 60f, color = Color.white }
         }
-    };
-
-    [Header("Off State")]
-    [Tooltip("Light properties used when the flashlight is OFF regardless of mode.")]
-    public FlashlightState offState = new FlashlightState
-    {
-        intensity = 0f,
-        range     = 20f,
-        spotAngle = 60f,
-        color     = Color.white
     };
 
     [Header("Transition")]

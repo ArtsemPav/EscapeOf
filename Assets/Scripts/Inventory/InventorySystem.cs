@@ -88,6 +88,24 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
+    /// Places <paramref name="item"/> into the first empty, non-reserved slot.
+    /// Does NOT fire events or save — the caller is responsible for that.
+    /// Returns true on success, false if no slot is available.
+    /// </summary>
+    private bool PlaceInFirstEmptySlot(ItemData item)
+    {
+        if (item == null) return false;
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] != null || _reservedSlots.Contains(i)) continue;
+            _slots[i] = item;
+            return true;
+        }
+        Debug.LogWarning($"[InventorySystem] No free slot for secondary craft result '{item.name}'.", this);
+        return false;
+    }
+
+    /// <summary>
     /// Shifts all non-null items to the left, eliminating gaps.
     /// Called automatically after every remove or combine operation.
     /// </summary>
@@ -320,6 +338,12 @@ public class InventorySystem : MonoBehaviour, ISaveable
                 OnInventoryChanged?.Invoke();
             }
 
+            if (recipe.secondaryResult != null)
+            {
+                PlaceInFirstEmptySlot(recipe.secondaryResult);
+                OnInventoryChanged?.Invoke();
+            }
+
             return true;
         }
 
@@ -413,8 +437,17 @@ public class InventorySystem : MonoBehaviour, ISaveable
                     result = null;
                     return false;
                 }
+                if (recipe.secondaryResult != null)
+                {
+                    AddItem(recipe.secondaryResult);
+                }
                 // AddItem already fires OnInventoryChanged, so return early.
                 return true;
+            }
+
+            if (recipe.secondaryResult != null)
+            {
+                PlaceInFirstEmptySlot(recipe.secondaryResult);
             }
 
             CompactSlots();

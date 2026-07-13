@@ -11,7 +11,6 @@ Shader "Custom/HiddenWallSign"
         _EdgeSoftness     ("Edge Softness",             Float)  = 0.05
         _RadialFalloff    ("Radial Falloff",            Float)  = 1.5
         _MaxVisibleDist   ("Max Visible Distance",      Float)  = 2.0
-        _MinDistAlpha     ("Min Alpha At Max Distance", Float)  = 0.04
         [HDR] _EmissionColor ("Emission Color",         Color)  = (0,0.5,2,1)
         _EmissionIntensity   ("Emission Intensity",     Float)  = 2.0
     }
@@ -52,7 +51,6 @@ Shader "Custom/HiddenWallSign"
                 float  _EdgeSoftness;
                 float  _RadialFalloff;
                 float  _MaxVisibleDist;
-                float  _MinDistAlpha;
                 float4 _EmissionColor;
                 float  _EmissionIntensity;
             CBUFFER_END
