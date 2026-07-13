@@ -66,6 +66,10 @@ private bool _ignoreInputThisFrame;
     // True when the panel is open as a read-only preview from the inventory (no pickup).
     private bool _isPreviewMode;
 
+    // True when the panel is open for an inspect-only world object — shows name and description
+    // but never adds to inventory or destroys the world object.
+    private bool _isInspectOnly;
+
     private const float DragThresholdPx = 25f;
     private Vector2 _mouseDownPos;
     private bool _mouseWasDragged;
@@ -84,16 +88,17 @@ private bool _ignoreInputThisFrame;
             if (_inspectionLayer == -1)
                 Debug.LogError($"ItemInspector: Layer '{inspectionLayerName}' not found.", this);
 
-            // Fixed square RT — camera aspect matches 1:1 regardless of screen resolution.
-            // PreviewImage must have an AspectRatioFitter (FitInParent, ratio=1) to display correctly.
-            _renderTexture = new RenderTexture(512, 512, 16);
+            // Fixed RT — camera aspect matches the RT aspect regardless of screen resolution.
+            // 3:2 format (1536×1024) gives a wider preview frame.
+            // PreviewImage must have an AspectRatioFitter (FitInParent, ratio=1.5) to display correctly.
+            _renderTexture = new RenderTexture(1536, 1024, 16);
             _renderTexture.Create();
 
             if (inspectionCamera != null)
             {
                 inspectionCamera.allowHDR        = false;
                 inspectionCamera.orthographic    = true;
-                inspectionCamera.aspect          = 1.0f; // match the square RenderTexture
+                inspectionCamera.aspect          = 1.5f; // 3:2 — matches the 1536×1024 RenderTexture
                 inspectionCamera.clearFlags      = CameraClearFlags.SolidColor;
                 inspectionCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
                 inspectionCamera.targetTexture   = _renderTexture;
@@ -163,7 +168,7 @@ private bool _ignoreInputThisFrame;
         if (userDragging && (Mouse.current.position.ReadValue() - _mouseDownPos).magnitude > DragThresholdPx)
             _mouseWasDragged = true;
 
-        if (_isPreviewMode)
+        if (_isPreviewMode || _isInspectOnly)
         {
             // In preview mode: rotation only, close on LMB click / RMB / Escape / E.
             if (userDragging)
@@ -172,7 +177,7 @@ private bool _ignoreInputThisFrame;
                 _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
                 _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
             }
-            else
+            else if (_currentItem == null || !_currentItem.disableIdleSpin)
             {
                 _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
             }
@@ -207,7 +212,7 @@ private bool _ignoreInputThisFrame;
             _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
             _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
         }
-        else
+        else if (_currentItem == null || !_currentItem.disableIdleSpin)
         {
             // Continuous idle spin when not dragging.
             _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
@@ -257,6 +262,33 @@ private bool _ignoreInputThisFrame;
         _worldObject = worldObject;
         _onPickup = onPickup;
         _isPreviewMode = false;
+        _isInspectOnly = false;
+        _mouseWasDragged = false;
+
+        SpawnPreview(item);
+
+        UIManager.Instance?.OpenPanel(inspectionPanel, CursorLockMode.Confined);
+        _isInspecting         = true;
+        _scaleInTimer         = scaleInDuration;
+        _inspectionPivot.transform.localScale = Vector3.zero;
+        _ignoreInputThisFrame = true;
+        _waitForMouseRelease  = Mouse.current != null && Mouse.current.leftButton.isPressed;
+    }
+
+    /// <summary>
+    /// Opens a read-only 3D preview of a world object without picking it up.
+    /// Shows item name and description. Close with LMB click / RMB / Escape.
+    /// The world object stays in the scene and nothing is added to inventory.
+    /// </summary>
+    public void BeginWorldPreview(ItemData item, GameObject worldObject)
+    {
+        if (item == null || item.inspectionPrefab == null) return;
+
+        _currentItem     = item;
+        _worldObject     = worldObject;
+        _onPickup        = null;
+        _isPreviewMode   = false; // показываем имя и описание
+        _isInspectOnly   = true;
         _mouseWasDragged = false;
 
         SpawnPreview(item);
@@ -281,6 +313,7 @@ private bool _ignoreInputThisFrame;
         _currentItem   = item;
         _worldObject   = null;
         _isPreviewMode = true;
+        _isInspectOnly = false;
 
         SpawnPreview(item);
 
@@ -334,6 +367,12 @@ private bool _ignoreInputThisFrame;
         _inspectionInstance = InstantiatePreview(item.inspectionPrefab);
         SetLayerRecursively(_inspectionInstance, _inspectionLayer);
 
+        // Сбрасываем renderingLayerMask на все рендереры клона к Default (1).
+        // Предметы из сцены могут использовать нестандартные Light Layers (например, 516),
+        // но в изолированной сцене осмотра это не нужно — свой свет осмотра работает
+        // с Default rendering layer. Без сброса свет просто не достигает рендерер.
+        ResetRenderingLayerMask(_inspectionInstance);
+
         // Вычисляем геометрический центр модели по bounds всех рендереров.
         // Важно: НЕ инициализируем Bounds с InspectionOrigin — иначе эта точка
         // включается в Encapsulate и тянет center от геометрического центра.
@@ -361,8 +400,11 @@ private bool _ignoreInputThisFrame;
         var startRotation = item.useCustomPreviewRotation ? item.previewRotation : initialRotation;
         _inspectionPivot.transform.rotation = Quaternion.Euler(startRotation);
 
-        // Orthographic: размер вида = половина maxSize × множитель
-        inspectionCamera.orthographicSize = maxSize * framingMultiplier * 0.5f;
+        // Orthographic: размер вида = половина maxSize × множитель.
+        // previewScale из ItemData позволяет увеличить/уменьшить модель в превью:
+        // больший previewScale → меньший orthographicSize → модель заполняет больше кадра.
+        float effectiveScale = item.previewScale > 0f ? item.previewScale : 1f;
+        inspectionCamera.orthographicSize = maxSize * framingMultiplier * 0.5f / effectiveScale;
         inspectionCamera.transform.position = itemCenter + new Vector3(0f, 0f, -5f);
         inspectionCamera.transform.LookAt(itemCenter);
 
@@ -373,6 +415,9 @@ private bool _ignoreInputThisFrame;
         lightKey.range     = 10f;
         lightKey.intensity = 5f;
         lightKey.color     = Color.white;
+        // Освещаем все rendering layers — предметы из сцены могут использовать
+        // нестандартные Light Layers (например, бутылки с маской 516).
+        lightKey.renderingLayerMask = -1;
         _inspectionLight.transform.position = itemCenter + new Vector3(1f, 1.5f, -2f);
 
         // Создаём контурное освещение (Rim/Fill Light) для подчеркивания граней
@@ -381,7 +426,8 @@ private bool _ignoreInputThisFrame;
         lightRim.type      = LightType.Point;
         lightRim.range     = 10f;
         lightRim.intensity = 3f;
-        lightRim.color     = new Color(0.9f, 0.95f, 1f); 
+        lightRim.color     = new Color(0.9f, 0.95f, 1f);
+        lightRim.renderingLayerMask = -1;
         _inspectionLightRim.transform.position = itemCenter + new Vector3(-1.5f, 0.5f, 1f);
 
         // Создаём Reflection Probe для отражений на стекле и металле
@@ -421,7 +467,7 @@ private bool _ignoreInputThisFrame;
     /// </summary>
     public void CancelPreviewIfActive()
     {
-        if (_isInspecting && _isPreviewMode)
+        if (_isInspecting && (_isPreviewMode || _isInspectOnly))
             EndInspection();
     }
 
@@ -429,6 +475,13 @@ private bool _ignoreInputThisFrame;
     public void ConfirmPickup()
     {
         if (_currentItem == null) return;
+
+        // Inspect-only: close without adding to inventory or destroying the world object.
+        if (_isInspectOnly)
+        {
+            EndInspection();
+            return;
+        }
 
         // Capture locals before EndInspection clears them.
         bool                   wasPreview  = _isPreviewMode;
@@ -469,6 +522,7 @@ private bool _ignoreInputThisFrame;
     {
         _isInspecting  = false;
         _isPreviewMode = false;
+        _isInspectOnly = false;
         _onPickup      = null;
 
         // Восстанавливаем текстовые элементы — они могли быть скрыты в режиме превью
@@ -516,5 +570,18 @@ private bool _ignoreInputThisFrame;
         obj.layer = layer;
         foreach (Transform child in obj.transform)
             SetLayerRecursively(child.gameObject, layer);
+    }
+
+    /// <summary>
+    /// Resets the URP rendering layer mask on all Renderer components in the hierarchy to
+    /// Default (1). World objects may carry non-standard Light Layers (e.g. 516) for scene
+    /// lighting, but the inspection preview has its own lights that operate on Default.
+    /// Without this reset, objects with custom rendering layers appear unlit (black) in
+    /// the preview because the inspection lights don't match their rendering layer mask.
+    /// </summary>
+    private static void ResetRenderingLayerMask(GameObject obj)
+    {
+        foreach (var rend in obj.GetComponentsInChildren<Renderer>(includeInactive: true))
+            rend.renderingLayerMask = 1; // Default
     }
 }

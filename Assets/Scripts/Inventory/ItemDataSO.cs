@@ -31,6 +31,13 @@ public class ItemData : ScriptableObject
     [Tooltip("Euler angles for the initial rotation in the inspection / inventory preview. Active only when useCustomPreviewRotation is true.")]
     public Vector3 previewRotation = new Vector3(15f, -35f, 0f);
 
+    [Header("Inspection Behaviour")]
+    [Tooltip("Если включено — предмет не будет автоматически вращаться в превью осмотра.")]
+    public bool disableIdleSpin;
+
+    [Tooltip("Множитель масштаба модели в превью осмотра. 1 = реальный размер, >1 = больше, <1 = меньше.")]
+    public float previewScale = 1f;
+
     [Header("Usage")]
     [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
     public bool consumeOnUse = true;

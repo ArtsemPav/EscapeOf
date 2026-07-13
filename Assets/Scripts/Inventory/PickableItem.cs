@@ -11,6 +11,13 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
 {
     [SerializeField] private ItemData itemData;
 
+    [Header("Inspect-Only")]
+    [Tooltip("Если включено — предмет можно только осмотреть в 3D-превью. Он не попадает в инвентарь и не удаляется из сцены.")]
+    [SerializeField] private bool inspectOnly;
+
+    [Tooltip("Промпт взаимодействия для осматриваемых предметов.")]
+    [SerializeField] private string inspectPrefix = "Осмотреть";
+
     [Header("Save")]
     [Tooltip("Stable unique ID used by the save system. Right-click this component → Generate Save ID to auto-fill.")]
     [SerializeField] private string _saveId;
@@ -48,7 +55,7 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
 
     private void Awake()
     {
-        if (!string.IsNullOrEmpty(_saveId))
+        if (!inspectOnly && !string.IsNullOrEmpty(_saveId))
             SaveManager.Instance?.Register(this);
     }
 
@@ -57,7 +64,7 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
         // Collected items stay registered: SaveManager may still call GetSaveData()
         // during the debounce window after this object is destroyed.
         // The next scene load will overwrite the registry entry with a fresh instance.
-        if (!string.IsNullOrEmpty(_saveId) && !_collected)
+        if (!inspectOnly && !string.IsNullOrEmpty(_saveId) && !_collected)
             SaveManager.Instance?.Unregister(this);
     }
 
@@ -71,12 +78,19 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
         SaveManager.Instance?.Save();
     }
 
-    /// <summary>Opens inspection view, or picks up directly if no inspectionPrefab is set.</summary>
+    /// <summary>Opens inspection view, or picks up directly if no inspectionPrefab is set.
+    /// When inspectOnly is true, opens a read-only 3D preview without adding to inventory or destroying the object.</summary>
     public void Interact()
     {
         if (itemData == null)
         {
             Debug.LogWarning($"PickableItem on {gameObject.name} has no ItemData assigned.", this);
+            return;
+        }
+
+        if (inspectOnly)
+        {
+            ItemInspector.Instance?.BeginWorldPreview(itemData, gameObject);
             return;
         }
 
@@ -95,6 +109,11 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     /// <summary>Returns the interaction prompt shown to the player.</summary>
     public string GetInteractText()
     {
+        if (inspectOnly)
+        {
+            return itemData != null ? $"{inspectPrefix} {itemData.itemName}" : inspectPrefix;
+        }
+
         string prefix = UIManager.Instance?.Config?.pickUpPrefix ?? "Взять";
         return itemData != null ? $"{prefix} {itemData.itemName}" : prefix;
     }
