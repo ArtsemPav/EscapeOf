@@ -56,6 +56,7 @@ Shader "Custom/LiquidFlask"
             #pragma vertex   vert
             #pragma fragment frag
             #pragma multi_compile_fog
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -188,6 +189,42 @@ Shader "Custom/LiquidFlask"
 
                 // Emission is additive light — not subject to depth darkening.
                 finalColor += _EmissionColor.rgb * _EmissionPower;
+
+                // ── URP Lighting ──────────────────────────────────────────────
+                // Apply scene lighting so the liquid darkens in unlit rooms.
+                // Uses half-Lambert wrap lighting for softer shading and a minimum
+                // floor so the liquid is dim but not pitch-black in darkness.
+                // Emission above remains additive and visible in darkness.
+                {
+                    float3 normalWS = normalize(IN.normalWS);
+                    if (facing < 0) normalWS = -normalWS; // flip for back faces
+
+                    // Main directional light — half-Lambert for softer shading
+                    Light mainLight = GetMainLight();
+                    float NdotL = dot(normalWS, mainLight.direction) * 0.5 + 0.5;
+                    float3 directLighting = mainLight.color * NdotL;
+
+                    // Additional point/spot lights
+                #if defined(_ADDITIONAL_LIGHTS)
+                    uint additionalLightsCount = GetAdditionalLightsCount();
+                    for (uint i = 0u; i < additionalLightsCount; ++i)
+                    {
+                        Light addLight = GetAdditionalLight(i, IN.positionWS.xyz);
+                        float addNdotL = dot(normalWS, addLight.direction) * 0.5 + 0.5;
+                        directLighting += addLight.color * addNdotL;
+                    }
+                #endif
+
+                    // Ambient from spherical harmonics
+                    float3 ambient = SampleSH(normalWS);
+
+                    float3 lighting = directLighting + ambient;
+
+                    // Soft floor: liquid is dim (15%) in complete darkness, full in light
+                    float lightIntensity = max(max(lighting.r, lighting.g), lighting.b);
+                    float dimFactor = max(lightIntensity, 0.15);
+                    finalColor *= dimFactor;
+                }
 
                 // ── Refraction / Transparency ─────────────────────────────────
                 float2 screenUV = IN.screenPos.xy / IN.screenPos.w;

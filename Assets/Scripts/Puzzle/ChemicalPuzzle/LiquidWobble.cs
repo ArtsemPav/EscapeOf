@@ -88,6 +88,13 @@ namespace ChemicalPuzzle
             _lastPos    = transform.position;
             _lastRot    = transform.rotation;
 
+            // Сбрасываем renderingLayerMask к Default (1).
+            // Меши бутылок могут иметь нестандартные Light Layers (например, 516),
+            // но для жидкости с шейдером LiquidFlask нужен Default, чтобы источники
+            // света комнаты корректно освещали жидкость через URP per-object light culling.
+            if (_renderer != null)
+                _renderer.renderingLayerMask = 1;
+
             CacheLocalMeshBounds();
             EnsureMaterialInstance();
         }
