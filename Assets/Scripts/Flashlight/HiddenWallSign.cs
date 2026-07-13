@@ -27,10 +27,6 @@ public class HiddenWallSign : MonoBehaviour
     [Tooltip("The flashlight mode that makes this sign visible.")]
     [SerializeField] private FlashlightMode visibleInMode = FlashlightMode.UV;
 
-    [Tooltip("Reference to the scene's FlashlightController. " +
-             "If not assigned, automatically found via FlashlightController.Instance at runtime.")]
-    [SerializeField] private FlashlightController flashlight;
-
     [Header("Beam Shape")]
     [Tooltip("How soft the cone boundary is (cosine space). 0 = hard cut, 0.12 = very soft.")]
     [SerializeField] [Range(0f, 0.12f)] private float edgeSoftness = 0.05f;
@@ -84,8 +80,9 @@ public class HiddenWallSign : MonoBehaviour
 
     private void OnDisable()
     {
-        if (!_subscribed || flashlight == null) return;
-        flashlight.OnModeChanged -= HandleModeChanged;
+        var controller = FlashlightController.Instance;
+        if (!_subscribed || controller == null) return;
+        controller.OnModeChanged -= HandleModeChanged;
         _subscribed = false;
     }
 
@@ -93,37 +90,39 @@ public class HiddenWallSign : MonoBehaviour
     {
         if (_subscribed) return;
 
-        if (flashlight == null && FlashlightController.Instance != null)
-            flashlight = FlashlightController.Instance;
+        var controller = FlashlightController.Instance;
+        if (controller == null) return;
 
-        if (flashlight == null) return;
-
-        _flashlightLight = flashlight.GetComponent<Light>();
-        flashlight.OnModeChanged += HandleModeChanged;
+        _flashlightLight = controller.GetComponent<Light>();
+        controller.OnModeChanged += HandleModeChanged;
         _subscribed = true;
 
         UpdateVisibility();
     }
 
-    private void HandleModeChanged(FlashlightMode newMode)
+    private void HandleModeChanged(FlashlightMode _)
     {
         UpdateVisibility();
     }
 
     private void UpdateVisibility()
     {
-        if (flashlight == null) return;
+        var controller = FlashlightController.Instance;
+        if (controller == null) return;
 
-        _isVisible = flashlight.IsOn && flashlight.CurrentMode == visibleInMode;
+        _isVisible = controller.IsOn && controller.CurrentMode == visibleInMode;
         _renderer.enabled = _isVisible;
     }
 
     private void LateUpdate()
     {
-        if (!_isVisible || _flashlightLight == null || flashlight == null)
+        if (!_isVisible || _flashlightLight == null)
             return;
 
-        Transform lt = flashlight.transform;
+        var controller = FlashlightController.Instance;
+        if (controller == null) return;
+
+        Transform lt = controller.transform;
         float halfAngleRad = _flashlightLight.spotAngle * 0.5f * Mathf.Deg2Rad;
 
         _renderer.GetPropertyBlock(_propertyBlock);

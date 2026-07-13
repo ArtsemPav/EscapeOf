@@ -401,13 +401,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2a679317fcb07ff4f8410cf3227b28b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HiddenWallSign
-  visibleInMode: 0
-  flashlight: {fileID: 0}
-  edgeSoftness: 0.0112
-  radialFalloff: 1.19
+  visibleInMode: 1
+  edgeSoftness: 0.0035
+  radialFalloff: 2.48
   maxVisibleDistance: 3
-  emissionColor: {r: 1.4980392, g: 0, b: 1.3608274, a: 1}
-  emissionIntensity: 0.09
+  emissionColor: {r: 1.4975001, g: 0, b: 1.3600001, a: 1}
+  emissionIntensity: 1
 --- !u!1 &5501167688143351445
 GameObject:
   m_ObjectHideFlags: 0
@@ -1684,6 +1683,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5927205922436479907}
     m_Modifications:
+    - target: {fileID: 34711213678772242, guid: 37bd31e6c268ba74ba9073f978880cc6, type: 3}
+      propertyPath: inspectOnly
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 125746393460640702, guid: 37bd31e6c268ba74ba9073f978880cc6, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 517
