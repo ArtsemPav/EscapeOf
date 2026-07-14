@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -226,6 +227,11 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     [Header("Save")]
     [SerializeField] private string _saveId = "chemical_synthesis";
 
+    [Header("Device Tooltips")]
+    [Tooltip("Tooltip texts shown when the player hovers over each device. " +
+             "Click the foldout to expand and edit titles + descriptions.")]
+    [SerializeField] private DeviceTooltipInfo _deviceTooltips;
+
     // ── IChemicalPuzzleContext ────────────────────────────────────────────────
 
     /// <summary>
@@ -363,6 +369,10 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     // Pre-allocated buffer for zero-GC RaycastNonAlloc calls in Update.
     private readonly RaycastHit[] _hoverHitBuffer = new RaycastHit[16];
+
+    // Currently hovered device — used to detect transitions and manage tooltip show/hide.
+    private enum HoveredDevice { None, Centrifuge, Burner, Mixer, Analyzer, Trash }
+    private HoveredDevice _hoveredDevice = HoveredDevice.None;
 
     // ── Origin-slot tracking ──────────────────────────────────────────────────
     // Each field remembers which inventory slot index the dragged item came from.
@@ -568,228 +578,324 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     private void Update()
     {
-        UpdateCentrifugeHover();
-        UpdateBurnerHover();
-        UpdateAnalyzerHover();
-        UpdateMixerHover();
-        UpdateTrashHover();
+        UpdateDeviceHover();
         UpdateClickRetrieve();
     }
 
+    // ── Unified device hover detection ─────────────────────────────────────────
+
     /// <summary>
-    /// Each frame during a drag, raycasts into the scene and asks the centrifuge to
-    /// show or hide its hover ghost depending on whether the cursor is over it.
-    /// Only responds to centrifugaWheel and its children (Colba_Centrifuga*) —
-    /// NOT the large cenrtpokras trigger which also parents analyzer components.
+    /// Single-raycast hover detection for all puzzle devices.
+    /// Shows highlight + ghost preview whenever the cursor is over a device.
+    /// Shows tooltip only when the player is NOT dragging an item — so the
+    /// tooltip does not interfere with the drag-and-drop ghost preview.
     /// </summary>
-    private void UpdateCentrifugeHover()
+    private void UpdateDeviceHover()
+    {
+        // Early-out when puzzle mode is not active or already solved.
+        if (_puzzleMode == null || !_puzzleMode.IsActive)
+        {
+            if (_hoveredDevice != HoveredDevice.None)
+            {
+                ClearAllDeviceHover();
+                _hoveredDevice = HoveredDevice.None;
+            }
+            return;
+        }
+
+        if (Mouse.current == null || Camera.main == null)
+        {
+            if (_hoveredDevice != HoveredDevice.None)
+            {
+                ClearAllDeviceHover();
+                _hoveredDevice = HoveredDevice.None;
+            }
+            return;
+        }
+
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Ray     ray      = Camera.main.ScreenPointToRay(mousePos);
+
+        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
+                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
+
+        bool isDragging = PuzzleInventoryBar.IsDragging;
+
+        // When not dragging, suppress device hover if the cursor is over UI
+        // (e.g. the puzzle inventory bar) so slot tooltips are not overwritten.
+        if (!isDragging &&
+            EventSystem.current != null &&
+            EventSystem.current.IsPointerOverGameObject())
+        {
+            if (_hoveredDevice != HoveredDevice.None)
+            {
+                ClearAllDeviceHover();
+                _hoveredDevice = HoveredDevice.None;
+            }
+            return;
+        }
+
+        HoveredDevice hovered = IdentifyHoveredDevice(hitCount);
+
+        // Tooltip: only when NOT dragging. Highlight + ghost: always on hover.
+        if (isDragging)
+        {
+            if (_hoveredDevice != HoveredDevice.None)
+            {
+                ItemTooltip.Instance?.Hide();
+                _hoveredDevice = HoveredDevice.None;
+            }
+        }
+        else
+        {
+            if (hovered != _hoveredDevice)
+            {
+                ItemTooltip.Instance?.Hide();
+                _hoveredDevice = hovered;
+
+                if (hovered != HoveredDevice.None)
+                    ShowDeviceTooltip(hovered, mousePos);
+            }
+            else if (hovered != HoveredDevice.None)
+            {
+                ItemTooltip.Instance?.Reposition(mousePos);
+            }
+        }
+
+        // Per-device highlight + ghost preview.
+        UpdateCentrifugeHoverState(hovered == HoveredDevice.Centrifuge, mousePos);
+        UpdateBurnerHoverState(hovered == HoveredDevice.Burner);
+        UpdateMixerHoverState(hovered == HoveredDevice.Mixer);
+        UpdateAnalyzerHoverState(hovered == HoveredDevice.Analyzer);
+        UpdateTrashHoverState(hovered == HoveredDevice.Trash);
+    }
+
+    /// <summary>
+    /// Iterates through raycast hits and returns the first matching device.
+    /// Centrifuge detection is scoped to <see cref="_centrifugeWheel"/> and its children,
+    /// avoiding false positives from the parent trigger that also contains the analyzer.
+    /// </summary>
+    private HoveredDevice IdentifyHoveredDevice(int hitCount)
+    {
+        for (int i = 0; i < hitCount; i++)
+        {
+            Transform hitT = _hoverHitBuffer[i].collider.transform;
+
+            // Centrifuge — centrifugaWheel and its children only.
+            if (_centrifuge != null && _centrifugeWheel != null &&
+                (hitT == _centrifugeWheel || hitT.IsChildOf(_centrifugeWheel)))
+                return HoveredDevice.Centrifuge;
+
+            // Analyzer — dedicated slot collider.
+            if (_analyzer != null && _analyzerSlot != null &&
+                _hoverHitBuffer[i].collider == _analyzerSlot)
+                return HoveredDevice.Analyzer;
+
+            // Mixer — drop-zone collider.
+            if (_mixer != null && _mixerSlot != null &&
+                _hoverHitBuffer[i].collider == _mixerSlot)
+                return HoveredDevice.Mixer;
+
+            // Burner — matched via BurnerController in parent chain.
+            if (_burner != null &&
+                _hoverHitBuffer[i].collider.GetComponentInParent<BurnerController>() == _burner)
+                return HoveredDevice.Burner;
+
+            // Trash — drop-zone collider or TrashController in parent chain.
+            if (_trash != null)
+            {
+                Collider col = _hoverHitBuffer[i].collider;
+                if ((_trash.DropZoneCollider != null && col == _trash.DropZoneCollider) ||
+                    (_trash.DropZoneCollider == null &&
+                     col.GetComponentInParent<TrashController>() == _trash))
+                    return HoveredDevice.Trash;
+            }
+        }
+
+        return HoveredDevice.None;
+    }
+
+    /// <summary>
+    /// Shows the <see cref="ItemTooltip"/> panel with the device's title and
+    /// description, positioned near the mouse cursor.
+    /// </summary>
+    private void ShowDeviceTooltip(HoveredDevice device, Vector2 mousePos)
+    {
+        if (_deviceTooltips == null) return;
+
+        switch (device)
+        {
+            case HoveredDevice.Centrifuge:
+                ItemTooltip.Instance?.Show(
+                    _deviceTooltips.centrifugeTitle,
+                    _deviceTooltips.centrifugeDescription,
+                    mousePos);
+                break;
+            case HoveredDevice.Burner:
+                ItemTooltip.Instance?.Show(
+                    _deviceTooltips.burnerTitle,
+                    _deviceTooltips.burnerDescription,
+                    mousePos);
+                break;
+            case HoveredDevice.Mixer:
+                ItemTooltip.Instance?.Show(
+                    _deviceTooltips.mixerTitle,
+                    _deviceTooltips.mixerDescription,
+                    mousePos);
+                break;
+            case HoveredDevice.Analyzer:
+                ItemTooltip.Instance?.Show(
+                    _deviceTooltips.analyzerTitle,
+                    _deviceTooltips.analyzerDescription,
+                    mousePos);
+                break;
+            case HoveredDevice.Trash:
+                ItemTooltip.Instance?.Show(
+                    _deviceTooltips.trashTitle,
+                    _deviceTooltips.trashDescription,
+                    mousePos);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Clears highlight, ghost preview, and tooltip for all devices at once.
+    /// </summary>
+    private void ClearAllDeviceHover()
+    {
+        _centrifuge?.HideHoverPreview();
+        _centrifuge?.HideHighlight();
+        _burner?.HideHoverPreview();
+        _burner?.HideHighlight();
+        _mixer?.HideHighlight();
+        _analyzer?.HideHoverPreview();
+        _analyzer?.HideHighlight();
+        _trash?.HideHighlight();
+        ItemTooltip.Instance?.Hide();
+    }
+
+    // ── Per-device hover state ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Centrifuge: highlight always on hover; ghost preview only when dragging
+    /// a valid item and the device has free slots and is not busy.
+    /// </summary>
+    private void UpdateCentrifugeHoverState(bool isHovered, Vector2 mousePos)
     {
         if (_centrifuge == null) return;
 
-        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            !_centrifuge.Accepts(PuzzleInventoryBar.DraggedItem) || _centrifuge.IsFull || _centrifuge.IsBusy)
+        if (!isHovered)
         {
             _centrifuge.HideHoverPreview();
             _centrifuge.HideHighlight();
             return;
         }
 
-        if (Mouse.current == null || Camera.main == null)
+        _centrifuge.ShowHighlight();
+
+        if (PuzzleInventoryBar.IsDragging && PuzzleInventoryBar.DraggedItem != null &&
+            _centrifuge.Accepts(PuzzleInventoryBar.DraggedItem) &&
+            !_centrifuge.IsFull && !_centrifuge.IsBusy)
+        {
+            int slotIdx = _centrifuge.GetNearestEmptySlotIndex(mousePos);
+            _centrifuge.ShowHoverPreview(slotIdx, PuzzleInventoryBar.DraggedItem);
+        }
+        else
         {
             _centrifuge.HideHoverPreview();
-            _centrifuge.HideHighlight();
-            return;
         }
-
-        Vector2 mousePos = Mouse.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-
-        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
-                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < hitCount; i++)
-        {
-            Transform hitTransform = _hoverHitBuffer[i].collider.transform;
-
-            if (_centrifugeWheel != null &&
-                (hitTransform == _centrifugeWheel || hitTransform.IsChildOf(_centrifugeWheel)))
-            {
-                int slotIdx = _centrifuge.GetNearestEmptySlotIndex(mousePos);
-                _centrifuge.ShowHoverPreview(slotIdx, PuzzleInventoryBar.DraggedItem);
-                _centrifuge.ShowHighlight();
-                return;
-            }
-        }
-
-        _centrifuge.HideHoverPreview();
-        _centrifuge.HideHighlight();
     }
 
     /// <summary>
-    /// Each frame during a drag, shows a ghost flask over the analyzer when the cursor is above it.
+    /// Burner: highlight always on hover; ghost preview only when dragging
+    /// a valid item and the burner is not busy.
     /// </summary>
-    private void UpdateAnalyzerHover()
-    {
-        if (_analyzer == null) return;
-
-        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            !_analyzer.CanDrop(PuzzleInventoryBar.DraggedItem) || _isSolved ||
-            _analyzer.IsBusy || _analyzer.HasFlask)
-        {
-            _analyzer.HideHoverPreview();
-            _analyzer.HideHighlight();
-            return;
-        }
-
-        if (Mouse.current == null || Camera.main == null)
-        {
-            _analyzer.HideHoverPreview();
-            _analyzer.HideHighlight();
-            return;
-        }
-
-        Vector2 mousePos = Mouse.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-
-        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
-                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < hitCount; i++)
-        {
-            if (_analyzerSlot != null && _hoverHitBuffer[i].collider == _analyzerSlot)
-            {
-                _analyzer.ShowHoverPreview(PuzzleInventoryBar.DraggedItem);
-                _analyzer.ShowHighlight();
-                return;
-            }
-        }
-
-        _analyzer.HideHoverPreview();
-        _analyzer.HideHighlight();
-    }
-
-    /// <summary>
-    /// Each frame during a drag, pulses the mixer flask highlight when the cursor is above it
-    /// and the dragged item is accepted by the mixer.
-    /// </summary>
-    private void UpdateMixerHover()
-    {
-        if (_mixer == null) return;
-
-        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            !_mixer.Accepts(PuzzleInventoryBar.DraggedItem) || _mixer.IsFull || _mixer.IsBusy)
-        {
-            _mixer.HideHighlight();
-            return;
-        }
-
-        if (Mouse.current == null || Camera.main == null)
-        {
-            _mixer.HideHighlight();
-            return;
-        }
-
-        Vector2 mousePos = Mouse.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-
-        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
-                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < hitCount; i++)
-        {
-            if (_mixerSlot != null && _hoverHitBuffer[i].collider == _mixerSlot)
-            {
-                _mixer.ShowHighlight();
-                return;
-            }
-        }
-
-        _mixer.HideHighlight();
-    }
-
-    /// <summary>
-    /// Each frame during a drag, highlights the trash bin when the cursor is above it
-    /// and the player is dragging any item.
-    /// </summary>
-    private void UpdateTrashHover()
-    {
-        if (_trash == null) return;
-
-        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            PuzzleInventoryBar.DraggedItem == _amptyColba ||
-            !IsPuzzleItem(PuzzleInventoryBar.DraggedItem))
-        {
-            _trash.HideHighlight();
-            return;
-        }
-
-        if (Mouse.current == null || Camera.main == null)
-        {
-            _trash.HideHighlight();
-            return;
-        }
-
-        Vector2 mousePos = Mouse.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-
-        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
-                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < hitCount; i++)
-        {
-            Collider col = _hoverHitBuffer[i].collider;
-            if (_trash.DropZoneCollider != null && col == _trash.DropZoneCollider)
-            {
-                _trash.ShowHighlight();
-                return;
-            }
-
-            if (_trash.DropZoneCollider == null &&
-                col.GetComponentInParent<TrashController>() == _trash)
-            {
-                _trash.ShowHighlight();
-                return;
-            }
-        }
-
-        _trash.HideHighlight();
-    }
-
-    /// <summary>
-    /// Each frame during a drag, shows a ghost flask over the burner when the cursor is above it.
-    /// </summary>
-    private void UpdateBurnerHover()
+    private void UpdateBurnerHoverState(bool isHovered)
     {
         if (_burner == null) return;
 
-        if (!PuzzleInventoryBar.IsDragging || PuzzleInventoryBar.DraggedItem == null ||
-            !_burner.CanDrop(PuzzleInventoryBar.DraggedItem) || _burner.IsBusy)
+        if (!isHovered)
         {
             _burner.HideHoverPreview();
             _burner.HideHighlight();
             return;
         }
 
-        if (Mouse.current == null || Camera.main == null)
+        _burner.ShowHighlight();
+
+        if (PuzzleInventoryBar.IsDragging && PuzzleInventoryBar.DraggedItem != null &&
+            _burner.CanDrop(PuzzleInventoryBar.DraggedItem) && !_burner.IsBusy)
+        {
+            _burner.ShowHoverPreview(PuzzleInventoryBar.DraggedItem);
+        }
+        else
         {
             _burner.HideHoverPreview();
-            _burner.HideHighlight();
+        }
+    }
+
+    /// <summary>
+    /// Mixer: highlight always on hover. The mixer has no ghost preview —
+    /// the emission glow on the flask mesh is its only hover feedback.
+    /// </summary>
+    private void UpdateMixerHoverState(bool isHovered)
+    {
+        if (_mixer == null) return;
+
+        if (!isHovered)
+        {
+            _mixer.HideHighlight();
             return;
         }
 
-        Vector2 mousePos = Mouse.current.position.ReadValue();
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+        _mixer.ShowHighlight();
+    }
 
-        int hitCount = Physics.RaycastNonAlloc(ray, _hoverHitBuffer, Mathf.Infinity,
-                                               _deviceLayerMask, QueryTriggerInteraction.Collide);
-        for (int i = 0; i < hitCount; i++)
+    /// <summary>
+    /// Analyzer: highlight always on hover; ghost preview only when dragging
+    /// a valid item, the puzzle is not solved, and the analyzer is idle and empty.
+    /// </summary>
+    private void UpdateAnalyzerHoverState(bool isHovered)
+    {
+        if (_analyzer == null) return;
+
+        if (!isHovered)
         {
-            if (_hoverHitBuffer[i].collider.GetComponentInParent<BurnerController>() == _burner)
-            {
-                _burner.ShowHoverPreview(PuzzleInventoryBar.DraggedItem);
-                _burner.ShowHighlight();
-                return;
-            }
+            _analyzer.HideHoverPreview();
+            _analyzer.HideHighlight();
+            return;
         }
 
-        _burner.HideHoverPreview();
-        _burner.HideHighlight();
+        _analyzer.ShowHighlight();
+
+        if (!_isSolved &&
+            PuzzleInventoryBar.IsDragging && PuzzleInventoryBar.DraggedItem != null &&
+            _analyzer.CanDrop(PuzzleInventoryBar.DraggedItem) &&
+            !_analyzer.IsBusy && !_analyzer.HasFlask)
+        {
+            _analyzer.ShowHoverPreview(PuzzleInventoryBar.DraggedItem);
+        }
+        else
+        {
+            _analyzer.HideHoverPreview();
+        }
+    }
+
+    /// <summary>
+    /// Trash: tooltip only (no mesh to highlight). ShowHighlight is a no-op
+    /// when the trash has no renderers, so the call is safe.
+    /// </summary>
+    private void UpdateTrashHoverState(bool isHovered)
+    {
+        if (_trash == null) return;
+
+        if (!isHovered)
+        {
+            _trash.HideHighlight();
+            return;
+        }
+
+        _trash.ShowHighlight();
     }
 
     // ── IPuzzleDropHandler ────────────────────────────────────────────────────

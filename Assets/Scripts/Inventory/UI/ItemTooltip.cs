@@ -50,6 +50,44 @@ public class ItemTooltip : MonoBehaviour
         PositionNearSlot(slotRect);
     }
 
+    /// <summary>
+    /// Shows the tooltip with custom title and description, anchored near a
+    /// screen-space position (e.g. the mouse cursor). Used by device hover
+    /// tooltips in puzzle mode. Performs a full layout rebuild — call once
+    /// when the tooltip content changes, then use <see cref="Reposition"/>
+    /// for per-frame position updates.
+    /// </summary>
+    public void Show(string title, string description, Vector2 screenPosition)
+    {
+        itemNameText.text    = title;
+        descriptionText.text = description;
+        panel.gameObject.SetActive(true);
+
+        // Force TMP to compute text geometry before layout rebuild,
+        // otherwise ContentSizeFitter reads stale preferred sizes and
+        // the panel collapses to a thin strip.
+        itemNameText.ForceMeshUpdate();
+        descriptionText.ForceMeshUpdate();
+
+        // Rebuild twice — the first pass updates child sizes, the second
+        // pass lets ContentSizeFitter pick up the new sizes correctly.
+        LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(panel);
+
+        PositionNearScreenPoint(screenPosition);
+    }
+
+    /// <summary>
+    /// Repositions an already-visible tooltip near a screen-space point
+    /// without rebuilding layout. Call this every frame for cursor-following
+    /// behaviour after <see cref="Show(string, string, Vector2)"/>.
+    /// </summary>
+    public void Reposition(Vector2 screenPosition)
+    {
+        if (!panel.gameObject.activeSelf) return;
+        PositionNearScreenPoint(screenPosition);
+    }
+
     /// <summary>Hides the tooltip.</summary>
     public void Hide()
     {
@@ -76,6 +114,31 @@ public class ItemTooltip : MonoBehaviour
 
         panel.pivot = new Vector2(0.5f, 0f);
         panel.localPosition = new Vector2(localTop.x, bottomY);
+
+        ClampInsideCanvas();
+    }
+
+    private void PositionNearScreenPoint(Vector2 screenPosition)
+    {
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            _canvasRect, screenPosition, _uiCamera, out Vector2 localPoint);
+
+        float canvasHalfY = _canvasRect.rect.size.y * 0.5f;
+        float panelHeight = panel.rect.size.y;
+        float offset      = slotGap + 20f;
+
+        // If there is room above the cursor, place above (pivot at bottom).
+        // Otherwise flip below the cursor (pivot at top).
+        if (localPoint.y + offset + panelHeight <= canvasHalfY)
+        {
+            panel.pivot = new Vector2(0.5f, 0f);
+            panel.localPosition = new Vector2(localPoint.x, localPoint.y + offset);
+        }
+        else
+        {
+            panel.pivot = new Vector2(0.5f, 1f);
+            panel.localPosition = new Vector2(localPoint.x, localPoint.y - offset);
+        }
 
         ClampInsideCanvas();
     }
