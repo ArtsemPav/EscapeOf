@@ -60,6 +60,14 @@ public class PressureLever : MonoBehaviour, IInteractable
     private Vector3 _baseEuler;
     private PressurePuzzle _puzzle;
 
+    // ── Timed animation (used by PressurePuzzle.TriggerReset) ──────────────────
+
+    private bool   _isAnimating;
+    private float  _animDuration;
+    private float  _animElapsed;
+    private float  _animFromDelta;
+    private float  _animToDelta;
+
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
@@ -89,6 +97,24 @@ public class PressureLever : MonoBehaviour, IInteractable
 
     private void Update()
     {
+        // Timed animation takes priority over the normal lerp.
+        if (_isAnimating)
+        {
+            _animElapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(_animElapsed / _animDuration);
+            _currentDelta = Mathf.Lerp(_animFromDelta, _animToDelta, t);
+            ApplyRotation(_currentDelta);
+
+            if (t >= 1f)
+            {
+                _currentDelta = _animToDelta;
+                _targetDelta  = _animToDelta;
+                _isAnimating  = false;
+                ApplyRotation(_currentDelta);
+            }
+            return;
+        }
+
         if (Mathf.Approximately(_currentDelta, _targetDelta)) return;
 
         _currentDelta = Mathf.Lerp(_currentDelta, _targetDelta, _rotationSpeed * Time.deltaTime);
@@ -161,7 +187,23 @@ public class PressureLever : MonoBehaviour, IInteractable
         IsOn          = on;
         _currentDelta = on ? _angleOnDelta : 0f;
         _targetDelta  = _currentDelta;
+        _isAnimating  = false;
         ApplyRotation(_currentDelta);
+    }
+
+    /// <summary>
+    /// Animates the lever to the target state over the specified duration.
+    /// Used by PressurePuzzle.TriggerReset so levers don't snap OFF instantly.
+    /// </summary>
+    public void AnimateToState(bool on, float duration)
+    {
+        IsOn           = on;
+        _animFromDelta = _currentDelta;
+        _animToDelta   = on ? _angleOnDelta : 0f;
+        _animDuration  = Mathf.Max(0.01f, duration);
+        _animElapsed   = 0f;
+        _targetDelta   = _animToDelta;
+        _isAnimating   = true;
     }
 
     /// <summary>
@@ -171,6 +213,7 @@ public class PressureLever : MonoBehaviour, IInteractable
     /// </summary>
     public void SnapVisual()
     {
+        _isAnimating   = false;
         _targetDelta  = IsOn ? _angleOnDelta : 0f;
         _currentDelta = _targetDelta;
         ApplyRotation(_currentDelta);

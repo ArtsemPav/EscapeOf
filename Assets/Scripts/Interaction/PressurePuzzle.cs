@@ -132,6 +132,10 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     [Tooltip("How slowly the arrow returns to 0° during reset. Lower = slower.")]
     [SerializeField] private float _resetPressureSpeed = 1f;
 
+    [Tooltip("Duration in seconds for levers to animate to OFF during a reset. " +
+             "0 = instant snap, 1 = one-second smooth animation.")]
+    [SerializeField] [Min(0f)] private float _resetLeverDuration = 1f;
+
     [Tooltip("Sound played when a reset is triggered.")]
     [SerializeField] private AudioClip _resetSound;
     [SerializeField] [Range(0f, 1f)] private float _resetSoundVolume = 0.8f;
@@ -655,7 +659,12 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         _fadeClipPlayed = false;
 
         foreach (var lever in _levers)
-            lever.SetStateQuiet(false);
+        {
+            if (_resetLeverDuration <= 0f)
+                lever.SetStateQuiet(false);
+            else
+                lever.AnimateToState(false, _resetLeverDuration);
+        }
 
         // All OFF → pressure 0 → angle 0°. The arrow descends through 180°.
         _targetArrowAngle = 0f;
