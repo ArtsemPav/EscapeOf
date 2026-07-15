@@ -112,12 +112,23 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("Played when the lever snaps back after a wrong combination.")]
     [SerializeField] private AudioClip _wrongPullClip;
 
+    [Tooltip("Looping ambient sound played continuously after the puzzle is solved (generator hum). " +
+             "Assign an AudioSource placed in the electric prefab — configure 3D settings on it directly.")]
+    [SerializeField] private AudioSource _solvedLoopSource;
+
+    [Tooltip("3D minimum distance at which the solved loop is at full volume.")]
+    [SerializeField] private float _solvedLoopMinDistance = 0.1f;
+
+    [Tooltip("3D maximum distance at which the solved loop fades to silence.")]
+    [SerializeField] private float _solvedLoopMaxDistance = 1.5f;
+
     [Header("Sound Volumes")]
     [SerializeField, Range(0f, 1f)] private float _fuseInsertVolume    = 1f;
     [SerializeField, Range(0f, 1f)] private float _wireConnectVolume   = 0.8f;
     [SerializeField, Range(0f, 1f)] private float _wireDisconnectVolume = 0.7f;
     [SerializeField, Range(0f, 1f)] private float _solvedVolume        = 1f;
     [SerializeField, Range(0f, 1f)] private float _wrongPullVolume     = 0.6f;
+    [SerializeField, Range(0f, 1f)] private float _solvedLoopVolume    = 0.5f;
 
     [Header("Events")]
     [Tooltip("Items that can be applied to this puzzle (fuse). " +
@@ -303,6 +314,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         }
 
         RefreshVisuals();
+
+        if (_isSolved)
+            StartSolvedLoop();
     }
 
     private void OnDestroy()
@@ -312,6 +326,8 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (_fuseInsertRoutine != null)
             StopCoroutine(_fuseInsertRoutine);
+
+        StopSolvedLoop();
 
         if (_lampMaterial != null)
             Destroy(_lampMaterial);
@@ -563,8 +579,16 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (!_wiresCorrect)
         {
+            PlaySFX(_wrongPullClip, _wrongPullVolume);
             PlayWrongPullParticles();
             ResetAllWires();
+        }
+        else
+        {
+            _isSolved = true;
+            UpdateLamp();
+            PlaySFX(_solvedClip, _solvedVolume);
+            StartSolvedLoop();
         }
 
         lever.Interact();
@@ -765,10 +789,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         if (_wiresCorrect)
         {
-            _isSolved = true;
             if (_solvedObject != null) _solvedObject.SetActive(true);
-            UpdateLamp();
-            PlaySFX(_solvedClip, _solvedVolume);
             SaveManager.Instance?.Save();
 
             // Delegate exit to PuzzleModeController — consistent with all other puzzles.
@@ -776,7 +797,6 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         }
         else
         {
-            PlaySFX(_wrongPullClip, _wrongPullVolume);
             _lever?.Reset();
         }
     }
@@ -1003,5 +1023,34 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         if (clip != null)
             AudioManager.Instance?.PlaySFX(clip, volume);
+    }
+
+    /// <summary>Starts the looping solved ambient sound and registers it with AudioManager for mute tracking.</summary>
+    private void StartSolvedLoop()
+    {
+        if (_solvedLoopSource == null) return;
+
+        // Force 3D settings in code — bypasses prefab override quirks where
+        // spatialBlend or rolloff curve may not apply correctly at runtime.
+        _solvedLoopSource.spatialBlend      = 1f;
+        _solvedLoopSource.rolloffMode       = AudioRolloffMode.Linear;
+        _solvedLoopSource.minDistance       = _solvedLoopMinDistance;
+        _solvedLoopSource.maxDistance       = _solvedLoopMaxDistance;
+        _solvedLoopSource.dopplerLevel      = 0f;
+        _solvedLoopSource.reverbZoneMix     = 0f;
+        _solvedLoopSource.bypassReverbZones = true;
+        _solvedLoopSource.spread            = 0f;
+
+        _solvedLoopSource.enabled = true;
+        _solvedLoopSource.Play();
+        AudioManager.Instance?.RegisterLoopSource(_solvedLoopSource, _solvedLoopVolume);
+    }
+
+    /// <summary>Stops the looping solved ambient sound and unregisters it from AudioManager.</summary>
+    private void StopSolvedLoop()
+    {
+        if (_solvedLoopSource == null) return;
+        AudioManager.Instance?.UnregisterLoopSource(_solvedLoopSource);
+        _solvedLoopSource.enabled = false;
     }
 }
