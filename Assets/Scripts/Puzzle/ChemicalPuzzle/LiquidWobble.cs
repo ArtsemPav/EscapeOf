@@ -46,6 +46,12 @@ namespace ChemicalPuzzle
         [Tooltip("Интенсивность свечения (_EmissionPower).")]
         [SerializeField] private float _emissionPower = 0f;
 
+        [Tooltip("Множитель авто-эмиссии: когда > 0, shorthand SetLiquidColor(Color) " +
+                 "автоматически выводит HDR emission из цвета жидкости " +
+                 "(_EmissionColor = color * multiplier). Используется для подсветки " +
+                 "уровня заполнения сквозь стекло.")]
+        [SerializeField] private float _autoEmissionMultiplier = 0f;
+
         [Header("Transparency & Refraction")]
         [Tooltip("Непрозрачность жидкости: 1 = полностью непрозрачная, 0 = невидима.")]
         [Range(0f, 1f)]
@@ -220,11 +226,20 @@ namespace ChemicalPuzzle
             _emissionPower = emissionPower;
         }
 
-        /// <summary>Shorthand: sets liquid and surface to the same color, no emission.</summary>
+        /// <summary>
+        /// Shorthand: sets liquid and surface to the same color.
+        /// When _autoEmissionMultiplier > 0, also derives HDR emission from the color
+        /// so the fill level is clearly visible through glass.
+        /// </summary>
         public void SetLiquidColor(Color color)
         {
             _liquidColor  = color;
             _surfaceColor = color;
+
+            if (_autoEmissionMultiplier > 0f)
+            {
+                _emissionColor = color * _autoEmissionMultiplier;
+            }
         }
 
         /// <summary>Returns the current liquid color set on this component.</summary>

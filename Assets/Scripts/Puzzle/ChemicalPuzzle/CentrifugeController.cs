@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using ChemicalPuzzle;
 using UnityEngine;
 
 /// <summary>
@@ -149,9 +150,6 @@ public class CentrifugeController : ChemicalDeviceBase
     // ── Highlight state ────────────────────────────────────────────────────────
 
     private bool _isHighlighted;
-    private Material _originalSharedMaterial;
-    private Material _highlightInstance;
-    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
     // ── Properties ─────────────────────────────────────────────────────────────
 
@@ -199,7 +197,6 @@ public class CentrifugeController : ChemicalDeviceBase
         HideHoverPreview();
         HideHighlight();
         StopSpinLoop();
-        if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -288,7 +285,7 @@ public class CentrifugeController : ChemicalDeviceBase
         _hoveredSlotIndex = -1;
     }
 
-    /// <summary>Enables a constant emission highlight on the centrifuge mesh.</summary>
+    /// <summary>Enables an emission highlight on the centrifuge mesh via MaterialPropertyBlock.</summary>
     public void ShowHighlight()
     {
         if (_hoverHighlightRenderer == null)
@@ -297,25 +294,16 @@ public class CentrifugeController : ChemicalDeviceBase
         if (_hoverHighlightRenderer == null || _isHighlighted) return;
         _isHighlighted = true;
 
-        if (_highlightInstance == null)
-        {
-            _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
-            _highlightInstance = new Material(_originalSharedMaterial);
-            _highlightInstance.EnableKeyword("_EMISSION");
-        }
-
-        _highlightInstance.SetColor(EmissionColorId, _highlightColor);
-        _hoverHighlightRenderer.material = _highlightInstance;
+        DeviceHighlightHelper.ShowHighlight(_hoverHighlightRenderer, _highlightColor);
     }
 
-    /// <summary>Removes the emission highlight and restores the original shared material.</summary>
+    /// <summary>Removes the highlight by clearing the MaterialPropertyBlock.</summary>
     public void HideHighlight()
     {
         if (!_isHighlighted) return;
         _isHighlighted = false;
 
-        if (_hoverHighlightRenderer != null && _originalSharedMaterial != null)
-            _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
+        DeviceHighlightHelper.HideHighlight(_hoverHighlightRenderer);
     }
 
     /// <summary>
@@ -381,7 +369,7 @@ public class CentrifugeController : ChemicalDeviceBase
 
     private void StartSpin()
     {
-        IsBusy = true;
+        BeginProcess();
         StartCoroutine(SpinCoroutine());
     }
 

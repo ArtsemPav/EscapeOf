@@ -117,7 +117,7 @@ public struct SynthesisStep
 /// Attach to the root ChemicalPuzzle GameObject.
 /// </summary>
 [RequireComponent(typeof(PuzzleModeController))]
-public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, ISaveable, IChemicalPuzzleContext
+public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, ISaveable, IChemicalPuzzleContext, ChemicalPuzzle.IPuzzleExitGuard
 {
     [Header("Puzzle")]
     [SerializeField] private PuzzleModeController _puzzleMode;
@@ -576,6 +576,36 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         }
     }
 
+    // ── IPuzzleExitGuard ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns true if the player can safely exit puzzle mode without losing
+    /// any flasks. Blocks Esc exit while any device is busy or results are
+    /// pending delivery through the inspection queue.
+    /// </summary>
+    public bool CanExitPuzzle()
+    {
+        // Pending results in the queue — player hasn't picked up all flasks yet.
+        if (_pendingResults.Count > 0) return false;
+
+        // Any device still processing.
+        if (_centrifuge != null && _centrifuge.IsBusy) return false;
+        if (_burner     != null && _burner.IsBusy)     return false;
+        if (_mixer      != null && _mixer.IsBusy)      return false;
+        if (_analyzer   != null && _analyzer.IsBusy)   return false;
+
+        // Any device holding a flask that hasn't been processed yet.
+        // The player should retrieve these before leaving.
+        if (_centrifuge != null && _centrifuge.HasAnyFlask) return false;
+        if (_analyzer   != null && _analyzer.HasFlask)     return false;
+
+        // Mixer is locked (processing) — already covered by IsBusy above,
+        // but check explicitly in case IsBusy and _isLocked diverge.
+        if (_mixer != null && _mixer.IsFull) return false;
+
+        return true;
+    }
+
     private void Update()
     {
         UpdateDeviceHover();
@@ -907,6 +937,11 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private void UpdateClickRetrieve()
     {
         if (PuzzleInventoryBar.IsDragging) return;
+        // Block retrieves while an inspection panel is open or while there are
+        // pending results in the queue — all inventory mutations during puzzle
+        // mode must go through the _pendingResults queue to prevent duplicates.
+        if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting) return;
+        if (_pendingResults.Count > 0) return;
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame) return;
         if (Camera.main == null) return;
 
@@ -1196,9 +1231,6 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         _isSolved = true;
         _pendingInventoryCleanup = true;
         AudioManager.Instance?.PlaySFX(_successClip);
-
-        // SetSolved and Save are deferred to OnAnalyzerFlaskReturned so they fire
-        // only after the winning flask is in inventory and all puzzle items are purged.
     }
 
     private void OnAnalyzerFail()
@@ -1210,41 +1242,36 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     {
         if (flask == null) return;
 
-        // Capture and clear the flag immediately so the lambda can't fire cleanup twice.
+        // Capture and clear the flag so the pickup callback knows whether to run cleanup.
         bool doCleanup = _pendingInventoryCleanup;
         _pendingInventoryCleanup = false;
 
         int originSlot = _analyzerOriginSlot;
         _analyzerOriginSlot = -1;
 
-        if (ItemInspector.Instance != null)
+        // Route the analyzer result through the same _pendingResults queue as all
+        // other devices. This ensures that if the centrifuge or burner finished
+        // while the analyzer was running, those results are shown first, and the
+        // analyzer flask is shown in order — no result is lost.
+        _pendingResults.Enqueue(new PendingResult
         {
-            ItemInspector.Instance.BeginInspection(flask, null, (item) =>
+            item       = flask,
+            originSlot = originSlot,
+            onPickup   = doCleanup ? (System.Action)(() =>
             {
-                PlaceOrAddItem(item, originSlot);
-
-                if (doCleanup)
-                {
-                    // 1. Purge all intermediate puzzle items — winning flask is now in inventory.
-                    ClearPuzzleItemsFromInventory();
-
-                    // 2. Mark the puzzle solved and persist only after the inventory is clean.
-                    _puzzleMode?.SetSolved();
-                    SaveManager.Instance?.Save();
-                }
-            });
-        }
-        else
-        {
-            PlaceOrAddItem(flask, originSlot);
-
-            if (doCleanup)
-            {
+                // 1. Purge all intermediate puzzle items — winning flask is now in inventory.
                 ClearPuzzleItemsFromInventory();
+
+                // 2. Discard any remaining queued results — the puzzle is solved.
+                _pendingResults.Clear();
+
+                // 3. Mark the puzzle solved and persist only after the inventory is clean.
                 _puzzleMode?.SetSolved();
                 SaveManager.Instance?.Save();
-            }
-        }
+            }) : null
+        });
+
+        TryShowNextResult();
     }
 
     /// <summary>

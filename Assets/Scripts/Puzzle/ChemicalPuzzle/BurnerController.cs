@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using ChemicalPuzzle;
 using UnityEngine;
 
 /// <summary>
@@ -105,9 +106,6 @@ public class BurnerController : ChemicalDeviceBase
     // ── Highlight state ────────────────────────────────────────────────────────
 
     private bool _isHighlighted;
-    private Material _originalSharedMaterial;
-    private Material _highlightInstance;
-    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -116,7 +114,6 @@ public class BurnerController : ChemicalDeviceBase
         HideHoverPreview();
         HideHighlight();
         StopBurnLoop();
-        if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     // ── Public API ─────────────────────────────────────────────────────────────
@@ -131,7 +128,7 @@ public class BurnerController : ChemicalDeviceBase
     /// <summary>The Spot collider used as the drop-zone by the orchestrator.</summary>
     public Collider DropZoneCollider => _spotCollider;
 
-    /// <summary>Enables a constant emission highlight on the burner mesh.</summary>
+    /// <summary>Enables an emission highlight on the burner mesh via MaterialPropertyBlock.</summary>
     public void ShowHighlight()
     {
         if (_hoverHighlightRenderer == null)
@@ -140,25 +137,16 @@ public class BurnerController : ChemicalDeviceBase
         if (_hoverHighlightRenderer == null || _isHighlighted) return;
         _isHighlighted = true;
 
-        if (_highlightInstance == null)
-        {
-            _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
-            _highlightInstance = new Material(_originalSharedMaterial);
-            _highlightInstance.EnableKeyword("_EMISSION");
-        }
-
-        _highlightInstance.SetColor(EmissionColorId, _highlightColor);
-        _hoverHighlightRenderer.material = _highlightInstance;
+        DeviceHighlightHelper.ShowHighlight(_hoverHighlightRenderer, _highlightColor);
     }
 
-    /// <summary>Removes the emission highlight and restores the original shared material.</summary>
+    /// <summary>Removes the highlight by clearing the MaterialPropertyBlock.</summary>
     public void HideHighlight()
     {
         if (!_isHighlighted) return;
         _isHighlighted = false;
 
-        if (_hoverHighlightRenderer != null && _originalSharedMaterial != null)
-            _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
+        DeviceHighlightHelper.HideHighlight(_hoverHighlightRenderer);
     }
 
     /// <summary>
@@ -259,7 +247,7 @@ public class BurnerController : ChemicalDeviceBase
 
     private IEnumerator HeatCoroutine()
     {
-        IsBusy = true;
+        BeginProcess();
 
         // Wait for drop animation to finish before igniting.
         yield return new WaitForSeconds(_dropDuration);

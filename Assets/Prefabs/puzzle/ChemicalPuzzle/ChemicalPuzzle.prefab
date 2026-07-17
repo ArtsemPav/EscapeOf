@@ -663,6 +663,8 @@ MonoBehaviour:
   _puzzleCamera: {fileID: 8591944713086378529}
   _blendDuration: 0.75
   _showInventoryBar: 1
+  _disableFlashlightInPuzzle: 1
+  _flashlightSupportLights: []
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -823,6 +825,17 @@ MonoBehaviour:
   _successClip: {fileID: 0}
   _failClip: {fileID: 0}
   _saveId: chemical_synthesis
+  _deviceTooltips:
+    centrifugeTitle: 
+    centrifugeDescription: 
+    burnerTitle: 
+    burnerDescription: 
+    mixerTitle: 
+    mixerDescription: 
+    analyzerTitle: 
+    analyzerDescription: 
+    trashTitle: 
+    trashDescription: 
 --- !u!1 &5687646108500148477
 GameObject:
   m_ObjectHideFlags: 0
@@ -2584,13 +2597,21 @@ PrefabInstance:
       propertyPath: fillFraction
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 709177988538488303, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
+      propertyPath: _emissionPower
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 709177988538488303, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
+      propertyPath: _autoEmissionMultiplier
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5052730901304912315, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 5598449442985984720, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 4608
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6492714525243934397, guid: 2ecd6808dcef49045a7a44c86e5d1760, type: 3}
       propertyPath: m_Layer

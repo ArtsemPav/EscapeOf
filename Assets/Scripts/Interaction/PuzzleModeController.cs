@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using ChemicalPuzzle;
 using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
@@ -373,6 +374,18 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     private void OnMenuPerformed()
     {
         if (!_isActive) return;
+
+        // Check if any puzzle component blocks exiting (e.g. devices still processing).
+        // This prevents the player from leaving while flasks are locked in devices.
+        var exitGuards = GetComponentsInChildren<IPuzzleExitGuard>(true);
+        foreach (var guard in exitGuards)
+        {
+            if (!guard.CanExitPuzzle())
+            {
+                // Optionally play a feedback sound or show a tooltip here.
+                return;
+            }
+        }
 
         // Use a coroutine to ensure the input event finishes before changing state,
         // preventing the Pause menu from immediately opening.

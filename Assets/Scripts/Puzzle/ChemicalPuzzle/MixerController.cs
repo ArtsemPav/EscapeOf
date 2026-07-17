@@ -113,9 +113,6 @@ public class MixerController : ChemicalDeviceBase
     // ── Highlight state ────────────────────────────────────────────────────────
 
     private bool _isHighlighted;
-    private Material _originalSharedMaterial;
-    private Material _highlightInstance;
-    private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
     // ── Properties ─────────────────────────────────────────────────────────────
 
@@ -153,7 +150,6 @@ public class MixerController : ChemicalDeviceBase
     private void OnDestroy()
     {
         StopMixLoop();
-        if (_highlightInstance != null) Destroy(_highlightInstance);
     }
 
     /// <summary>
@@ -164,31 +160,22 @@ public class MixerController : ChemicalDeviceBase
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
-    /// <summary>Enables a constant emission highlight on the flask mesh.</summary>
+    /// <summary>Enables an emission highlight on the flask mesh via MaterialPropertyBlock.</summary>
     public void ShowHighlight()
     {
         if (_hoverHighlightRenderer == null || _isHighlighted) return;
         _isHighlighted = true;
 
-        if (_highlightInstance == null)
-        {
-            _originalSharedMaterial = _hoverHighlightRenderer.sharedMaterial;
-            _highlightInstance = new Material(_originalSharedMaterial);
-            _highlightInstance.EnableKeyword("_EMISSION");
-        }
-
-        _highlightInstance.SetColor(EmissionColorId, _highlightColor);
-        _hoverHighlightRenderer.material = _highlightInstance;
+        DeviceHighlightHelper.ShowHighlight(_hoverHighlightRenderer, _highlightColor);
     }
 
-    /// <summary>Removes the emission highlight and restores the original shared material.</summary>
+    /// <summary>Removes the highlight by clearing the MaterialPropertyBlock.</summary>
     public void HideHighlight()
     {
         if (!_isHighlighted) return;
         _isHighlighted = false;
 
-        if (_hoverHighlightRenderer != null && _originalSharedMaterial != null)
-            _hoverHighlightRenderer.sharedMaterial = _originalSharedMaterial;
+        DeviceHighlightHelper.HideHighlight(_hoverHighlightRenderer);
     }
 
     /// <summary>Adds a flask to the accumulator. Triggers export when the portion count is reached.</summary>
@@ -247,7 +234,7 @@ public class MixerController : ChemicalDeviceBase
         if (willExport)
         {
             _isLocked = true;
-            IsBusy    = true;
+            BeginProcess();
             SetGlow(true);
             StartCoroutine(ExportCoroutine());
         }
