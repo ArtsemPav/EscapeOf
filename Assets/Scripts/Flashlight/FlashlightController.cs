@@ -35,6 +35,12 @@ public class FlashlightController : MonoBehaviour
     /// <summary>Returns true when the flashlight is currently on.</summary>
     public bool IsOn => _isOn;
 
+    /// <summary>
+    /// When true, prevents the flashlight from being toggled on.
+    /// Set by external systems (e.g. PuzzleModeController) to disable flashlight during puzzle mode.
+    /// </summary>
+    public bool IsLocked { get; set; }
+
     private Light _light;
     private AudioSource _audioSource;
     private bool _isOn;
@@ -97,6 +103,8 @@ public class FlashlightController : MonoBehaviour
     /// <summary>Attempts to toggle the flashlight on or off. Requires the operating condition to be met.</summary>
     public void TryToggle()
     {
+        if (IsLocked) return;
+
         bool canOperate       = config.operatingCondition.IsMet();
         bool hasAnyFlashlight = soundCondition != null ? soundCondition.IsMet() : canOperate;
 
@@ -149,6 +157,19 @@ public class FlashlightController : MonoBehaviour
         }
 
         OnModeChanged?.Invoke(CurrentMode);
+    }
+
+    /// <summary>Forces the flashlight off without playing sound. Used by PuzzleModeController.</summary>
+    public void ForceOff()
+    {
+        SetState(false);
+    }
+
+    /// <summary>Forces the flashlight on without sound. Used by PuzzleModeController to restore state.</summary>
+    public void ForceOn()
+    {
+        if (config == null || !config.operatingCondition.IsMet()) return;
+        SetState(true);
     }
 
     private void SetState(bool on)

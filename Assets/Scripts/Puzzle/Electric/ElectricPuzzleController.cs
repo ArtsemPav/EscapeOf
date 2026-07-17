@@ -24,7 +24,8 @@ using UnityEngine.InputSystem;
 ///   • Attach to the root "electric" GameObject (Interactable Layer + BoxCollider).
 ///   • Add <see cref="PuzzleModeController"/> and <see cref="PuzzleInteractable"/> to the same GameObject.
 ///   • Set PuzzleModeController._showInventoryBar = true to show the fuse inventory bar.
-///   • <see cref="_lampLight"/> is found automatically in children if not assigned in the Inspector.
+///   • <see cref="_lampRenderer"/> on the lamp mesh (pSphere25) is tinted via material properties.
+///   • <see cref="_fuseMesh"/> is the in-scene SafeGuard mesh at the anchor — shown as ghost during drag, animated on insertion.
 ///   • Assign <see cref="_coloredTerminals"/> and <see cref="_neutralTerminals"/> in order 0..5.
 ///   • Assign <see cref="_puzzleData"/> (ElectricPuzzleData ScriptableObject).
 /// </summary>
@@ -56,14 +57,20 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [SerializeField] private GameObject _solvedObject;
 
     [Header("Lamp")]
-    [Tooltip("Point Light inside the electric prefab used as the indicator lamp.")]
-    [SerializeField] private Light _lampLight;
+    [Tooltip("Renderer on the lamp mesh (pSphere25) whose material is tinted red→green based on puzzle state.")]
+    [SerializeField] private Renderer _lampRenderer;
 
-    [Tooltip("Lamp color in the default (unsolved) state.")]
-    [SerializeField] private Color _lampDefaultColor = Color.red;
+    [Tooltip("Base color of the lamp material in the unsolved state.")]
+    [SerializeField] private Color _lampRedColor = new Color(0.52f, 0f, 0.086f, 0.675f);
 
-    [Tooltip("Lamp color when wires are correctly connected (wires solved, lever not yet pulled).")]
-    [SerializeField] private Color _lampSolvedColor = Color.green;
+    [Tooltip("Emission color of the lamp material in the unsolved state.")]
+    [SerializeField] private Color _lampRedEmission = new Color(3.59f, 0f, 0.17f, 1f);
+
+    [Tooltip("Base color of the lamp material when the puzzle is solved (lever pulled with correct wires).")]
+    [SerializeField] private Color _lampGreenColor = new Color(0f, 0.52f, 0.086f, 0.675f);
+
+    [Tooltip("Emission color of the lamp material when the puzzle is solved.")]
+    [SerializeField] private Color _lampGreenEmission = new Color(0f, 3.59f, 0.17f, 1f);
 
     [Header("Lever")]
     [Tooltip("ElectricLever component on pCube17. Enabled after wires are correctly connected.")]
@@ -105,12 +112,23 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("Played when the lever snaps back after a wrong combination.")]
     [SerializeField] private AudioClip _wrongPullClip;
 
+    [Tooltip("Looping ambient sound played continuously after the puzzle is solved (generator hum). " +
+             "Assign an AudioSource placed in the electric prefab — configure 3D settings on it directly.")]
+    [SerializeField] private AudioSource _solvedLoopSource;
+
+    [Tooltip("3D minimum distance at which the solved loop is at full volume.")]
+    [SerializeField] private float _solvedLoopMinDistance = 0.1f;
+
+    [Tooltip("3D maximum distance at which the solved loop fades to silence.")]
+    [SerializeField] private float _solvedLoopMaxDistance = 1.5f;
+
     [Header("Sound Volumes")]
     [SerializeField, Range(0f, 1f)] private float _fuseInsertVolume    = 1f;
     [SerializeField, Range(0f, 1f)] private float _wireConnectVolume   = 0.8f;
     [SerializeField, Range(0f, 1f)] private float _wireDisconnectVolume = 0.7f;
     [SerializeField, Range(0f, 1f)] private float _solvedVolume        = 1f;
     [SerializeField, Range(0f, 1f)] private float _wrongPullVolume     = 0.6f;
+    [SerializeField, Range(0f, 1f)] private float _solvedLoopVolume    = 0.5f;
 
     [Header("Events")]
     [Tooltip("Items that can be applied to this puzzle (fuse). " +
@@ -120,12 +138,21 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("Sphere collider on the Safeguardanchor GameObject — the drop zone for the fuse.")]
     [SerializeField] private Collider _fuseAnchorCollider;
 
-    [Tooltip("Transform where the fuse prefab is spawned when inserted. Usually Safeguardanchor.")]
+    [Tooltip("Transform where the fuse is placed when inserted. Usually Safeguardanchor.")]
     [SerializeField] private Transform _fuseAnchorTransform;
 
-    [Tooltip("Prefab instantiated at the anchor when the fuse is inserted (e.g. SafeGuard.prefab). " +
-             "Falls back to item.inspectionPrefab if left empty.")]
-    [SerializeField] private GameObject _fusePrefab;
+    [Tooltip("Mesh GameObject placed at the fuse anchor (e.g. SafeGuard (3)). " +
+             "Shown as a ghost preview during drag and animated into place on insertion.")]
+    [SerializeField] private GameObject _fuseMesh;
+
+    [Tooltip("Local position offset from the anchor where the insertion animation starts.")]
+    [SerializeField] private Vector3 _fuseInsertStartOffset = new Vector3(0f, 0.15f, -0.12f);
+
+    [Tooltip("Duration of the fuse insertion animation in seconds.")]
+    [SerializeField] private float _fuseInsertDuration = 0.5f;
+
+    [Tooltip("Alpha (0–1) of the fuse mesh when shown as a ghost preview during drag.")]
+    [SerializeField, Range(0f, 1f)] private float _fuseGhostAlpha = 0.4f;
 
     // ── Runtime state ─────────────────────────────────────────────────────────
 
@@ -134,7 +161,23 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     private bool _wiresCorrect;
     private bool _fuseInserted;
     private string _fuseItemId;
-    private GameObject _fuseInstance;
+    private Material _lampMaterial;
+    private Coroutine _fuseInsertRoutine;
+    private Renderer[] _fuseRenderers;
+    private bool _fuseGhostActive;
+
+    // Cached original material state for ghost/restore
+    private struct FuseMaterialState
+    {
+        public Material Material;
+        public float OriginalAlpha;
+        public float OriginalSurface;
+        public float OriginalBlend;
+        public int OriginalSrcBlend;
+        public int OriginalDstBlend;
+        public int OriginalZWrite;
+    }
+    private FuseMaterialState[] _fuseMaterialStates;
 
     private ElectricWire     _activeWire;
     private ElectricTerminal _activeColoredTerminal;
@@ -209,10 +252,21 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         else
             _cachedRenderingLayerMask = 1; // Default layer mask if nothing found.
 
-        if (_lampLight == null)
-            _lampLight = GetComponentInChildren<Light>(includeInactive: true);
         if (_lever == null)
             _lever = GetComponentInChildren<ElectricLever>(includeInactive: true);
+
+        if (_lampRenderer != null)
+        {
+            _lampMaterial = _lampRenderer.material; // auto-instantiates a unique clone
+            _lampMaterial.EnableKeyword("_EMISSION");
+        }
+
+        if (_fuseMesh != null && !_fuseInserted)
+        {
+            _fuseMesh.SetActive(false);
+            _fuseRenderers = _fuseMesh.GetComponentsInChildren<Renderer>(true);
+            CacheFuseMaterialStates();
+        }
 
         if (_wrongPullParticles != null)
             _wrongPullParticles.gameObject.SetActive(false);
@@ -255,18 +309,28 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (_fuseInserted)
         {
-            var fuseItem = FindAcceptedItemById(_fuseItemId);
-            SpawnFuseVisual(fuseItem);
+            ShowFuseMesh();
             if (_fuseAnchorCollider != null) _fuseAnchorCollider.enabled = false;
         }
 
         RefreshVisuals();
+
+        if (_isSolved)
+            StartSolvedLoop();
     }
 
     private void OnDestroy()
     {
         if (_lever != null)
             _lever.OnPulled -= HandleLeverPulled;
+
+        if (_fuseInsertRoutine != null)
+            StopCoroutine(_fuseInsertRoutine);
+
+        StopSolvedLoop();
+
+        if (_lampMaterial != null)
+            Destroy(_lampMaterial);
 
         SaveManager.Instance?.Unregister(this);
     }
@@ -277,6 +341,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         var mouse = Mouse.current;
         if (mouse == null) return;
+
+        // Ghost preview of the fuse at the anchor while dragging from inventory
+        UpdateFuseGhost(mouse.position.ReadValue());
 
         // RMB — cancel current drag without closing
         if (mouse.rightButton.wasPressedThisFrame)
@@ -296,6 +363,141 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         // LMB released while dragging → connect or destroy
         if (mouse.leftButton.wasReleasedThisFrame && _activeWire != null)
             HandleMouseRelease(mouse.position.ReadValue());
+    }
+
+    /// <summary>
+    /// Shows or hides the fuse mesh as a semi-transparent ghost preview at the anchor position
+    /// while the player drags an accepted fuse item from the PuzzleInventoryBar over the anchor.
+    /// </summary>
+    private void UpdateFuseGhost(Vector2 screenPos)
+    {
+        if (_fuseMesh == null || _fuseInserted || _fuseInsertRoutine != null)
+        {
+            if (_fuseGhostActive)
+                SetFuseGhost(false);
+            return;
+        }
+
+        bool isDraggingFuse = PuzzleInventoryBar.IsDragging
+                              && PuzzleInventoryBar.DraggedItem != null
+                              && _acceptedItems != null
+                              && Array.IndexOf(_acceptedItems, PuzzleInventoryBar.DraggedItem) >= 0;
+
+        if (!isDraggingFuse)
+        {
+            if (_fuseGhostActive)
+                SetFuseGhost(false);
+            return;
+        }
+
+        // Raycast to check if cursor is over the anchor collider
+        bool overAnchor = false;
+        if (Camera.main != null && _fuseAnchorCollider != null)
+        {
+            var ray = Camera.main.ScreenPointToRay(screenPos);
+            if (Physics.Raycast(ray, out RaycastHit hit, 50f, _terminalLayer, QueryTriggerInteraction.Collide))
+                overAnchor = hit.collider == _fuseAnchorCollider;
+        }
+
+        if (overAnchor)
+        {
+            _fuseMesh.transform.SetPositionAndRotation(
+                _fuseAnchorTransform.position, _fuseAnchorTransform.rotation);
+            SetFuseGhost(true);
+        }
+        else
+        {
+            SetFuseGhost(false);
+        }
+    }
+
+    /// <summary>
+    /// Caches the original material state of all fuse mesh renderers
+    /// so it can be perfectly restored after the ghost preview.
+    /// </summary>
+    private void CacheFuseMaterialStates()
+    {
+        if (_fuseRenderers == null) return;
+
+        var states = new System.Collections.Generic.List<FuseMaterialState>();
+
+        foreach (var rend in _fuseRenderers)
+        {
+            foreach (var mat in rend.materials)
+            {
+                if (mat == null) continue;
+
+                states.Add(new FuseMaterialState
+                {
+                    Material         = mat,
+                    OriginalAlpha    = mat.HasProperty("_BaseColor")     ? mat.GetColor("_BaseColor").a : 1f,
+                    OriginalSurface  = mat.HasProperty("_Surface")       ? mat.GetFloat("_Surface")      : 0f,
+                    OriginalBlend    = mat.HasProperty("_Blend")         ? mat.GetFloat("_Blend")        : 0f,
+                    OriginalSrcBlend = mat.HasProperty("_SrcBlend")      ? mat.GetInt("_SrcBlend")       : (int)UnityEngine.Rendering.BlendMode.One,
+                    OriginalDstBlend = mat.HasProperty("_DstBlend")      ? mat.GetInt("_DstBlend")       : (int)UnityEngine.Rendering.BlendMode.Zero,
+                    OriginalZWrite   = mat.HasProperty("_ZWrite")        ? mat.GetInt("_ZWrite")         : 1,
+                });
+            }
+        }
+
+        _fuseMaterialStates = states.ToArray();
+    }
+
+    /// <summary>Toggles the fuse mesh ghost state — semi-transparent when active, hidden when inactive.</summary>
+    private void SetFuseGhost(bool active)
+    {
+        if (_fuseMesh == null || _fuseGhostActive == active) return;
+
+        _fuseGhostActive = active;
+        _fuseMesh.SetActive(active);
+
+        if (_fuseRenderers == null) return;
+
+        if (active)
+        {
+            foreach (var rend in _fuseRenderers)
+                rend.enabled = true;
+
+            if (_fuseMaterialStates != null)
+            {
+                foreach (var s in _fuseMaterialStates)
+                {
+                    s.Material.SetFloat("_Surface", 1);
+                    s.Material.SetFloat("_Blend", 0);
+                    s.Material.SetOverrideTag("RenderType", "Transparent");
+                    s.Material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                    s.Material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    s.Material.SetInt("_ZWrite", 0);
+                    Color c = s.Material.GetColor("_BaseColor");
+                    c.a = Mathf.Min(_fuseGhostAlpha, s.OriginalAlpha);
+                    s.Material.SetColor("_BaseColor", c);
+                }
+            }
+        }
+    }
+
+    /// <summary>Restores fuse mesh renderers to their original material state after ghost preview.</summary>
+    private void RestoreFuseMaterials()
+    {
+        if (_fuseRenderers == null) return;
+
+        foreach (var rend in _fuseRenderers)
+            rend.enabled = true;
+
+        if (_fuseMaterialStates == null) return;
+
+        foreach (var s in _fuseMaterialStates)
+        {
+            s.Material.SetFloat("_Surface", s.OriginalSurface);
+            s.Material.SetFloat("_Blend", s.OriginalBlend);
+            s.Material.SetOverrideTag("RenderType", s.OriginalSurface < 0.5f ? "Opaque" : "Transparent");
+            s.Material.SetInt("_SrcBlend", s.OriginalSrcBlend);
+            s.Material.SetInt("_DstBlend", s.OriginalDstBlend);
+            s.Material.SetInt("_ZWrite", s.OriginalZWrite);
+            Color c = s.Material.GetColor("_BaseColor");
+            c.a = s.OriginalAlpha;
+            s.Material.SetColor("_BaseColor", c);
+        }
     }
 
     // ── PuzzleModeController event handlers ───────────────────────────────────
@@ -377,8 +579,16 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (!_wiresCorrect)
         {
+            PlaySFX(_wrongPullClip, _wrongPullVolume);
             PlayWrongPullParticles();
             ResetAllWires();
+        }
+        else
+        {
+            _isSolved = true;
+            UpdateLamp();
+            PlaySFX(_solvedClip, _solvedVolume);
+            StartSolvedLoop();
         }
 
         lever.Interact();
@@ -579,9 +789,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         if (_wiresCorrect)
         {
-            _isSolved = true;
             if (_solvedObject != null) _solvedObject.SetActive(true);
-            PlaySFX(_solvedClip, _solvedVolume);
             SaveManager.Instance?.Save();
 
             // Delegate exit to PuzzleModeController — consistent with all other puzzles.
@@ -589,7 +797,6 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         }
         else
         {
-            PlaySFX(_wrongPullClip, _wrongPullVolume);
             _lever?.Reset();
         }
     }
@@ -662,19 +869,14 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         UpdateLamp();
     }
 
-    /// <summary>Updates the indicator lamp based on the complete puzzle state.</summary>
+    /// <summary>Updates the lamp material color and emission based on the solved state.</summary>
     private void UpdateLamp()
     {
-        if (_lampLight == null) return;
+        if (_lampMaterial == null) return;
 
-        if (!_fuseInserted)
-        {
-            _lampLight.enabled = false;
-            return;
-        }
-
-        _lampLight.enabled = true;
-        _lampLight.color = (_isSolved || _wiresCorrect) ? _lampSolvedColor : _lampDefaultColor;
+        bool solved = _isSolved;
+        _lampMaterial.SetColor("_BaseColor",     solved ? _lampGreenColor     : _lampRedColor);
+        _lampMaterial.SetColor("_EmissionColor", solved ? _lampGreenEmission : _lampRedEmission);
     }
 
     // ── IPuzzleDropHandler ─────────────────────────────────────────────────────
@@ -682,7 +884,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     /// <summary>
     /// Accepts a fuse dragged from the PuzzleInventoryBar.
     /// Raycasts against the Safeguardanchor collider — drop is valid only when
-    /// the cursor lands on the anchor. The bar removes the item from inventory on true.
+    /// the cursor lands on the anchor. On success, starts the insertion animation.
     /// </summary>
     public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
@@ -698,12 +900,56 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (hit.collider != _fuseAnchorCollider) return false;
 
-        InsertFuse(item);
+        // End ghost state — restore full-opacity materials for the animation
+        SetFuseGhost(false);
+        _fuseGhostActive = false;
+        RestoreFuseMaterials();
+
+        _fuseInsertRoutine = StartCoroutine(AnimateFuseInsertion(item));
         return true;
     }
 
-    /// <summary>Applies fuse insertion: sets state, spawns visual, disables anchor, updates lamp.</summary>
-    private void InsertFuse(ItemData item)
+    /// <summary>
+    /// Animates the fuse mesh from an offset position to the anchor position,
+    /// plays the insertion sound, then finalizes the fuse state.
+    /// </summary>
+    private IEnumerator AnimateFuseInsertion(ItemData item)
+    {
+        if (_fuseMesh == null || _fuseAnchorTransform == null)
+        {
+            FinalizeFuseInsertion(item);
+            _fuseInsertRoutine = null;
+            yield break;
+        }
+
+        Vector3 startPos = _fuseAnchorTransform.TransformPoint(_fuseInsertStartOffset);
+        Vector3 endPos   = _fuseAnchorTransform.position;
+        Quaternion endRot = _fuseAnchorTransform.rotation;
+
+        _fuseMesh.transform.SetPositionAndRotation(startPos, endRot);
+        _fuseMesh.SetActive(true);
+
+        PlaySFX(_fuseInsertClip, _fuseInsertVolume);
+
+        float elapsed = 0f;
+        while (elapsed < _fuseInsertDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / _fuseInsertDuration;
+            // Ease-out for a smooth landing
+            t = 1f - (1f - t) * (1f - t);
+            _fuseMesh.transform.position = Vector3.Lerp(startPos, endPos, t);
+            yield return null;
+        }
+
+        _fuseMesh.transform.SetPositionAndRotation(endPos, endRot);
+
+        FinalizeFuseInsertion(item);
+        _fuseInsertRoutine = null;
+    }
+
+    /// <summary>Sets fuse state, disables anchor collider, updates lamp, saves.</summary>
+    private void FinalizeFuseInsertion(ItemData item)
     {
         _fuseInserted = true;
         _fuseItemId   = item.ItemId;
@@ -711,39 +957,20 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (_fuseAnchorCollider != null)
             _fuseAnchorCollider.enabled = false;
 
-        SpawnFuseVisual(item);
-        PlaySFX(_fuseInsertClip, _fuseInsertVolume);
         UpdateLamp();
         SaveManager.Instance?.Save();
     }
 
-    /// <summary>
-    /// Instantiates the fuse prefab at the anchor transform.
-    /// Uses <see cref="_fusePrefab"/> if assigned, otherwise falls back to item.inspectionPrefab.
-    /// </summary>
-    private void SpawnFuseVisual(ItemData item)
+    /// <summary>Shows the fuse mesh at the anchor position without animation (used on save/load).</summary>
+    private void ShowFuseMesh()
     {
-        var prefab = _fusePrefab != null ? _fusePrefab : item?.inspectionPrefab;
-        if (prefab == null || _fuseAnchorTransform == null) return;
+        if (_fuseMesh == null || _fuseAnchorTransform == null) return;
 
-        if (_fuseInstance != null)
-            Destroy(_fuseInstance);
-
-        _fuseInstance = Instantiate(
-            prefab,
-            _fuseAnchorTransform.position,
-            _fuseAnchorTransform.rotation,
-            _fuseAnchorTransform
-        );
-    }
-
-    /// <summary>Finds an ItemData in _acceptedItems by its stable ItemId (used after save/load).</summary>
-    private ItemData FindAcceptedItemById(string id)
-    {
-        if (string.IsNullOrEmpty(id) || _acceptedItems == null) return null;
-        foreach (var it in _acceptedItems)
-            if (it != null && it.ItemId == id) return it;
-        return null;
+        _fuseMesh.transform.SetPositionAndRotation(
+            _fuseAnchorTransform.position, _fuseAnchorTransform.rotation);
+        _fuseGhostActive = false;
+        RestoreFuseMaterials();
+        _fuseMesh.SetActive(true);
     }
 
     // ── Save restore ──────────────────────────────────────────────────────────
@@ -796,5 +1023,34 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         if (clip != null)
             AudioManager.Instance?.PlaySFX(clip, volume);
+    }
+
+    /// <summary>Starts the looping solved ambient sound and registers it with AudioManager for mute tracking.</summary>
+    private void StartSolvedLoop()
+    {
+        if (_solvedLoopSource == null) return;
+
+        // Force 3D settings in code — bypasses prefab override quirks where
+        // spatialBlend or rolloff curve may not apply correctly at runtime.
+        _solvedLoopSource.spatialBlend      = 1f;
+        _solvedLoopSource.rolloffMode       = AudioRolloffMode.Linear;
+        _solvedLoopSource.minDistance       = _solvedLoopMinDistance;
+        _solvedLoopSource.maxDistance       = _solvedLoopMaxDistance;
+        _solvedLoopSource.dopplerLevel      = 0f;
+        _solvedLoopSource.reverbZoneMix     = 0f;
+        _solvedLoopSource.bypassReverbZones = true;
+        _solvedLoopSource.spread            = 0f;
+
+        _solvedLoopSource.enabled = true;
+        _solvedLoopSource.Play();
+        AudioManager.Instance?.RegisterLoopSource(_solvedLoopSource, _solvedLoopVolume);
+    }
+
+    /// <summary>Stops the looping solved ambient sound and unregisters it from AudioManager.</summary>
+    private void StopSolvedLoop()
+    {
+        if (_solvedLoopSource == null) return;
+        AudioManager.Instance?.UnregisterLoopSource(_solvedLoopSource);
+        _solvedLoopSource.enabled = false;
     }
 }

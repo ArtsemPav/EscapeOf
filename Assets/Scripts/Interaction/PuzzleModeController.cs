@@ -28,6 +28,16 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     [Tooltip("If true, the PuzzleInventoryBar will be shown when entering puzzle mode.")]
     [SerializeField] private bool _showInventoryBar = false;
 
+    [Header("Flashlight")]
+    [Tooltip("If true, the flashlight is forced off while in puzzle mode and cannot be toggled. " +
+             "Original state is restored on exit.")]
+    [SerializeField] private bool _disableFlashlightInPuzzle = true;
+
+    [Tooltip("Lights activated during puzzle mode to compensate for the disabled flashlight. " +
+             "Only activated if the flashlight was on when entering the puzzle. " +
+             "Deactivated on exit.")]
+    [SerializeField] private Light[] _flashlightSupportLights;
+
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
     [SerializeField] private UnityEvent OnPuzzleModeEntered;
@@ -60,6 +70,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private LensDistortion _lensDistortion;
     private bool           _wasLensDistortionActive;
+
+    private bool _flashlightWasOn;
+    private bool _flashlightStateSaved;
 
     // High enough to override any player camera (PlayerCamera uses 1000).
     private const int PuzzleCameraPriority = 2000;
@@ -148,6 +161,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (_brain != null)
             _originalBlendTime = _brain.DefaultBlend.Time;
 
+        // Ensure support lights are off until the puzzle is entered with flashlight on.
+        SetSupportLightsEnabled(false);
+
         SaveManager.Instance?.Register(this);
     }
 
@@ -222,6 +238,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
             UI.PuzzleCursor.Instance.Show();
         }
 
+        // Force flashlight off and lock it while in puzzle mode.
+        DisableFlashlight();
+
         if (_showInventoryBar)
         {
             var handler = GetComponentInChildren<IPuzzleDropHandler>();
@@ -275,6 +294,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         {
             UI.PuzzleCursor.Instance.Hide();
         }
+
+        // Restore flashlight to its pre-puzzle state.
+        RestoreFlashlight();
 
         if (_showInventoryBar)
         {
@@ -387,6 +409,64 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
             _lensDistortion.active = true;
             _lensDistortion = null;
             _wasLensDistortionActive = false;
+        }
+    }
+
+    // ── Flashlight ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Saves the current flashlight state, forces it off, and locks toggling.
+    /// Does nothing if _disableFlashlightInPuzzle is false or no FlashlightController exists.
+    /// </summary>
+    private void DisableFlashlight()
+    {
+        if (!_disableFlashlightInPuzzle) return;
+
+        var fc = FlashlightController.Instance;
+        if (fc == null) return;
+
+        _flashlightWasOn    = fc.IsOn;
+        _flashlightStateSaved = true;
+
+        if (fc.IsOn)
+        {
+            fc.ForceOff();
+            // Compensate for the lost flashlight with support lights.
+            SetSupportLightsEnabled(true);
+        }
+
+        fc.IsLocked = true;
+    }
+
+    /// <summary>
+    /// Unlocks the flashlight and restores it to the state it had before entering puzzle mode.
+    /// </summary>
+    private void RestoreFlashlight()
+    {
+        if (!_disableFlashlightInPuzzle) return;
+
+        var fc = FlashlightController.Instance;
+        if (fc == null) return;
+
+        fc.IsLocked = false;
+
+        if (_flashlightStateSaved && _flashlightWasOn)
+            fc.ForceOn();
+
+        _flashlightStateSaved = false;
+
+        SetSupportLightsEnabled(false);
+    }
+
+    /// <summary>Enables or disables all flashlight support lights.</summary>
+    private void SetSupportLightsEnabled(bool enabled)
+    {
+        if (_flashlightSupportLights == null) return;
+
+        foreach (var light in _flashlightSupportLights)
+        {
+            if (light != null)
+                light.enabled = enabled;
         }
     }
 }

@@ -119,6 +119,28 @@ public class AudioManager : MonoBehaviour {
         return source;
     }
 
+    /// <summary>
+    /// Registers an existing AudioSource in the mute-tracking system so it is
+    /// automatically faded with MuteBackground / UnmuteBackground.
+    /// Use this when the AudioSource is placed directly in a prefab (not created by Play3DLoop).
+    /// The source must already be configured (clip, loop, 3D settings) and will start playing immediately.
+    /// </summary>
+    public void RegisterLoopSource(AudioSource source, float volume) {
+        if (source == null) return;
+        source.volume = _backgroundMuted ? 0f : volume;
+        _trackedLoops.Add(new TrackedLoop { source = source, originalVolume = volume });
+    }
+
+    /// <summary>
+    /// Unregisters a previously registered AudioSource from the mute-tracking system
+    /// and stops playback. Safe to call if the source was never registered.
+    /// </summary>
+    public void UnregisterLoopSource(AudioSource source) {
+        if (source == null) return;
+        _trackedLoops.RemoveAll(l => l.source == source);
+        source.Stop();
+    }
+
     // ── Background layer API ───────────────────────────────────────────────────
 
     /// <summary>
