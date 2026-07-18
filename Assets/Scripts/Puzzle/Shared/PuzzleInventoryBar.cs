@@ -334,7 +334,9 @@ public class PuzzleInventoryBar : MonoBehaviour
 
         // No recipe match → swap slot positions.
         // Works even when the target slot is empty — effectively moves the item.
-        InventorySystem.Instance?.SwapSlots(source.SlotIndex, target.SlotIndex);
+        // Reserved slots (waiting for a device result) are rejected by SwapSlots.
+        if (!InventorySystem.Instance.SwapSlots(source.SlotIndex, target.SlotIndex))
+            PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
     }
 
     /// <summary>

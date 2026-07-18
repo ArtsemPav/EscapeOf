@@ -270,14 +270,19 @@ public class InventorySystem : MonoBehaviour, ISaveable
     /// <summary>
     /// Swaps items between two slot indices.
     /// Works with empty slots — effectively moves an item to an empty slot.
+    /// Does NOT swap when either slot is reserved — reserved slots are waiting
+    /// for a device result and must not be claimed by a manual swap.
+    /// Returns true when the swap was performed, false when it was blocked.
     /// </summary>
-    public void SwapSlots(int slotA, int slotB)
+    public bool SwapSlots(int slotA, int slotB)
     {
-        if (slotA < 0 || slotB < 0 || slotA >= _slots.Length || slotB >= _slots.Length) return;
-        if (slotA == slotB) return;
+        if (slotA < 0 || slotB < 0 || slotA >= _slots.Length || slotB >= _slots.Length) return false;
+        if (slotA == slotB) return false;
+        if (_reservedSlots.Contains(slotA) || _reservedSlots.Contains(slotB)) return false;
 
         (_slots[slotA], _slots[slotB]) = (_slots[slotB], _slots[slotA]);
         OnInventoryChanged?.Invoke();
+        return true;
     }
 
     /// <summary>

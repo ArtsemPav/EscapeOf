@@ -1088,8 +1088,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                     // Skip preview if the item is already empty — just discard it silently.
                     if (item != _amptyColba && _amptyColba != null)
                     {
-                        // Trash result (empty flask) has no origin slot — goes to first free.
-                        _pendingResults.Enqueue(new PendingResult { item = _amptyColba, originSlot = -1 });
+                        // Return the empty flask to the same slot the dragged item came from.
+                        // PlaceItemAt will release the reservation that ClearSlot set.
+                        _pendingResults.Enqueue(new PendingResult { item = _amptyColba, originSlot = originSlot });
                         TryShowNextResult();
                     }
                     // Consume the dragged item — no replacement returned.
