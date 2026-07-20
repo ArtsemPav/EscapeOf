@@ -81,10 +81,17 @@ public class NurseryLockController : MonoBehaviour,
     private bool _isLockpickInserted;
     private bool _isProcessing;
 
+    /// <summary>True пока отмычка должна быть видна (фазы Inserting/LockPickIdle/мини-игра).
+    /// LateUpdate принудительно активирует GameObject и MeshRenderer, перебивая Idle.anim.</summary>
+    private bool _forceLockpickVisible;
+
     private PuzzleModeController _puzzleMode;
     private Material _runtimeGhostMaterial;
     private Material[] _lockpickOriginalMaterials;
     private bool _ghostVisible;
+
+    // Separate ghost object — cloned from lockpick mesh, not controlled by Animator
+    private GameObject _ghostObject;
 
     // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -124,7 +131,8 @@ public class NurseryLockController : MonoBehaviour,
         _puzzleMode = GetComponent<PuzzleModeController>();
         AutoResolveReferences();
 
-        // Скрываем 3D-модель отмычки до дропа
+        // Скрываем 3D-модель отмычки до дропа — Animator (Idle.anim) управляет этим,
+        // но на всякий случай выключаем и в коде
         if (_lockpickRenderer != null)
         {
             _lockpickOriginalMaterials = _lockpickRenderer.sharedMaterials;
@@ -178,6 +186,10 @@ public class NurseryLockController : MonoBehaviour,
         if (_minigame != null)
             _minigame.OnCompleted -= HandleMinigameCompleted;
 
+        // Уничтожаем ghost-объект если создали
+        if (_ghostObject != null)
+            Destroy(_ghostObject);
+
         SaveManager.Instance?.Unregister(this);
     }
 
@@ -189,18 +201,28 @@ public class NurseryLockController : MonoBehaviour,
             return;
         }
 
-        // Ghost-превью отмычки при перетаскивании
+        // Ghost-превью отмычки: видно на протяжении всего перетаскивания
         if (PuzzleInventoryBar.IsDragging && PuzzleInventoryBar.DraggedItem == _requiredItem)
         {
-            bool hovering = IsMouseOverLock();
-            if (hovering && !_ghostVisible)
+            if (!_ghostVisible)
                 SetGhostVisible(true);
-            else if (!hovering && _ghostVisible)
-                SetGhostVisible(false);
         }
         else if (_ghostVisible)
         {
             SetGhostVisible(false);
+        }
+    }
+
+    private void LateUpdate()
+    {
+        // Animator в Idle-стейте пишет m_IsActive=0 на LockPick/Lockpick каждый кадр.
+        // Inserting.anim и LockPickIdle.anim не содержат кривой m_IsActive,
+        // поэтому Animator оставляет последнее значение из Idle (false).
+        // LateUpdate выполняется после Animator.Update — перебиваем значение здесь.
+        if (_forceLockpickVisible && _lockpickRenderer != null)
+        {
+            _lockpickRenderer.gameObject.SetActive(true);
+            _lockpickRenderer.enabled = true;
         }
     }
 
@@ -298,6 +320,7 @@ public class NurseryLockController : MonoBehaviour,
         {
             // Отмычка уже вставлена (после загрузки) — сразу в мини-игру
             _isProcessing = true;
+            _forceLockpickVisible = true;
             PuzzleInventoryBar.Instance?.Hide();
             StartCoroutine(StartMinigameAfterFrame());
         }
@@ -305,6 +328,9 @@ public class NurseryLockController : MonoBehaviour,
 
     private void HandlePuzzleExited()
     {
+        // Перестаём принудительно держать отмычку видимой
+        _forceLockpickVisible = false;
+
         if (_minigame != null)
             _minigame.StopMinigame();
 
@@ -319,13 +345,17 @@ public class NurseryLockController : MonoBehaviour,
 
     private IEnumerator InsertSequence()
     {
-        // Включаем 3D-модель отмычки с оригинальными материалами
-        if (_lockpickRenderer != null)
-        {
-            _lockpickRenderer.enabled = true;
-            if (_lockpickOriginalMaterials != null)
-                _lockpickRenderer.sharedMaterials = _lockpickOriginalMaterials;
-        }
+        // Скрываем ghost перед началом анимации
+        SetGhostVisible(false);
+
+        // Возвращаем оригинальные материалы на отмычку (на случай если ghost их менял)
+        if (_lockpickRenderer != null && _lockpickOriginalMaterials != null)
+            _lockpickRenderer.sharedMaterials = _lockpickOriginalMaterials;
+
+        // Принудительно держим отмычку видимой — Idle.anim пишет m_IsActive=0,
+        // а Inserting.anim/LockPickIdle.anim не содержат кривой m_IsActive.
+        // LateUpdate будет активировать GameObject и renderer каждый кадр.
+        _forceLockpickVisible = true;
 
         AudioManager.Instance?.PlaySFX(_insertClip, _insertVolume);
 
@@ -375,6 +405,10 @@ public class NurseryLockController : MonoBehaviour,
 
     private IEnumerator OpeningSequence()
     {
+        // Перестаём принудительно держать отмычку видимой —
+        // opening.anim сама управляет m_IsActive (1 → 0 на t=1.283)
+        _forceLockpickVisible = false;
+
         if (_minigame != null)
             _minigame.StopMinigame();
 
@@ -425,6 +459,8 @@ public class NurseryLockController : MonoBehaviour,
 
     private void RestoreSolvedState()
     {
+        _forceLockpickVisible = false;
+
         // Перематываем аниматор в конец opening
         if (_lockAnimator != null)
         {
@@ -477,31 +513,47 @@ public class NurseryLockController : MonoBehaviour,
     private void SetGhostVisible(bool visible)
     {
         _ghostVisible = visible;
-        if (_lockpickRenderer == null) return;
 
         if (visible)
         {
-            _lockpickRenderer.enabled = true;
+            if (_ghostObject == null)
+                CreateGhostObject();
 
-            if (_runtimeGhostMaterial != null && _lockpickOriginalMaterials != null)
-            {
-                var ghostMats = new Material[_lockpickOriginalMaterials.Length];
-                for (int i = 0; i < ghostMats.Length; i++)
-                    ghostMats[i] = _runtimeGhostMaterial;
-                _lockpickRenderer.sharedMaterials = ghostMats;
-            }
+            if (_ghostObject != null)
+                _ghostObject.SetActive(true);
         }
         else
         {
-            if (!_isProcessing && !_isLockpickInserted)
-            {
-                _lockpickRenderer.enabled = false;
-            }
-            else if (_lockpickOriginalMaterials != null)
-            {
-                _lockpickRenderer.sharedMaterials = _lockpickOriginalMaterials;
-            }
+            if (_ghostObject != null)
+                _ghostObject.SetActive(false);
         }
+    }
+
+    /// <summary>Создаёт копию 3D-модели отмычки для ghost-превью. Отдельный объект — Animator не может его выключить.</summary>
+    private void CreateGhostObject()
+    {
+        if (_lockpickRenderer == null) return;
+
+        // Клонируем GameObject отмычки
+        _ghostObject = Instantiate(_lockpickRenderer.gameObject, _lockpickRenderer.transform.parent);
+        _ghostObject.name = "LockpickGhost";
+
+        // Убираем лишные компоненты которые не нужны для ghost
+        foreach (var col in _ghostObject.GetComponents<Collider>())
+            Destroy(col);
+
+        // Назначаем ghost-материалы
+        var ghostRenderer = _ghostObject.GetComponent<MeshRenderer>();
+        if (ghostRenderer != null && _runtimeGhostMaterial != null)
+        {
+            var mats = new Material[ghostRenderer.sharedMaterials.Length];
+            for (int i = 0; i < mats.Length; i++)
+                mats[i] = _runtimeGhostMaterial;
+            ghostRenderer.sharedMaterials = mats;
+            ghostRenderer.enabled = true;
+        }
+
+        _ghostObject.SetActive(false);
     }
 
     // ── Raycast ─────────────────────────────────────────────────────────────────

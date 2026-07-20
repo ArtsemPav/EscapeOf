@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -70,6 +71,16 @@ public class LockPickMinigame : MonoBehaviour
     [SerializeField] private AudioClip _completeClip;
     [SerializeField, Range(0f, 1f)] private float _volume = 1f;
 
+    [Header("Miss Feedback")]
+    [Tooltip("Длительность визуальной реакции на промах в секундах.")]
+    [SerializeField] private float _missFlashDuration = 0.5f;
+
+    [Tooltip("Во сколько раз увеличивается кольцо при промахе.")]
+    [SerializeField] private float _missScaleMultiplier = 1.15f;
+
+    [Tooltip("Цвет кольца при промахе.")]
+    [SerializeField] private Color _missColor = new Color(1f, 0.15f, 0.15f, 0.9f);
+
     // ── Events ──────────────────────────────────────────────────────────────────
 
     /// <summary>Срабатывает когда все кольца заблокированы.</summary>
@@ -118,6 +129,7 @@ public class LockPickMinigame : MonoBehaviour
 
         _activeIndex = 0;
         _isRunning = true;
+        StopAllCoroutines();
         UpdateActiveHighlight();
     }
 
@@ -125,6 +137,7 @@ public class LockPickMinigame : MonoBehaviour
     public void StopMinigame()
     {
         _isRunning = false;
+        StopAllCoroutines();
     }
 
     /// <summary>True пока мини-игра активна.</summary>
@@ -209,6 +222,7 @@ public class LockPickMinigame : MonoBehaviour
             // Промах
             AudioManager.Instance?.PlaySFX(_failClip, _volume);
             OnRingMissed?.Invoke(idx);
+            StartCoroutine(FlashMissCoroutine(idx));
 
             if (idx > 0)
             {
@@ -245,6 +259,57 @@ public class LockPickMinigame : MonoBehaviour
                 ? new Color(1f, 0.3f, 0.3f, 1f)
                 : _ringConfigs[i].notchColor;
         }
+    }
+
+    // ── Miss Feedback ───────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Визуальная реакция кольца на промах: увеличивается и краснеет,
+    /// затем плавно возвращается к исходному размеру и цвету.
+    /// </summary>
+    private IEnumerator FlashMissCoroutine(int idx)
+    {
+        if (_ringTransforms == null || idx >= _ringTransforms.Length || _ringTransforms[idx] == null)
+            yield break;
+
+        RectTransform ringTransform = _ringTransforms[idx];
+        Image ringImage = (_ringImages != null && idx < _ringImages.Length) ? _ringImages[idx] : null;
+
+        Color baseColor = ringImage != null ? ringImage.color : Color.white;
+        Vector3 baseScale = ringTransform.localScale;
+        Vector3 peakScale = baseScale * _missScaleMultiplier;
+
+        const float PeakFraction = 0.3f;
+        float elapsed = 0f;
+
+        while (elapsed < _missFlashDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / _missFlashDuration);
+
+            if (t < PeakFraction)
+            {
+                // Фаза 1: нарастание — краснеем и увеличиваемся
+                float p = t / PeakFraction;
+                if (ringImage != null)
+                    ringImage.color = Color.Lerp(baseColor, _missColor, p);
+                ringTransform.localScale = Vector3.Lerp(baseScale, peakScale, p);
+            }
+            else
+            {
+                // Фаза 2: затухание — возвращаемся к норме
+                float p = (t - PeakFraction) / (1f - PeakFraction);
+                if (ringImage != null)
+                    ringImage.color = Color.Lerp(_missColor, baseColor, p);
+                ringTransform.localScale = Vector3.Lerp(peakScale, baseScale, p);
+            }
+
+            yield return null;
+        }
+
+        // Гарантированно возвращаем исходные значения
+        ringTransform.localScale = baseScale;
+        ApplyRingVisual(idx);
     }
 
     // ── Auto-create UI ──────────────────────────────────────────────────────────
