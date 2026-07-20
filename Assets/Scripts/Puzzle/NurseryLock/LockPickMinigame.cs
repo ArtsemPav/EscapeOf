@@ -81,6 +81,16 @@ public class LockPickMinigame : MonoBehaviour
     [Tooltip("Цвет кольца при промахе.")]
     [SerializeField] private Color _missColor = new Color(1f, 0.15f, 0.15f, 0.9f);
 
+    [Header("Appearance / Completion Animation")]
+    [Tooltip("Длительность масштабирования одного кольца при появлении/исчезновении.")]
+    [SerializeField] private float _ringAnimDuration = 0.35f;
+
+    [Tooltip("Задержка между появлением соседних колец (веерный эффект).")]
+    [SerializeField] private float _ringStaggerDelay = 0.12f;
+
+    [Tooltip("Кривая плавности для анимации колец.")]
+    [SerializeField] private AnimationCurve _ringAnimCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
     // ── Events ──────────────────────────────────────────────────────────────────
 
     /// <summary>Срабатывает когда все кольца заблокированы.</summary>
@@ -95,6 +105,7 @@ public class LockPickMinigame : MonoBehaviour
     // ── State ───────────────────────────────────────────────────────────────────
 
     private bool _isRunning;
+    private bool _isAnimating; // блокирует ввод во время веерных анимаций
     private int _activeIndex;
     private float[] _angles;
     private bool[] _locked;
@@ -108,7 +119,7 @@ public class LockPickMinigame : MonoBehaviour
 
     // ── Public API ──────────────────────────────────────────────────────────────
 
-    /// <summary>Запускает мини-игру: сбрасывает прогресс, случайные углы, начинает вращение.</summary>
+    /// <summary>Запускает мини-игру: сбрасывает прогресс, случайные углы, веерное появление колец.</summary>
     public void StartMinigame()
     {
         EnsureVisuals();
@@ -130,13 +141,14 @@ public class LockPickMinigame : MonoBehaviour
         _activeIndex = 0;
         _isRunning = true;
         StopAllCoroutines();
-        UpdateActiveHighlight();
+        StartCoroutine(AnimateAppearance());
     }
 
     /// <summary>Останавливает мини-игру без вызова OnCompleted.</summary>
     public void StopMinigame()
     {
         _isRunning = false;
+        _isAnimating = false;
         StopAllCoroutines();
     }
 
@@ -152,7 +164,7 @@ public class LockPickMinigame : MonoBehaviour
 
     private void Update()
     {
-        if (!_isRunning) return;
+        if (!_isRunning || _isAnimating) return;
 
         RotateRings();
 
@@ -208,10 +220,11 @@ public class LockPickMinigame : MonoBehaviour
 
             if (_activeIndex >= _ringConfigs.Length)
             {
-                // Все кольца заблокированы — победа
+                // Все кольца заблокированы — запуск веерного сжатия
                 _isRunning = false;
+                _isAnimating = true;
                 AudioManager.Instance?.PlaySFX(_completeClip, _volume);
-                OnCompleted?.Invoke();
+                StartCoroutine(AnimateCompletion());
                 return;
             }
 
@@ -259,6 +272,115 @@ public class LockPickMinigame : MonoBehaviour
                 ? new Color(1f, 0.3f, 0.3f, 1f)
                 : _ringConfigs[i].notchColor;
         }
+    }
+
+    // ── Fan Animations ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Веерное появление колец: каждое кольцо вырастает из scale 0 → 1
+    /// с задержкой _ringStaggerDelay между соседними. Стрелка-ориентир
+    /// появляется последней. По завершении включает подсветку и разблокирует ввод.
+    /// </summary>
+    private IEnumerator AnimateAppearance()
+    {
+        _isAnimating = true;
+
+        int count = _ringConfigs.Length;
+
+        // Все кольца и стрелка — в scale 0
+        for (int i = 0; i < count; i++)
+        {
+            if (_ringTransforms != null && i < _ringTransforms.Length && _ringTransforms[i] != null)
+                _ringTransforms[i].localScale = Vector3.zero;
+        }
+        if (_pointerImage != null)
+            _pointerImage.rectTransform.localScale = Vector3.zero;
+
+        // Веерный рост: от внешнего (index 0) к внутреннему
+        for (int i = 0; i < count; i++)
+        {
+            StartCoroutine(ScaleRingCoroutine(i, Vector3.zero, Vector3.one, _ringAnimDuration));
+            yield return new WaitForSecondsRealtime(_ringStaggerDelay);
+        }
+
+        // Стрелка-ориентир появляется после всех колец
+        if (_pointerImage != null)
+            StartCoroutine(ScaleTransformCoroutine(_pointerImage.rectTransform, Vector3.zero, Vector3.one, _ringAnimDuration));
+
+        // Ждём завершения последней корутины
+        yield return new WaitForSecondsRealtime(_ringAnimDuration);
+
+        _isAnimating = false;
+        UpdateActiveHighlight();
+    }
+
+    /// <summary>
+    /// Веерное сжатие колец к центру: каждое кольцо сжимается scale 1 → 0
+    /// с задержкой _ringStaggerDelay. Стрелка исчезает первой.
+    /// По завершении вызывает OnCompleted — контроллер запускает открытие замка.
+    /// </summary>
+    private IEnumerator AnimateCompletion()
+    {
+        _isAnimating = true;
+
+        // Стрелка-ориентир исчезает первой
+        if (_pointerImage != null)
+            StartCoroutine(ScaleTransformCoroutine(_pointerImage.rectTransform, Vector3.one, Vector3.zero, _ringAnimDuration));
+
+        yield return new WaitForSecondsRealtime(_ringStaggerDelay);
+
+        int count = _ringConfigs.Length;
+
+        // Веерное сжатие: от внешнего (index 0) к внутреннему
+        for (int i = 0; i < count; i++)
+        {
+            StartCoroutine(ScaleRingCoroutine(i, Vector3.one, Vector3.zero, _ringAnimDuration));
+            yield return new WaitForSecondsRealtime(_ringStaggerDelay);
+        }
+
+        // Ждём завершения последней корутины
+        yield return new WaitForSecondsRealtime(_ringAnimDuration);
+
+        _isAnimating = false;
+        OnCompleted?.Invoke();
+    }
+
+    /// <summary>Анимирует масштаб одного кольца по кривой.</summary>
+    private IEnumerator ScaleRingCoroutine(int idx, Vector3 from, Vector3 to, float duration)
+    {
+        if (_ringTransforms == null || idx >= _ringTransforms.Length || _ringTransforms[idx] == null)
+            yield break;
+
+        RectTransform rt = _ringTransforms[idx];
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            rt.localScale = Vector3.LerpUnclamped(from, to, _ringAnimCurve.Evaluate(t));
+            yield return null;
+        }
+
+        rt.localScale = to;
+    }
+
+    /// <summary>Анимирует масштаб произвольного RectTransform по кривой.</summary>
+    private IEnumerator ScaleTransformCoroutine(RectTransform rt, Vector3 from, Vector3 to, float duration)
+    {
+        if (rt == null) yield break;
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            rt.localScale = Vector3.LerpUnclamped(from, to, _ringAnimCurve.Evaluate(t));
+            yield return null;
+        }
+
+        rt.localScale = to;
     }
 
     // ── Miss Feedback ───────────────────────────────────────────────────────────

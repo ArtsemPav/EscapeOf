@@ -5074,7 +5074,7 @@ MonoBehaviour:
   _gameMusicSource: {fileID: 1310427690}
   _sfxSource: {fileID: 1798465259}
   _menuMusic: {fileID: 8300000, guid: 26c00aedca8c9fe4090216fafe370fec, type: 3}
-  _gameMusic: {fileID: 8300000, guid: 0ffe688c88e5a7a40a32ed18bac478aa, type: 3}
+  _gameMusic: {fileID: 8300000, guid: 7b3dac6c0de6969488e2491a81f89775, type: 3}
   _backMusicVolume: 0.4
   _fadeDuration: 1
 --- !u!4 &528834514
@@ -10621,32 +10621,61 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LockPickMinigame
   _ringConfigs:
-  - speed: 200
+  - speed: 250
     clockwise: 1
     ringColor: {r: 0.3, g: 0.6, b: 1, a: 0.8}
     notchColor: {r: 1, g: 0.85, b: 0.2, a: 1}
     lockedColor: {r: 0.2, g: 0.8, b: 0.25, a: 0.8}
-  - speed: 250
+  - speed: 350
     clockwise: 0
     ringColor: {r: 0.8, g: 0.4, b: 0.9, a: 0.8}
     notchColor: {r: 1, g: 0.85, b: 0.2, a: 1}
     lockedColor: {r: 0.2, g: 0.8, b: 0.25, a: 0.8}
-  - speed: 160
+  - speed: 450
     clockwise: 1
     ringColor: {r: 1, g: 0.5, b: 0.3, a: 0.8}
     notchColor: {r: 1, g: 0.85, b: 0.2, a: 1}
     lockedColor: {r: 0.2, g: 0.8, b: 0.25, a: 0.8}
-  _tolerance: 8
+  _tolerance: 12
   _containerSize: 400
   _ringContainer: {fileID: 0}
   _ringTransforms: []
   _notchImages: []
   _pointerImage: {fileID: 0}
   _ringImages: []
-  _successClip: {fileID: 0}
-  _failClip: {fileID: 0}
-  _completeClip: {fileID: 0}
+  _successClip: {fileID: 8300000, guid: f9ce9d71e4283be499ae1001b490dd5c, type: 3}
+  _failClip: {fileID: 8300000, guid: c7294f84f18d3e64287ada470124f791, type: 3}
+  _completeClip: {fileID: 8300000, guid: 592112affc9ae03428097902206e5598, type: 3}
   _volume: 1
+  _missFlashDuration: 0.5
+  _missScaleMultiplier: 1.15
+  _missColor: {r: 1, g: 0.15, b: 0.15, a: 0.9}
+  _ringAnimDuration: 0.35
+  _ringStaggerDelay: 0.12
+  _ringAnimCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1759818075
 GameObject:
   m_ObjectHideFlags: 0
@@ -10847,10 +10876,46 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -4.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5.84
+      objectReference: {fileID: 0}
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3091232052185801965, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 180
+      objectReference: {fileID: 0}
     - target: {fileID: 4684162235636782177, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: _minigame
       value: 
       objectReference: {fileID: 1743554530}
+    - target: {fileID: 4684162235636782177, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _openClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 177cb74cea9ad9e46a4d5adc41888b2f, type: 3}
+    - target: {fileID: 4684162235636782177, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _insertClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 87653424d60e87b4ba1b629a93c4b07c, type: 3}
     - target: {fileID: 4684162235636782177, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: _minigamePanel
       value: 
