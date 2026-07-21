@@ -7,9 +7,11 @@ using Random = UnityEngine.Random;
 
 /// <summary>
 /// 2D-мини-игра "Взлом замка концентрическими кольцами".
-/// 3 кольца вращаются с разной скоростью. Игрок нажимает Space или ЛКМ,
-/// чтобы остановить активное кольцо когда его засечка совпадает с ориентиром вверху.
-/// Промах — откат на 1 кольцо назад. Все 3 заблокированы — победа.
+/// Внешнее кольцо (gearMain) статично и содержит стрелку-ориентир.
+/// N вращающихся колец со встроенными засечками. Игрок нажимает Space или ЛКМ,
+/// чтобы остановить активное кольцо когда его засечка совпадает со стрелкой.
+/// Промах — откат на 1 кольцо назад. Все заблокированы — победа.
+/// Декоративные шестерёнки по бокам вращаются для атмосферы.
 /// </summary>
 public class LockPickMinigame : MonoBehaviour
 {
@@ -24,22 +26,62 @@ public class LockPickMinigame : MonoBehaviour
         [Tooltip("Направление: true — по часовой, false — против часовой.")]
         public bool clockwise;
 
-        [Tooltip("Цвет кольца.")]
-        public Color ringColor;
+        [Tooltip("Спрайт кольца с засечкой в верхней части.")]
+        public Sprite sprite;
 
-        [Tooltip("Цвет засечки (нотча).")]
-        public Color notchColor;
+        [Tooltip("Размер кольца относительно контейнера (0–2).")]
+        [Range(0.05f, 2f)] public float relativeSize;
 
-        [Tooltip("Цвет кольца после успешной блокировки.")]
+        [Tooltip("Цветовой тинт кольца после успешной блокировки. White = нет тинта.")]
         public Color lockedColor;
     }
+
+    [Serializable]
+    public struct DecorGearConfig
+    {
+        [Tooltip("Спрайт декоративной шестерёнки.")]
+        public Sprite sprite;
+
+        [Tooltip("Скорость вращения в градусах в секунду.")]
+        public float speed;
+
+        [Tooltip("Направление: true — по часовой, false — против часовой.")]
+        public bool clockwise;
+
+        [Tooltip("Позиция относительно центра контейнера (пиксели).")]
+        public Vector2 anchoredPosition;
+
+        [Tooltip("Размер относительно контейнера (0–2).")]
+        [Range(0.05f, 2f)] public float relativeSize;
+    }
+
+    [Header("Static Sprites")]
+    [Tooltip("Внешнее статичное кольцо со стрелкой-ориентиром.")]
+    [SerializeField] private Sprite _gearMainSprite;
+
+    [Tooltip("Центральный статичный элемент.")]
+    [SerializeField] private Sprite _centerSprite;
+
+    [Tooltip("Размер внешнего кольца относительно контейнера.")]
+    [SerializeField, Range(0.05f, 2f)] private float _gearMainSize = 0.95f;
+
+    [Tooltip("Размер центрального элемента относительно контейнера.")]
+    [SerializeField, Range(0.05f, 1f)] private float _centerSize = 0.18f;
 
     [Header("Ring Configuration")]
     [SerializeField] private RingConfig[] _ringConfigs = new RingConfig[3]
     {
-        new RingConfig { speed = 80f,  clockwise = true,  ringColor = new Color(0.3f, 0.6f, 1f,  0.8f), notchColor = new Color(1f, 0.85f, 0.2f, 1f), lockedColor = new Color(0.2f, 0.8f, 0.25f, 0.8f) },
-        new RingConfig { speed = 110f, clockwise = false, ringColor = new Color(0.8f, 0.4f, 0.9f, 0.8f), notchColor = new Color(1f, 0.85f, 0.2f, 1f), lockedColor = new Color(0.2f, 0.8f, 0.25f, 0.8f) },
-        new RingConfig { speed = 140f, clockwise = true,  ringColor = new Color(1f, 0.5f, 0.3f,  0.8f), notchColor = new Color(1f, 0.85f, 0.2f, 1f), lockedColor = new Color(0.2f, 0.8f, 0.25f, 0.8f) },
+        new RingConfig { speed = 80f,  clockwise = true,  relativeSize = 0.72f, lockedColor = new Color(0.5f, 1f, 0.5f, 1f) },
+        new RingConfig { speed = 110f, clockwise = false, relativeSize = 0.52f, lockedColor = new Color(0.5f, 1f, 0.5f, 1f) },
+        new RingConfig { speed = 140f, clockwise = true,  relativeSize = 0.35f, lockedColor = new Color(0.5f, 1f, 0.5f, 1f) },
+    };
+
+    [Header("Decorative Gears")]
+    [SerializeField] private DecorGearConfig[] _decorGears = new DecorGearConfig[3]
+    {
+        new DecorGearConfig { speed = 40f, clockwise = true,  anchoredPosition = new Vector2(-200f, 140f), relativeSize = 0.18f },
+        new DecorGearConfig { speed = 55f, clockwise = false, anchoredPosition = new Vector2(200f, 140f),  relativeSize = 0.18f },
+        new DecorGearConfig { speed = 70f, clockwise = true,  anchoredPosition = new Vector2(0f, -180f),   relativeSize = 0.15f },
     };
 
     [Header("Settings")]
@@ -49,21 +91,37 @@ public class LockPickMinigame : MonoBehaviour
     [Tooltip("Размер всей области колец в пикселях.")]
     [SerializeField] private float _containerSize = 400f;
 
-    [Header("Visuals (auto-created if null)")]
-    [Tooltip("Контейнер для колец. Если не назначен — создаётся автоматически.")]
+    [Header("Colors")]
+    [Tooltip("Тинт активного кольца. White = нет подсветки.")]
+    [SerializeField] private Color _activeColor = new Color(1f, 0.92f, 0.65f, 1f);
+
+    [Header("Visuals (assign in scene — auto-created if null)")]
+    [Tooltip("Контейнер для всех элементов. Если не назначен — создаётся автоматически.")]
     [SerializeField] private RectTransform _ringContainer;
 
-    [Tooltip("RectTransform каждого кольца (вращаются). Если не назначены — создаются автоматически.")]
+    [Tooltip("RectTransform внешнего статичного кольца (gearMain). Если null — создаётся автоматически.")]
+    [SerializeField] private RectTransform _gearMainTransform;
+
+    [Tooltip("Image внешнего статичного кольца. Если null — берётся с _gearMainTransform.")]
+    [SerializeField] private Image _gearMainImage;
+
+    [Tooltip("RectTransform центрального элемента. Если null — создаётся автоматически.")]
+    [SerializeField] private RectTransform _centerTransform;
+
+    [Tooltip("Image центрального элемента. Если null — берётся с _centerTransform.")]
+    [SerializeField] private Image _centerImage;
+
+    [Tooltip("RectTransform каждого вращающегося кольца. Если null — создаются автоматически.")]
     [SerializeField] private RectTransform[] _ringTransforms;
 
-    [Tooltip("Image засечки каждого кольца. Если не назначены — создаются автоматически.")]
-    [SerializeField] private Image[] _notchImages;
-
-    [Tooltip("Image стрелки-ориентира наверху. Если не назначен — создаётся автоматически.")]
-    [SerializeField] private Image _pointerImage;
-
-    [Tooltip("Image фона каждого кольца. Если не назначены — создаются автоматически.")]
+    [Tooltip("Image каждого вращающегося кольца. Если null — берутся с _ringTransforms.")]
     [SerializeField] private Image[] _ringImages;
+
+    [Tooltip("RectTransform декоративных шестерёнок. Если null — создаются автоматически.")]
+    [SerializeField] private RectTransform[] _decorGearTransforms;
+
+    [Tooltip("Image декоративных шестерёнок. Если null — берутся с _decorGearTransforms.")]
+    [SerializeField] private Image[] _decorGearImages;
 
     [Header("Audio")]
     [SerializeField] private AudioClip _successClip;
@@ -93,7 +151,7 @@ public class LockPickMinigame : MonoBehaviour
 
     // ── Events ──────────────────────────────────────────────────────────────────
 
-    /// <summary>Срабатывает когда все кольца заблокированы.</summary>
+    /// <summary>Срабатывает когда все кольца заблокированы и веерная анимация завершена.</summary>
     public event Action OnCompleted;
 
     /// <summary>Срабатывает при успешной блокировке кольца. Параметр — индекс кольца.</summary>
@@ -105,17 +163,11 @@ public class LockPickMinigame : MonoBehaviour
     // ── State ───────────────────────────────────────────────────────────────────
 
     private bool _isRunning;
-    private bool _isAnimating; // блокирует ввод во время веерных анимаций
+    private bool _isAnimating;
     private int _activeIndex;
     private float[] _angles;
     private bool[] _locked;
-
-    // ── Constants ───────────────────────────────────────────────────────────────
-
-    private const float NotchSize = 24f;
-    private const float PointerWidth = 12f;
-    private const float PointerHeight = 36f;
-    private const float RingThickness = 0.12f;
+    private float[] _decorGearAngles;
 
     // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -164,6 +216,8 @@ public class LockPickMinigame : MonoBehaviour
 
     private void Update()
     {
+        RotateDecorGears();
+
         if (!_isRunning || _isAnimating) return;
 
         RotateRings();
@@ -194,6 +248,23 @@ public class LockPickMinigame : MonoBehaviour
 
             if (_ringTransforms != null && i < _ringTransforms.Length && _ringTransforms[i] != null)
                 _ringTransforms[i].localRotation = Quaternion.Euler(0f, 0f, _angles[i]);
+        }
+    }
+
+    private void RotateDecorGears()
+    {
+        if (_decorGearTransforms == null || _decorGears == null) return;
+
+        for (int i = 0; i < _decorGearTransforms.Length; i++)
+        {
+            if (_decorGearTransforms[i] == null) continue;
+
+            float delta = _decorGears[i].speed * Time.unscaledDeltaTime;
+            if (!_decorGears[i].clockwise)
+                delta = -delta;
+
+            _decorGearAngles[i] = (_decorGearAngles[i] + delta % 360f + 360f) % 360f;
+            _decorGearTransforms[i].localRotation = Quaternion.Euler(0f, 0f, _decorGearAngles[i]);
         }
     }
 
@@ -246,7 +317,6 @@ public class LockPickMinigame : MonoBehaviour
                 ApplyRingVisual(_activeIndex);
                 UpdateActiveHighlight();
             }
-            // Если ошиблись на первом кольце — ничего не происходит
         }
     }
 
@@ -258,28 +328,30 @@ public class LockPickMinigame : MonoBehaviour
         {
             _ringImages[idx].color = _locked[idx]
                 ? _ringConfigs[idx].lockedColor
-                : _ringConfigs[idx].ringColor;
+                : Color.white;
         }
     }
 
     private void UpdateActiveHighlight()
     {
-        // Подсвечиваем активное кольцо — делаем notch ярче
-        for (int i = 0; i < _notchImages.Length; i++)
+        if (_ringImages == null) return;
+
+        for (int i = 0; i < _ringImages.Length; i++)
         {
-            if (_notchImages[i] == null) continue;
-            _notchImages[i].color = i == _activeIndex
-                ? new Color(1f, 0.3f, 0.3f, 1f)
-                : _ringConfigs[i].notchColor;
+            if (_ringImages[i] == null) continue;
+
+            if (_locked[i])
+                _ringImages[i].color = _ringConfigs[i].lockedColor;
+            else
+                _ringImages[i].color = i == _activeIndex ? _activeColor : Color.white;
         }
     }
 
     // ── Fan Animations ──────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Веерное появление колец: каждое кольцо вырастает из scale 0 → 1
-    /// с задержкой _ringStaggerDelay между соседними. Стрелка-ориентир
-    /// появляется последней. По завершении включает подсветку и разблокирует ввод.
+    /// Веерное появление: статичные элементы и декоративные шестерёнки появляются вместе,
+    /// затем кольца последовательно вырастают из scale 0 → 1 (от внешнего к внутреннему).
     /// </summary>
     private IEnumerator AnimateAppearance()
     {
@@ -287,25 +359,34 @@ public class LockPickMinigame : MonoBehaviour
 
         int count = _ringConfigs.Length;
 
-        // Все кольца и стрелка — в scale 0
+        // Все элементы в scale 0
+        SetElementScale(_gearMainTransform, Vector3.zero);
+        SetElementScale(_centerTransform, Vector3.zero);
         for (int i = 0; i < count; i++)
-        {
-            if (_ringTransforms != null && i < _ringTransforms.Length && _ringTransforms[i] != null)
-                _ringTransforms[i].localScale = Vector3.zero;
-        }
-        if (_pointerImage != null)
-            _pointerImage.rectTransform.localScale = Vector3.zero;
+            SetElementScale(_ringTransforms, i, Vector3.zero);
+        for (int i = 0; i < _decorGearTransforms?.Length; i++)
+            SetElementScale(_decorGearTransforms, i, Vector3.zero);
 
-        // Веерный рост: от внешнего (index 0) к внутреннему
+        // Статичные элементы и декоративные шестерёнки — появляются вместе
+        if (_gearMainTransform != null)
+            StartCoroutine(ScaleTransformCoroutine(_gearMainTransform, Vector3.zero, Vector3.one, _ringAnimDuration));
+        if (_centerTransform != null)
+            StartCoroutine(ScaleTransformCoroutine(_centerTransform, Vector3.zero, Vector3.one, _ringAnimDuration));
+        if (_decorGearTransforms != null)
+        {
+            for (int i = 0; i < _decorGearTransforms.Length; i++)
+            {
+                if (_decorGearTransforms[i] != null)
+                    StartCoroutine(ScaleTransformCoroutine(_decorGearTransforms[i], Vector3.zero, Vector3.one, _ringAnimDuration));
+            }
+        }
+
+        // Веерный рост колец: от внешнего (index 0) к внутреннему
         for (int i = 0; i < count; i++)
         {
             StartCoroutine(ScaleRingCoroutine(i, Vector3.zero, Vector3.one, _ringAnimDuration));
             yield return new WaitForSecondsRealtime(_ringStaggerDelay);
         }
-
-        // Стрелка-ориентир появляется после всех колец
-        if (_pointerImage != null)
-            StartCoroutine(ScaleTransformCoroutine(_pointerImage.rectTransform, Vector3.zero, Vector3.one, _ringAnimDuration));
 
         // Ждём завершения последней корутины
         yield return new WaitForSecondsRealtime(_ringAnimDuration);
@@ -315,30 +396,40 @@ public class LockPickMinigame : MonoBehaviour
     }
 
     /// <summary>
-    /// Веерное сжатие колец к центру: каждое кольцо сжимается scale 1 → 0
-    /// с задержкой _ringStaggerDelay. Стрелка исчезает первой.
-    /// По завершении вызывает OnCompleted — контроллер запускает открытие замка.
+    /// Веерное сжатие: кольца последовательно сжимаются scale 1 → 0 (от внешнего к внутреннему),
+    /// затем статичные элементы и декоративные шестерёнки исчезают вместе.
+    /// По завершении вызывает OnCompleted.
     /// </summary>
     private IEnumerator AnimateCompletion()
     {
         _isAnimating = true;
 
-        // Стрелка-ориентир исчезает первой
-        if (_pointerImage != null)
-            StartCoroutine(ScaleTransformCoroutine(_pointerImage.rectTransform, Vector3.one, Vector3.zero, _ringAnimDuration));
-
-        yield return new WaitForSecondsRealtime(_ringStaggerDelay);
-
         int count = _ringConfigs.Length;
 
-        // Веерное сжатие: от внешнего (index 0) к внутреннему
+        // Веерное сжатие колец: от внешнего (index 0) к внутреннему
         for (int i = 0; i < count; i++)
         {
             StartCoroutine(ScaleRingCoroutine(i, Vector3.one, Vector3.zero, _ringAnimDuration));
             yield return new WaitForSecondsRealtime(_ringStaggerDelay);
         }
 
-        // Ждём завершения последней корутины
+        // Ждём завершения последнего кольца
+        yield return new WaitForSecondsRealtime(_ringAnimDuration);
+
+        // Статичные элементы и декоративные шестерёнки — исчезают вместе
+        if (_centerTransform != null)
+            StartCoroutine(ScaleTransformCoroutine(_centerTransform, Vector3.one, Vector3.zero, _ringAnimDuration));
+        if (_gearMainTransform != null)
+            StartCoroutine(ScaleTransformCoroutine(_gearMainTransform, Vector3.one, Vector3.zero, _ringAnimDuration));
+        if (_decorGearTransforms != null)
+        {
+            for (int i = 0; i < _decorGearTransforms.Length; i++)
+            {
+                if (_decorGearTransforms[i] != null)
+                    StartCoroutine(ScaleTransformCoroutine(_decorGearTransforms[i], Vector3.one, Vector3.zero, _ringAnimDuration));
+            }
+        }
+
         yield return new WaitForSecondsRealtime(_ringAnimDuration);
 
         _isAnimating = false;
@@ -411,7 +502,6 @@ public class LockPickMinigame : MonoBehaviour
 
             if (t < PeakFraction)
             {
-                // Фаза 1: нарастание — краснеем и увеличиваемся
                 float p = t / PeakFraction;
                 if (ringImage != null)
                     ringImage.color = Color.Lerp(baseColor, _missColor, p);
@@ -419,7 +509,6 @@ public class LockPickMinigame : MonoBehaviour
             }
             else
             {
-                // Фаза 2: затухание — возвращаемся к норме
                 float p = (t - PeakFraction) / (1f - PeakFraction);
                 if (ringImage != null)
                     ringImage.color = Color.Lerp(_missColor, baseColor, p);
@@ -429,82 +518,146 @@ public class LockPickMinigame : MonoBehaviour
             yield return null;
         }
 
-        // Гарантированно возвращаем исходные значения
         ringTransform.localScale = baseScale;
-        ApplyRingVisual(idx);
+        UpdateActiveHighlight();
     }
 
-    // ── Auto-create UI ──────────────────────────────────────────────────────────
+    // ── Setup UI ────────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Подключает существующие UI-объекты из инспектора или создаёт недостающие.
+    /// Все элементы можно предварительно разместить в сцене и настроить вручную.
+    /// </summary>
     private void EnsureVisuals()
     {
-        if (_ringContainer != null && _ringTransforms != null && _ringTransforms.Length > 0)
-            return; // уже создано
-
         int count = _ringConfigs.Length;
         var rectTransform = GetComponent<RectTransform>();
         if (rectTransform == null) return;
 
-        // Контейнер колец — по центру панели
+        // Контейнер
         if (_ringContainer == null)
         {
             _ringContainer = CreateChild("RingContainer", rectTransform);
-            SetStretch(_ringContainer);
+            _ringContainer.anchorMin = new Vector2(0.5f, 0.5f);
+            _ringContainer.anchorMax = new Vector2(0.5f, 0.5f);
             _ringContainer.anchoredPosition = Vector2.zero;
             _ringContainer.sizeDelta = new Vector2(_containerSize, _containerSize);
         }
 
-        _ringTransforms = new RectTransform[count];
-        _ringImages = new Image[count];
-        _notchImages = new Image[count];
-
-        // Размеры колец: от большого к маленькому
-        float outerSize = _containerSize * 0.9f;
-        float sizeStep = outerSize / (count + 1);
+        // Вращающиеся кольца
+        if (_ringTransforms == null || _ringTransforms.Length != count)
+            _ringTransforms = new RectTransform[count];
+        if (_ringImages == null || _ringImages.Length != count)
+            _ringImages = new Image[count];
 
         for (int i = 0; i < count; i++)
         {
-            float ringSize = outerSize - i * sizeStep;
-            float innerRadius = 1f - RingThickness * 2f;
-            float outerRadius = 1f;
+            if (_ringTransforms[i] == null)
+            {
+                if (_ringConfigs[i].sprite == null)
+                {
+                    Debug.LogWarning($"[LockPickMinigame] Ring {i} has no sprite and no RectTransform assigned.", this);
+                    continue;
+                }
 
-            // Кольцо
-            var ringRect = CreateChild($"Ring_{i}", _ringContainer);
-            ringRect.anchoredPosition = Vector2.zero;
-            ringRect.sizeDelta = new Vector2(ringSize, ringSize);
-            _ringTransforms[i] = ringRect;
+                float ringSize = _containerSize * _ringConfigs[i].relativeSize;
+                var ringRect = CreateChild($"Ring_{i}", _ringContainer);
+                ringRect.anchoredPosition = Vector2.zero;
+                ringRect.sizeDelta = new Vector2(ringSize, ringSize);
+                _ringTransforms[i] = ringRect;
 
-            var ringImg = ringRect.gameObject.AddComponent<Image>();
-            ringImg.sprite = CreateRingSprite(innerRadius, outerRadius, Color.white);
-            ringImg.color = _ringConfigs[i].ringColor;
-            ringImg.raycastTarget = false;
-            _ringImages[i] = ringImg;
-
-            // Засечка — ребёнок кольца, наверху
-            float notchY = ringSize * 0.5f - NotchSize * 0.5f;
-            var notchRect = CreateChild($"Notch_{i}", ringRect);
-            notchRect.anchoredPosition = new Vector2(0f, notchY);
-            notchRect.sizeDelta = new Vector2(NotchSize, NotchSize);
-
-            var notchImg = notchRect.gameObject.AddComponent<Image>();
-            notchImg.sprite = CreateDotSprite(Color.white);
-            notchImg.color = _ringConfigs[i].notchColor;
-            notchImg.raycastTarget = false;
-            _notchImages[i] = notchImg;
+                var ringImg = ringRect.gameObject.AddComponent<Image>();
+                ringImg.sprite = _ringConfigs[i].sprite;
+                ringImg.color = Color.white;
+                ringImg.raycastTarget = false;
+                ringImg.preserveAspect = true;
+                _ringImages[i] = ringImg;
+            }
+            else if (_ringImages[i] == null)
+            {
+                _ringImages[i] = _ringTransforms[i].GetComponent<Image>();
+            }
         }
 
-        // Стрелка-ориентир наверху
-        if (_pointerImage == null)
+        // GearMain
+        if (_gearMainTransform == null && _gearMainSprite != null)
         {
-            float pointerY = _containerSize * 0.5f + PointerHeight * 0.5f;
-            var pointerRect = CreateChild("Pointer", _ringContainer);
-            pointerRect.anchoredPosition = new Vector2(0f, pointerY);
-            pointerRect.sizeDelta = new Vector2(PointerWidth, PointerHeight);
+            float mainSize = _containerSize * _gearMainSize;
+            _gearMainTransform = CreateChild("GearMain", _ringContainer);
+            _gearMainTransform.anchoredPosition = Vector2.zero;
+            _gearMainTransform.sizeDelta = new Vector2(mainSize, mainSize);
 
-            _pointerImage = pointerRect.gameObject.AddComponent<Image>();
-            _pointerImage.sprite = CreateBarSprite(Color.white);
-            _pointerImage.color = new Color(1f, 0.85f, 0.2f, 1f);
-            _pointerImage.raycastTarget = false;
+            _gearMainImage = _gearMainTransform.gameObject.AddComponent<Image>();
+            _gearMainImage.sprite = _gearMainSprite;
+            _gearMainImage.color = Color.white;
+            _gearMainImage.raycastTarget = false;
+            _gearMainImage.preserveAspect = true;
+        }
+        else if (_gearMainImage == null && _gearMainTransform != null)
+        {
+            _gearMainImage = _gearMainTransform.GetComponent<Image>();
+        }
+
+        // Center
+        if (_centerTransform == null && _centerSprite != null)
+        {
+            float centerSize = _containerSize * _centerSize;
+            _centerTransform = CreateChild("Center", _ringContainer);
+            _centerTransform.anchoredPosition = Vector2.zero;
+            _centerTransform.sizeDelta = new Vector2(centerSize, centerSize);
+
+            _centerImage = _centerTransform.gameObject.AddComponent<Image>();
+            _centerImage.sprite = _centerSprite;
+            _centerImage.color = Color.white;
+            _centerImage.raycastTarget = false;
+            _centerImage.preserveAspect = true;
+        }
+        else if (_centerImage == null && _centerTransform != null)
+        {
+            _centerImage = _centerTransform.GetComponent<Image>();
+        }
+
+        // Декоративные шестерёнки
+        if (_decorGears != null && _decorGears.Length > 0)
+        {
+            if (_decorGearTransforms == null || _decorGearTransforms.Length != _decorGears.Length)
+                _decorGearTransforms = new RectTransform[_decorGears.Length];
+            if (_decorGearImages == null || _decorGearImages.Length != _decorGears.Length)
+                _decorGearImages = new Image[_decorGears.Length];
+            if (_decorGearAngles == null || _decorGearAngles.Length != _decorGears.Length)
+                _decorGearAngles = new float[_decorGears.Length];
+
+            for (int i = 0; i < _decorGears.Length; i++)
+            {
+                if (_decorGearTransforms[i] == null)
+                {
+                    if (_decorGears[i].sprite == null) continue;
+
+                    float decorSize = _containerSize * _decorGears[i].relativeSize;
+                    var decorRect = CreateChild($"DecorGear_{i}", _ringContainer);
+                    decorRect.anchoredPosition = _decorGears[i].anchoredPosition;
+                    decorRect.sizeDelta = new Vector2(decorSize, decorSize);
+
+                    var decorImg = decorRect.gameObject.AddComponent<Image>();
+                    decorImg.sprite = _decorGears[i].sprite;
+                    decorImg.color = Color.white;
+                    decorImg.raycastTarget = false;
+                    decorImg.preserveAspect = true;
+
+                    _decorGearTransforms[i] = decorRect;
+                    _decorGearImages[i] = decorImg;
+                }
+                else if (_decorGearImages[i] == null)
+                {
+                    _decorGearImages[i] = _decorGearTransforms[i].GetComponent<Image>();
+                }
+
+                if (_decorGearAngles[i] == 0f && _decorGearTransforms[i] != null)
+                {
+                    _decorGearAngles[i] = Random.Range(0f, 360f);
+                    _decorGearTransforms[i].localRotation = Quaternion.Euler(0f, 0f, _decorGearAngles[i]);
+                }
+            }
         }
     }
 
@@ -519,69 +672,16 @@ public class LockPickMinigame : MonoBehaviour
         return rt;
     }
 
-    private static void SetStretch(RectTransform rt)
+    // ── Scale Helpers ───────────────────────────────────────────────────────────
+
+    private static void SetElementScale(RectTransform rt, Vector3 scale)
     {
-        rt.anchorMin = Vector2.zero;
-        rt.anchorMax = Vector2.one;
-        rt.pivot = new Vector2(0.5f, 0.5f);
+        if (rt != null) rt.localScale = scale;
     }
 
-    // ── Sprite Generation ───────────────────────────────────────────────────────
-
-    private static Sprite CreateRingSprite(float innerRadius, float outerRadius, Color color)
+    private static void SetElementScale(RectTransform[] rts, int idx, Vector3 scale)
     {
-        const int Size = 128;
-        var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        float center = Size * 0.5f;
-
-        for (int x = 0; x < Size; x++)
-        {
-            for (int y = 0; y < Size; y++)
-            {
-                float dx = x - center + 0.5f;
-                float dy = y - center + 0.5f;
-                float dist = Mathf.Sqrt(dx * dx + dy * dy) / center;
-                tex.SetPixel(x, y, (dist >= innerRadius && dist <= outerRadius) ? color : Color.clear);
-            }
-        }
-
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, Size, Size), Vector2.one * 0.5f, Size);
-    }
-
-    private static Sprite CreateDotSprite(Color color)
-    {
-        const int Size = 32;
-        var tex = new Texture2D(Size, Size, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Bilinear;
-        float center = Size * 0.5f;
-        float radius = Size * 0.35f;
-
-        for (int x = 0; x < Size; x++)
-        {
-            for (int y = 0; y < Size; y++)
-            {
-                float dx = x - center + 0.5f;
-                float dy = y - center + 0.5f;
-                float dist = Mathf.Sqrt(dx * dx + dy * dy);
-                tex.SetPixel(x, y, dist <= radius ? color : Color.clear);
-            }
-        }
-
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, Size, Size), Vector2.one * 0.5f, Size);
-    }
-
-    private static Sprite CreateBarSprite(Color color)
-    {
-        const int Width = 8;
-        const int Height = 40;
-        var tex = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
-        for (int x = 0; x < Width; x++)
-            for (int y = 0; y < Height; y++)
-                tex.SetPixel(x, y, color);
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, Width, Height), new Vector2(0.5f, 0.5f), Width);
+        if (rts != null && idx < rts.Length && rts[idx] != null)
+            rts[idx].localScale = scale;
     }
 }
