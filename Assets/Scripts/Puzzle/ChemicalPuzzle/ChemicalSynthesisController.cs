@@ -702,8 +702,11 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
 
     /// <summary>
     /// Iterates through raycast hits and returns the first matching device.
-    /// Centrifuge detection is scoped to <see cref="_centrifugeWheel"/> and its children,
-    /// avoiding false positives from the parent trigger that also contains the analyzer.
+    /// The analyzer is checked BEFORE the centrifuge because the analyzer's
+    /// collider is a child of centrifugaWheel in the hierarchy — without this
+    /// ordering, hovering the analyzer would be misidentified as the centrifuge
+    /// and the centrifuge's auto-resolved highlight renderer could grab the
+    /// analyzer's mesh, causing materials to be swapped incorrectly.
     /// </summary>
     private HoveredDevice IdentifyHoveredDevice(int hitCount)
     {
@@ -711,15 +714,18 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         {
             Transform hitT = _hoverHitBuffer[i].collider.transform;
 
-            // Centrifuge — centrifugaWheel and its children only.
-            if (_centrifuge != null && _centrifugeWheel != null &&
-                (hitT == _centrifugeWheel || hitT.IsChildOf(_centrifugeWheel)))
-                return HoveredDevice.Centrifuge;
-
-            // Analyzer — dedicated slot collider.
+            // Analyzer — dedicated slot collider (checked first because it
+            // is a child of centrifugaWheel and would otherwise match the
+            // centrifuge's IsChildOf check below).
             if (_analyzer != null && _analyzerSlot != null &&
                 _hoverHitBuffer[i].collider == _analyzerSlot)
                 return HoveredDevice.Analyzer;
+
+            // Centrifuge — centrifugaWheel and its children only,
+            // excluding the analyzer collider (already handled above).
+            if (_centrifuge != null && _centrifugeWheel != null &&
+                (hitT == _centrifugeWheel || hitT.IsChildOf(_centrifugeWheel)))
+                return HoveredDevice.Centrifuge;
 
             // Mixer — drop-zone collider.
             if (_mixer != null && _mixerSlot != null &&

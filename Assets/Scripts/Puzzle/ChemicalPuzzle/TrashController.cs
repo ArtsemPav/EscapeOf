@@ -1,3 +1,4 @@
+using ChemicalPuzzle;
 using UnityEngine;
 
 /// <summary>
@@ -26,8 +27,6 @@ public class TrashController : MonoBehaviour
     /// <summary>The collider that acts as the trash drop zone.</summary>
     public Collider DropZoneCollider => _dropZoneCollider;
 
-    private Material[] _originalMaterials;
-    private Material[] _highlightMaterials;
     private bool _highlightActive;
 
     private void Awake()
@@ -37,44 +36,24 @@ public class TrashController : MonoBehaviour
 
         if (_renderers == null || _renderers.Length == 0)
             _renderers = GetComponentsInChildren<Renderer>(true);
-
-        // Build swappable highlight materials per renderer.
-        _originalMaterials  = new Material[_renderers.Length];
-        _highlightMaterials = new Material[_renderers.Length];
-
-        for (int i = 0; i < _renderers.Length; i++)
-        {
-            _originalMaterials[i]  = _renderers[i].sharedMaterial;
-
-            if (_renderers[i].sharedMaterial != null)
-            {
-                _highlightMaterials[i] = new Material(_renderers[i].sharedMaterial);
-                _highlightMaterials[i].EnableKeyword("_EMISSION");
-                _highlightMaterials[i].SetColor("_EmissionColor", _highlightColor);
-            }
-            else
-            {
-                _highlightMaterials[i] = _originalMaterials[i];
-            }
-        }
     }
 
-    /// <summary>Applies an emission highlight to the trash renderers.</summary>
+    /// <summary>Applies a color-brighten highlight to the trash renderers via MaterialPropertyBlock.</summary>
     public void ShowHighlight()
     {
         if (_highlightActive || _renderers.Length == 0) return;
         _highlightActive = true;
         for (int i = 0; i < _renderers.Length; i++)
-            _renderers[i].material = _highlightMaterials[i];
+            DeviceHighlightHelper.ShowHighlight(_renderers[i], _highlightColor);
     }
 
-    /// <summary>Restores original materials on the trash renderers.</summary>
+    /// <summary>Restores original appearance by clearing MaterialPropertyBlocks.</summary>
     public void HideHighlight()
     {
         if (!_highlightActive || _renderers.Length == 0) return;
         _highlightActive = false;
         for (int i = 0; i < _renderers.Length; i++)
-            _renderers[i].material = _originalMaterials[i];
+            DeviceHighlightHelper.HideHighlight(_renderers[i]);
     }
 
     /// <summary>Plays the drop sound through AudioManager when an item is discarded.</summary>

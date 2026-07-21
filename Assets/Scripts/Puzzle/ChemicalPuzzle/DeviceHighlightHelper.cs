@@ -5,57 +5,51 @@ namespace ChemicalPuzzle
     /// <summary>
     /// Handles hover highlight for chemical devices via MaterialPropertyBlock.
     ///
-    /// Previous approach created a material instance with new Material(sharedMaterial)
-    /// and enabled the _EMISSION keyword. This broke in builds when the source material
-    /// was an FBX-embedded sub-asset — the copied material had an invalid shader reference
-    /// and the mesh stopped rendering.
-    ///
-    /// This helper enables the _EMISSION keyword on the shared material once (with
-    /// _EmissionColor set to black so other renderers are unaffected), then uses
-    /// MaterialPropertyBlock to override _EmissionColor per-renderer. This avoids
-    /// creating material instances entirely and works with any material source type
-    /// (standalone .mat, FBX sub-asset) in both editor and builds.
+    /// Uses _BaseColor (URP) or _Color (Standard) brightening instead of emission
+    /// keywords. This avoids creating material instances and does NOT call
+    /// EnableKeyword, which could break meshes in builds due to shader variant
+    /// stripping — especially when the source material is an FBX-embedded sub-asset
+    /// shared by multiple renderers (centrifuge body, analyzer, buttons).
     /// </summary>
     public static class DeviceHighlightHelper
     {
-        private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int ColorId     = Shader.PropertyToID("_Color");
 
         /// <summary>
-        /// Enables emission highlight on the renderer via MaterialPropertyBlock.
-        /// The _EMISSION keyword is enabled on the shared material (once) with
-        /// _EmissionColor set to black as default, then _EmissionColor is overridden
-        /// per-renderer through the PropertyBlock.
+        /// Brightens the renderer's base color by adding <paramref name="highlightColor"/>
+        /// via MaterialPropertyBlock. Does not modify the shared material or any shader
+        /// keywords, making it safe in builds with shader variant stripping.
         /// </summary>
         /// <param name="renderer">Target renderer to highlight.</param>
-        /// <param name="highlightColor">Emission color applied to the renderer.</param>
+        /// <param name="highlightColor">Color added to the base color (clamped to 1).</param>
         public static void ShowHighlight(Renderer renderer, Color highlightColor)
         {
             if (renderer == null) return;
 
             Material mat = renderer.sharedMaterial;
-            if (mat != null)
-            {
-                // Enable the _EMISSION keyword on the shared material once.
-                // Set _EmissionColor to black so renderers without a PropertyBlock
-                // are unaffected (black emission = no visible emission).
-                if (!mat.IsKeywordEnabled("_EMISSION"))
-                {
-                    mat.EnableKeyword("_EMISSION");
-                    if (mat.HasProperty(EmissionColorId))
-                        mat.SetColor(EmissionColorId, Color.black);
-                }
-            }
+            if (mat == null) return;
 
-            // Override _EmissionColor per-renderer via MaterialPropertyBlock.
+            // Determine the base color property (URP: _BaseColor, Standard: _Color).
+            int colorId = mat.HasProperty(BaseColorId) ? BaseColorId : ColorId;
+            if (!mat.HasProperty(colorId)) return;
+
+            Color original = mat.GetColor(colorId);
+            Color brightened = original + highlightColor;
+            brightened.r = Mathf.Min(brightened.r, 1f);
+            brightened.g = Mathf.Min(brightened.g, 1f);
+            brightened.b = Mathf.Min(brightened.b, 1f);
+            brightened.a = original.a;
+
             var block = new MaterialPropertyBlock();
             renderer.GetPropertyBlock(block);
-            block.SetColor(EmissionColorId, highlightColor);
+            block.SetColor(colorId, brightened);
             renderer.SetPropertyBlock(block);
         }
 
         /// <summary>
         /// Removes the highlight by clearing the MaterialPropertyBlock.
-        /// Emission reverts to the shared material's _EmissionColor (black = none).
+        /// The renderer reverts to the shared material's original base color.
         /// </summary>
         /// <param name="renderer">Target renderer to restore.</param>
         public static void HideHighlight(Renderer renderer)
