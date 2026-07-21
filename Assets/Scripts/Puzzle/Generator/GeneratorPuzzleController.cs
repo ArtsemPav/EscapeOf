@@ -13,7 +13,11 @@ using UnityEngine;
 [DefaultExecutionOrder(-7)]
 public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISaveable
 {
-    private const string SaveIdConst = "generator_puzzle";
+    private const string DefaultSaveId = "generator_puzzle";
+
+    [Header("Save Settings")]
+    [Tooltip("Стабильный уникальный идентификатор сохранения. Не меняй после назначения — по нему сопоставляются данные при загрузке.")]
+    [SerializeField] private string _saveId = DefaultSaveId;
 
     [Header("References")]
     [SerializeField] private PuzzleModeController _controller;
@@ -51,7 +55,7 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISav
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
 
-    public string SaveId => SaveIdConst;
+    public string SaveId => _saveId;
 
     public string GetSaveData()
     {
