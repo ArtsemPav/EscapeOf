@@ -70,6 +70,7 @@ public class FPSController : MonoBehaviour, ISaveable
     // Position lock (used to prevent animated objects from pushing the player)
     private bool _positionLocked = false;
     private Vector3 _lockedPosition;
+    private bool _inElevator;
 
     // Active drag states — used to scale camera sensitivity while interacting
     private bool _isPhysicsGrabbing;
@@ -193,11 +194,14 @@ public class FPSController : MonoBehaviour, ISaveable
     private void Update()
     {
         _isGrounded = _characterController.isGrounded;
-        HandleGravity();
+        if (!_inElevator)
+        {
+            HandleGravity();
+            HandleMovement();
+            HandleCrouchTransition();
+        }
         HandleLook();
-        HandleMovement();
         HandleHeadBob();
-        HandleCrouchTransition();
         HandleInteractionDetection();
         HandleDragInteraction();
         ApplyCameraTransform();
@@ -244,7 +248,7 @@ public class FPSController : MonoBehaviour, ISaveable
         _horizontalVelocity = Vector3.SmoothDamp(_horizontalVelocity, targetVelocity, ref _velocitySmoothRef, smoothTime);
 
         Vector3 finalMove = _horizontalVelocity;
-        finalMove.y = _verticalVelocity;
+        finalMove.y = _inElevator ? 0f : _verticalVelocity;
 
         var collisions = _characterController.Move(finalMove * Time.deltaTime);
         if ((collisions & CollisionFlags.Above) != 0)
@@ -416,6 +420,12 @@ public class FPSController : MonoBehaviour, ISaveable
 
     private void HandleGravity()
     {
+        if (_inElevator)
+        {
+            _verticalVelocity = 0f;
+            return;
+        }
+
         if (_isGrounded && _verticalVelocity < 0)
         {
             _verticalVelocity = initialFallVelocity;
@@ -487,6 +497,16 @@ public class FPSController : MonoBehaviour, ISaveable
 
     /// <summary>Returns true while the player is holding the Sprint key.</summary>
     public bool IsRunning => _isRunning;
+
+    /// <summary>
+    /// Temporarily disables gravity and vertical velocity so an ElevatorController
+    /// can carry the player via CharacterController.Move without fighting gravity.
+    /// </summary>
+    public void SetElevatorMode(bool enabled)
+    {
+        _inElevator = enabled;
+        if (enabled) _verticalVelocity = 0f;
+    }
 
     /// <summary>
     /// Scales all movement speeds by the given multiplier (0..1).
