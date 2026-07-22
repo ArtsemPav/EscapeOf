@@ -64,15 +64,32 @@ namespace Escape.Interaction
         [SerializeField] [Min(0f)] private float _pauseBeforeOpen = 0.3f;
 
         [Header("Audio")]
+        [Tooltip("Звук открытия/закрытия дверей (one-shot).")]
         [SerializeField] private AudioClip _doorSound;
+        [Tooltip("Зацикленный звук движения кабины (3D луп).")]
         [SerializeField] private AudioClip _moveSound;
+        [Tooltip("Звук прибытия на этаж (one-shot).")]
         [SerializeField] private AudioClip _arriveSound;
-        [SerializeField] private AudioSource _audioSource;
+        [Tooltip("Громкость лупа движения.")]
+        [SerializeField] [Range(0f, 1f)] private float _moveVolume = 0.8f;
+        [Tooltip("Минимальная дистанция 3D-звучания лупа.")]
+        [SerializeField] private float _moveMinDistance = 1f;
+        [Tooltip("Максимальная дистанция 3D-звучания лупа.")]
+        [SerializeField] private float _moveMaxDistance = 10f;
 
-        [Header("Player")]
-        [Tooltip("Тег объекта игрока для обнаружения через триггер. " +
-                 "Если пусто — используется GetComponentInParent<FPSController>().")]
-        [SerializeField] private string _playerTag = "Player";
+        [Header("Ambient Loop")]
+        [Tooltip("Зацикленный эмбиент-звук внутри кабины — играет пока игрок в лифте (3D луп).")]
+        [SerializeField] private AudioClip _ambientClip;
+        [Tooltip("Громкость эмбиент-лупа.")]
+        [SerializeField] [Range(0f, 1f)] private float _ambientVolume = 0.5f;
+        [Tooltip("Минимальная дистанция 3D-звучания эмбиента.")]
+        [SerializeField] private float _ambientMinDistance = 1f;
+        [Tooltip("Максимальная дистанция 3D-звучания эмбиента.")]
+        [SerializeField] private float _ambientMaxDistance = 5f;
+
+        [Header("Auto-Close")]
+        [Tooltip("Через сколько секунд двери закроются автоматически, если игрок не в лифте.")]
+        [SerializeField] [Min(1f)] private float _autoCloseDelay = 20f;
 
         public int CurrentFloor { get; private set; }
         public bool IsMoving { get; private set; }
@@ -82,6 +99,9 @@ namespace Escape.Interaction
         private Transform _playerTransform;
         private CharacterController _playerCharacterController;
         private FPSController _playerFPSController;
+        private AudioSource _moveLoopSource;
+        private AudioSource _ambientLoopSource;
+        private Coroutine _autoCloseCoroutine;
         private Vector3 _cabinDoorAStart;
         private Vector3 _cabinDoorBStart;
         private Vector3[][] _floorDoorStarts;
@@ -118,15 +138,14 @@ namespace Escape.Interaction
         {
             SaveManager.Instance?.Register(this);
 
-            if (_audioSource == null)
-                _audioSource = GetComponentInChildren<AudioSource>();
-
             CacheDoorStarts();
         }
 
         private void OnDestroy()
         {
             SaveManager.Instance?.Unregister(this);
+            StopAmbientLoop();
+            CancelAutoClose();
         }
 
         private void Start()
@@ -186,8 +205,8 @@ namespace Escape.Interaction
                 IsMoving = false;
                 CurrentFloor = targetFloor;
 
-                if (_arriveSound != null && _audioSource != null)
-                    _audioSource.PlayOneShot(_arriveSound);
+                if (_arriveSound != null)
+                    AudioManager.Instance?.PlaySFX(_arriveSound);
             }
 
             // 4. Pause before opening
@@ -203,6 +222,10 @@ namespace Escape.Interaction
                 _playerFPSController.SetElevatorMode(false);
 
             _isBusy = false;
+
+            // 7. If player already left, start auto-close timer
+            if (_playerTransform == null)
+                StartAutoCloseTimer();
         }
 
         private IEnumerator MoveCabin(int fromFloor, int toFloor)
@@ -215,8 +238,11 @@ namespace Escape.Interaction
             Vector3 cabPos = _elevatorCab.localPosition;
             float elapsed = 0f;
 
-            if (_moveSound != null && _audioSource != null)
-                _audioSource.PlayOneShot(_moveSound);
+            if (_moveSound != null)
+            {
+                _moveLoopSource = AudioManager.Instance?.Play3DLoop(
+                    _moveSound, _elevatorCab, _moveVolume, _moveMinDistance, _moveMaxDistance);
+            }
 
             // Parent player to the cab so it moves automatically with the elevator.
             // HandleGravity/HandleMovement/HandleCrouchTransition are already
@@ -241,6 +267,13 @@ namespace Escape.Interaction
             cabPos.y = toY;
             _elevatorCab.localPosition = cabPos;
 
+            // Stop movement loop
+            if (_moveLoopSource != null)
+            {
+                AudioManager.Instance?.UnregisterLoopSource(_moveLoopSource);
+                _moveLoopSource = null;
+            }
+
             // Unparent player back to root, preserving world position
             if (wasParented && _playerTransform != null)
             {
@@ -250,8 +283,8 @@ namespace Escape.Interaction
 
         private IEnumerator AnimateDoors(int floor, int fromState, int toState)
         {
-            if (_doorSound != null && _audioSource != null)
-                _audioSource.PlayOneShot(_doorSound);
+            if (_doorSound != null)
+                AudioManager.Instance?.PlaySFX(_doorSound);
 
             float elapsed = 0f;
 
@@ -357,6 +390,10 @@ namespace Escape.Interaction
             _playerTransform = fps.transform;
             _playerCharacterController = fps.GetComponent<CharacterController>();
             _playerFPSController = fps;
+
+            // Player entered — cancel auto-close, start ambient loop
+            CancelAutoClose();
+            StartAmbientLoop();
         }
 
         private void OnTriggerExit(Collider other)
@@ -367,6 +404,56 @@ namespace Escape.Interaction
             _playerTransform = null;
             _playerCharacterController = null;
             _playerFPSController = null;
+
+            // Player left — stop ambient loop, start auto-close timer
+            StopAmbientLoop();
+            StartAutoCloseTimer();
+        }
+
+        private void StartAmbientLoop()
+        {
+            if (_ambientClip == null) return;
+            StopAmbientLoop();
+            _ambientLoopSource = AudioManager.Instance?.Play3DLoop(
+                _ambientClip, _elevatorCab, _ambientVolume,
+                _ambientMinDistance, _ambientMaxDistance);
+        }
+
+        private void StopAmbientLoop()
+        {
+            if (_ambientLoopSource != null)
+            {
+                AudioManager.Instance?.UnregisterLoopSource(_ambientLoopSource);
+                _ambientLoopSource = null;
+            }
+        }
+
+        private void StartAutoCloseTimer()
+        {
+            if (!AreDoorsOpen || _isBusy) return;
+            CancelAutoClose();
+            _autoCloseCoroutine = StartCoroutine(AutoCloseAfterDelay());
+        }
+
+        private void CancelAutoClose()
+        {
+            if (_autoCloseCoroutine != null)
+            {
+                StopCoroutine(_autoCloseCoroutine);
+                _autoCloseCoroutine = null;
+            }
+        }
+
+        private IEnumerator AutoCloseAfterDelay()
+        {
+            yield return new WaitForSeconds(_autoCloseDelay);
+
+            _autoCloseCoroutine = null;
+
+            if (!AreDoorsOpen || _isBusy || _playerTransform != null) yield break;
+
+            yield return AnimateDoors(CurrentFloor, DOOR_OPEN, DOOR_CLOSED);
+            AreDoorsOpen = false;
         }
 
         private void Reset()
