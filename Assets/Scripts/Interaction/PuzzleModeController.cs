@@ -39,6 +39,16 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
              "Deactivated on exit.")]
     [SerializeField] private Light[] _flashlightSupportLights;
 
+    [Header("Solve Animation")]
+    [Tooltip("Animator that plays the solve animation. Auto-found in children if not assigned.")]
+    [SerializeField] private Animator _solveAnimator;
+
+    [Tooltip("Trigger parameter name that starts the solve animation.")]
+    [SerializeField] private string _solveTriggerParameter = "Solve";
+
+    [Tooltip("Animator state name to poll for completion.")]
+    [SerializeField] private string _solveStateName = "Solve";
+
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
     [SerializeField] private UnityEvent OnPuzzleModeEntered;
@@ -75,6 +85,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     private bool _flashlightWasOn;
     private bool _flashlightStateSaved;
 
+    private int _solveTriggerHash;
+    private int _solveStateHash;
+
     // High enough to override any player camera (PlayerCamera uses 1000).
     private const int PuzzleCameraPriority = 2000;
 
@@ -87,13 +100,55 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     public bool IsSolved => _isSolved;
 
     /// <summary>
-    /// Marks the puzzle as solved, exits puzzle mode, and saves state.
+    /// Marks the puzzle as solved, plays the solve animation (if assigned),
+    /// and fires events only after the animation has finished.
     /// </summary>
     public void SetSolved()
     {
         if (_isSolved) return;
 
         _isSolved = true;
+
+        if (_solveAnimator != null && _solveTriggerHash != 0 && gameObject.activeInHierarchy)
+        {
+            StartCoroutine(PlaySolveAnimationThenFireEvents());
+        }
+        else
+        {
+            FireSolvedEvents();
+        }
+    }
+
+    /// <summary>
+    /// Triggers the solve animation and waits for it to finish before firing events.
+    /// Follows the same polling pattern as MedallionBoxInteraction.WaitForOpenAnimationRoutine.
+    /// </summary>
+    private IEnumerator PlaySolveAnimationThenFireEvents()
+    {
+        _solveAnimator.SetTrigger(_solveTriggerHash);
+
+        // Wait one frame so the transition to the solve state has started.
+        yield return null;
+
+        // Wait until the Animator has entered the solve state.
+        while (_solveAnimator != null &&
+               _solveAnimator.GetCurrentAnimatorStateInfo(0).shortNameHash != _solveStateHash)
+            yield return null;
+
+        // Wait until the solve animation has fully played.
+        while (_solveAnimator != null &&
+               _solveAnimator.GetCurrentAnimatorStateInfo(0).shortNameHash == _solveStateHash &&
+               _solveAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+            yield return null;
+
+        FireSolvedEvents();
+    }
+
+    /// <summary>
+    /// Fires solve events, exits puzzle mode if active, and persists state.
+    /// </summary>
+    private void FireSolvedEvents()
+    {
         OnPuzzleSolved?.Invoke();
         OnSolved?.Invoke();
 
@@ -144,6 +199,16 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         // Auto-find the puzzle camera in children if not assigned in the Inspector.
         if (_puzzleCamera == null)
             _puzzleCamera = GetComponentInChildren<CinemachineCamera>(includeInactive: true);
+
+        // Auto-find the solve animator in children if not assigned in the Inspector.
+        if (_solveAnimator == null)
+            _solveAnimator = GetComponentInChildren<Animator>(includeInactive: true);
+
+        // Pre-compute animator hashes from serialized parameter / state names.
+        if (!string.IsNullOrEmpty(_solveTriggerParameter))
+            _solveTriggerHash = Animator.StringToHash(_solveTriggerParameter);
+        if (!string.IsNullOrEmpty(_solveStateName))
+            _solveStateHash = Animator.StringToHash(_solveStateName);
 
         if (_puzzleCamera != null)
         {
