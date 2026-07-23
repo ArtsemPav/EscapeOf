@@ -1,67 +1,78 @@
 using System;
+using System.Collections;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 /// <summary>
 /// Logic for a 5-digit combination lock using mechanical cylinders.
 /// Integrated with PuzzleModeController for state management and events.
+/// Plays an open animation and sound when the correct combination is entered.
 /// </summary>
 public class MechanicalLock : MonoBehaviour, ISaveable
 {
+    // ── Constants ───────────────────────────────────────────────────────────────
+
+    private const string DefaultOpenTrigger = "OpenLock";
+    private const string DefaultOpenState = "Opening";
+    private const float AnimationTimeout = 10f;
+
+    // ── Inspector ───────────────────────────────────────────────────────────────
+
     [Header("Combination Settings")]
     [SerializeField] private int[] _correctCombination = new int[5] { 1, 2, 3, 4, 5 };
-    
+
     [Header("References")]
     [SerializeField] private PuzzleModeController _puzzleController;
     [SerializeField] private LockCylinder[] _cylinders;
-    
+
+    [Header("Animator")]
+    [Tooltip("Animator of the lock mechanism. Auto-found in children if not assigned.")]
+    [SerializeField] private Animator _lockAnimator;
+
+    [Tooltip("Trigger parameter name that starts the lock-open animation.")]
+    [SerializeField] private string _openTriggerParameter = DefaultOpenTrigger;
+
+    [Tooltip("Animator state name to poll for open animation completion.")]
+    [SerializeField] private string _openStateName = DefaultOpenState;
+
+    [Header("Audio")]
+    [SerializeField] private AudioClip _openClip;
+    [SerializeField, Range(0f, 1f)] private float _openVolume = 1f;
+
     [Header("Save")]
     [Tooltip("Unique ID for saving the state of lock cylinders (their current rotation values).")]
     [SerializeField] private string _saveId;
 
+    // ── State ───────────────────────────────────────────────────────────────────
+
     private Camera _mainCamera;
+    private bool _isProcessing;
 
     public string SaveId => _saveId;
+
+    // ── Unity Lifecycle ─────────────────────────────────────────────────────────
 
     private void Awake()
     {
         _mainCamera = Camera.main;
-        if (_puzzleController == null) _puzzleController = GetComponent<PuzzleModeController>();
-        
+        if (_puzzleController == null)
+            _puzzleController = GetComponent<PuzzleModeController>();
+
+        AutoResolveReferences();
+
         SaveManager.Instance?.Register(this);
     }
 
     private void Start()
     {
-        // Randomize cylinders on start if not already solved (and if no save data was applied yet)
-        if (_puzzleController != null && !_puzzleController.IsSolved)
+        if (_puzzleController != null && _puzzleController.IsSolved)
+        {
+            RestoreSolvedState();
+        }
+        else if (_puzzleController != null && !_puzzleController.IsSolved)
         {
             RandomizeCylinders();
         }
-    }
-
-    private void RandomizeCylinders()
-    {
-        bool isCorrect;
-        do
-        {
-            isCorrect = true;
-            for (int i = 0; i < _cylinders.Length; i++)
-            {
-                if (_cylinders[i] != null)
-                {
-                    int randomValue = UnityEngine.Random.Range(0, 10);
-                    _cylinders[i].SetValue(randomValue);
-                    
-                    if (i < _correctCombination.Length && randomValue != _correctCombination[i])
-                    {
-                        isCorrect = false;
-                    }
-                }
-            }
-            // If we accidentally rolled the correct combination, try again
-        } while (isCorrect && _cylinders.Length == _correctCombination.Length);
     }
 
     private void OnDestroy()
@@ -71,11 +82,25 @@ public class MechanicalLock : MonoBehaviour, ISaveable
 
     private void Update()
     {
+        if (_isProcessing)
+            return;
+
         if (_puzzleController != null && _puzzleController.IsActive && !_puzzleController.IsSolved)
         {
             HandleInput();
         }
     }
+
+    // ── Auto-Resolve ────────────────────────────────────────────────────────────
+
+    /// <summary>Finds Animator reference from child objects if not assigned.</summary>
+    private void AutoResolveReferences()
+    {
+        if (_lockAnimator == null)
+            _lockAnimator = GetComponentInChildren<Animator>();
+    }
+
+    // ── Input ───────────────────────────────────────────────────────────────────
 
     private void HandleInput()
     {
@@ -98,6 +123,31 @@ public class MechanicalLock : MonoBehaviour, ISaveable
         }
     }
 
+    // ── Combination ─────────────────────────────────────────────────────────────
+
+    private void RandomizeCylinders()
+    {
+        bool isCorrect;
+        do
+        {
+            isCorrect = true;
+            for (int i = 0; i < _cylinders.Length; i++)
+            {
+                if (_cylinders[i] != null)
+                {
+                    int randomValue = UnityEngine.Random.Range(0, 10);
+                    _cylinders[i].SetValue(randomValue);
+
+                    if (i < _correctCombination.Length && randomValue != _correctCombination[i])
+                    {
+                        isCorrect = false;
+                    }
+                }
+            }
+            // If we accidentally rolled the correct combination, try again
+        } while (isCorrect && _cylinders.Length == _correctCombination.Length);
+    }
+
     private void CheckCombination()
     {
         if (_cylinders.Length != _correctCombination.Length) return;
@@ -113,31 +163,99 @@ public class MechanicalLock : MonoBehaviour, ISaveable
         Solve();
     }
 
+    // ── Solve Flow ──────────────────────────────────────────────────────────────
+
     private void Solve()
     {
-        if (_puzzleController != null)
+        _isProcessing = true;
+
+        AudioManager.Instance?.PlaySFX(_openClip, _openVolume);
+
+        if (_lockAnimator != null && gameObject.activeInHierarchy)
         {
-            // PuzzleModeController handles its own solved state, events (OnPuzzleSolved), and saves state.
-            _puzzleController.SetSolved();
+            StartCoroutine(PlayOpenAnimationThenFinish());
+        }
+        else
+        {
+            FinishSolve();
         }
     }
 
-    // ── ISaveable Implementation ───────────────────────────────────────────────
+    /// <summary>
+    /// Plays the lock-open animation, waits for it to complete,
+    /// then notifies PuzzleModeController.
+    /// </summary>
+    private IEnumerator PlayOpenAnimationThenFinish()
+    {
+        _lockAnimator.SetTrigger(_openTriggerParameter);
+
+        // Wait one frame so the transition has started
+        yield return null;
+
+        // Wait until the Animator has entered the open state
+        float elapsed = 0f;
+        while (_lockAnimator != null &&
+               !_lockAnimator.GetCurrentAnimatorStateInfo(0).IsName(_openStateName) &&
+               elapsed < AnimationTimeout)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Wait until the open animation has fully played
+        while (_lockAnimator != null &&
+               _lockAnimator.GetCurrentAnimatorStateInfo(0).IsName(_openStateName) &&
+               _lockAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+        {
+            yield return null;
+        }
+
+        FinishSolve();
+    }
+
+    /// <summary>
+    /// Notifies PuzzleModeController that the puzzle is solved.
+    /// </summary>
+    private void FinishSolve()
+    {
+        _isProcessing = false;
+
+        SaveManager.Instance?.Save();
+        _puzzleController?.SetSolved();
+    }
+
+    // ── Solved Restore ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Silently restores the visual state when the puzzle was already solved on load.
+    /// Fast-forwards the animator to the end of the open animation.
+    /// </summary>
+    private void RestoreSolvedState()
+    {
+        if (_lockAnimator != null)
+        {
+            _lockAnimator.Play(_openStateName, 0, 1f);
+        }
+    }
+
+    // ── ISaveable Implementation ────────────────────────────────────────────────
 
     public string GetSaveData()
     {
         int[] values = new int[_cylinders.Length];
-        for (int i = 0; i < _cylinders.Length; i++) values[i] = _cylinders[i].CurrentValue;
-        
-        return JsonUtility.ToJson(new LockSaveData { 
-            cylinderValues = values 
+        for (int i = 0; i < _cylinders.Length; i++)
+            values[i] = _cylinders[i].CurrentValue;
+
+        return JsonUtility.ToJson(new LockSaveData
+        {
+            cylinderValues = values
         });
     }
 
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<LockSaveData>(json);
-        
+
         if (data.cylinderValues != null && data.cylinderValues.Length == _cylinders.Length)
         {
             for (int i = 0; i < _cylinders.Length; i++)

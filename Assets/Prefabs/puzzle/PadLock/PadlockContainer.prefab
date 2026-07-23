@@ -2914,6 +2914,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2920994879773595380}
   - component: {fileID: 8431676527426461425}
+  - component: {fileID: 3110484475396620901}
+  - component: {fileID: 6999904431475059251}
   m_Layer: 6
   m_Name: PadlockContainer
   m_TagString: Untagged
@@ -2935,7 +2937,6 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 680029529139844042}
-  - {fileID: 5960564925628212164}
   - {fileID: 7458552389742682394}
   - {fileID: 4668082859708822375}
   m_Father: {fileID: 0}
@@ -2959,9 +2960,6 @@ MonoBehaviour:
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights:
   - {fileID: 6352910966839232488}
-  _solveAnimator: {fileID: 2804849773163340693}
-  _solveTriggerParameter: Solve
-  _solveStateName: Solve
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -2971,18 +2969,6 @@ MonoBehaviour:
   OnPuzzleSolved:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 2806277368773748950}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
       - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: Escape.Core.DoorInteraction, Assembly-CSharp
         m_MethodName: Unlock
@@ -3007,6 +2993,45 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+--- !u!65 &3110484475396620901
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2530015725435256300}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.3, y: 0.2, z: 2}
+  m_Center: {x: 0, y: 0.8, z: -0.31}
+--- !u!114 &6999904431475059251
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2530015725435256300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 5
+  _useExitPopup: 0
+  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
+  _exitPopupType: 0
+  _controller: {fileID: 8431676527426461425}
 --- !u!1 &2577970847419931124
 GameObject:
   m_ObjectHideFlags: 0
@@ -3188,59 +3213,6 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_renderer: {fileID: 204384336040931183}
   m_maskType: 0
---- !u!1 &2637237294018176018
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3174214203033791655}
-  - component: {fileID: 1362895226705519239}
-  m_Layer: 0
-  m_Name: BoxCollider
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!4 &3174214203033791655
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2637237294018176018}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0, y: 0.99, z: 0.03}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 7458552389742682394}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1362895226705519239
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2637237294018176018}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Size: {x: 3, y: 3.2, z: 1.2}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &2774133031714682743
 GameObject:
   m_ObjectHideFlags: 0
@@ -3273,78 +3245,6 @@ Transform:
   - {fileID: 7898359606361298338}
   m_Father: {fileID: 4434754707475518496}
   m_LocalEulerAnglesHint: {x: 180, y: 0, z: 0}
---- !u!1 &2806277368773748950
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 5960564925628212164}
-  - component: {fileID: 419946248635991575}
-  - component: {fileID: 5579654375651116733}
-  m_Layer: 6
-  m_Name: PuzzleInteract
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &5960564925628212164
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2806277368773748950}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2920994879773595380}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &419946248635991575
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2806277368773748950}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 3.3, y: 0.2, z: 2}
-  m_Center: {x: 0, y: 0.8, z: -0.31}
---- !u!114 &5579654375651116733
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2806277368773748950}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
-  _crosshairMode: 5
-  _useExitPopup: 0
-  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
-  _exitPopupType: 0
-  _controller: {fileID: 8431676527426461425}
 --- !u!1 &2857305272563301675
 GameObject:
   m_ObjectHideFlags: 0
@@ -10690,7 +10590,6 @@ Transform:
   m_Children:
   - {fileID: 7899724961741951607}
   - {fileID: 2894135203825130676}
-  - {fileID: 3174214203033791655}
   m_Father: {fileID: 2920994879773595380}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
 --- !u!114 &2294456062410482923
@@ -10713,6 +10612,11 @@ MonoBehaviour:
   - {fileID: 945045739088880125}
   - {fileID: 5704768953575486986}
   - {fileID: 8015580160027638770}
+  _lockAnimator: {fileID: 2804849773163340693}
+  _openTriggerParameter: OpenLock
+  _openStateName: Opening
+  _openClip: {fileID: 8300000, guid: 177cb74cea9ad9e46a4d5adc41888b2f, type: 3}
+  _openVolume: 1
   _saveId: lock_padlock_room2
 --- !u!95 &2804849773163340693
 Animator:
