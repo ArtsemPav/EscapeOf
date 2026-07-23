@@ -64,12 +64,18 @@ namespace Escape.Interaction
         [SerializeField] [Min(0f)] private float _pauseBeforeOpen = 0.3f;
 
         [Header("Audio")]
-        [Tooltip("Звук открытия/закрытия дверей (one-shot).")]
+        [Tooltip("Звук открытия/закрытия дверей (3D one-shot).")]
         [SerializeField] private AudioClip _doorSound;
+        [Tooltip("Звук прибытия на этаж (3D one-shot).")]
+        [SerializeField] private AudioClip _arriveSound;
         [Tooltip("Зацикленный звук движения кабины (3D луп).")]
         [SerializeField] private AudioClip _moveSound;
-        [Tooltip("Звук прибытия на этаж (one-shot).")]
-        [SerializeField] private AudioClip _arriveSound;
+        [Tooltip("Громкость звуков дверей и прибытия.")]
+        [SerializeField] [Range(0f, 1f)] private float _sfxVolume = 1f;
+        [Tooltip("Минимальная дистанция 3D-звучания one-shot звуков.")]
+        [SerializeField] private float _sfxMinDistance = 1f;
+        [Tooltip("Максимальная дистанция 3D-звучания one-shot звуков.")]
+        [SerializeField] private float _sfxMaxDistance = 8f;
         [Tooltip("Громкость лупа движения.")]
         [SerializeField] [Range(0f, 1f)] private float _moveVolume = 0.8f;
         [Tooltip("Минимальная дистанция 3D-звучания лупа.")]
@@ -242,8 +248,7 @@ namespace Escape.Interaction
                 IsMoving = false;
                 CurrentFloor = targetFloor;
 
-                if (_arriveSound != null)
-                    AudioManager.Instance?.PlaySFX(_arriveSound);
+                Play3DOneShot(_arriveSound);
             }
 
             // 4. Pause before opening
@@ -321,8 +326,7 @@ namespace Escape.Interaction
 
         private IEnumerator AnimateDoors(int floor, int fromState, int toState)
         {
-            if (_doorSound != null)
-                AudioManager.Instance?.PlaySFX(_doorSound);
+            Play3DOneShot(_doorSound);
 
             float elapsed = 0f;
 
@@ -446,6 +450,34 @@ namespace Escape.Interaction
             // Player left — restore game music, start auto-close timer
             AudioManager.Instance?.FadeMusicVolume(1f, _musicFadeDuration);
             StartAutoCloseTimer();
+        }
+
+        /// <summary>
+        /// Plays a 3D one-shot sound at the cab position with Linear rolloff.
+        /// The temporary AudioSource auto-destroys when the clip finishes.
+        /// </summary>
+        private void Play3DOneShot(AudioClip clip)
+        {
+            if (clip == null || _elevatorCab == null) return;
+
+            GameObject obj = new GameObject("ElevatorOneShot");
+            obj.transform.SetParent(_elevatorCab);
+            obj.transform.localPosition = Vector3.zero;
+
+            var source = obj.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.spatialBlend = 1f;
+            source.rolloffMode = AudioRolloffMode.Linear;
+            source.minDistance = _sfxMinDistance;
+            source.maxDistance = _sfxMaxDistance;
+            source.dopplerLevel = 0f;
+            source.reverbZoneMix = 0f;
+            source.bypassReverbZones = true;
+            source.spread = 0f;
+            source.volume = _sfxVolume;
+            source.playOnAwake = false;
+            source.Play();
+            Destroy(obj, clip.length + 0.1f);
         }
 
         /// <summary>
