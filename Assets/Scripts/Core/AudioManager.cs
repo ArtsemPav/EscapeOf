@@ -209,6 +209,43 @@ public class AudioManager : MonoBehaviour {
 
     // ── Background mute API ────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Fades only the game/menu music sources to a target multiplier (0 = silent, 1 = full).
+    /// Does NOT affect tracked 3D loops or SFX — used by ElevatorController to duck
+    /// the music while the player is inside the elevator.
+    /// </summary>
+    public void FadeMusicVolume(float targetMultiplier, float fadeDuration = -1f)
+    {
+        float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
+        StartCoroutine(FadeMusicOnly(targetMultiplier, duration));
+    }
+
+    private IEnumerator FadeMusicOnly(float targetMultiplier, float duration)
+    {
+        float startMenuVol = _menuMusicSource != null ? _menuMusicSource.volume : 0f;
+        float startGameVol = _gameMusicSource != null ? _gameMusicSource.volume : 0f;
+
+        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? _backMusicVolume : 0f;
+        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? _backMusicVolume : 0f;
+
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+
+            if (_menuMusicSource != null)
+                _menuMusicSource.volume = Mathf.Lerp(startMenuVol, targetMenuVol, t);
+            if (_gameMusicSource != null)
+                _gameMusicSource.volume = Mathf.Lerp(startGameVol, targetGameVol, t);
+
+            yield return null;
+        }
+
+        if (_menuMusicSource != null) _menuMusicSource.volume = targetMenuVol;
+        if (_gameMusicSource != null) _gameMusicSource.volume = targetGameVol;
+    }
+
     /// <summary>Fades out background music and all tracked 3D loops, leaving SFX intact.</summary>
     public void MuteBackground(float fadeDuration = -1f)
     {

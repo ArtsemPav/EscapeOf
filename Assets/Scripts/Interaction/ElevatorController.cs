@@ -78,14 +78,16 @@ namespace Escape.Interaction
         [SerializeField] private float _moveMaxDistance = 10f;
 
         [Header("Ambient Loop")]
-        [Tooltip("Зацикленный эмбиент-звук внутри кабины — играет пока игрок в лифте (3D луп).")]
+        [Tooltip("Зацикленный эмбиент-звук внутри кабины — играет всегда, 3D-позиционированный.")]
         [SerializeField] private AudioClip _ambientClip;
         [Tooltip("Громкость эмбиент-лупа.")]
         [SerializeField] [Range(0f, 1f)] private float _ambientVolume = 0.5f;
         [Tooltip("Минимальная дистанция 3D-звучания эмбиента.")]
         [SerializeField] private float _ambientMinDistance = 1f;
         [Tooltip("Максимальная дистанция 3D-звучания эмбиента.")]
-        [SerializeField] private float _ambientMaxDistance = 5f;
+        [SerializeField] private float _ambientMaxDistance = 3f;
+        [Tooltip("Время плавного затухания/возврата игровой музыки при входе/выходе из лифта.")]
+        [SerializeField] [Min(0.1f)] private float _musicFadeDuration = 2f;
 
         [Header("Auto-Close")]
         [Tooltip("Через сколько секунд двери закроются автоматически, если игрок не в лифте.")]
@@ -139,13 +141,48 @@ namespace Escape.Interaction
             SaveManager.Instance?.Register(this);
 
             CacheDoorStarts();
+            CreateAmbientSource();
+        }
+
+        /// <summary>
+        /// Creates the ambient AudioSource as a child of the cab.
+        /// Not registered in AudioManager._trackedLoops so it is NOT affected
+        /// by MuteBackground — it fades independently alongside the music duck.
+        /// </summary>
+        private void CreateAmbientSource()
+        {
+            if (_ambientClip == null || _elevatorCab == null) return;
+
+            GameObject obj = new GameObject("ElevatorAmbient");
+            obj.transform.SetParent(_elevatorCab);
+            obj.transform.localPosition = Vector3.zero;
+
+            _ambientLoopSource = obj.AddComponent<AudioSource>();
+            _ambientLoopSource.clip = _ambientClip;
+            _ambientLoopSource.loop = true;
+            _ambientLoopSource.spatialBlend = 1f;
+            _ambientLoopSource.rolloffMode = AudioRolloffMode.Linear;
+            _ambientLoopSource.minDistance = _ambientMinDistance;
+            _ambientLoopSource.maxDistance = _ambientMaxDistance;
+            _ambientLoopSource.dopplerLevel = 0f;
+            _ambientLoopSource.reverbZoneMix = 0f;
+            _ambientLoopSource.bypassReverbZones = true;
+            _ambientLoopSource.spread = 0f;
+            _ambientLoopSource.volume = _ambientVolume;
+            _ambientLoopSource.playOnAwake = false;
+            _ambientLoopSource.Play();
+
+            // Register in AudioManager so it is controlled by MuteBackground / UnmuteBackground
+            AudioManager.Instance?.RegisterLoopSource(_ambientLoopSource, _ambientVolume);
         }
 
         private void OnDestroy()
         {
             SaveManager.Instance?.Unregister(this);
-            StopAmbientLoop();
             CancelAutoClose();
+
+            if (_ambientLoopSource != null)
+                AudioManager.Instance?.UnregisterLoopSource(_ambientLoopSource);
         }
 
         private void Start()
@@ -240,8 +277,9 @@ namespace Escape.Interaction
 
             if (_moveSound != null)
             {
-                _moveLoopSource = AudioManager.Instance?.Play3DLoop(
-                    _moveSound, _elevatorCab, _moveVolume, _moveMinDistance, _moveMaxDistance);
+                _moveLoopSource = Create3DLoop(
+                    _moveSound, _elevatorCab, _moveVolume,
+                    _moveMinDistance, _moveMaxDistance);
             }
 
             // Parent player to the cab so it moves automatically with the elevator.
@@ -267,7 +305,7 @@ namespace Escape.Interaction
             cabPos.y = toY;
             _elevatorCab.localPosition = cabPos;
 
-            // Stop movement loop
+            // Stop and unregister movement loop
             if (_moveLoopSource != null)
             {
                 AudioManager.Instance?.UnregisterLoopSource(_moveLoopSource);
@@ -391,9 +429,9 @@ namespace Escape.Interaction
             _playerCharacterController = fps.GetComponent<CharacterController>();
             _playerFPSController = fps;
 
-            // Player entered — cancel auto-close, start ambient loop
+            // Player entered — cancel auto-close, duck game music
             CancelAutoClose();
-            StartAmbientLoop();
+            AudioManager.Instance?.FadeMusicVolume(0f, _musicFadeDuration);
         }
 
         private void OnTriggerExit(Collider other)
@@ -405,27 +443,42 @@ namespace Escape.Interaction
             _playerCharacterController = null;
             _playerFPSController = null;
 
-            // Player left — stop ambient loop, start auto-close timer
-            StopAmbientLoop();
+            // Player left — restore game music, start auto-close timer
+            AudioManager.Instance?.FadeMusicVolume(1f, _musicFadeDuration);
             StartAutoCloseTimer();
         }
 
-        private void StartAmbientLoop()
+        /// <summary>
+        /// Creates a 3D AudioSource as a child of the given parent with full 3D
+        /// settings: Linear rolloff, no doppler, no reverb — same pattern as
+        /// ElectricPuzzleController and the ambient source.
+        /// </summary>
+        private AudioSource Create3DLoop(AudioClip clip, Transform parent,
+            float volume, float minDistance, float maxDistance)
         {
-            if (_ambientClip == null) return;
-            StopAmbientLoop();
-            _ambientLoopSource = AudioManager.Instance?.Play3DLoop(
-                _ambientClip, _elevatorCab, _ambientVolume,
-                _ambientMinDistance, _ambientMaxDistance);
-        }
+            GameObject obj = new GameObject("Elevator3DLoop");
+            obj.transform.SetParent(parent);
+            obj.transform.localPosition = Vector3.zero;
 
-        private void StopAmbientLoop()
-        {
-            if (_ambientLoopSource != null)
-            {
-                AudioManager.Instance?.UnregisterLoopSource(_ambientLoopSource);
-                _ambientLoopSource = null;
-            }
+            var source = obj.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.loop = true;
+            source.spatialBlend = 1f;
+            source.rolloffMode = AudioRolloffMode.Linear;
+            source.minDistance = minDistance;
+            source.maxDistance = maxDistance;
+            source.dopplerLevel = 0f;
+            source.reverbZoneMix = 0f;
+            source.bypassReverbZones = true;
+            source.spread = 0f;
+            source.volume = volume;
+            source.playOnAwake = false;
+            source.Play();
+
+            // Register in AudioManager so it is controlled by MuteBackground / UnmuteBackground
+            AudioManager.Instance?.RegisterLoopSource(source, volume);
+
+            return source;
         }
 
         private void StartAutoCloseTimer()
