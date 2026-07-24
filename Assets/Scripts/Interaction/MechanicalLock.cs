@@ -20,8 +20,6 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     // ── Inspector ───────────────────────────────────────────────────────────────
 
     [Header("Combination Settings")]
-    [Tooltip("If true, combination values are 1-based (A=1, B=2, ...). If false, 0-based (A=0, B=1, ...).")]
-    [SerializeField] private bool _useOneBasedCombination = false;
     [SerializeField] private int[] _correctCombination = new int[5] { 1, 2, 3, 4, 5 };
 
     [Header("References")]
@@ -62,7 +60,6 @@ public class MechanicalLock : MonoBehaviour, ISaveable
             _puzzleController = GetComponent<PuzzleModeController>();
 
         AutoResolveReferences();
-        NormalizeCombination();
 
         SaveManager.Instance?.Register(this);
     }
@@ -102,22 +99,6 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     {
         if (_lockAnimator == null)
             _lockAnimator = GetComponentInChildren<Animator>();
-    }
-
-    /// <summary>
-    /// Converts the combination from 1-based to 0-based internal indices
-    /// when _useOneBasedCombination is enabled.
-    /// </summary>
-    private void NormalizeCombination()
-    {
-        if (!_useOneBasedCombination) return;
-
-        for (int i = 0; i < _correctCombination.Length; i++)
-        {
-            _correctCombination[i] = _correctCombination[i] - 1;
-        }
-
-        _useOneBasedCombination = false;
     }
 
     // ── Input ───────────────────────────────────────────────────────────────────
