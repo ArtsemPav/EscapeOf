@@ -13,6 +13,13 @@ namespace ChemicalPuzzle
     [ExecuteAlways]
     public class LiquidWobble : MonoBehaviour
     {
+        private const string DefaultShaderName = "Custom/LiquidFlask";
+
+        [Header("Shader")]
+        [Tooltip("The LiquidFlask shader asset. Assign to prevent shader stripping in builds. " +
+                 "If null, falls back to Shader.Find.")]
+        [SerializeField] private Shader _shader;
+
         [Header("Fill")]
         [Tooltip("Доля заполнения: 0 = пусто, 1 = полная.")]
         [Range(0f, 1f)]
@@ -30,6 +37,7 @@ namespace ChemicalPuzzle
         private Renderer   _renderer;
         private MeshFilter _meshFilter;
         private Material   _materialInstance;
+        private Material   _sharedMaterialAsset;
         private bool       _ownsMaterialInstance;
         private Vector3    _lastPos;
         private Quaternion _lastRot;
@@ -102,17 +110,52 @@ namespace ChemicalPuzzle
                 _renderer.renderingLayerMask = 1;
 
             CacheLocalMeshBounds();
+
+            // Если уже владеем инстансом (повторный OnEnable), сначала очистим.
+            if (_ownsMaterialInstance && _materialInstance != null)
+            {
+                if (!Application.isPlaying && _renderer != null && _sharedMaterialAsset != null)
+                    _renderer.sharedMaterial = _sharedMaterialAsset;
+                DestroyImmediate(_materialInstance);
+                _materialInstance = null;
+                _ownsMaterialInstance = false;
+            }
+
             EnsureMaterialInstance();
+            ApplyMaterialProperties();
         }
 
         /// <summary>
         /// Создаёт уникальный экземпляр материала для этого рендерера.
-        /// В Edit Mode используем sharedMaterial напрямую (без инстанса),
-        /// чтобы не загрязнять ассет.
+        /// В Play Mode используем renderer.material (автоматически создаёт instance).
+        /// В Edit Mode тоже создаём временный instance, чтобы не загрязнять ассет.
+        /// Если sharedMaterial null (часто у FBX-prefab children), создаёт материал
+        /// напрямую с LiquidFlask шейдером.
         /// </summary>
         private void EnsureMaterialInstance()
         {
             if (_renderer == null) return;
+
+            Material shared = _renderer.sharedMaterial;
+
+            // If sharedMaterial is null, create one from the LiquidFlask shader.
+            // This happens when FBX-prefab children lose their material override.
+            if (shared == null)
+            {
+                Shader shader = _shader != null ? _shader : Shader.Find(DefaultShaderName);
+                if (shader == null)
+                {
+                    Debug.LogError($"[LiquidWobble] Shader '{DefaultShaderName}' not found. " +
+                                   "Assign it to the _shader field or add to Always Included Shaders.", this);
+                    return;
+                }
+
+                _materialInstance = new Material(shader);
+                _materialInstance.hideFlags = HideFlags.HideAndDontSave;
+                _renderer.sharedMaterial = _materialInstance;
+                _ownsMaterialInstance = true;
+                return;
+            }
 
             if (Application.isPlaying)
             {
@@ -122,9 +165,13 @@ namespace ChemicalPuzzle
             }
             else
             {
-                // В Edit Mode работаем с shared (без инстансирования)
-                _materialInstance = _renderer.sharedMaterial;
-                _ownsMaterialInstance = false;
+                // В Edit Mode создаём временный instance от sharedMaterial,
+                // чтобы запись свойств в Update() не меняла сам ассет.
+                _sharedMaterialAsset = shared;
+                _materialInstance = new Material(shared);
+                _materialInstance.hideFlags = HideFlags.HideAndDontSave;
+                _renderer.sharedMaterial = _materialInstance;
+                _ownsMaterialInstance = true;
             }
         }
 
@@ -174,6 +221,22 @@ namespace ChemicalPuzzle
                 _lastRot = transform.rotation;
             }
 
+            ApplyMaterialProperties();
+
+        #if UNITY_EDITOR
+            if (!Application.isPlaying) UnityEditor.SceneView.RepaintAll();
+        #endif
+        }
+
+        /// <summary>
+        /// Pushes all serialized properties to the material instance.
+        /// Called from OnEnable (to avoid stale baked values on the first frame)
+        /// and from Update (to keep wobble / pivot in sync every frame).
+        /// </summary>
+        private void ApplyMaterialProperties()
+        {
+            if (_materialInstance == null) return;
+
             // Передаём свойства напрямую в material instance —
             // SRP Batcher корректно обрабатывает per-material свойства.
             _materialInstance.SetFloat(FillAmountId,           fillFraction);
@@ -190,10 +253,6 @@ namespace ChemicalPuzzle
             _materialInstance.SetFloat(RefractionStrengthId,   _refractionStrength);
             _materialInstance.SetFloat(ChromaticAberrationId,  _chromaticAberration);
             _materialInstance.SetFloat(DepthDarkenId,          _depthDarken);
-
-        #if UNITY_EDITOR
-            if (!Application.isPlaying) UnityEditor.SceneView.RepaintAll();
-        #endif
         }
 
         private void OnDisable()
@@ -201,15 +260,28 @@ namespace ChemicalPuzzle
             if (_materialInstance == null) return;
             _materialInstance.SetFloat(WobbleXId, 0f);
             _materialInstance.SetFloat(WobbleZId, 0f);
+
+            // В Edit Mode возвращаем оригинальный sharedMaterial, чтобы
+            // временный instance не сохранялся в сцену/префаб.
+            if (!Application.isPlaying && _renderer != null && _sharedMaterialAsset != null)
+            {
+                _renderer.sharedMaterial = _sharedMaterialAsset;
+            }
         }
 
         private void OnDestroy()
         {
+            // В Edit Mode сначала возвращаем оригинальный материал.
+            if (!Application.isPlaying && _renderer != null && _sharedMaterialAsset != null)
+            {
+                _renderer.sharedMaterial = _sharedMaterialAsset;
+            }
+
             // Уничтожаем только тот инстанс, который создали сами, чтобы никогда не
             // пытаться удалить шаренный ассет (например, при рекомпиляции в Play Mode).
             if (_ownsMaterialInstance && _materialInstance != null)
             {
-                Destroy(_materialInstance);
+                DestroyImmediate(_materialInstance);
                 _materialInstance = null;
                 _ownsMaterialInstance = false;
             }
@@ -274,5 +346,44 @@ namespace ChemicalPuzzle
             fillFraction   = target;
             _fillCoroutine = null;
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor-only: resets stale baked properties on the shared material asset.
+        /// Removes leftover values from the old EditMode sharedMaterial-writing bug
+        /// (_PivotWS, _LocalMeshMin, _LocalMeshMax, _WobbleX, _WobbleZ) and old-shader
+        /// properties (_FillScale, _FillWorldY, _LocalFillY, _LiquidCenter, _Mutnost,
+        /// _SurfaceWidth, _EdgeSmoothness, _WoobleZ).
+        /// Right-click the component header in the Inspector and select "Reset Shared Material".
+        /// </summary>
+        [ContextMenu("Reset Shared Material")]
+        private void ResetSharedMaterial()
+        {
+            if (_renderer == null) _renderer = GetComponent<Renderer>();
+            if (_renderer == null) return;
+
+            Material mat = _renderer.sharedMaterial;
+            if (mat == null)
+            {
+                Debug.LogWarning("[LiquidWobble] No shared material to reset.", this);
+                return;
+            }
+
+            UnityEditor.Undo.RecordObject(mat, "Reset LiquidFlask material");
+
+            // Reset runtime-controlled properties to shader defaults
+            mat.SetVector(PivotWSId, Vector4.zero);
+            mat.SetFloat(WobbleXId, 0f);
+            mat.SetFloat(WobbleZId, 0f);
+            mat.SetFloat(FillAmountId, 0f);
+            mat.SetFloat(LocalMeshMinId, -0.5f);
+            mat.SetFloat(LocalMeshMaxId, 0.5f);
+
+            UnityEditor.EditorUtility.SetDirty(mat);
+            Debug.Log($"[LiquidWobble] Reset shared material '{mat.name}' on '{gameObject.name}'. " +
+                      "Stale runtime properties cleared. Old-shader leftover properties " +
+                      "(_FillScale, _Mutnost, etc.) are ignored by the current shader.", this);
+        }
+#endif
     }
 }

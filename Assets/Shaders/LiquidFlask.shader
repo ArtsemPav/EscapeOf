@@ -23,9 +23,9 @@ Shader "Custom/LiquidFlask"
         // Depth shading
         _DepthDarken    ("Depth Darken",        Range(0, 1))    = 0.5
 
-        [HideInInspector] _PivotWS   ("Pivot World Space", Vector) = (0,0,0,0)
-        [HideInInspector] _WobbleX   ("WobbleX",           Float)  = 0.0
-        [HideInInspector] _WobbleZ   ("WobbleZ",           Float)  = 0.0
+        _PivotWS   ("Pivot World Space", Vector) = (0,0,0,0)
+        _WobbleX   ("WobbleX",           Float)  = 0.0
+        _WobbleZ   ("WobbleZ",           Float)  = 0.0
     }
 
     SubShader
@@ -341,4 +341,6 @@ Shader "Custom/LiquidFlask"
             ENDHLSL
         }
     }
+
+    Fallback "Universal Render Pipeline/Unlit"
 }
