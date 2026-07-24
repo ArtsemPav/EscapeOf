@@ -769,6 +769,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4727517155505055997}
   - component: {fileID: 5609696141665298578}
+  - component: {fileID: 34180089922753384}
   m_Layer: 6
   m_Name: BoardPuzzleConteiner
   m_TagString: Untagged
@@ -806,7 +807,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BoardPuzzleManager
   OnPuzzleSolved:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: PuzzleSolvedCinematic, Assembly-CSharp
+        m_MethodName: PlayCinematic
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   _cylinders:
   - {fileID: 6067792177600346826}
   - {fileID: 7698000697884458}
@@ -833,9 +846,31 @@ MonoBehaviour:
   - {fileID: 1457492532758951631}
   - {fileID: 5144196270275746024}
   _connectionDetectionRadius: 0.1
-  _saveId: 
+  _saveId: PoardPuzzle_saveid
   _showDebugLogs: 1
   _highlightOffDelay: 5
+  _solvedClip: {fileID: 0}
+  _solvedVolume: 1
+--- !u!114 &34180089922753384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1614759316448294330}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a56e89c14834ee4493196c6727ece53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleSolvedCinematic
+  _cinematicCamera: {fileID: 0}
+  _blendDuration: 1
+  _animator: {fileID: 0}
+  _animationTrigger: Open
+  _animationStateName: Opening
+  _animationTimeout: 15
+  _cinematicClip: {fileID: 0}
+  _cinematicVolume: 1
 --- !u!1 &1622034110536663553
 GameObject:
   m_ObjectHideFlags: 0
@@ -1204,6 +1239,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &2947712632190147512
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1448,6 +1484,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &2311505556206244522
 GameObject:
   m_ObjectHideFlags: 0
@@ -1920,6 +1957,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &2772565998189014730
 GameObject:
   m_ObjectHideFlags: 0
@@ -2027,6 +2065,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &2819165147514479106
 GameObject:
   m_ObjectHideFlags: 0
@@ -2211,6 +2250,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &849778767192278807
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2528,6 +2568,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &3546637355311661788
 GameObject:
   m_ObjectHideFlags: 0
@@ -3222,6 +3263,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &3921924400151382831
 GameObject:
   m_ObjectHideFlags: 0
@@ -3682,6 +3724,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &7568524565529875350
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4076,6 +4119,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &6872838655163803191
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4631,6 +4675,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &5006210911910743813
 GameObject:
   m_ObjectHideFlags: 0
@@ -4999,6 +5044,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &427960189738374494
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5262,6 +5308,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &5463456043685194009
 GameObject:
   m_ObjectHideFlags: 0
@@ -5845,6 +5892,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &5903242119942245317
 GameObject:
   m_ObjectHideFlags: 0
@@ -6025,6 +6073,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &6078655936426078890
 GameObject:
   m_ObjectHideFlags: 0
@@ -6209,6 +6258,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &7457826742346394422
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6714,6 +6764,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &4008194195797196666
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7177,6 +7228,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 0, z: 1}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!1 &6954987436844348905
 GameObject:
   m_ObjectHideFlags: 0
@@ -8129,6 +8181,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &6494888331574995750
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8304,6 +8357,7 @@ MonoBehaviour:
   _rotationDuration: 0.3
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotateSound: {fileID: 0}
+  _rotateVfx: {fileID: 0}
 --- !u!114 &6370775310839436524
 MonoBehaviour:
   m_ObjectHideFlags: 0

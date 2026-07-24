@@ -54,6 +54,11 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     [Tooltip("How many seconds the highlight stays visible after the puzzle is solved. Set to 0 to keep it on indefinitely.")]
     [SerializeField, Min(0f)] private float _highlightOffDelay = 5f;
 
+    [Header("Audio")]
+    [Tooltip("Sound played when the correct path is completed.")]
+    [SerializeField] private AudioClip _solvedClip;
+    [SerializeField, Range(0f, 1f)] private float _solvedVolume = 1f;
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
@@ -145,7 +150,8 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
             LockAllCylinders();
             TurnOffAllVisuals();
             // Re-fire the event so listeners (doors, lights, etc.) can restore their state.
-            OnPuzzleSolved.Invoke();
+            // Deferred by one frame so all listeners have completed their Awake/Start.
+            StartCoroutine(InvokeSolvedDeferred());
             return;
         }
 
@@ -199,6 +205,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
                 _isSolved = true;
                 UpdateVisualPath();
                 LockAllCylinders();
+                AudioManager.Instance?.PlaySFX(_solvedClip, _solvedVolume);
                 SaveManager.Instance?.Save();
                 OnPuzzleSolved.Invoke();
                 return;
@@ -226,7 +233,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         List<GameObject> possibleArrivals = FindAllArrivalConnectors(exitConnector, fromTerminal, targetTerminal);
 
         if (possibleArrivals.Count == 0) {
-            if (_showDebugLogs) Debug.Log($"[Puzzle] Dead end from {exitConnector.name} - cannot reach {targetTerminal.name}");
+            Log($"<color=red>[Puzzle] Dead end from {exitConnector.name} - cannot reach {targetTerminal.name}</color>");
             return false;
         }
 
@@ -711,6 +718,15 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         yield return new WaitForSeconds(_highlightOffDelay);
         TurnOffAllVisuals();
         _highlightOffCoroutine = null;
+    }
+
+    /// <summary>
+    /// Invokes OnPuzzleSolved after one frame so all listener Awake/Start calls have run.
+    /// </summary>
+    private IEnumerator InvokeSolvedDeferred()
+    {
+        yield return null;
+        OnPuzzleSolved.Invoke();
     }
 
     /// <summary>Sets power to false on every cached connector visual.</summary>

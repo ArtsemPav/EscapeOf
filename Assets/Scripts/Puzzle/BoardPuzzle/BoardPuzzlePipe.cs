@@ -18,8 +18,18 @@ public class BoardPuzzlePipe : MonoBehaviour
     [Tooltip("Sound played when the cylinder rotates.")]
     [SerializeField] private AudioClip _rotateSound;
 
+    [Header("VFX")]
+    [Tooltip("Particle system played when the cylinder starts rotating. Auto-found on the same GameObject if not assigned.")]
+    [SerializeField] private ParticleSystem _rotateVfx;
+
     private bool _isRotating = false;
     private bool _isLocked = false;
+
+    private void Awake()
+    {
+        if (_rotateVfx == null)
+            _rotateVfx = GetComponentInChildren<ParticleSystem>();
+    }
 
     private void OnDisable()
     {
@@ -48,6 +58,11 @@ public class BoardPuzzlePipe : MonoBehaviour
         if (_rotateSound != null && AudioManager.Instance != null)
         {
             AudioManager.Instance.PlaySFX(_rotateSound);
+        }
+
+        if (_rotateVfx != null)
+        {
+            _rotateVfx.Play();
         }
 
         StartCoroutine(RotateRoutine());
