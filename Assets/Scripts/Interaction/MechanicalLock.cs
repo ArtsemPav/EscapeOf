@@ -4,7 +4,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Logic for a 5-digit combination lock using mechanical cylinders.
+/// Logic for a combination lock using mechanical cylinders.
+/// Supports any number of cylinders and any number of symbols per cylinder.
 /// Integrated with PuzzleModeController for state management and events.
 /// Plays an open animation and sound when the correct combination is entered.
 /// </summary>
@@ -19,6 +20,8 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     // ── Inspector ───────────────────────────────────────────────────────────────
 
     [Header("Combination Settings")]
+    [Tooltip("If true, combination values are 1-based (A=1, B=2, ...). If false, 0-based (A=0, B=1, ...).")]
+    [SerializeField] private bool _useOneBasedCombination = false;
     [SerializeField] private int[] _correctCombination = new int[5] { 1, 2, 3, 4, 5 };
 
     [Header("References")]
@@ -59,6 +62,7 @@ public class MechanicalLock : MonoBehaviour, ISaveable
             _puzzleController = GetComponent<PuzzleModeController>();
 
         AutoResolveReferences();
+        NormalizeCombination();
 
         SaveManager.Instance?.Register(this);
     }
@@ -100,6 +104,22 @@ public class MechanicalLock : MonoBehaviour, ISaveable
             _lockAnimator = GetComponentInChildren<Animator>();
     }
 
+    /// <summary>
+    /// Converts the combination from 1-based to 0-based internal indices
+    /// when _useOneBasedCombination is enabled.
+    /// </summary>
+    private void NormalizeCombination()
+    {
+        if (!_useOneBasedCombination) return;
+
+        for (int i = 0; i < _correctCombination.Length; i++)
+        {
+            _correctCombination[i] = _correctCombination[i] - 1;
+        }
+
+        _useOneBasedCombination = false;
+    }
+
     // ── Input ───────────────────────────────────────────────────────────────────
 
     private void HandleInput()
@@ -115,7 +135,7 @@ public class MechanicalLock : MonoBehaviour, ISaveable
                 LockCylinder cylinder = hit.collider.GetComponentInParent<LockCylinder>();
                 if (cylinder != null && Array.IndexOf(_cylinders, cylinder) != -1)
                 {
-                    // LMB -> rotate forward (-36 deg), RMB -> rotate backward (+36 deg)
+                    // LMB -> rotate one step forward, RMB -> rotate one step backward
                     cylinder.Rotate(!lmb);
                     CheckCombination();
                 }
@@ -135,7 +155,7 @@ public class MechanicalLock : MonoBehaviour, ISaveable
             {
                 if (_cylinders[i] != null)
                 {
-                    int randomValue = UnityEngine.Random.Range(0, 10);
+                    int randomValue = UnityEngine.Random.Range(0, _cylinders[i].SymbolCount);
                     _cylinders[i].SetValue(randomValue);
 
                     if (i < _correctCombination.Length && randomValue != _correctCombination[i])

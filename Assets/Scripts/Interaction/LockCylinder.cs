@@ -4,14 +4,15 @@ using UnityEngine.Events;
 
 /// <summary>
 /// Controls a single mechanical cylinder in a combination lock.
-/// Rotates -36 degrees per click.
+/// Step angle is calculated as -360 / SymbolCount degrees per click.
 /// </summary>
 public class LockCylinder : MonoBehaviour
 {
-    private const float StepAngle = -36f;
     private const float RotationSpeed = 360f;
 
     [Header("Rotation Settings")]
+    [Tooltip("Number of symbols on the cylinder. Determines the step angle (360 / count).")]
+    [SerializeField] private int _symbolCount = 10;
     [SerializeField] private int _currentIndex = 0;
     [SerializeField] private Vector3 _rotationAxis = Vector3.up;
 
@@ -21,7 +22,13 @@ public class LockCylinder : MonoBehaviour
 
     private Quaternion _targetRotation;
 
+    /// <summary>Number of symbols on this cylinder.</summary>
+    public int SymbolCount => _symbolCount;
+
+    /// <summary>Current zero-based symbol index.</summary>
     public int CurrentValue => _currentIndex;
+
+    private float StepAngle => -360f / _symbolCount;
 
     private void Awake()
     {
@@ -41,16 +48,16 @@ public class LockCylinder : MonoBehaviour
     /// <summary>
     /// Rotates the cylinder by one step.
     /// </summary>
-    /// <param name="clockwise">If true, rotates 36 degrees. If false, rotates -36 degrees.</param>
+    /// <param name="clockwise">If true, rotates one step forward. If false, rotates one step backward.</param>
     public void Rotate(bool clockwise)
     {
         if (clockwise)
         {
-            _currentIndex = (_currentIndex - 1 + 10) % 10;
+            _currentIndex = (_currentIndex - 1 + _symbolCount) % _symbolCount;
         }
         else
         {
-            _currentIndex = (_currentIndex + 1) % 10;
+            _currentIndex = (_currentIndex + 1) % _symbolCount;
         }
 
         if (_rotateSound != null && AudioManager.Instance != null)
@@ -75,7 +82,7 @@ public class LockCylinder : MonoBehaviour
     /// </summary>
     public void SetValue(int value)
     {
-        _currentIndex = Mathf.Clamp(value, 0, 9);
+        _currentIndex = Mathf.Clamp(value, 0, _symbolCount - 1);
         UpdateRotation(true);
     }
 }
