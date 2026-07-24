@@ -53,6 +53,7 @@ public class HiddenWallSign : MonoBehaviour
     private MaterialPropertyBlock _propertyBlock;
     private bool _isVisible;
     private bool _subscribed;
+    private bool _shaderFound;
 
     private void Awake()
     {
@@ -60,10 +61,12 @@ public class HiddenWallSign : MonoBehaviour
         _renderer.enabled = false;
 
         Shader shader = Shader.Find(ShaderName);
-        if (shader != null)
+        _shaderFound = shader != null;
+        if (_shaderFound)
             _renderer.material = new Material(shader);
         else
-            Debug.LogError($"[HiddenWallSign] Shader '{ShaderName}' not found.", this);
+            Debug.LogError($"[HiddenWallSign] Shader '{ShaderName}' not found. " +
+                           "Add it to Project Settings > Graphics > Always Included Shaders.", this);
 
         _propertyBlock = new MaterialPropertyBlock();
     }
@@ -110,7 +113,7 @@ public class HiddenWallSign : MonoBehaviour
         var controller = FlashlightController.Instance;
         if (controller == null) return;
 
-        _isVisible = controller.IsOn && controller.CurrentMode == visibleInMode;
+        _isVisible = _shaderFound && controller.IsOn && controller.CurrentMode == visibleInMode;
         _renderer.enabled = _isVisible;
     }
 

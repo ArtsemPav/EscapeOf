@@ -187,8 +187,17 @@ public class PeepholeTVCamera : MonoBehaviour
         Shader shader = _shader != null ? _shader : Shader.Find("Custom/TVGlitch");
         if (shader == null)
         {
-            Debug.LogError("[PeepholeTVCamera] TVGlitch shader not found. Assign it in the Inspector.", this);
-            return;
+            Debug.LogError("[PeepholeTVCamera] TVGlitch shader not found — stripped from build. " +
+                           "Add 'Custom/TVGlitch' to Project Settings > Graphics > Always Included Shaders " +
+                           "or assign it to the _shader field on this component.", this);
+
+            // Fallback to a built-in unlit shader so the screen at least shows the camera feed.
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null)
+            {
+                Debug.LogError("[PeepholeTVCamera] Fallback URP/Unlit shader also not found.", this);
+                return;
+            }
         }
 
         _screenMaterial      = new Material(shader);
