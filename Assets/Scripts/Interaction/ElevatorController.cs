@@ -48,8 +48,10 @@ namespace Escape.Interaction
         [SerializeField] private int _startingFloor = 1;
 
         [Header("Door Animation")]
-        [Tooltip("Расстояние, на которое створки разъезжаются при открытии (по локальной оси Z).")]
-        [SerializeField] private float _doorOpenOffset = 0.9f;
+        [Tooltip("Расстояние, на которое створки КАБИНЫ разъезжаются при открытии (по локальной оси Z).")]
+        [SerializeField] private float _cabinDoorOpenOffset = 0.9f;
+        [Tooltip("Расстояние, на которое створки В КОРИДОРЕ разъезжаются при открытии (по локальной оси Z).")]
+        [SerializeField] private float _floorDoorOpenOffset = 0.9f;
         [Tooltip("Время открытия/закрытия дверей (секунды).")]
         [SerializeField] [Min(0.1f)] private float _doorDuration = 1.5f;
 
@@ -331,17 +333,17 @@ namespace Escape.Interaction
             float elapsed = 0f;
 
             // Cabin doors
-            Vector3 cabAFrom = GetDoorPos(_cabinDoorAStart, fromState, true);
-            Vector3 cabATo = GetDoorPos(_cabinDoorAStart, toState, true);
-            Vector3 cabBFrom = GetDoorPos(_cabinDoorBStart, fromState, false);
-            Vector3 cabBTo = GetDoorPos(_cabinDoorBStart, toState, false);
+            Vector3 cabAFrom = GetDoorPos(_cabinDoorAStart, fromState, true, _cabinDoorOpenOffset);
+            Vector3 cabATo = GetDoorPos(_cabinDoorAStart, toState, true, _cabinDoorOpenOffset);
+            Vector3 cabBFrom = GetDoorPos(_cabinDoorBStart, fromState, false, _cabinDoorOpenOffset);
+            Vector3 cabBTo = GetDoorPos(_cabinDoorBStart, toState, false, _cabinDoorOpenOffset);
 
             // Floor doors
             var fd = _floorDoors[floor];
-            Vector3 flAFrom = GetDoorPos(_floorDoorStarts[floor][0], fromState, true);
-            Vector3 flATo = GetDoorPos(_floorDoorStarts[floor][0], toState, true);
-            Vector3 flBFrom = GetDoorPos(_floorDoorStarts[floor][1], fromState, false);
-            Vector3 flBTo = GetDoorPos(_floorDoorStarts[floor][1], toState, false);
+            Vector3 flAFrom = GetDoorPos(_floorDoorStarts[floor][0], fromState, true, _floorDoorOpenOffset);
+            Vector3 flATo = GetDoorPos(_floorDoorStarts[floor][0], toState, true, _floorDoorOpenOffset);
+            Vector3 flBFrom = GetDoorPos(_floorDoorStarts[floor][1], fromState, false, _floorDoorOpenOffset);
+            Vector3 flBTo = GetDoorPos(_floorDoorStarts[floor][1], toState, false, _floorDoorOpenOffset);
 
             while (elapsed < _doorDuration)
             {
@@ -369,11 +371,11 @@ namespace Escape.Interaction
             if (fd.wingB != null) fd.wingB.localPosition = flBTo;
         }
 
-        private Vector3 GetDoorPos(Vector3 start, int state, bool isWingA)
+        private Vector3 GetDoorPos(Vector3 start, int state, bool isWingA, float offset)
         {
             Vector3 pos = start;
             if (state == DOOR_OPEN)
-                pos.z += isWingA ? _doorOpenOffset : -_doorOpenOffset;
+                pos.z += isWingA ? offset : -offset;
             return pos;
         }
 
@@ -409,18 +411,18 @@ namespace Escape.Interaction
             int state = open ? DOOR_OPEN : DOOR_CLOSED;
 
             if (_cabinDoors.wingA != null)
-                _cabinDoors.wingA.localPosition = GetDoorPos(_cabinDoorAStart, state, true);
+                _cabinDoors.wingA.localPosition = GetDoorPos(_cabinDoorAStart, state, true, _cabinDoorOpenOffset);
             if (_cabinDoors.wingB != null)
-                _cabinDoors.wingB.localPosition = GetDoorPos(_cabinDoorBStart, state, false);
+                _cabinDoors.wingB.localPosition = GetDoorPos(_cabinDoorBStart, state, false, _cabinDoorOpenOffset);
 
             if (_floorDoors != null && floor >= 0 && floor < _floorDoors.Length)
             {
                 if (_floorDoors[floor].wingA != null)
                     _floorDoors[floor].wingA.localPosition =
-                        GetDoorPos(_floorDoorStarts[floor][0], state, true);
+                        GetDoorPos(_floorDoorStarts[floor][0], state, true, _floorDoorOpenOffset);
                 if (_floorDoors[floor].wingB != null)
                     _floorDoors[floor].wingB.localPosition =
-                        GetDoorPos(_floorDoorStarts[floor][1], state, false);
+                        GetDoorPos(_floorDoorStarts[floor][1], state, false, _floorDoorOpenOffset);
             }
         }
 
