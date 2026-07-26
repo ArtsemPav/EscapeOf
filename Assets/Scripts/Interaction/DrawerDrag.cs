@@ -24,6 +24,9 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [SerializeField] private float _dragSensitivity = 1f;
     [Tooltip("Invert the drag axis if the drawer moves in the wrong direction.")]
     [SerializeField] private bool _invertAxis = false;
+    [Tooltip("If true, the drawer snaps to fully open or closed after release. " +
+             "If false, it stays exactly where the player left it.")]
+    [SerializeField] private bool _snapOnRelease = true;
     [Tooltip("Speed at which the drawer snaps to fully open or closed after release.")]
     [SerializeField] private float _snapSpeed = 8f;
     [Tooltip("If open fraction exceeds this on release, drawer snaps fully open; otherwise it closes.")]
@@ -108,13 +111,19 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             return;
         }
 
-        Vector3 openDirWorld = transform.TransformDirection(_openDirection.normalized);
-
         // World positions of the closed and fully-open endpoints.
+        // Both endpoints are computed via parent.TransformPoint to match ApplyPosition(),
+        // which sets localPosition (parent space). Using transform.TransformDirection here
+        // would incorrectly apply the drawer's own local rotation and ignore parent scale,
+        // producing a wrong screen-space open direction when the drawer has a non-identity
+        // rotation (e.g. FBX axis-correction rotation).
+        Vector3 openLocalPos = _closedLocalPosition + _openDirection.normalized * _openDistance;
         Vector3 closedWorld = transform.parent != null
             ? transform.parent.TransformPoint(_closedLocalPosition)
             : _closedLocalPosition;
-        Vector3 openWorld = closedWorld + openDirWorld * _openDistance;
+        Vector3 openWorld = transform.parent != null
+            ? transform.parent.TransformPoint(openLocalPos)
+            : openLocalPos;
 
         // Project both endpoints onto screen → screen-space open direction + pixel length.
         Vector3 screenA = cam.WorldToScreenPoint(closedWorld);
@@ -162,9 +171,12 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// <summary>Called by FPSController when LMB is released. Snaps to nearest rest position.</summary>
     public void OnDragEnd()
     {
-        _isDragging       = false;
-        _targetOpenAmount = _openAmount >= _snapThreshold ? 1f : 0f;
-        _wasOpen          = _targetOpenAmount == 1f;
+        _isDragging = false;
+        if (_snapOnRelease)
+            _targetOpenAmount = _openAmount >= _snapThreshold ? 1f : 0f;
+        else
+            _targetOpenAmount = _openAmount;
+        _wasOpen = _targetOpenAmount >= 1f;
     }
 
     // ── IInteractable ───────────────────────────────────────────────────────────
