@@ -50,6 +50,7 @@ public class FPSController : MonoBehaviour, ISaveable
     private IDraggable _currentDraggable;
     private string _lastHintText;
     private CrosshairMode _lastCrosshairMode;
+    private Camera _playerCamera;
 
     private bool _isGrounded;
     private bool _isCrouching;
@@ -149,6 +150,7 @@ public class FPSController : MonoBehaviour, ISaveable
         _characterController = GetComponent<CharacterController>();
         _targetHeight = standingHeight;
         _baseCameraLocalY = cameraTransform.localPosition.y;
+        _playerCamera = Camera.main;
         SaveManager.Instance?.Register(this);
     }
 
@@ -562,7 +564,7 @@ public class FPSController : MonoBehaviour, ISaveable
                     : cameraTransform.position + cameraTransform.forward * interactDistance;
 
                 _currentDraggable = draggable;
-                _currentDraggable.OnDragStart(hitPoint);
+                _currentDraggable.OnDragStart(hitPoint, _playerCamera);
             }
             else if (_currentInteractable != null && _currentInteractable.UseLMBClick)
             {

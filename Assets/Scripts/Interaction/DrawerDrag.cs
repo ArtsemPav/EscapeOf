@@ -91,7 +91,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     // ── IDraggable ──────────────────────────────────────────────────────────────
 
     /// <summary>Called by FPSController when LMB is pressed while the player looks at the drawer.</summary>
-    public void OnDragStart(Vector3 hitPoint)
+    public void OnDragStart(Vector3 hitPoint, Camera cam)
     {
         _isDragging  = true;
         _lastDragSign = 0;
@@ -103,7 +103,6 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         if (_parentAnimator != null)
             _parentAnimator.enabled = false;
 
-        Camera cam = Camera.main;
         if (cam == null)
         {
             _screenOpenDir       = Vector2.right;

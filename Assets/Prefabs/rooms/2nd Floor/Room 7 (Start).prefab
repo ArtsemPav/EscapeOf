@@ -320,6 +320,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomController
   _localVolume: {fileID: 0}
+  _triggerZones: []
 --- !u!1 &5235056250994835604
 GameObject:
   m_ObjectHideFlags: 0
@@ -1841,6 +1842,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
@@ -1854,6 +1857,8 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -1863,6 +1868,9 @@ MonoBehaviour:
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _saveId: door_locker_top_right
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1904009053745563547 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100002, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
@@ -1882,6 +1890,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
@@ -1895,6 +1905,8 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -1904,6 +1916,9 @@ MonoBehaviour:
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _saveId: door_locker_top_left
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1904009053745563549 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100004, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
@@ -1923,6 +1938,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
@@ -1936,6 +1953,8 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -1945,6 +1964,9 @@ MonoBehaviour:
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _saveId: door_locker_bot_right
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1904009053745563551 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100006, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
@@ -1964,6 +1986,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
@@ -1977,6 +2001,8 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -1986,6 +2012,9 @@ MonoBehaviour:
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _saveId: door_locker_bot_left
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &1904009053745863601 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400008, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
@@ -4118,6 +4147,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 0f02e804407dbc14a8ddfbeb714ffd08, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_battery
 --- !u!4 &4496938128999454828 stripped
 Transform:
@@ -5417,6 +5450,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: ae0626fcceabc2943b0cde4859f673a8, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_flashlight
 --- !u!4 &7995502981212945056 stripped
 Transform:
@@ -6240,9 +6277,6 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 7995502981212945056}
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 100004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 5795329090235729408}
     - targetCorrespondingSourceObject: {fileID: 100002, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2724738078651044478}
@@ -6257,32 +6291,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3767529904480082173, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
   m_PrefabInstance: {fileID: 8158519221608915141}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &8158519221609014881 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 100004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
-  m_PrefabInstance: {fileID: 8158519221608915141}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &5795329090235729408
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8158519221609014881}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe43e7c0bb69d4046afa6aff0ff4e5fd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::DrawerDrag
-  _openDirection: {x: 0, y: 0, z: -0.9}
-  _openDistance: 0.65
-  _dragSensitivity: 1
-  _invertAxis: 0
-  _snapSpeed: 8
-  _snapThreshold: 0.25
-  _openClip: {fileID: 0}
-  _openVolume: 0.8
-  _interactText: "\u041F\u043E\u0442\u044F\u043D\u0443\u0442\u044C"
 --- !u!1 &8158519221609014887 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100002, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
@@ -6302,6 +6310,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
@@ -6315,6 +6325,8 @@ MonoBehaviour:
   _friction: 5
   _maxVelocity: 1.2
   _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -6324,6 +6336,9 @@ MonoBehaviour:
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _saveId: door_desk
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &8158519221609052737 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400004, guid: 8be8dc4dc8d05be4eb7917315e7ca72f, type: 3}
@@ -6679,6 +6694,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_key
 --- !u!1001 &9061462348054534156
 PrefabInstance:

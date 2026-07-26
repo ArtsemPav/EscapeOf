@@ -108,6 +108,7 @@ namespace Escape.Core {
         private float   _clickTarget;         // 0 = fully closed, 1 = fully open — target for the click animation
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
+        private Camera  _dragCamera;
 
         // Pending load state: applied in Start() after _closedLocalEulerY is initialized
         private bool    _hasPendingLoad;
@@ -297,7 +298,7 @@ namespace Escape.Core {
         // ── IDraggable ───────────────────────────────────────────────────────────
 
         /// <summary>Called by FPSController when LMB is pressed while looking at the door.</summary>
-        public void OnDragStart(Vector3 hitPoint) {
+        public void OnDragStart(Vector3 hitPoint, Camera cam) {
             // Click mode: a single LMB press toggles the door open/closed over _openDuration.
             if (_openMode == DoorOpenMode.Click) {
                 ToggleClick();
@@ -306,6 +307,7 @@ namespace Escape.Core {
 
             _isDragging        = true;
             _dragActive        = true;
+            _dragCamera        = cam;
             _snappingBack      = false;
             _flinging          = false;
             _isUnlockAnimating = false;
@@ -330,7 +332,7 @@ namespace Escape.Core {
             // Click mode ignores continuous drag — the door animates on its own.
             if (_openMode == DoorOpenMode.Click) return;
 
-            Camera cam = Camera.main;
+            Camera cam = _dragCamera != null ? _dragCamera : Camera.main;
             if (cam == null || _pivot == null) return;
 
             float   openedAngle  = _openFraction * _maxOpenAngle;
