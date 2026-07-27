@@ -175,6 +175,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 6227586810606130380}
+  - {fileID: 2546326391156781326}
   - {fileID: 7863427141900133717}
   - {fileID: 1149418543789209916}
   - {fileID: 1801315704990647444}
@@ -6205,7 +6206,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6350760626275610250, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.27750003
+      value: -0.466
       objectReference: {fileID: 0}
     - target: {fileID: 6350760626275610250, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6238,13 +6239,63 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6010545772095976496, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 598640803833637676}
+    - targetCorrespondingSourceObject: {fileID: 6010545772095976496, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3919921776194397628}
   m_SourcePrefab: {fileID: 100100000, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
 --- !u!4 &6227586810606130380 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6350760626275610250, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
   m_PrefabInstance: {fileID: 1030965950258084422}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6712339924787809910 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6010545772095976496, guid: b37dc3157b366d848ac142fbf91e209a, type: 3}
+  m_PrefabInstance: {fileID: 1030965950258084422}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &598640803833637676
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6712339924787809910}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14, y: 0.021, z: 0.12}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &3919921776194397628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6712339924787809910}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: 735fbdf92965f8b4f9277de387cde5ff, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _saveId: pickable_medallion_iron
 --- !u!1001 &1128624867154686349
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7348,8 +7399,58 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8149368066992577680}
+    - targetCorrespondingSourceObject: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 135718926166805997}
   m_SourcePrefab: {fileID: 100100000, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+--- !u!1 &1419865041959427630 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+  m_PrefabInstance: {fileID: 2243403275905474553}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &8149368066992577680
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1419865041959427630}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14, y: 0.021, z: 0.12}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &135718926166805997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1419865041959427630}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: c855e789d1afaa648a27e1069f64ec14, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _saveId: pickable_medallion_iron
 --- !u!4 &1801315704990647444 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 566789944900049773, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
@@ -8353,8 +8454,58 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5778162021173046346, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 587411987831991174}
+    - targetCorrespondingSourceObject: {fileID: 5778162021173046346, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6974617282931167402}
   m_SourcePrefab: {fileID: 100100000, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
+--- !u!1 &7380082567295221743 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5778162021173046346, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
+  m_PrefabInstance: {fileID: 3916854321836397477}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &587411987831991174
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7380082567295221743}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14, y: 0.021, z: 0.12}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &6974617282931167402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7380082567295221743}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: 565ba1a33c10e294da266aa2f9874a46, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _saveId: pickable_medallion_iron
 --- !u!4 &7863427141900133717 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6592134136739952368, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
@@ -8921,6 +9072,118 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8098085302463897026, guid: b9ce481d79e6213459323415d265df20, type: 3}
   m_PrefabInstance: {fileID: 4220672530146759559}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &4302017094617319109
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6220214100172685607}
+    m_Modifications:
+    - target: {fileID: 1418171199350418801, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_Name
+      value: PickableFireCoin
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.3814
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.049000125
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.5248
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.9422882
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.33480287
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1418171199350418801, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5012346572228535680}
+    - targetCorrespondingSourceObject: {fileID: 1418171199350418801, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2805294111875819829}
+  m_SourcePrefab: {fileID: 100100000, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+--- !u!4 &2546326391156781326 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1793993536178812875, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+  m_PrefabInstance: {fileID: 4302017094617319109}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &2890623697312967604 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1418171199350418801, guid: ceba2c73235cfa2448588a9469a4e5ed, type: 3}
+  m_PrefabInstance: {fileID: 4302017094617319109}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &5012346572228535680
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2890623697312967604}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14, y: 0.021, z: 0.12}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2805294111875819829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2890623697312967604}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: 0a2ea96bed06ea64ebd5b545e4ef9cb8, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _saveId: pickable_medallion_iron
 --- !u!1001 &4488072272623356649
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10104,8 +10367,58 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5446817791503052988, guid: 212b67f5fc58dd449afe40620df49289, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 290643262152987309}
+    - targetCorrespondingSourceObject: {fileID: 5446817791503052988, guid: 212b67f5fc58dd449afe40620df49289, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8697102260351298593}
   m_SourcePrefab: {fileID: 100100000, guid: 212b67f5fc58dd449afe40620df49289, type: 3}
+--- !u!1 &340125950500742022 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5446817791503052988, guid: 212b67f5fc58dd449afe40620df49289, type: 3}
+  m_PrefabInstance: {fileID: 5705679556924150586}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &290643262152987309
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340125950500742022}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14, y: 0.021, z: 0.12}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &8697102260351298593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 340125950500742022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: 30282ec3c8cb39e4aabade5012b5bf56, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _saveId: pickable_medallion_iron
 --- !u!4 &1149418543789209916 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4673939545788606982, guid: 212b67f5fc58dd449afe40620df49289, type: 3}
