@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -9,6 +10,8 @@ using UnityEngine;
 ///   2. Set _openDistance to how far the drawer travels when fully open (in metres).
 ///   3. The closed position is captured automatically from localPosition at Start.
 ///   4. Optionally set _snapThreshold: above it the drawer snaps open on release, below it closes.
+///   5. Set _isLocked = true and optionally _lockedHint for locked drawers used in puzzles.
+///      Call Unlock() from puzzle logic to enable dragging.
 /// </summary>
 public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
 {
@@ -32,6 +35,20 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [Tooltip("If open fraction exceeds this on release, drawer snaps fully open; otherwise it closes.")]
     [SerializeField] [Range(0f, 1f)] private float _snapThreshold = 0.5f;
 
+    [Header("Lock")]
+    [Tooltip("If true, the drawer is locked and cannot be dragged open until Unlock() is called.")]
+    [SerializeField] private bool _isLocked = false;
+    [Tooltip("Hint shown when the player tries to drag a locked drawer.")]
+    [SerializeField] private string _lockedHint = "Заперто";
+    [Tooltip("How far a locked drawer can be pulled before it stops (fraction of full open).")]
+    [SerializeField] [Range(0f, 0.15f)] private float _lockedJiggleAmount = 0.05f;
+    [Tooltip("Speed at which a locked drawer slides back after a jiggle attempt.")]
+    [SerializeField] private float _lockedSnapBackSpeed = 10f;
+    [Tooltip("Sound played when the player tries to pull a locked drawer.")]
+    [SerializeField] private AudioClip _lockedClip;
+    [Tooltip("Sound played when the drawer is unlocked via Unlock().")]
+    [SerializeField] private AudioClip _unlockClip;
+
     [Header("Audio")]
     [SerializeField] private AudioClip _openClip;
     [SerializeField] [Range(0f, 1f)] private float _openVolume = 0.8f;
@@ -40,12 +57,17 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [SerializeField] private string _interactText = "Потянуть";
 
     private Vector3 _closedLocalPosition;
+    private bool _closedPositionCaptured;
 
     // 0 = fully closed, 1 = fully open
     private float _openAmount;
     private float _targetOpenAmount;
     private bool _isDragging;
     private bool _wasOpen;
+
+    // Locked-drag state
+    private bool _isLockedDrag;
+    private bool _snappingBack;
 
     // Direction tracking for mid-drag sound retrigger
     private int   _lastDragSign;
@@ -65,9 +87,11 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     private Animator _parentAnimator;
     private AudioSource _audioSource;
 
+    private Coroutine _autoOpenCoroutine;
+
     private void Start()
     {
-        _closedLocalPosition = transform.localPosition;
+        EnsureClosedPosition();
         _parentAnimator = GetComponentInParent<Animator>();
 
         _audioSource = gameObject.AddComponent<AudioSource>();
@@ -76,12 +100,33 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         _audioSource.loop         = false;
     }
 
+    private void EnsureClosedPosition()
+    {
+        if (_closedPositionCaptured) return;
+        _closedLocalPosition = transform.localPosition;
+        _closedPositionCaptured = true;
+    }
+
     private void Update()
     {
         if (_directionChangeCooldown > 0f)
             _directionChangeCooldown -= Time.deltaTime;
 
         if (_isDragging) return;
+
+        // ── Locked drawer snap-back ──────────────────────────────────────────
+        if (_snappingBack)
+        {
+            _openAmount = Mathf.Lerp(_openAmount, 0f, _lockedSnapBackSpeed * Time.deltaTime);
+            ApplyPosition();
+            if (_openAmount < 0.001f)
+            {
+                _openAmount   = 0f;
+                _snappingBack = false;
+                ApplyPosition();
+            }
+            return;
+        }
 
         // Smoothly snap to fully open or closed after the player releases LMB.
         _openAmount = Mathf.Lerp(_openAmount, _targetOpenAmount, _snapSpeed * Time.deltaTime);
@@ -96,9 +141,21 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         _isDragging  = true;
         _lastDragSign = 0;
         _directionChangeCooldown = 0f;
+        _snappingBack = false;
 
-        if (_openClip != null)
-            _audioSource.PlayOneShot(_openClip, _openVolume);
+        // Locked drawer: play locked sound and allow only a small jiggle.
+        _isLockedDrag = _isLocked;
+
+        if (_isLockedDrag)
+        {
+            if (_lockedClip != null)
+                _audioSource.PlayOneShot(_lockedClip, _openVolume);
+        }
+        else
+        {
+            if (_openClip != null)
+                _audioSource.PlayOneShot(_openClip, _openVolume);
+        }
 
         if (_parentAnimator != null)
             _parentAnimator.enabled = false;
@@ -150,7 +207,10 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     {
         float input = Vector2.Dot(mouseDelta, _screenOpenDir);
         if (_invertAxis) input = -input;
-        _openAmount = Mathf.Clamp01(_openAmount + input * _computedSensitivity);
+
+        // Locked drawer: clamp to a small jiggle range instead of full open.
+        float maxAmount = _isLockedDrag ? _lockedJiggleAmount : 1f;
+        _openAmount = Mathf.Clamp(_openAmount + input * _computedSensitivity, 0f, maxAmount);
         ApplyPosition();
 
         // Detect direction reversal and retrigger sound with cooldown.
@@ -159,7 +219,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             int currentSign = input > 0f ? 1 : -1;
             if (_lastDragSign != 0 && currentSign != _lastDragSign && _directionChangeCooldown <= 0f)
             {
-                if (_openClip != null)
+                if (!_isLockedDrag && _openClip != null)
                     _audioSource.PlayOneShot(_openClip, _openVolume);
                 _directionChangeCooldown = DirectionChangeCooldownDuration;
             }
@@ -170,7 +230,18 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// <summary>Called by FPSController when LMB is released. Snaps to nearest rest position.</summary>
     public void OnDragEnd()
     {
-        _isDragging = false;
+        bool wasLockedDrag = _isLockedDrag;
+        _isDragging   = false;
+        _isLockedDrag = false;
+
+        // Locked drawer: snap back to closed position.
+        if (wasLockedDrag)
+        {
+            _snappingBack    = true;
+            _targetOpenAmount = 0f;
+            return;
+        }
+
         if (_snapOnRelease)
             _targetOpenAmount = _openAmount >= _snapThreshold ? 1f : 0f;
         else
@@ -184,11 +255,94 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     public void Interact() { }
 
     /// <summary>Returns the hint label shown when the player looks at the drawer.</summary>
-    public string GetInteractText() => _interactText;
+    public string GetInteractText()
+    {
+        if (_isLocked)
+            return _lockedHint;
+        return _interactText;
+    }
 
     public bool IsPickable() => false;
 
-    public CrosshairMode GetCrosshairMode() => CrosshairMode.Grab;
+    /// <summary>Grab icon for unlocked drawers, Locked icon for locked ones.</summary>
+    public CrosshairMode GetCrosshairMode()
+    {
+        return _isLocked ? CrosshairMode.Locked : CrosshairMode.Grab;
+    }
+
+    /// <summary>Returns the locked hint when the drawer is locked.</summary>
+    public string GetBlockedHint()
+    {
+        if (_isLocked)
+            return _lockedHint;
+        return string.Empty;
+    }
+
+    // ── Public API ──────────────────────────────────────────────────────────────
+
+    /// <summary>Unlocks the drawer programmatically. Wire to puzzle OnSolved events.</summary>
+    public void Unlock()
+    {
+        _isLocked = false;
+        if (_unlockClip != null)
+            _audioSource.PlayOneShot(_unlockClip, _openVolume);
+    }
+
+    /// <summary>Locks the drawer programmatically.</summary>
+    public void Lock() => _isLocked = true;
+
+    /// <summary>True when the drawer is locked.</summary>
+    public bool IsLocked => _isLocked;
+
+    /// <summary>
+    /// Unlocks the drawer and smoothly slides it to the fully open position.
+    /// Used by puzzle logic when the puzzle is solved.
+    /// </summary>
+    public void AutoOpen()
+    {
+        EnsureClosedPosition();
+        _isLocked = false;
+        _targetOpenAmount = 1f;
+
+        if (_openClip != null && _audioSource != null)
+            _audioSource.PlayOneShot(_openClip, _openVolume);
+
+        if (_autoOpenCoroutine != null) StopCoroutine(_autoOpenCoroutine);
+        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine());
+    }
+
+    /// <summary>
+    /// Instantly unlocks and snaps the drawer to fully open without animation.
+    /// Used for save restoration on load.
+    /// </summary>
+    public void SnapOpen()
+    {
+        EnsureClosedPosition();
+        _isLocked = false;
+        _openAmount = 1f;
+        _targetOpenAmount = 1f;
+        ApplyPosition();
+    }
+
+    private IEnumerator AutoOpenRoutine()
+    {
+        float startAmount = _openAmount;
+        float elapsed = 0f;
+        float duration = 1f / _snapSpeed;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / duration));
+            _openAmount = Mathf.Lerp(startAmount, 1f, t);
+            ApplyPosition();
+            yield return null;
+        }
+
+        _openAmount = 1f;
+        ApplyPosition();
+        _autoOpenCoroutine = null;
+    }
 
     // ── Private helpers ─────────────────────────────────────────────────────────
 

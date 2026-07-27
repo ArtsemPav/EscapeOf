@@ -21,8 +21,18 @@ public class PaintingColumn : MonoBehaviour, ISaveable
     [Tooltip("Duration of the smooth slide animation in seconds.")]
     [SerializeField] private float _moveDuration = 0.4f;
 
+    [Header("Audio — 3D spatial, plays at the painting's position")]
+    [Tooltip("Sound played when the painting starts sliding to a new height.")]
+    [SerializeField] private AudioClip _moveClip;
+    [SerializeField, Range(0f, 1f)] private float _moveVolume = 1f;
+    [Tooltip("3D minimum distance at which the move sound is at full volume.")]
+    [SerializeField] private float _moveMinDistance = 1f;
+    [Tooltip("3D maximum distance at which the move sound fades to silence.")]
+    [SerializeField] private float _moveMaxDistance = 10f;
+
     private PaintingHeight _currentHeight = PaintingHeight.Low;
     private Coroutine _moveCoroutine;
+    private AudioSource _audioSource;
 
     // ── Static moving state (shared across all columns) ───────────────────────
 
@@ -80,10 +90,29 @@ public class PaintingColumn : MonoBehaviour, ISaveable
     private void Awake()
     {
         SaveManager.Instance?.Register(this);
+        SetupAudioSource();
         SnapToCurrentHeight();
     }
 
     private void OnDestroy() => SaveManager.Instance?.Unregister(this);
+
+    // ── Audio ──────────────────────────────────────────────────────────────────
+
+    private void SetupAudioSource()
+    {
+        _audioSource = gameObject.AddComponent<AudioSource>();
+        _audioSource.playOnAwake   = false;
+        _audioSource.spatialBlend  = 1f;
+        _audioSource.minDistance   = _moveMinDistance;
+        _audioSource.maxDistance   = _moveMaxDistance;
+        _audioSource.loop          = false;
+    }
+
+    private void PlayMoveSound()
+    {
+        if (_moveClip != null && _audioSource != null)
+            _audioSource.PlayOneShot(_moveClip, _moveVolume);
+    }
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -105,6 +134,7 @@ public class PaintingColumn : MonoBehaviour, ISaveable
         }
 
         _moveCoroutine = StartCoroutine(SlideTo(GetTargetY(_currentHeight)));
+        PlayMoveSound();
         OnHeightChanged?.Invoke();
     }
 
@@ -157,6 +187,7 @@ public class PaintingColumn : MonoBehaviour, ISaveable
         }
 
         _moveCoroutine = StartCoroutine(SlideTo(GetTargetY(_currentHeight)));
+        PlayMoveSound();
     }
 
     // ── Private ────────────────────────────────────────────────────────────────
