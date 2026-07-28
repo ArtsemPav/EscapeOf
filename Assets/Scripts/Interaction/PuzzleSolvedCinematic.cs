@@ -4,15 +4,15 @@ using UnityEngine;
 
 /// <summary>
 /// Plays a cinematic sequence when a puzzle is solved:
-/// disables player input, locks cursor, blends to a dedicated Cinemachine camera,
-/// triggers an animation, then restores player control and camera.
+/// disables player input, locks cursor, triggers an animation clip,
+/// and lets Animation Events in that clip control camera transitions
+/// and cinematic completion.
 /// </summary>
 public class PuzzleSolvedCinematic : MonoBehaviour
 {
     // ── Constants ───────────────────────────────────────────────────────────────
 
     private const int CinematicCameraPriority = 3000;
-    private const float DefaultAnimationTimeout = 15f;
 
     // ── Inspector ───────────────────────────────────────────────────────────────
 
@@ -30,16 +30,14 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     [Tooltip("Trigger parameter name that starts the cinematic animation.")]
     [SerializeField] private string _animationTrigger = "PlayCinematic";
 
-    [Tooltip("Animator state name to poll for animation completion.")]
-    [SerializeField] private string _animationStateName = "Cinematic";
-
-    [Tooltip("Maximum seconds to wait for the animation before forcing restore.")]
-    [SerializeField, Min(0f)] private float _animationTimeout = DefaultAnimationTimeout;
-
     [Header("Audio")]
     [Tooltip("Optional sound played at the start of the cinematic.")]
     [SerializeField] private AudioClip _cinematicClip;
     [SerializeField, Range(0f, 1f)] private float _cinematicVolume = 1f;
+
+    [Header("Fade")]
+    [Tooltip("Duration of the screen fade to/from black.")]
+    [SerializeField, Min(0f)] private float _fadeDuration = 1f;
 
     // ── State ───────────────────────────────────────────────────────────────────
 
@@ -77,6 +75,12 @@ public class PuzzleSolvedCinematic : MonoBehaviour
         }
         SetBlendDuration(_originalBlendTime);
         InputManager.Instance?.SetPlayerInputEnabled(true);
+
+        if (ScreenFader.Instance != null)
+        {
+            ScreenFader.Instance.FadeOut(0f);
+        }
+
         _isPlaying = false;
     }
 
@@ -84,22 +88,24 @@ public class PuzzleSolvedCinematic : MonoBehaviour
 
     /// <summary>
     /// Starts the cinematic sequence. Wire this to OnPuzzleSolved or call directly.
+    /// The animation clip is expected to call OnCinematicCameraActivate,
+    /// OnCinematicCameraDeactivate and OnCinematicEnd via Animation Events.
     /// </summary>
     public void PlayCinematic()
     {
         if (_isPlaying) return;
         if (!gameObject.activeInHierarchy) return;
 
-        StartCoroutine(CinematicSequence());
+        _isPlaying = true;
+        StartCoroutine(PlayCinematicRoutine());
     }
 
-    // ── Cinematic Sequence ──────────────────────────────────────────────────────
-
-    private IEnumerator CinematicSequence()
+    private IEnumerator PlayCinematicRoutine()
     {
-        _isPlaying = true;
+        // ── Fade to black before seizing control ────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
 
-        // ── Phase 1: Seize control ──────────────────────────────────────────────
         InputManager.Instance?.SetPlayerInputEnabled(false);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -107,60 +113,73 @@ public class PuzzleSolvedCinematic : MonoBehaviour
         if (_cinematicClip != null)
             AudioManager.Instance?.PlaySFX(_cinematicClip, _cinematicVolume);
 
-        // ── Phase 2: Blend to cinematic camera ──────────────────────────────────
-        if (_cinematicCamera != null)
-        {
-            SetBlendDuration(_blendDuration);
-            _cinematicCamera.Priority = CinematicCameraPriority;
-            _cinematicCamera.gameObject.SetActive(true);
-
-            yield return null;
-            while (_brain != null && _brain.IsBlending)
-                yield return null;
-        }
-
-        // ── Phase 3: Play animation and wait for completion ─────────────────────
+        // ── Launch animation ────────────────────────────────────────────────────
         if (_animator != null)
         {
             _animator.SetTrigger(_animationTrigger);
-            yield return null;
-
-            // Wait until the Animator enters the cinematic state (with timeout).
-            float elapsed = 0f;
-            while (_animator != null &&
-                   !_animator.GetCurrentAnimatorStateInfo(0).IsName(_animationStateName) &&
-                   elapsed < _animationTimeout)
-            {
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-
-            // Wait until the cinematic animation has fully played.
-            while (_animator != null &&
-                   _animator.GetCurrentAnimatorStateInfo(0).IsName(_animationStateName) &&
-                   _animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
-            {
-                yield return null;
-            }
         }
-
-        // ── Phase 4: Blend back to player camera ────────────────────────────────
-        if (_cinematicCamera != null)
+        else
         {
-            SetBlendDuration(_blendDuration);
-            _cinematicCamera.Priority = 0;
-
-            yield return null;
-            while (_brain != null && _brain.IsBlending)
-                yield return null;
-
-            _cinematicCamera.gameObject.SetActive(false);
+            OnCinematicEnd();
+            yield break;
         }
+
+        // ── Fade back from black after animator trigger is set ──────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+    }
+
+    // ── Animation Event callbacks ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Called from an Animation Event to activate the cinematic camera
+    /// and blend away from the player camera.
+    /// </summary>
+    public void OnCinematicCameraActivate()
+    {
+        if (_cinematicCamera == null) return;
+
+        SetBlendDuration(_blendDuration);
+        _cinematicCamera.Priority = CinematicCameraPriority;
+        _cinematicCamera.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// Called from an Animation Event to deactivate the cinematic camera
+    /// and blend back to the player camera.
+    /// </summary>
+    public void OnCinematicCameraDeactivate()
+    {
+        if (_cinematicCamera == null) return;
+
+        SetBlendDuration(_blendDuration);
+        _cinematicCamera.Priority = 0;
+    }
+
+    /// <summary>
+    /// Called from an Animation Event at the end of the cinematic clip
+    /// to fully restore player control and camera state.
+    /// </summary>
+    public void OnCinematicEnd()
+    {
+        StartCoroutine(EndRoutine());
+    }
+
+    private IEnumerator EndRoutine()
+    {
+        // ── Fade to black before restoring camera ───────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+
+        if (_cinematicCamera != null)
+            _cinematicCamera.gameObject.SetActive(false);
 
         SetBlendDuration(_originalBlendTime);
-
-        // ── Phase 5: Restore control ────────────────────────────────────────────
         InputManager.Instance?.SetPlayerInputEnabled(true);
+
+        // ── Fade back from black ────────────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
 
         _isPlaying = false;
     }

@@ -797,7 +797,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1.5
+      scalar: 3
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -1657,7 +1657,7 @@ ParticleSystem:
     m_BurstCount: 0
     m_Bursts: []
   SizeModule:
-    enabled: 0
+    enabled: 1
     curve:
       serializedVersion: 2
       minMaxState: 1
@@ -1676,13 +1676,22 @@ ParticleSystem:
           inWeight: 0
           outWeight: 0
         - serializedVersion: 3
-          time: 1
+          time: 0.5
           value: 1
-          inSlope: 0
-          outSlope: 0
+          inSlope: -0.0076180515
+          outSlope: -0.0076180515
+          tangentMode: 0
+          weightedMode: 3
+          inWeight: 1
+          outWeight: 1
+        - serializedVersion: 3
+          time: 1
+          value: 0
+          inSlope: -1.9558277
+          outSlope: -1.9558277
           tangentMode: 0
           weightedMode: 0
-          inWeight: 0
+          inWeight: 0.27252263
           outWeight: 0
         m_PreInfinity: 2
         m_PostInfinity: 2
@@ -2051,13 +2060,13 @@ ParticleSystem:
     serializedVersion: 2
     enabled: 1
     mode: 0
-    timeMode: 2
+    timeMode: 0
     fps: 2
     frameOverTime:
       serializedVersion: 2
-      minMaxState: 1
-      scalar: 0.9999
-      minScalar: 0.9999
+      minMaxState: 3
+      scalar: 0.8333333
+      minScalar: 0
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -7262,7 +7271,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1335097807965230, guid: ae3779d7b6bd0eb4392924324f09dbad, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1335097807965230, guid: ae3779d7b6bd0eb4392924324f09dbad, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4972606563699158, guid: ae3779d7b6bd0eb4392924324f09dbad, type: 3}
       propertyPath: m_LocalScale.x
@@ -7998,7 +8011,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1477535650039924, guid: 3c878bfc3da36aa478e475627da7c983, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1477535650039924, guid: 3c878bfc3da36aa478e475627da7c983, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4866283672696378, guid: 3c878bfc3da36aa478e475627da7c983, type: 3}
       propertyPath: m_LocalScale.x
@@ -8248,15 +8265,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1043986541045992, guid: 963fefc648da08b46882c38dc9981553, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1043986541045992, guid: 963fefc648da08b46882c38dc9981553, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 1744536302249640, guid: 963fefc648da08b46882c38dc9981553, type: 3}
       propertyPath: m_Name
       value: ClutterBowl03Ing07
       objectReference: {fileID: 0}
     - target: {fileID: 1744536302249640, guid: 963fefc648da08b46882c38dc9981553, type: 3}
-      propertyPath: m_Layer
-      value: 6
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4042474605093608, guid: 963fefc648da08b46882c38dc9981553, type: 3}
       propertyPath: m_LocalScale.x
@@ -8896,6 +8917,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: a728d9bcc92bd3c42bbc57d28e0d42ae, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
   inspectOnly: 0
   inspectPrefix: "\u0412\u0437\u044F\u0442\u044C"
   _saveId: MedalEye
@@ -9002,7 +9025,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4149506485688938, guid: 53a5ca55612b2104c812770a7799f03c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.621
+      value: 2.55
       objectReference: {fileID: 0}
     - target: {fileID: 4149506485688938, guid: 53a5ca55612b2104c812770a7799f03c, type: 3}
       propertyPath: m_LocalPosition.z
@@ -9609,7 +9632,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1477535650039924, guid: 3c878bfc3da36aa478e475627da7c983, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1477535650039924, guid: 3c878bfc3da36aa478e475627da7c983, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4866283672696378, guid: 3c878bfc3da36aa478e475627da7c983, type: 3}
       propertyPath: m_LocalScale.x
@@ -9851,7 +9878,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: 053c7ed3974620e46ac7977386023c98, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: 053c7ed3974620e46ac7977386023c98, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 053c7ed3974620e46ac7977386023c98, type: 3}
       propertyPath: m_LocalScale.x
@@ -11449,7 +11480,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
       propertyPath: m_LocalScale.x
@@ -11511,7 +11546,8 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 516
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: -4723414545507203653, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -11623,6 +11659,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 0a2ea96bed06ea64ebd5b545e4ef9cb8, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
   inspectOnly: 0
   inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_medallion_fire
@@ -11777,6 +11815,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: ec8374937f15d91498ca84bfc19c7afe, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
   inspectOnly: 0
   inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: KeyWard1
@@ -12967,7 +13007,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1335097807965230, guid: ae3779d7b6bd0eb4392924324f09dbad, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1335097807965230, guid: ae3779d7b6bd0eb4392924324f09dbad, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4972606563699158, guid: ae3779d7b6bd0eb4392924324f09dbad, type: 3}
       propertyPath: m_LocalScale.x
@@ -13225,7 +13269,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1603537348931646, guid: 99d1fecb38c7bef41b71767f41b46db1, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1603537348931646, guid: 99d1fecb38c7bef41b71767f41b46db1, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 4596948309897164, guid: 99d1fecb38c7bef41b71767f41b46db1, type: 3}
       propertyPath: m_LocalScale.x
@@ -13642,7 +13690,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 2147483647
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: fe63e4498c3df914aa3a798a312b46c6, type: 3}
       propertyPath: m_LocalScale.x

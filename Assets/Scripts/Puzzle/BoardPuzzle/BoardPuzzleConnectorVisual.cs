@@ -25,7 +25,6 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     public Renderer TargetRenderer => _targetRenderer;
     public int MaterialIndex => _materialIndex;
 
-
     [Tooltip("Color for the emission. Use HDR color picker for intensity.")]
     [ColorUsage(true, true)]
     [SerializeField] private Color _activeColor = Color.cyan;
@@ -37,9 +36,13 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     [Tooltip("Color for the terminal when it is reached out of order or is incorrect.")]
     [ColorUsage(true, true)]
     [SerializeField] private Color _incorrectTerminalColor = Color.red;
-    
+
     [Tooltip("Speed of the fade in/out animation.")]
     [SerializeField] private float _fadeSpeed = 5f;
+
+    [Header("Additional Renderers")]
+    [Tooltip("Additional renderers that light up in sync with the main target. Useful for child objects like runes.")]
+    [SerializeField] private Renderer[] _additionalRenderers;
 
     private MaterialPropertyBlock _propBlock;
     private float _targetWeight = 0f;
@@ -50,6 +53,11 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     private Vector3 _originalLocalPosition;
     private bool _isLifted = false;
 
+    // Per-additional-renderer runtime state
+    private float[] _addTargetWeights;
+    private float[] _addCurrentWeights;
+    private Color[] _addCurrentColors;
+
     private void Awake()
     {
         if (_targetRenderer == null)
@@ -57,7 +65,7 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
 
         _propBlock = new MaterialPropertyBlock();
         _currentTargetColor = _activeColor;
-        
+
         // Ensure emission keyword is enabled on the shared material at the specified index
         if (_targetRenderer != null)
         {
@@ -69,27 +77,70 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
                 sharedMaterials[_materialIndex].EnableKeyword(EmissionKeyword);
             }
         }
+
+        // Initialize additional renderer state: read emission color from each material
+        if (_additionalRenderers != null && _additionalRenderers.Length > 0)
+        {
+            _addTargetWeights = new float[_additionalRenderers.Length];
+            _addCurrentWeights = new float[_additionalRenderers.Length];
+            _addCurrentColors = new Color[_additionalRenderers.Length];
+
+            for (int i = 0; i < _additionalRenderers.Length; i++)
+            {
+                if (_additionalRenderers[i] == null) continue;
+
+                Material mat = _additionalRenderers[i].sharedMaterial;
+                if (mat != null)
+                {
+                    mat.EnableKeyword(EmissionKeyword);
+                    _addCurrentColors[i] = mat.GetColor(EmissionColorId);
+                }
+            }
+        }
     }
 
     /// <summary>
     /// Sets whether this connector is currently receiving "power" from the start terminal.
     /// </summary>
     /// <param name="hasPower">Does this connector have power?</param>
-    /// <param name="isAllowedTerminal">If this is a terminal, is it allowed to light up?</param>
+    /// <param name="isAllowedTerminal">If false, this terminal is incorrect (physically reached but wrong).</param>
     /// <param name="isCorrect">Is this terminal reached in the correct sequence order?</param>
-    public void SetPower(bool hasPower, bool isAllowedTerminal = true, bool isCorrect = true)
+    /// <param name="isSolved">Is the puzzle fully solved? When true, runes on correct terminals stay on even without power.</param>
+    public void SetPower(bool hasPower, bool isAllowedTerminal = true, bool isCorrect = true, bool isSolved = false)
     {
-        // If it's a terminal but NOT the one currently targeted in the sequence,
-        // we still light it up as "incorrect" if it has power, instead of not lighting up at all.
-        bool finalPower = hasPower; 
-        float newTarget = finalPower ? 1f : 0f;
-        
+        float newTarget = hasPower ? 1f : 0f;
+
         Color targetColor = _isTerminal ? (isCorrect ? _correctTerminalColor : _incorrectTerminalColor) : _activeColor;
 
-        if (!Mathf.Approximately(_targetWeight, newTarget) || _currentTargetColor != targetColor)
+        bool mainChanged = !Mathf.Approximately(_targetWeight, newTarget) || _currentTargetColor != targetColor;
+
+        if (mainChanged)
         {
             _targetWeight = newTarget;
             _currentTargetColor = targetColor;
+        }
+
+        // Additional renderers: ON only when terminal is correct and (powered or solved).
+        bool addChanged = false;
+        if (_additionalRenderers != null && _addTargetWeights != null)
+        {
+            bool addPowered = isCorrect && ((hasPower && isAllowedTerminal) || isSolved);
+            float addNewTarget = addPowered ? 1f : 0f;
+
+            for (int i = 0; i < _additionalRenderers.Length; i++)
+            {
+                if (_additionalRenderers[i] == null) continue;
+
+                if (!Mathf.Approximately(_addTargetWeights[i], addNewTarget))
+                {
+                    _addTargetWeights[i] = addNewTarget;
+                    addChanged = true;
+                }
+            }
+        }
+
+        if (mainChanged || addChanged)
+        {
             _isDirty = true;
         }
     }
@@ -97,19 +148,50 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
     private void Update()
     {
         if (_targetRenderer == null) return;
-        
-        if (!_isDirty && Mathf.Approximately(_currentWeight, _targetWeight)) return;
 
+        // Check if main renderer needs updating
+        bool mainNeedsUpdate = _isDirty || !Mathf.Approximately(_currentWeight, _targetWeight);
+
+        // Check if any additional renderer still needs to fade
+        bool addNeedsUpdate = false;
+        if (_addTargetWeights != null)
+        {
+            for (int i = 0; i < _addTargetWeights.Length; i++)
+            {
+                if (!Mathf.Approximately(_addCurrentWeights[i], _addTargetWeights[i]))
+                {
+                    addNeedsUpdate = true;
+                    break;
+                }
+            }
+        }
+
+        if (!mainNeedsUpdate && !addNeedsUpdate) return;
+
+        // Main renderer fade
         _currentWeight = Mathf.MoveTowards(_currentWeight, _targetWeight, _fadeSpeed * Time.deltaTime);
-        
-        // Use the index-aware overload of GetPropertyBlock and SetPropertyBlock
         _targetRenderer.GetPropertyBlock(_propBlock, _materialIndex);
-        
-        // Use Lerp to smoothly transition from black to target color
         Color finalColor = Color.Lerp(_blackColor, _currentTargetColor, _currentWeight);
         _propBlock.SetColor(EmissionColorId, finalColor);
-        
         _targetRenderer.SetPropertyBlock(_propBlock, _materialIndex);
+
+        // Additional renderers fade (independent weight per renderer)
+        if (_addTargetWeights != null)
+        {
+            for (int i = 0; i < _additionalRenderers.Length; i++)
+            {
+                if (_additionalRenderers[i] == null) continue;
+
+                _addCurrentWeights[i] = Mathf.MoveTowards(
+                    _addCurrentWeights[i], _addTargetWeights[i], _fadeSpeed * Time.deltaTime);
+
+                Color addFinalColor = Color.Lerp(_blackColor, _addCurrentColors[i], _addCurrentWeights[i]);
+
+                _additionalRenderers[i].GetPropertyBlock(_propBlock);
+                _propBlock.SetColor(EmissionColorId, addFinalColor);
+                _additionalRenderers[i].SetPropertyBlock(_propBlock);
+            }
+        }
 
         // Lift when emission starts, restore when fully off
         bool shouldBeLifted = _currentWeight > 0f;
@@ -121,9 +203,25 @@ public class BoardPuzzleConnectorVisual : MonoBehaviour
                 : _originalLocalPosition;
         }
 
+        // Clear dirty flag only when all renderers reach their targets
         if (Mathf.Approximately(_currentWeight, _targetWeight))
         {
-            _isDirty = false;
+            bool allAddDone = true;
+            if (_addTargetWeights != null)
+            {
+                for (int i = 0; i < _addTargetWeights.Length; i++)
+                {
+                    if (!Mathf.Approximately(_addCurrentWeights[i], _addTargetWeights[i]))
+                    {
+                        allAddDone = false;
+                        break;
+                    }
+                }
+            }
+            if (allAddDone)
+            {
+                _isDirty = false;
+            }
         }
     }
 }

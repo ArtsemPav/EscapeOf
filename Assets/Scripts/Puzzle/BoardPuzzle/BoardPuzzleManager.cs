@@ -613,9 +613,9 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
                 if (visual.IsTerminal)
                 {
-                    if (state.hasPower) visual.SetPower(true, true, state.isCorrect);
-                    else if (state.isIncorrect) visual.SetPower(true, true, false);
-                    else visual.SetPower(false);
+                    if (state.hasPower) visual.SetPower(true, true, state.isCorrect, _isSolved);
+                    else if (state.isIncorrect) visual.SetPower(true, false, false, _isSolved);
+                    else visual.SetPower(false, true, true, _isSolved);
                 }
                 else
                 {
@@ -729,12 +729,16 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
         OnPuzzleSolved.Invoke();
     }
 
-    /// <summary>Sets power to false on every cached connector visual.</summary>
+    /// <summary>Sets power to false on every cached connector visual. When the puzzle is solved, runes on correct terminals stay lit.</summary>
     private void TurnOffAllVisuals()
     {
         foreach (var kvp in _visualsCache)
         {
-            if (kvp.Value != null)
+            if (kvp.Value == null) continue;
+
+            if (_isSolved && kvp.Value.IsTerminal && _targetSequence.Contains(kvp.Key))
+                kvp.Value.SetPower(false, true, true, true);
+            else
                 kvp.Value.SetPower(false);
         }
     }
