@@ -38,7 +38,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
     [Header("References")]
     [SerializeField] private LoopPuzzlePowerCircuit    _powerCircuit;
-    [SerializeField] private LoopPuzzleHiddenDoor      _hiddenDoor;
+    [SerializeField] private DrawerDrag                _rewardDrawer;
     [SerializeField] private PaintingRoomLightSwitch   _roomLightSwitch;
 
     [Header("Room Light Zone")]
@@ -48,6 +48,11 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
     [Header("Painting Conditions (Q1–Q4)")]
     [SerializeField] private PaintingCondition[] _conditions;
+
+    [Header("Audio")]
+    [Tooltip("Sound played once through AudioManager when the puzzle is solved.")]
+    [SerializeField] private AudioClip _solvedClip;
+    [SerializeField, Range(0f, 1f)] private float _solvedVolume = 1f;
 
     private bool _isSolved;
     private bool _roomLightOff;
@@ -237,7 +242,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         // 3. Show all symbols (faded in if SymbolFader is present).
         ShowAllSymbols();
 
-        // 4. Prevent any further interaction with the puzzle controls.
+        // 4. Unlock and snap-open the reward drawer to its solved state.
+        _rewardDrawer?.SnapOpen();
+
+        // 5. Prevent any further interaction with the puzzle controls.
         LockAllInteractions();
     }
 
@@ -346,8 +354,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     {
         _isSolved = true;
         LockAllInteractions();
-        _hiddenDoor?.Open();
-        Debug.Log("[LoopPuzzleController] Puzzle solved — hidden door opened.");
+        _rewardDrawer?.AutoOpen();
+        if (_solvedClip != null)
+            AudioManager.Instance?.PlaySFX(_solvedClip, _solvedVolume);
+        Debug.Log("[LoopPuzzleController] Puzzle solved — reward drawer opened.");
         SaveManager.Instance?.Save();
     }
 

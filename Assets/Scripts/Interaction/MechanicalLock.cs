@@ -40,6 +40,10 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     [SerializeField] private AudioClip _openClip;
     [SerializeField, Range(0f, 1f)] private float _openVolume = 1f;
 
+    [Header("Rewards")]
+    [Tooltip("Items added to inventory after the puzzle is solved. Given one by one.")]
+    [SerializeField] private ItemData[] _rewardItems;
+
     [Header("Save")]
     [Tooltip("Unique ID for saving the state of lock cylinders (their current rotation values).")]
     [SerializeField] private string _saveId;
@@ -48,6 +52,7 @@ public class MechanicalLock : MonoBehaviour, ISaveable
 
     private Camera _mainCamera;
     private bool _isProcessing;
+    private bool _wasActiveLastFrame;
 
     public string SaveId => _saveId;
 
@@ -88,7 +93,19 @@ public class MechanicalLock : MonoBehaviour, ISaveable
 
         if (_puzzleController != null && _puzzleController.IsActive && !_puzzleController.IsSolved)
         {
+            // Skip input on the first frame the puzzle becomes active
+            // so the interaction click doesn't also rotate a cylinder
+            if (!_wasActiveLastFrame)
+            {
+                _wasActiveLastFrame = true;
+                return;
+            }
+
             HandleInput();
+        }
+        else
+        {
+            _wasActiveLastFrame = false;
         }
     }
 
@@ -215,14 +232,57 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     }
 
     /// <summary>
-    /// Notifies PuzzleModeController that the puzzle is solved.
+    /// Notifies PuzzleModeController that the puzzle is solved and grants reward items.
     /// </summary>
     private void FinishSolve()
     {
         _isProcessing = false;
 
+        StartCoroutine(GrantRewardItemsRoutine());
+
         SaveManager.Instance?.Save();
         _puzzleController?.SetSolved();
+    }
+
+    /// <summary>
+    /// Shows each reward item via ItemInspector one by one.
+    /// When the player confirms pickup, the item is added to inventory
+    /// and the next item is shown.
+    /// </summary>
+    private IEnumerator GrantRewardItemsRoutine()
+    {
+        if (_rewardItems == null || _rewardItems.Length == 0)
+            yield break;
+
+        foreach (var item in _rewardItems)
+        {
+            if (item == null) continue;
+            if (InventorySystem.Instance != null && InventorySystem.Instance.HasItem(item))
+                continue;
+
+            bool confirmed = false;
+
+            if (ItemInspector.Instance != null)
+            {
+                ItemInspector.Instance.BeginInspection(item, null, _ =>
+                {
+                    if (InventorySystem.Instance != null && !InventorySystem.Instance.AddItem(item))
+                    {
+                        Debug.LogWarning($"[MechanicalLock] Could not add '{item.itemName}' — inventory is full.");
+                    }
+                    confirmed = true;
+                });
+
+                yield return new WaitUntil(() => confirmed);
+            }
+            else
+            {
+                if (InventorySystem.Instance != null && !InventorySystem.Instance.AddItem(item))
+                {
+                    Debug.LogWarning($"[MechanicalLock] Could not add '{item.itemName}' — inventory is full.");
+                }
+            }
+        }
     }
 
     // ── Solved Restore ──────────────────────────────────────────────────────────

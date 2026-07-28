@@ -36,6 +36,9 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
     public event Action OnInventoryChanged;
 
+    /// <summary>Fires whenever a crafting recipe is successfully matched and executed.</summary>
+    public event Action OnCrafted;
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => "inventory";
@@ -349,6 +352,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
                 OnInventoryChanged?.Invoke();
             }
 
+            OnCrafted?.Invoke();
             return true;
         }
 
@@ -447,6 +451,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
                     AddItem(recipe.secondaryResult);
                 }
                 // AddItem already fires OnInventoryChanged, so return early.
+                OnCrafted?.Invoke();
                 return true;
             }
 
@@ -457,6 +462,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
             CompactSlots();
             OnInventoryChanged?.Invoke();
+            OnCrafted?.Invoke();
             return true;
         }
 

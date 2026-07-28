@@ -37,6 +37,11 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Duration of the rotation animation in seconds.")]
     [SerializeField] private float _rotateDuration = 0.2f;
 
+    [Header("Audio")]
+    [Tooltip("Sound played through AudioManager when the button is pressed.")]
+    [SerializeField] private AudioClip _pressClip;
+    [SerializeField, Range(0f, 1f)] private float _pressVolume = 1f;
+
     private int       _currentStep;
     private bool      _isLocked;
     private Coroutine _rotateCoroutine;
@@ -93,6 +98,9 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
         _currentStep = (_currentStep + 1) % StepCount;
         ApplyCurrentLens();
         AnimateRotation();
+
+        if (_pressClip != null)
+            AudioManager.Instance?.PlaySFX(_pressClip, _pressVolume);
     }
 
     public bool   IsPickable()        => false;
