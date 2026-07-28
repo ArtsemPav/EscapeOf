@@ -45,6 +45,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     private GameObject    _previewLight;
     private bool          _hasModel;
     private bool          _isDragging;
+    private ItemData      _currentItem;
 
     private void Awake()
     {
@@ -66,6 +67,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     private void Update()
     {
         if (!_hasModel || _previewPivot == null || _isDragging) return;
+        if (_currentItem != null && (_currentItem.disableIdleSpin || _currentItem.lockRotationY)) return;
         _previewPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
     }
 
@@ -89,8 +91,10 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     public void OnDrag(PointerEventData eventData)
     {
         if (!_hasModel || _previewPivot == null || !_isDragging) return;
-        _previewPivot.transform.Rotate(Vector3.up,    -eventData.delta.x * dragRotationSpeed, Space.World);
-        _previewPivot.transform.Rotate(Vector3.right,  eventData.delta.y * dragRotationSpeed, Space.World);
+        if (_currentItem == null || !_currentItem.lockRotationY)
+            _previewPivot.transform.Rotate(Vector3.up,    -eventData.delta.x * dragRotationSpeed, Space.World);
+        if (_currentItem == null || !_currentItem.lockRotationX)
+            _previewPivot.transform.Rotate(Vector3.right,  eventData.delta.y * dragRotationSpeed, Space.World);
     }
 
     public void OnPointerUp(PointerEventData eventData) => _isDragging = false;
@@ -102,6 +106,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     {
         if (item == null) { Clear(); return; }
 
+        _currentItem = item;
         DestroyModel();
 
         if (itemNameText    != null) itemNameText.text    = item.itemName;
@@ -114,6 +119,7 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     /// <summary>Destroys the 3D model and clears all text.</summary>
     public void Clear()
     {
+        _currentItem = null;
         DestroyModel();
         ClearText();
     }

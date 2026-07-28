@@ -174,10 +174,12 @@ private bool _ignoreInputThisFrame;
             if (userDragging)
             {
                 Vector2 delta = Mouse.current.delta.ReadValue();
-                _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
-                _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
+                if (_currentItem == null || !_currentItem.lockRotationY)
+                    _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
+                if (_currentItem == null || !_currentItem.lockRotationX)
+                    _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
             }
-            else if (_currentItem == null || !_currentItem.disableIdleSpin)
+            else if (_currentItem == null || (!_currentItem.disableIdleSpin && !_currentItem.lockRotationY))
             {
                 _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
             }
@@ -209,10 +211,12 @@ private bool _ignoreInputThisFrame;
         {
             // Manual rotation while dragging.
             Vector2 delta = Mouse.current.delta.ReadValue();
-            _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
-            _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
+            if (_currentItem == null || !_currentItem.lockRotationY)
+                _inspectionPivot.transform.Rotate(Vector3.up,    -delta.x * rotationSpeed * Time.deltaTime, Space.World);
+            if (_currentItem == null || !_currentItem.lockRotationX)
+                _inspectionPivot.transform.Rotate(Vector3.right,  delta.y * rotationSpeed * Time.deltaTime, Space.World);
         }
-        else if (_currentItem == null || !_currentItem.disableIdleSpin)
+        else if (_currentItem == null || (!_currentItem.disableIdleSpin && !_currentItem.lockRotationY))
         {
             // Continuous idle spin when not dragging.
             _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
