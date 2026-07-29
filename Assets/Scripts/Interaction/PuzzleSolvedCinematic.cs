@@ -145,20 +145,8 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     }
 
     /// <summary>
-    /// Called from an Animation Event to deactivate the cinematic camera
-    /// and blend back to the player camera.
-    /// </summary>
-    public void OnCinematicCameraDeactivate()
-    {
-        if (_cinematicCamera == null) return;
-
-        SetBlendDuration(_blendDuration);
-        _cinematicCamera.Priority = 0;
-    }
-
-    /// <summary>
     /// Called from an Animation Event at the end of the cinematic clip
-    /// to fully restore player control and camera state.
+    /// to blend back to the player camera and fully restore control.
     /// </summary>
     public void OnCinematicEnd()
     {
@@ -171,15 +159,32 @@ public class PuzzleSolvedCinematic : MonoBehaviour
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeIn(_fadeDuration);
 
+        // ── Start blend back to player camera ───────────────────────────────────
+        SetBlendDuration(_blendDuration);
+
+        if (_cinematicCamera != null)
+            _cinematicCamera.Priority = 0;
+
+        // Wait for the blend to finish (hidden behind the black screen).
+        if (_brain != null)
+        {
+            yield return null;
+            while (_brain.IsBlending)
+                yield return null;
+        }
+
+        // ── Deactivate cinematic camera and restore input ───────────────────────
         if (_cinematicCamera != null)
             _cinematicCamera.gameObject.SetActive(false);
 
-        SetBlendDuration(_originalBlendTime);
         InputManager.Instance?.SetPlayerInputEnabled(true);
 
         // ── Fade back from black ────────────────────────────────────────────────
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+
+        // ── Restore original blend after everything is done ─────────────────────
+        SetBlendDuration(_originalBlendTime);
 
         _isPlaying = false;
     }
