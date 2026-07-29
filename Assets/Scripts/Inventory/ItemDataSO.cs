@@ -35,6 +35,18 @@ public class ItemData : ScriptableObject
     [Tooltip("Если включено — предмет не будет автоматически вращаться в превью осмотра.")]
     public bool disableIdleSpin;
 
+    [Tooltip("Запретить ручное вращение по оси X (наклон вверх/вниз) во время превью и осмотра.")]
+    public bool lockRotationX;
+
+    [Tooltip("Запретить ручное вращение по оси Y (поворот влево/вправо) во время превью и осмотра.")]
+    public bool lockRotationY;
+
+    [Tooltip("Запретить ручное вращение по оси Z (наклон вбок) во время превью и осмотра.")]
+    public bool lockRotationZ;
+
+    [Tooltip("Если включено — предмет не будет привлекать внимание мерцанием (shimmer).")]
+    public bool disableShimmer;
+
     [Tooltip("Множитель масштаба модели в превью осмотра. 1 = реальный размер, >1 = больше, <1 = меньше.")]
     public float previewScale = 1f;
 

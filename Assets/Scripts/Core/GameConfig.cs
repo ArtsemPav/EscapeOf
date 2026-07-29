@@ -25,4 +25,17 @@ public class GameConfig : ScriptableObject
     public Color errorColor = new Color(0.9f, 0.2f, 0.2f);
     [Tooltip("Default color for UI display text.")]
     public Color normalColor = Color.white;
+
+    [Header("Pickable Item Shimmer")]
+    [Tooltip("Particle prefab spawned above pickable items to draw the player's attention. One burst every ~20 seconds.")]
+    public GameObject shimmerPrefab;
+
+    [Tooltip("Maximum distance (meters) at which the shimmer is visible. Beyond this it stops playing to save performance.")]
+    public float shimmerRange = 10f;
+
+    [Tooltip("Seconds between shimmer bursts. Lower = more frequent flickering.")]
+    public float shimmerInterval = 20f;
+
+    [Tooltip("Global toggle for the shimmer effect. Disable to turn off all pickable item hints at once.")]
+    public bool shimmerEnabled = true;
 }
