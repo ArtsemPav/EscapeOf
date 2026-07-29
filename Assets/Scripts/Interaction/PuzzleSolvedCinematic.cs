@@ -31,9 +31,8 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     [SerializeField] private string _animationTrigger = "PlayCinematic";
 
     [Header("Audio")]
-    [Tooltip("Optional sound played at the start of the cinematic.")]
-    [SerializeField] private AudioClip _cinematicClip;
-    [SerializeField, Range(0f, 1f)] private float _cinematicVolume = 1f;
+    [Tooltip("Controls all audio for this cinematic. Auto-found on the same GameObject if not assigned.")]
+    [SerializeField] private CinematicAudioController _audioController;
 
     [Header("Fade")]
     [Tooltip("Duration of the screen fade to/from black.")]
@@ -54,6 +53,9 @@ public class PuzzleSolvedCinematic : MonoBehaviour
 
         if (_animator == null)
             _animator = GetComponent<Animator>();
+
+        if (_audioController == null)
+            _audioController = GetComponent<CinematicAudioController>();
 
         _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
         if (_brain == null)
@@ -89,7 +91,10 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     /// <summary>
     /// Starts the cinematic sequence. Wire this to OnPuzzleSolved or call directly.
     /// The animation clip is expected to call OnCinematicCameraActivate,
-    /// OnCinematicCameraDeactivate and OnCinematicEnd via Animation Events.
+    /// OnCinematicCameraDeactivate, OnFadeIn, OnFadeOut and OnCinematicEnd
+    /// via Animation Events.
+    /// Audio is handled by CinematicAudioController — call PlayByIndex
+    /// or PlayByName from code or Animation Events.
     /// </summary>
     public void PlayCinematic()
     {
@@ -102,16 +107,9 @@ public class PuzzleSolvedCinematic : MonoBehaviour
 
     private IEnumerator PlayCinematicRoutine()
     {
-        // ── Fade to black before seizing control ────────────────────────────────
-        if (ScreenFader.Instance != null)
-            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
-
         InputManager.Instance?.SetPlayerInputEnabled(false);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        if (_cinematicClip != null)
-            AudioManager.Instance?.PlaySFX(_cinematicClip, _cinematicVolume);
 
         // ── Launch animation ────────────────────────────────────────────────────
         if (_animator != null)
@@ -124,9 +122,6 @@ public class PuzzleSolvedCinematic : MonoBehaviour
             yield break;
         }
 
-        // ── Fade back from black after animator trigger is set ──────────────────
-        if (ScreenFader.Instance != null)
-            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
     }
 
     // ── Animation Event callbacks ───────────────────────────────────────────────
@@ -134,38 +129,51 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     /// <summary>
     /// Called from an Animation Event to activate the cinematic camera
     /// and blend away from the player camera.
+    /// Pass blendDuration from the Animation Event; uses _blendDuration if 0.
     /// </summary>
-    public void OnCinematicCameraActivate()
+    public void OnCinematicCameraActivate(float blendDuration = 0f)
     {
         if (_cinematicCamera == null) return;
 
-        SetBlendDuration(_blendDuration);
+        SetBlendDuration(blendDuration > 0f ? blendDuration : _blendDuration);
         _cinematicCamera.Priority = CinematicCameraPriority;
         _cinematicCamera.gameObject.SetActive(true);
     }
 
     /// <summary>
-    /// Called from an Animation Event at the end of the cinematic clip
-    /// to blend back to the player camera and fully restore control.
+    /// Called from an Animation Event to fade the screen to black.
     /// </summary>
-    public void OnCinematicEnd()
+    public void OnFadeIn()
     {
-        StartCoroutine(EndRoutine());
+        if (ScreenFader.Instance != null)
+            ScreenFader.Instance.FadeIn(_fadeDuration);
     }
 
-    private IEnumerator EndRoutine()
+    /// <summary>
+    /// Called from an Animation Event to fade the screen from black to clear.
+    /// </summary>
+    public void OnFadeOut()
     {
-        // ── Fade to black before restoring camera ───────────────────────────────
         if (ScreenFader.Instance != null)
-            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+            ScreenFader.Instance.FadeOut(_fadeDuration);
+    }
 
-        // ── Start blend back to player camera ───────────────────────────────────
-        SetBlendDuration(_blendDuration);
+    /// <summary>
+    /// Called from an Animation Event to deactivate the cinematic camera
+    /// and blend back to the player camera.
+    /// Pass blendDuration from the Animation Event; uses _blendDuration if 0.
+    /// </summary>
+    public void OnCinematicCameraDeactivate(float blendDuration = 0f)
+    {
+        if (_cinematicCamera == null) return;
 
-        if (_cinematicCamera != null)
-            _cinematicCamera.Priority = 0;
+        SetBlendDuration(blendDuration > 0f ? blendDuration : _blendDuration);
+        _cinematicCamera.Priority = 0;
+        StartCoroutine(WaitForBlendAndDeactivate());
+    }
 
-        // Wait for the blend to finish (hidden behind the black screen).
+    private IEnumerator WaitForBlendAndDeactivate()
+    {
         if (_brain != null)
         {
             yield return null;
@@ -173,19 +181,18 @@ public class PuzzleSolvedCinematic : MonoBehaviour
                 yield return null;
         }
 
-        // ── Deactivate cinematic camera and restore input ───────────────────────
         if (_cinematicCamera != null)
             _cinematicCamera.gameObject.SetActive(false);
+    }
 
+    /// <summary>
+    /// Called from an Animation Event at the end of the cinematic clip
+    /// to restore player input and original camera blend.
+    /// </summary>
+    public void OnCinematicEnd()
+    {
         InputManager.Instance?.SetPlayerInputEnabled(true);
-
-        // ── Fade back from black ────────────────────────────────────────────────
-        if (ScreenFader.Instance != null)
-            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
-
-        // ── Restore original blend after everything is done ─────────────────────
         SetBlendDuration(_originalBlendTime);
-
         _isPlaying = false;
     }
 
