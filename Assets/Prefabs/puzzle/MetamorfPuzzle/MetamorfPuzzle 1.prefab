@@ -2371,7 +2371,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4854690008228174404}
-  - component: {fileID: 1497044378935480617}
   - component: {fileID: 8283288828524771194}
   m_Layer: 0
   m_Name: MetamorfPuzzle 1
@@ -2396,79 +2395,6 @@ Transform:
   - {fileID: 9049133473072805765}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
---- !u!114 &1497044378935480617
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3035832217922939354}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
-  _saveId: puzzle_mode_unique_id
-  _puzzleCamera: {fileID: 0}
-  _blendDuration: 0.75
-  _showInventoryBar: 0
-  OnPuzzleModeEntered:
-    m_PersistentCalls:
-      m_Calls: []
-  OnPuzzleModeExited:
-    m_PersistentCalls:
-      m_Calls: []
-  OnPuzzleSolved:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 7124506251706380188}
-        m_TargetAssemblyTypeName: UnityEngine.BoxCollider, UnityEngine
-        m_MethodName: set_enabled
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1571248945295449823}
-        m_TargetAssemblyTypeName: UnityEngine.BoxCollider, UnityEngine
-        m_MethodName: set_enabled
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 5787452943420402240}
-        m_TargetAssemblyTypeName: UnityEngine.BoxCollider, UnityEngine
-        m_MethodName: set_enabled
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 3218570030365696438}
-        m_TargetAssemblyTypeName: UnityEngine.BoxCollider, UnityEngine
-        m_MethodName: set_enabled
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
 --- !u!114 &8283288828524771194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2481,6 +2407,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c6395ddb87cfdb4088be79e2683df8f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MetamorfPuzzleController
+  _saveId: metamorf_puzzle_unique_id
   _targetPairs:
   - cylinder: {fileID: 5657498146934477882}
     rewardTrigger: {fileID: 330145372855335386}
@@ -2493,6 +2420,7 @@ MonoBehaviour:
   OnPuzzleSolved:
     m_PersistentCalls:
       m_Calls: []
+  _collidersToDisableOnSolved: []
 --- !u!1 &3121938260207152768
 GameObject:
   m_ObjectHideFlags: 0

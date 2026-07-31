@@ -7,8 +7,7 @@ using UnityEngine.Events;
 /// Root controller for the Metamorf puzzle.
 /// Win Condition: Each specified decor cylinder must intersect its assigned reward trigger.
 /// </summary>
-[RequireComponent(typeof(PuzzleModeController))]
-public class MetamorfPuzzleController : MonoBehaviour
+public class MetamorfPuzzleController : MonoBehaviour, ISaveable
 {
     [Serializable]
     public struct CylinderTargetPair
@@ -19,6 +18,9 @@ public class MetamorfPuzzleController : MonoBehaviour
         public Collider rewardTrigger;
     }
 
+    [Header("Save Settings")]
+    [SerializeField] private string _saveId = "metamorf_puzzle_unique_id";
+
     [Header("Win Condition")]
     [Tooltip("List of pairs specifying which cylinder must reach which reward trigger.")]
     [SerializeField] private List<CylinderTargetPair> _targetPairs;
@@ -27,13 +29,50 @@ public class MetamorfPuzzleController : MonoBehaviour
     [Tooltip("Fired once when the puzzle is solved.")]
     public UnityEvent OnPuzzleSolved;
 
+    [Header("Solved State")]
+    [Tooltip("Colliders disabled when the puzzle is solved (e.g. base plates that block further interaction).")]
+    [SerializeField] private Collider[] _collidersToDisableOnSolved;
+
     private MetamorfCylinderButton[] _buttons;
-    private PuzzleModeController _puzzleModeController;
     private bool _isSolved;
+
+    // ── ISaveable ──────────────────────────────────────────────────────────────
+
+    public string SaveId => _saveId;
+
+    public string GetSaveData()
+    {
+        return JsonUtility.ToJson(new SaveData { isSolved = _isSolved });
+    }
+
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<SaveData>(json);
+        _isSolved = data.isSolved;
+
+        // Fire only the UnityEvent (for visuals/UI wired in the Inspector).
+        if (_isSolved)
+        {
+            DisableCollidersOnSolved();
+            OnPuzzleSolved?.Invoke();
+        }
+    }
+
+    [Serializable]
+    private struct SaveData
+    {
+        public bool isSolved;
+    }
+
+    // ── Unity Lifecycle ────────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        SaveManager.Instance?.Register(this);
+    }
 
     private void Start()
     {
-        _puzzleModeController = GetComponent<PuzzleModeController>();
         _buttons = GetComponentsInChildren<MetamorfCylinderButton>(includeInactive: true);
 
         foreach (MetamorfCylinderButton button in _buttons)
@@ -49,12 +88,28 @@ public class MetamorfPuzzleController : MonoBehaviour
 
     private void OnDestroy()
     {
+        SaveManager.Instance?.Unregister(this);
+
         if (_buttons == null) return;
 
         foreach (MetamorfCylinderButton button in _buttons)
         {
             if (button != null)
                 button.OnStateChanged -= OnCylinderStateChanged;
+        }
+    }
+
+    // ── Solved State ───────────────────────────────────────────────────────────
+
+    /// <summary>Disables all colliders assigned to _collidersToDisableOnSolved.</summary>
+    private void DisableCollidersOnSolved()
+    {
+        if (_collidersToDisableOnSolved == null) return;
+
+        foreach (var collider in _collidersToDisableOnSolved)
+        {
+            if (collider != null)
+                collider.enabled = false;
         }
     }
 
@@ -93,8 +148,9 @@ public class MetamorfPuzzleController : MonoBehaviour
         {
             _isSolved = true;
             Debug.Log($"[{nameof(MetamorfPuzzleController)}] Puzzle Solved! All target cylinders have reached their specific reward triggers.");
+            DisableCollidersOnSolved();
             OnPuzzleSolved?.Invoke();
-            _puzzleModeController.SetSolved();
+            SaveManager.Instance?.Save();
         }
     }
 }
