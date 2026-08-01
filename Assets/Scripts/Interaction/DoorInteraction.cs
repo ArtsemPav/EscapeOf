@@ -17,7 +17,7 @@ namespace Escape.Core {
     /// <summary>
     /// Обрабатывает логику взаимодействия, проверку ключей и состояние двери.
     /// Поддерживает физическое перетаскивание (IDraggable): удерживай LMB и двигай мышью.
-    /// Заперта дверь — слегка поддаётся при попытке потянуть и возвращается назад.
+    /// Запертая дверь не двигается при перетаскивании — проигрывается только звук замка.
     /// Implements ISaveable: persists isOpen, isLocked and openFraction across sessions.
     /// </summary>
     public class DoorInteraction : MonoBehaviour, IInteractable, IDraggable, ISaveable {
@@ -36,8 +36,6 @@ namespace Escape.Core {
         [SerializeField] private ItemData _requiredKey;
         [Tooltip("Shown below the action hint when the door is locked and the player doesn't have the key.")]
         [SerializeField] private string _requirementHint = "";
-        [Tooltip("Максимальный угол подёргивания при попытке открыть запертую дверь (доля от _maxOpenAngle).")]
-        [SerializeField] [Range(0f, 0.15f)] private float _lockedJiggleFraction = 0.05f;
 
         [Header("UI Hints")]
         [SerializeField] private string _openText = "Открыть дверь";
@@ -58,8 +56,6 @@ namespace Escape.Core {
         [SerializeField] private float _friction = 5f;
         [Tooltip("Max angular velocity (open-fraction / sec).")]
         [SerializeField] private float _maxVelocity = 1.2f;
-        [Tooltip("Speed at which a locked door snaps back to closed after a jiggle attempt.")]
-        [SerializeField] private float _lockedSnapBackSpeed = 8f;
         [Tooltip("Minimum release velocity (fraction/sec) to trigger a fling to fully open or closed. 0 = disabled.")]
         [SerializeField] private float _flingThreshold = 0.9f;
         [Tooltip("Speed of the fling animation to fully open or closed (fraction/sec).")]
@@ -97,9 +93,7 @@ namespace Escape.Core {
         private float   _openFraction;        // 0 = closed, 1 = fully open
         private float   _velocity;            // open-fraction per second
         private bool    _isDragging;
-        private bool    _isLockedDrag;
         private bool    _dragActive;
-        private bool    _snappingBack;        // true after locked jiggle — lerp back to 0
         private bool    _isUnlockAnimating;   // true while smoothly swinging ajar after unlock
         private float   _unlockAjarTarget;    // target fraction for the unlock swing
         private bool    _flinging;            // true while coasting to fully open or closed after a sharp release
@@ -226,19 +220,6 @@ namespace Escape.Core {
                 return;
             }
 
-            // ── Post-release inertia ─────────────────────────────────────────────
-            if (_snappingBack) {
-                _openFraction = Mathf.Lerp(_openFraction, 0f, _lockedSnapBackSpeed * Time.deltaTime);
-                ApplyAngle();
-                if (_openFraction < 0.001f) {
-                    _openFraction = 0f;
-                    _snappingBack = false;
-                    _dragActive   = false;
-                    ApplyAngle();
-                }
-                return;
-            }
-
             // ── Click-driven open/close ──────────────────────────────────────────
             if (_isClickAnimating) {
                 float prev  = _openFraction;
@@ -305,17 +286,19 @@ namespace Escape.Core {
                 return;
             }
 
+            // Locked door: play locked sound and prevent any movement.
+            if (_isLocked && !_isOpen) {
+                AudioManager.Instance.PlaySFX(_lockedClip);
+                _isDragging = true;
+                return;
+            }
+
             _isDragging        = true;
             _dragActive        = true;
             _dragCamera        = cam;
-            _snappingBack      = false;
             _flinging          = false;
             _isUnlockAnimating = false;
-            _isLockedDrag      = _isLocked && !_isOpen;
             _dragStartFraction = _openFraction;
-
-            if (_isLockedDrag)
-                AudioManager.Instance.PlaySFX(_lockedClip);
 
             if (_pivot != null) {
                 Vector3 offset = hitPoint - _pivot.position;
@@ -331,6 +314,8 @@ namespace Escape.Core {
         public void OnDrag(Vector2 mouseDelta) {
             // Click mode ignores continuous drag — the door animates on its own.
             if (_openMode == DoorOpenMode.Click) return;
+            // Locked door: drag is a no-op.
+            if (_isLocked && !_isOpen) return;
 
             Camera cam = _dragCamera != null ? _dragCamera : Camera.main;
             if (cam == null || _pivot == null) return;
@@ -362,16 +347,12 @@ namespace Escape.Core {
                 MaxDeltaFractionPerFrame
             );
 
-            float maxFraction = _isLockedDrag ? _lockedJiggleFraction : 1f;
             float prev         = _openFraction;
-            _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, maxFraction);
+            _openFraction = Mathf.Clamp(_openFraction + deltaFraction, 0f, 1f);
             _velocity     = Mathf.Clamp((_openFraction - prev) / Mathf.Max(Time.deltaTime, 0.0001f), -_maxVelocity, _maxVelocity);
 
-            if (!_isLockedDrag)
-            {
-                UpdateMotionLoop();
-                CheckLatch(prev, _openFraction);
-            }
+            UpdateMotionLoop();
+            CheckLatch(prev, _openFraction);
 
             ApplyAngle();
         }
@@ -381,16 +362,15 @@ namespace Escape.Core {
             // Click mode handles everything in ToggleClick/Update — nothing to do on release.
             if (_openMode == DoorOpenMode.Click) return;
 
-            bool wasLockedDrag = _isLockedDrag;
-            _isDragging   = false;
-            _isLockedDrag = false;
-
-            StopMotionLoops();
-
-            if (wasLockedDrag) {
-                _snappingBack = true;
+            // Locked door: nothing was moved, just release the drag lock.
+            if (_isLocked && !_isOpen) {
+                _isDragging = false;
                 return;
             }
+
+            _isDragging = false;
+
+            StopMotionLoops();
 
             bool trivial = Mathf.Abs(_openFraction - _dragStartFraction) < MinDragFraction
                         && Mathf.Abs(_velocity)                           < MinDragVelocity;
@@ -470,11 +450,10 @@ namespace Escape.Core {
         /// <summary>Unlocks and smoothly swings the door ajar. Wire to CodeLock.OnUnlocked.</summary>
         public void UnlockAndOpen() {
             _isLocked          = false;
-            _isLockedDrag      = false;
-            _snappingBack      = false;
             _isUnlockAnimating = true;
             _unlockAjarTarget  = _unlockAjarFraction;
             _dragActive        = true;
+            _isDragging        = false;
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX(_unlockClip);
         }
@@ -498,8 +477,6 @@ namespace Escape.Core {
 
             // Cancel any other motion modes so they don't fight the click animation.
             _isDragging        = false;
-            _isLockedDrag      = false;
-            _snappingBack      = false;
             _flinging          = false;
             _isUnlockAnimating = false;
             _velocity          = 0f;
