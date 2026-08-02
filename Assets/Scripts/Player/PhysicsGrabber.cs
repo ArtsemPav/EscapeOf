@@ -131,7 +131,9 @@ public class PhysicsGrabber : MonoBehaviour
         );
     }
 
-    /// <summary>Casts a sphere from the camera and highlights the nearest PhysicsDraggable.</summary>
+    /// <summary>Casts a sphere from the camera and highlights the nearest PhysicsDraggable.
+    /// An additional line-of-sight raycast ensures walls between the camera and the
+    /// object block detection, preventing grabs through geometry.</summary>
     private void DetectHoveredDraggable()
     {
         Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
@@ -139,6 +141,20 @@ public class PhysicsGrabber : MonoBehaviour
         if (Physics.SphereCast(ray, detectionRadius, out RaycastHit hit, grabDistance, draggableLayer)
             && hit.collider.TryGetComponent(out PhysicsDraggable draggable))
         {
+            // Line-of-sight check: cast a thin ray against all solid layers (except
+            // Ignore Raycast and Draggable) up to the draggable. If anything is hit,
+            // a wall is between the camera and the object — skip detection.
+            int obstacleMask = ~0 & ~(1 << 2) & ~draggableLayer.value;
+            if (Physics.Raycast(ray, out _, hit.distance - 0.01f, obstacleMask, QueryTriggerInteraction.Ignore))
+            {
+                if (_hoveredDraggable != null)
+                {
+                    _hoveredDraggable = null;
+                    InteractionUI.Instance?.SetHint(false);
+                }
+                return;
+            }
+
             if (_hoveredDraggable != draggable)
             {
                 _hoveredDraggable = draggable;

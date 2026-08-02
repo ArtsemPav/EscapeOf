@@ -365,7 +365,7 @@ public class FPSController : MonoBehaviour, ISaveable
         // Ray 2 — obstacle check: any solid non-interactable geometry between the camera
         // and the hit point blocks interaction (e.g. closed shelf, locked door body).
         int obstacleMask = ~interactableLayer.value & ~(1 << 2); // all except interactable layer and IgnoreRaycast
-        if (Physics.Raycast(ray, out RaycastHit _, interactHit.distance, obstacleMask, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(ray, out RaycastHit _, interactHit.distance - 0.001f, obstacleMask, QueryTriggerInteraction.Ignore))
         {
             ClearCurrentInteractable();
             return;
