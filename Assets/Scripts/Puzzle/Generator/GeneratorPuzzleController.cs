@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Управляет загадкой генератора. Принимает нужные предметы из PuzzleInventoryBar,
@@ -11,7 +12,7 @@ using UnityEngine;
 /// показывает инвентарный бар и находит этот компонент как IPuzzleDropHandler.
 /// </summary>
 [DefaultExecutionOrder(-7)]
-public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISaveable
+public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuzzleDropTarget, ISaveable
 {
     private const string DefaultSaveId = "generator_puzzle";
 
@@ -48,10 +49,22 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISav
     [SerializeField] private AudioClip _insertClip;
     [SerializeField, Range(0f, 1f)] private float _insertVolume = 1f;
 
+    [Header("Ghost Preview")]
+    [Tooltip("Материал ghost-превью предмета. Если пуст — загружается CardLamp_Ghost.mat из Resources.")]
+    [SerializeField] private Material _ghostMaterial;
+
+    [Tooltip("Подсказка при наведении предмета на якорь генератора.")]
+    [SerializeField] private string _dropHint = "Установить в генератор";
+
     private const float RaycastDistance = 100f;
+    private const string GhostMaterialPath = "Materials/CardLock/CardLamp_Ghost.mat";
 
     private readonly HashSet<string> _placedItemIds = new HashSet<string>();
     private bool _isSolved;
+
+    private GameObject _ghostPreview;
+    private Material _runtimeGhostMaterial;
+    private bool _ghostVisible;
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
 
@@ -133,7 +146,115 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISav
             _controller?.SetSolved();
     }
 
-    private void OnDestroy() => SaveManager.Instance?.Unregister(this);
+    private void OnDestroy()
+    {
+        if (_ghostPreview != null)
+            Destroy(_ghostPreview);
+
+        SaveManager.Instance?.Unregister(this);
+    }
+
+    // ── Ghost Preview ───────────────────────────────────────────────────────────
+
+    private void Update()
+    {
+        if (_isSolved || _controller == null || !_controller.IsActive)
+        {
+            if (_ghostVisible) SetGhostVisible(false);
+            return;
+        }
+
+        if (PuzzleInventoryBar.IsDragging && PuzzleInventoryBar.DraggedItem != null
+            && CanAccept(PuzzleInventoryBar.DraggedItem))
+        {
+            bool isHovering = IsMouseOverAnchor();
+            if (isHovering && !_ghostVisible)
+                SetGhostVisible(true);
+            else if (!isHovering && _ghostVisible)
+                SetGhostVisible(false);
+        }
+        else if (_ghostVisible)
+        {
+            SetGhostVisible(false);
+        }
+    }
+
+    private bool IsMouseOverAnchor()
+    {
+        if (Mouse.current == null || _inputAnchorCollider == null) return false;
+
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        if (Camera.main == null) return false;
+
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+        if (Physics.Raycast(ray, out RaycastHit hit, RaycastDistance, _anchorLayer))
+            return hit.collider == _inputAnchorCollider;
+
+        return false;
+    }
+
+    private void SetGhostVisible(bool visible)
+    {
+        _ghostVisible = visible;
+
+        if (visible)
+        {
+            if (_ghostPreview == null)
+                CreateGhostPreview();
+            if (_ghostPreview != null)
+                _ghostPreview.SetActive(true);
+        }
+        else
+        {
+            if (_ghostPreview != null)
+                _ghostPreview.SetActive(false);
+        }
+    }
+
+    private void CreateGhostPreview()
+    {
+        if (_inputAnchorTransform == null) return;
+        if (PuzzleInventoryBar.DraggedItem == null) return;
+
+        EnsureGhostMaterial();
+
+        var prefab = _placedItemPrefab != null ? _placedItemPrefab
+                    : PuzzleInventoryBar.DraggedItem.inspectionPrefab;
+        if (prefab == null) return;
+
+        _ghostPreview = Instantiate(prefab, _inputAnchorTransform.position,
+                                    _inputAnchorTransform.rotation, _inputAnchorTransform);
+        _ghostPreview.name = "SparkPlugGhost";
+
+        foreach (var col in _ghostPreview.GetComponentsInChildren<Collider>(true))
+            col.enabled = false;
+
+        if (_runtimeGhostMaterial != null)
+        {
+            foreach (var rend in _ghostPreview.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = new Material[rend.sharedMaterials.Length];
+                for (int i = 0; i < mats.Length; i++)
+                    mats[i] = _runtimeGhostMaterial;
+                rend.sharedMaterials = mats;
+            }
+        }
+
+        _ghostPreview.SetActive(false);
+    }
+
+    private void EnsureGhostMaterial()
+    {
+        if (_runtimeGhostMaterial != null) return;
+
+        if (_ghostMaterial != null)
+        {
+            _runtimeGhostMaterial = _ghostMaterial;
+            return;
+        }
+
+        _runtimeGhostMaterial = Resources.Load<Material>(GhostMaterialPath);
+    }
 
     // ── Puzzle Flow ──────────────────────────────────────────────────────────────
 
@@ -148,6 +269,7 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISav
 
     private void HandleExited()
     {
+        SetGhostVisible(false);
         SetMinigameVisible(false);
         _minigame?.StopMinigame();
     }
@@ -159,6 +281,18 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISav
         _isSolved = true;
         SetMinigameVisible(false);
         _controller?.SetSolved(); // выходит из режима пазла и сохраняет прогресс
+    }
+
+    // ── IPuzzleDropTarget ──────────────────────────────────────────────────────
+
+    /// <summary>Возвращает текст-подсказку при наведении предмета на якорь генератора.</summary>
+    public string GetDropHint() => _dropHint;
+
+    /// <summary>True, если предмет подходит для установки и ещё не размещён.</summary>
+    public bool CanAccept(ItemData item)
+    {
+        if (item == null || _isSolved) return false;
+        return IsRequired(item) && !_placedItemIds.Contains(item.ItemId);
     }
 
     // ── IPuzzleDropHandler ─────────────────────────────────────────────────────
@@ -182,6 +316,8 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, ISav
 
         if (hit.collider != _inputAnchorCollider)
             return false;
+
+        SetGhostVisible(false);
 
         _placedItemIds.Add(item.ItemId);
         SpawnPlacedVisual(item);
