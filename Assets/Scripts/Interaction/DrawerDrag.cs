@@ -296,6 +296,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
 
     /// <summary>
     /// Unlocks the drawer and smoothly slides it to the fully open position.
+    /// Uses the default speed (1 / _snapSpeed seconds).
     /// Used by puzzle logic when the puzzle is solved.
     /// </summary>
     public void AutoOpen()
@@ -308,7 +309,25 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             _audioSource.PlayOneShot(_openClip, _openVolume);
 
         if (_autoOpenCoroutine != null) StopCoroutine(_autoOpenCoroutine);
-        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine());
+        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine(1f / _snapSpeed));
+    }
+
+    /// <summary>
+    /// Unlocks the drawer and smoothly slides it to the fully open position
+    /// over the specified duration in seconds. Used by cinematic sequences
+    /// where a slower, more visible animation is needed.
+    /// </summary>
+    public void AutoOpen(float duration)
+    {
+        EnsureClosedPosition();
+        _isLocked = false;
+        _targetOpenAmount = 1f;
+
+        if (_openClip != null && _audioSource != null)
+            _audioSource.PlayOneShot(_openClip, _openVolume);
+
+        if (_autoOpenCoroutine != null) StopCoroutine(_autoOpenCoroutine);
+        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine(duration));
     }
 
     /// <summary>
@@ -324,11 +343,10 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         ApplyPosition();
     }
 
-    private IEnumerator AutoOpenRoutine()
+    private IEnumerator AutoOpenRoutine(float duration)
     {
         float startAmount = _openAmount;
         float elapsed = 0f;
-        float duration = 1f / _snapSpeed;
 
         while (elapsed < duration)
         {

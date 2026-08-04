@@ -113,14 +113,14 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [SerializeField] private AudioClip _wrongPullClip;
 
     [Tooltip("Looping ambient sound played continuously after the puzzle is solved (generator hum). " +
-             "Assign an AudioSource placed in the electric prefab — configure 3D settings on it directly.")]
+             "Assign an AudioSource placed in the electric prefab.")]
     [SerializeField] private AudioSource _solvedLoopSource;
 
-    [Tooltip("3D minimum distance at which the solved loop is at full volume.")]
-    [SerializeField] private float _solvedLoopMinDistance = 0.1f;
+    [Tooltip("3D distance within which the solved loop plays at full volume.")]
+    [SerializeField] private float _solvedLoopMinDistance = 3f;
 
-    [Tooltip("3D maximum distance at which the solved loop fades to silence.")]
-    [SerializeField] private float _solvedLoopMaxDistance = 1.5f;
+    [Tooltip("3D distance at which the solved loop fades to silence. Should roughly match the room size.")]
+    [SerializeField] private float _solvedLoopMaxDistance = 6f;
 
     [Header("Sound Volumes")]
     [SerializeField, Range(0f, 1f)] private float _fuseInsertVolume    = 1f;
@@ -128,7 +128,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [SerializeField, Range(0f, 1f)] private float _wireDisconnectVolume = 0.7f;
     [SerializeField, Range(0f, 1f)] private float _solvedVolume        = 1f;
     [SerializeField, Range(0f, 1f)] private float _wrongPullVolume     = 0.6f;
-    [SerializeField, Range(0f, 1f)] private float _solvedLoopVolume    = 0.5f;
+    [SerializeField, Range(0f, 1f)] private float _solvedLoopVolume    = 1f;
 
     [Header("Events")]
     [Tooltip("Items that can be applied to this puzzle (fuse). " +
@@ -1030,15 +1030,14 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         if (_solvedLoopSource == null) return;
 
-        // Force 3D settings in code — bypasses prefab override quirks where
-        // spatialBlend or rolloff curve may not apply correctly at runtime.
+        // Configure 3D settings in code to ensure consistent behaviour regardless
+        // of Inspector state. Linear rolloff gives a predictable fade to silence
+        // at maxDistance — the room boundary.
         _solvedLoopSource.spatialBlend      = 1f;
         _solvedLoopSource.rolloffMode       = AudioRolloffMode.Linear;
         _solvedLoopSource.minDistance       = _solvedLoopMinDistance;
         _solvedLoopSource.maxDistance       = _solvedLoopMaxDistance;
         _solvedLoopSource.dopplerLevel      = 0f;
-        _solvedLoopSource.reverbZoneMix     = 0f;
-        _solvedLoopSource.bypassReverbZones = true;
         _solvedLoopSource.spread            = 0f;
 
         _solvedLoopSource.enabled = true;

@@ -1,4 +1,7 @@
 using System;
+using System.Collections;
+using System.Reflection;
+using Unity.Cinemachine;
 using UnityEngine;
 
 [Serializable]
@@ -54,8 +57,26 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     [SerializeField] private AudioClip _solvedClip;
     [SerializeField, Range(0f, 1f)] private float _solvedVolume = 1f;
 
+    [Header("Solved Cinematic")]
+    [Tooltip("CinemachineCamera that frames the solved painting room. Must start inactive in the hierarchy.")]
+    [SerializeField] private CinemachineCamera _solvedCamera;
+
+    [Tooltip("Duration of the screen fade to/from black.")]
+    [SerializeField, Min(0f)] private float _fadeDuration = 1f;
+
+    [Tooltip("How long the solved camera stays active before fading back to the player (seconds).")]
+    [SerializeField, Min(0f)] private float _solvedCameraDuration = 3f;
+
+    [Tooltip("Duration of the reward drawer opening animation during the cinematic (seconds).")]
+    [SerializeField, Min(0.1f)] private float _drawerOpenDuration = 2f;
+
+    private const int CinematicCameraPriority = 3000;
+
     private bool _isSolved;
     private bool _roomLightOff;
+
+    private CinemachineBrain _brain;
+    private float _originalBlendTime;
 
     // Cached from save data — used to restore the solved visual state on load.
     private bool[] _savedSwitchStates;
@@ -103,6 +124,16 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     private void Awake()
     {
         SaveManager.Instance?.Register(this);
+
+        if (_solvedCamera != null)
+            _solvedCamera.gameObject.SetActive(false);
+
+        _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
+        if (_brain == null)
+            _brain = FindFirstObjectByType<CinemachineBrain>();
+
+        if (_brain != null)
+            _originalBlendTime = _brain.DefaultBlend.Time;
     }
 
     private void Start()
@@ -129,6 +160,20 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     {
         UnsubscribeFromEvents();
         SaveManager.Instance?.Unregister(this);
+
+        // Emergency cleanup — if the cinematic is interrupted, restore everything.
+        if (_solvedCamera != null)
+        {
+            _solvedCamera.Priority = 0;
+            _solvedCamera.gameObject.SetActive(false);
+        }
+
+        SetBlendDuration(_originalBlendTime);
+        InputManager.Instance?.SetPlayerInputEnabled(true);
+        InteractionUI.Instance?.SetVisible(true);
+
+        if (ScreenFader.Instance != null)
+            ScreenFader.Instance.FadeOut(0f);
     }
 
     // ── Event Subscriptions ────────────────────────────────────────────────────
@@ -354,11 +399,97 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     {
         _isSolved = true;
         LockAllInteractions();
-        _rewardDrawer?.AutoOpen();
+        Debug.Log("[LoopPuzzleController] Puzzle solved — starting cinematic sequence.");
+        StartCoroutine(SolvedCinematicRoutine());
+    }
+
+    /// <summary>
+    /// Cinematic sequence played when the puzzle is solved:
+    /// fade to black → instant camera switch → fade in → open drawer →
+    /// wait → fade to black → instant camera switch back → fade in.
+    /// Reuses ScreenFader for the UI darkening. Cinemachine blends are
+    /// temporarily set to 0 so camera switches are instant (hidden by the fade).
+    /// </summary>
+    private IEnumerator SolvedCinematicRoutine()
+    {
+        // Disable player input and hide the interaction HUD for the duration of the cinematic.
+        InputManager.Instance?.SetPlayerInputEnabled(false);
+        InteractionUI.Instance?.SetVisible(false);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        // ── Phase 1: Fade to black ──────────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 2: Instant switch to solved camera (screen is black) ───────────
+        SetBlendDuration(0f);
+
+        if (_solvedCamera != null)
+        {
+            _solvedCamera.Priority = CinematicCameraPriority;
+            _solvedCamera.gameObject.SetActive(true);
+        }
+
+        // Wait one frame so the brain processes the instant cut.
+        yield return null;
+
+        // ── Phase 3: Fade from black — player sees the solved room ───────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 4: Play solved sound and open the reward drawer ────────────────
         if (_solvedClip != null)
             AudioManager.Instance?.PlaySFX(_solvedClip, _solvedVolume);
-        Debug.Log("[LoopPuzzleController] Puzzle solved — reward drawer opened.");
+
+        _rewardDrawer?.AutoOpen(_drawerOpenDuration);
+
+        // ── Phase 5: Hold the shot while the drawer opens ────────────────────────
+        yield return new WaitForSeconds(_solvedCameraDuration);
+
+        // ── Phase 6: Fade to black again ─────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 7: Instant switch back to the player camera (screen is black) ──
+        if (_solvedCamera != null)
+        {
+            _solvedCamera.Priority = 0;
+            _solvedCamera.gameObject.SetActive(false);
+        }
+
+        // Wait one frame so the brain processes the instant cut.
+        yield return null;
+
+        // Restore the original Cinemachine blend for normal gameplay.
+        SetBlendDuration(_originalBlendTime);
+
+        // ── Phase 8: Fade from black — player regains control ────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        InputManager.Instance?.SetPlayerInputEnabled(true);
+        InteractionUI.Instance?.SetVisible(true);
+
         SaveManager.Instance?.Save();
+        Debug.Log("[LoopPuzzleController] Cinematic complete — reward drawer opened, control returned.");
+    }
+
+    /// <summary>Sets the DefaultBlend duration on the CinemachineBrain (0 = instant cut).</summary>
+    private void SetBlendDuration(float duration)
+    {
+        if (_brain == null) return;
+        var blend = _brain.DefaultBlend;
+        blend.Time = duration;
+        _brain.DefaultBlend = blend;
     }
 
     /// <summary>
@@ -450,5 +581,84 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
             cond.column?.ResetToInitialState();
 
         HideAllSymbols();
+    }
+
+    // ── Cheats ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Instantly solves the puzzle: sets all switches, lenses, and column heights
+    /// to the correct solution, reveals all symbols, and fires the cinematic.
+    /// Intended for the Tools/PuzzlesCheats menu — only works in Play Mode.
+    /// </summary>
+    public void AutoSolve()
+    {
+        if (_isSolved) return;
+        if (!Application.isPlaying) return;
+
+        // 1. Power on the master switch (S6).
+        var powerButtonField = _powerCircuit?.GetType()
+            .GetField("_switches", BindingFlags.NonPublic | BindingFlags.Instance);
+        if (powerButtonField?.GetValue(_powerCircuit) is not LoopPuzzleButton[] switches)
+        {
+            Debug.LogWarning("[LoopPuzzleCheats] Could not access _switches on LoopPuzzlePowerCircuit.");
+            return;
+        }
+
+        // Turn on S6 (last element) silently.
+        if (switches.Length > 0 && switches[^1] != null)
+            switches[^1].SetStateSilent(true);
+
+        // Find a switch combination that powers all spotlights.
+        bool[] solution = FindSolvingSwitchStates();
+        for (int i = 0; i < solution.Length && i < switches.Length - 1; i++)
+            switches[i]?.SetStateSilent(solution[i]);
+
+        // Apply power state.
+        _powerCircuit?.EvaluateAndApply();
+
+        // 2. Set lens colors on each condition's spotlight.
+        foreach (var cond in _conditions)
+        {
+            if (cond.spotlight != null && cond.requiredColor != LensColor.None)
+                cond.spotlight.SetLens(cond.requiredColor);
+        }
+
+        // 3. Set each column to the required height.
+        foreach (var cond in _conditions)
+        {
+            if (cond.column != null)
+                cond.column.SetInitialHeight(cond.requiredHeight);
+        }
+
+        // 4. Show all symbols immediately.
+        ShowAllSymbols();
+
+        // 5. Lock all interactions and fire the cinematic.
+        OnPuzzleSolved();
+
+        Debug.Log("<color=green>[LoopPuzzleCheats] Paint Puzzle has been force-solved!</color>");
+    }
+
+    /// <summary>
+    /// Brute-forces all 2^5 combinations of S1–S5 to find one that powers all spotlights.
+    /// </summary>
+    private bool[] FindSolvingSwitchStates()
+    {
+        int nonMasterCount = _powerCircuit?.SwitchCount - 1 ?? 5;
+
+        for (int mask = 0; mask < (1 << nonMasterCount); mask++)
+        {
+            var states = new bool[nonMasterCount];
+            for (int i = 0; i < nonMasterCount; i++)
+                states[i] = (mask & (1 << i)) != 0;
+
+            if (_powerCircuit != null && _powerCircuit.CheckAllPoweredWith(states))
+                return states;
+        }
+
+        Debug.LogWarning("[LoopPuzzleCheats] No valid switch combination found — using all ON.");
+        var fallback = new bool[nonMasterCount];
+        for (int i = 0; i < nonMasterCount; i++) fallback[i] = true;
+        return fallback;
     }
 }

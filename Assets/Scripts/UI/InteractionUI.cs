@@ -103,4 +103,25 @@ public class InteractionUI : MonoBehaviour
     {
         SetHint(false);
     }
+
+    /// <summary>
+    /// Shows or hides the entire interaction UI (crosshair + hint panel).
+    /// Used by cinematic sequences to fully clear the HUD while a cutscene plays.
+    /// </summary>
+    public void SetVisible(bool visible)
+    {
+        if (!visible)
+        {
+            if (hintPanel != null)
+                hintPanel.SetActive(false);
+            if (crosshairImage != null)
+                crosshairImage.enabled = false;
+        }
+        else
+        {
+            if (crosshairImage != null)
+                crosshairImage.enabled = true;
+            SetCrosshair(CrosshairMode.Default);
+        }
+    }
 }
