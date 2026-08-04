@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using ChemicalPuzzle;
+using Effects;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -144,10 +145,16 @@ public class GeneratorPuzzleController : MonoBehaviour,
         [Tooltip("Громкость звука заливки.")]
         [Range(0f, 1f)] [SerializeField] private float _pourVolume = 1f;
 
+        [Header("Pour VFX (optional)")]
+        [Tooltip("Эффект наливания бензина (GasolinePourEffect). " +
+                 "Запускается синхронно с началом анимации заливки и останавливается по её завершении.")]
+        [SerializeField] private GasolinePourEffect _pourEffect;
+
         // ── Public accessors ──
 
         public AudioClip PourClip => _pourClip;
         public float PourVolume => _pourVolume;
+        public GasolinePourEffect PourEffect => _pourEffect;
     }
 
     // ── State ───────────────────────────────────────────────────────────────────
@@ -669,12 +676,18 @@ public class GeneratorPuzzleController : MonoBehaviour,
         // Проигрываем звук заливки в начале анимации
         AudioManager.Instance?.PlaySFX(slot.PourClip, slot.PourVolume);
 
+        // Запускаем эффект наливания бензина синхронно с анимацией
+        slot.PourEffect?.StartPour();
+
         // Ждём завершения анимации заливки
         while (animator.GetCurrentAnimatorStateInfo(0).IsName(slot.pourStateName) &&
                animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
         {
             yield return null;
         }
+
+        // Останавливаем эффект наливания — анимация завершена
+        slot.PourEffect?.StopPour();
 
         // Удаляем канистру — топливо залито, предмет израсходован
         Destroy(canisterObj);
