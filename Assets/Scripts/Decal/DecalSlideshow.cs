@@ -232,7 +232,6 @@ public class DecalSlideshow : MonoBehaviour
         Texture2D first = _slides[0];
         int width  = first.width;
         int height = first.height;
-        TextureFormat format = first.format;
 
         for (int i = 1; i < _slides.Length; i++)
         {
@@ -251,8 +250,13 @@ public class DecalSlideshow : MonoBehaviour
             }
         }
 
+        // Use RGBA32 (uncompressed) for the Texture2DArray instead of the source
+        // textures' compressed format. Graphics.CopyTexture can silently fail with
+        // certain compressed formats in player builds; GetPixels32/SetPixels32 is
+        // reliable across all platforms but requires Read/Write enabled on the
+        // source textures.
         bool isLinear = !first.isDataSRGB;
-        _textureArray = new Texture2DArray(width, height, _slides.Length, format, false, isLinear)
+        _textureArray = new Texture2DArray(width, height, _slides.Length, TextureFormat.RGBA32, false, isLinear)
         {
             wrapMode   = TextureWrapMode.Clamp,
             filterMode = FilterMode.Bilinear
@@ -262,7 +266,17 @@ public class DecalSlideshow : MonoBehaviour
         {
             if (_slides[i] == null)
                 continue;
-            Graphics.CopyTexture(_slides[i], 0, 0, _textureArray, i, 0);
+
+            if (!_slides[i].isReadable)
+            {
+                Debug.LogError(
+                    $"[{nameof(DecalSlideshow)}] Slide {i} ('{_slides[i].name}') is not readable. " +
+                    "Enable Read/Write in the texture import settings.", this);
+                continue;
+            }
+
+            Color32[] pixels = _slides[i].GetPixels32();
+            _textureArray.SetPixels32(pixels, i);
         }
 
         _textureArray.Apply(false, false);
