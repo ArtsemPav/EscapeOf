@@ -100,6 +100,17 @@ public class AudioManager : MonoBehaviour {
             _sfxSource.PlayOneShot(clip, volume);
     }
 
+    /// <summary>
+    /// Проигрывает SFX-клип, предварительно остановив все звуки на _sfxSource.
+    /// Используй для звуков, которые не должны накладываться сами на себя
+    /// (например, повторяющийся звук успеха в мини-игре).
+    /// </summary>
+    public void PlaySFXExclusive(AudioClip clip, float volume = 1f) {
+        if (clip == null) return;
+        _sfxSource.Stop();
+        _sfxSource.PlayOneShot(clip, volume);
+    }
+
     public AudioSource Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance) {
         GameObject sfxObj = new GameObject("3D_Loop_SFX");
         sfxObj.transform.position = target.position;

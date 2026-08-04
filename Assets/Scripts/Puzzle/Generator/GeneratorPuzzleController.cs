@@ -21,6 +21,8 @@ public class GeneratorPuzzleController : MonoBehaviour,
     private const string DefaultSaveId = "generator_puzzle";
     private const float RaycastDistance = 100f;
     private const string GhostMaterialPath = "Materials/CardLock/CardLamp_Ghost.mat";
+    private const float HitShakeDuration = 2f;
+    private const float MissShakeDuration = 0.5f;
 
     // ── Inspector ───────────────────────────────────────────────────────────────
 
@@ -35,6 +37,41 @@ public class GeneratorPuzzleController : MonoBehaviour,
 
     [Tooltip("Корневой UI мини-игры. Выключен по умолчанию.")]
     [SerializeField] private GameObject _minigamePanel;
+
+    [Header("Hit VFX")]
+    [Tooltip("Particle System, проигрывается при попадании в зелёную зону мини-игры.")]
+    [SerializeField] private ParticleSystem _hitVfx;
+
+    [Header("Audio")]
+    [Tooltip("Звук попадания в зелёную зону.")]
+    [SerializeField] private AudioClip _successClip;
+
+    [Tooltip("Звук промаха (красная зона).")]
+    [SerializeField] private AudioClip _failClip;
+
+    [SerializeField, Range(0f, 1f)] private float _successVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float _failVolume = 1f;
+
+    [Header("Completion Effects")]
+    [Tooltip("Particle System, запускается при успешном завершении мини-игры (например дым работающего генератора).")]
+    [SerializeField] private ParticleSystem _completionVfx;
+
+    [Tooltip("ObjectShake на генераторе — включается при завершении мини-игры (постоянное дрожание работающего двигателя).")]
+    [SerializeField] private ObjectShake _generatorShake;
+
+    [Header("Hit Shake")]
+    [Tooltip("Амплитуда смещения позиции при импульсной тряске генератора при попадании в зелёную зону (метры).")]
+    [SerializeField, Min(0f)] private float _generatorShakePositionAmplitude = 0.05f;
+
+    [Tooltip("Амплитуда вращения при импульсной тряске генератора при попадании в зелёную зону (градусы).")]
+    [SerializeField, Min(0f)] private float _generatorShakeRotationAmplitude = 2f;
+
+    [Header("Miss Shake")]
+    [Tooltip("Амплитуда смещения позиции при импульсной тряске генератора при промахе (метры).")]
+    [SerializeField, Min(0f)] private float _missShakePositionAmplitude = 0.08f;
+
+    [Tooltip("Амплитуда вращения при импульсной тряске генератора при промахе (градусы).")]
+    [SerializeField, Min(0f)] private float _missShakeRotationAmplitude = 3f;
 
     [Header("Start Button")]
     [Tooltip("Кнопка запуска мини-игры (Cylinder с ButtonPressAnimation). " +
@@ -179,7 +216,11 @@ public class GeneratorPuzzleController : MonoBehaviour,
         }
 
         if (_minigame != null)
+        {
             _minigame.OnCompleted += HandleMinigameCompleted;
+            _minigame.OnHit += HandleMinigameHit;
+            _minigame.OnMiss += HandleMinigameMiss;
+        }
 
         if (_startButton != null)
             _startButton.OnPressed += HandleStartButtonPressed;
@@ -194,7 +235,11 @@ public class GeneratorPuzzleController : MonoBehaviour,
         }
 
         if (_minigame != null)
+        {
             _minigame.OnCompleted -= HandleMinigameCompleted;
+            _minigame.OnHit -= HandleMinigameHit;
+            _minigame.OnMiss -= HandleMinigameMiss;
+        }
 
         if (_startButton != null)
             _startButton.OnPressed -= HandleStartButtonPressed;
@@ -214,7 +259,15 @@ public class GeneratorPuzzleController : MonoBehaviour,
         SetMinigameVisible(false);
 
         if (_isSolved)
+        {
+            PlayCompletionVfx();
+            EnableGeneratorShake();
             _controller?.SetSolved();
+        }
+        else
+        {
+            StopCompletionVfx();
+        }
     }
 
     private void OnDestroy()
@@ -357,6 +410,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
         SetGhostVisible(false, null);
         SetMinigameVisible(false);
         _minigame?.StopMinigame();
+        StopHitVfx();
         _allItemsReady = false;
     }
 
@@ -367,7 +421,72 @@ public class GeneratorPuzzleController : MonoBehaviour,
         _isSolved = true;
         _allItemsReady = false;
         SetMinigameVisible(false);
+        StopHitVfx();
+        PlayCompletionVfx();
+        EnableGeneratorShake();
         _controller?.SetSolved(); // выходит из режима пазла и сохраняет прогресс
+    }
+
+    /// <summary>Запускает VFX завершения мини-игры (дым работающего генератора).</summary>
+    private void PlayCompletionVfx()
+    {
+        if (_completionVfx == null) return;
+        _completionVfx.gameObject.SetActive(true);
+        _completionVfx.Play(true);
+    }
+
+    /// <summary>Останавливает VFX завершения мини-игры и деактивирует его GameObject.</summary>
+    private void StopCompletionVfx()
+    {
+        if (_completionVfx == null) return;
+        _completionVfx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        _completionVfx.gameObject.SetActive(false);
+    }
+
+    /// <summary>Включает постоянную тряску генератора (работающий двигатель).</summary>
+    private void EnableGeneratorShake()
+    {
+        if (_generatorShake != null)
+            _generatorShake.SetContinuous(true);
+    }
+
+    /// <summary>Выключает постоянную тряску генератора.</summary>
+    private void DisableGeneratorShake()
+    {
+        if (_generatorShake != null)
+            _generatorShake.SetContinuous(false);
+    }
+
+    /// <summary>Проигрывает звук и VFX попадания в зелёную зону, запускает импульсную тряску генератора.</summary>
+    private void HandleMinigameHit()
+    {
+        if (_minigame != null && _minigame.SuccessStreak < _minigame.RequiredSuccesses)
+            AudioManager.Instance?.PlaySFXExclusive(_successClip, _successVolume);
+
+        if (_hitVfx != null)
+        {
+            _hitVfx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            _hitVfx.Play(true);
+        }
+
+        if (_generatorShake != null)
+            _generatorShake.Shake(_generatorShakePositionAmplitude, _generatorShakeRotationAmplitude, HitShakeDuration);
+    }
+
+    /// <summary>Проигрывает звук промаха, останавливает ранее запущенный звук успеха и запускает импульсную тряску генератора.</summary>
+    private void HandleMinigameMiss()
+    {
+        AudioManager.Instance?.PlaySFXExclusive(_failClip, _failVolume);
+
+        if (_generatorShake != null)
+            _generatorShake.Shake(_missShakePositionAmplitude, _missShakeRotationAmplitude, MissShakeDuration);
+    }
+
+    /// <summary>Останавливает и очищает VFX попадания.</summary>
+    private void StopHitVfx()
+    {
+        if (_hitVfx != null)
+            _hitVfx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
     }
 
     // ── Start Button ─────────────────────────────────────────────────────────────

@@ -53,16 +53,6 @@ public class GeneratorTimingMinigame : MonoBehaviour
     [Tooltip("Сколько раз подряд нужно попасть в зелёную зону для завершения.")]
     [SerializeField, Min(1)] private int _requiredSuccesses = RequiredSuccessesDefault;
 
-    [Header("Audio")]
-    [Tooltip("Звук 1 — попадание в зелёную зону.")]
-    [SerializeField] private AudioClip _successClip;
-
-    [Tooltip("Звук 2 — промах (красная зона).")]
-    [SerializeField] private AudioClip _failClip;
-
-    [SerializeField, Range(0f, 1f)] private float _successVolume = 1f;
-    [SerializeField, Range(0f, 1f)] private float _failVolume = 1f;
-
     [Header("Feedback — Progress Lamps")]
     [Tooltip("Лампочки прогресса. Загораются по одной за каждое попадание подряд, гаснут при промахе.")]
     [SerializeField] private Image[] _progressLamps;
@@ -79,6 +69,12 @@ public class GeneratorTimingMinigame : MonoBehaviour
 
     /// <summary>Срабатывает при наборе нужного числа попаданий подряд.</summary>
     public event Action OnCompleted;
+
+    /// <summary>Срабатывает при каждом попадании в зелёную зону.</summary>
+    public event Action OnHit;
+
+    /// <summary>Срабатывает при каждом промахе (не попадание в зелёную зону).</summary>
+    public event Action OnMiss;
 
     /// <summary>Текущее число попаданий подряд (0..требуемое). Полезно для UI-индикации.</summary>
     public int SuccessStreak => _successStreak;
@@ -224,11 +220,11 @@ public class GeneratorTimingMinigame : MonoBehaviour
         bool hitGreen = t >= _greenMin && t <= _greenMax;
         if (hitGreen)
         {
-            AudioManager.Instance?.PlaySFX(_successClip, _successVolume);
             _successStreak++;
             Debug.Log($"[GeneratorTimingMinigame] Попадание в зелёную зону. Серия: {_successStreak}/{_requiredSuccesses}");
             UpdateLamps();
             FlashHandle(_handleHitColor);
+            OnHit?.Invoke();
             if (_successStreak >= _requiredSuccesses)
             {
                 _isRunning = false;
@@ -242,13 +238,13 @@ public class GeneratorTimingMinigame : MonoBehaviour
         }
         else
         {
-            AudioManager.Instance?.PlaySFX(_failClip, _failVolume);
             _successStreak = 0; // требуется серия попаданий подряд
             RestoreGreenZoneWidth();
             RelocateGreenZone();
             UpdateLamps();
             FlashHandle(_handleMissColor);
             StartGreenZoneErrorTransition();
+            OnMiss?.Invoke();
         }
     }
 
