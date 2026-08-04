@@ -14,6 +14,28 @@ public class GeneratorTimingMinigame : MonoBehaviour
 {
     private const int RequiredSuccessesDefault = 3;
 
+    private const float GreenZoneMargin = 0.08f;
+
+    [Header("Green Zone Shrink")]
+    [Tooltip("Множитель уменьшения ширины зелёной зоны после каждого попадания (0.8 = −20% за клик).")]
+    [SerializeField, Range(0.1f, 1f)] private float _shrinkFactor = 0.8f;
+
+    [Tooltip("Минимальная ширина зелёной зоны в пикселях, меньше которой она не уменьшается.")]
+    [SerializeField, Min(1f)] private float _minGreenZoneWidth = 20f;
+
+    [Header("Green Zone Error Color")]
+    [Tooltip("Цвет зоны при ошибке (красный).")]
+    [SerializeField] private Color _greenZoneErrorColor = new Color(0.85f, 0.2f, 0.2f, 1f);
+
+    [Tooltip("Промежуточный цвет при возврате (оранжевый).")]
+    [SerializeField] private Color _greenZoneWarningColor = new Color(1f, 0.55f, 0.1f, 1f);
+
+    [Tooltip("Нормальный цвет зоны (зелёный).")]
+    [SerializeField] private Color _greenZoneNormalColor = new Color(0.2f, 0.8f, 0.25f, 1f);
+
+    [Tooltip("Длительность полного перехода красный → оранжевый → зелёный, секунды.")]
+    [SerializeField, Min(0.05f)] private float _greenZoneTransitionDuration = 0.6f;
+
     [Header("UI (дети полоски _track)")]
     [Tooltip("Фон полоски. Pivot должен быть (0.5, 0.5).")]
     [SerializeField] private RectTransform _track;
@@ -71,10 +93,26 @@ public class GeneratorTimingMinigame : MonoBehaviour
     private float _greenMax; // нормализованная правая граница зелёной зоны [0..1]
     private int _successStreak;
     private Coroutine _flashRoutine;
+    private Coroutine _greenZoneColorRoutine;
+    private Image _greenZoneImage;
+    private float _initialGreenZoneWidth;
 
     /// <summary>Запускает мини-игру и сбрасывает прогресс.</summary>
     public void StartMinigame()
     {
+        if (_greenZone != null)
+        {
+            if (_initialGreenZoneWidth <= 0f)
+                _initialGreenZoneWidth = _greenZone.rect.width;
+            else
+                _greenZone.sizeDelta = new Vector2(_initialGreenZoneWidth, _greenZone.sizeDelta.y);
+
+            if (_greenZoneImage == null)
+                _greenZoneImage = _greenZone.GetComponent<Image>();
+            if (_greenZoneImage != null)
+                _greenZoneImage.color = _greenZoneNormalColor;
+        }
+
         CacheGreenZone();
         _successStreak = 0;
         _elapsed = 0f;
@@ -92,6 +130,12 @@ public class GeneratorTimingMinigame : MonoBehaviour
             StopCoroutine(_flashRoutine);
             _flashRoutine = null;
         }
+        if (_greenZoneColorRoutine != null)
+        {
+            StopCoroutine(_greenZoneColorRoutine);
+            _greenZoneColorRoutine = null;
+        }
+        ResetGreenZoneColor();
         ResetHandleColor();
     }
 
@@ -107,6 +151,54 @@ public class GeneratorTimingMinigame : MonoBehaviour
         float greenHalf = _greenZone.rect.width * 0.5f;
         _greenMin = Mathf.Clamp01((center - greenHalf + half) / _trackWidth);
         _greenMax = Mathf.Clamp01((center + greenHalf + half) / _trackWidth);
+    }
+
+    /// <summary>
+    /// Уменьшает ширину зелёной зоны на _shrinkFactor,
+    /// но не меньше _minGreenZoneWidth пикселей.
+    /// </summary>
+    private void ShrinkGreenZone()
+    {
+        if (_greenZone == null) return;
+
+        float newWidth = Mathf.Max(_greenZone.rect.width * _shrinkFactor, _minGreenZoneWidth);
+        _greenZone.sizeDelta = new Vector2(newWidth, _greenZone.sizeDelta.y);
+    }
+
+    /// <summary>Возвращает зелёной зоне исходную ширину, сохранённую при старте мини-игры.</summary>
+    private void RestoreGreenZoneWidth()
+    {
+        if (_greenZone == null || _initialGreenZoneWidth <= 0f) return;
+
+        _greenZone.sizeDelta = new Vector2(_initialGreenZoneWidth, _greenZone.sizeDelta.y);
+    }
+
+    /// <summary>
+    /// Смещает зелёную зону в случайную позицию вдоль полоски
+    /// и пересчитывает кэшированные границы.
+    /// </summary>
+    private void RelocateGreenZone()
+    {
+        if (_track == null || _greenZone == null || _trackWidth <= 0f) return;
+
+        float half = _trackWidth * 0.5f;
+        float greenHalf = _greenZone.rect.width * 0.5f;
+        float margin = _trackWidth * GreenZoneMargin;
+
+        float minCenter = -half + greenHalf + margin;
+        float maxCenter = half - greenHalf - margin;
+
+        if (maxCenter <= minCenter)
+        {
+            _greenZone.anchoredPosition = new Vector2(0f, _greenZone.anchoredPosition.y);
+        }
+        else
+        {
+            float newCenter = UnityEngine.Random.Range(minCenter, maxCenter);
+            _greenZone.anchoredPosition = new Vector2(newCenter, _greenZone.anchoredPosition.y);
+        }
+
+        CacheGreenZone();
     }
 
     private void Update()
@@ -142,13 +234,21 @@ public class GeneratorTimingMinigame : MonoBehaviour
                 _isRunning = false;
                 OnCompleted?.Invoke();
             }
+            else
+            {
+                ShrinkGreenZone();
+                RelocateGreenZone();
+            }
         }
         else
         {
             AudioManager.Instance?.PlaySFX(_failClip, _failVolume);
             _successStreak = 0; // требуется серия попаданий подряд
+            RestoreGreenZoneWidth();
+            RelocateGreenZone();
             UpdateLamps();
             FlashHandle(_handleMissColor);
+            StartGreenZoneErrorTransition();
         }
     }
 
@@ -181,5 +281,47 @@ public class GeneratorTimingMinigame : MonoBehaviour
     {
         if (_handleImage != null)
             _handleImage.color = _handleDefaultColor;
+    }
+
+    /// <summary>Запускает переход цвета зоны: красный → оранжевый → зелёный.</summary>
+    private void StartGreenZoneErrorTransition()
+    {
+        if (_greenZoneImage == null) return;
+        if (_greenZoneColorRoutine != null) StopCoroutine(_greenZoneColorRoutine);
+        _greenZoneColorRoutine = StartCoroutine(GreenZoneErrorTransitionRoutine());
+    }
+
+    private IEnumerator GreenZoneErrorTransitionRoutine()
+    {
+        float halfDuration = _greenZoneTransitionDuration * 0.5f;
+
+        // красный → оранжевый
+        float elapsed = 0f;
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / halfDuration);
+            _greenZoneImage.color = Color.Lerp(_greenZoneErrorColor, _greenZoneWarningColor, t);
+            yield return null;
+        }
+
+        // оранжевый → зелёный
+        elapsed = 0f;
+        while (elapsed < halfDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / halfDuration);
+            _greenZoneImage.color = Color.Lerp(_greenZoneWarningColor, _greenZoneNormalColor, t);
+            yield return null;
+        }
+
+        _greenZoneImage.color = _greenZoneNormalColor;
+        _greenZoneColorRoutine = null;
+    }
+
+    private void ResetGreenZoneColor()
+    {
+        if (_greenZoneImage != null)
+            _greenZoneImage.color = _greenZoneNormalColor;
     }
 }

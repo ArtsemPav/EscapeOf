@@ -1,20 +1,28 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using ChemicalPuzzle;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Управляет загадкой генератора. Принимает нужные предметы из PuzzleInventoryBar,
-/// брошенные на якорь SpartkPlugInput, спавнит их визуал и после установки всех
-/// предметов запускает timing-мини-игру. По завершению мини-игры пазл считается решённым.
+/// Управляет загадкой генератора. Каждый предмет устанавливается на свой якорь:
+/// SparkPlug → SpartkPlugInput (статичный спавн),
+/// Canister → CanisterInput (анимация залития топлива).
+/// После установки всех предметов мини-игра запускается нажатием кнопки Cylinder.
 ///
 /// Работает совместно с PuzzleModeController: тот входит/выходит из режима пазла,
 /// показывает инвентарный бар и находит этот компонент как IPuzzleDropHandler.
 /// </summary>
 [DefaultExecutionOrder(-7)]
-public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuzzleDropTarget, ISaveable
+public class GeneratorPuzzleController : MonoBehaviour,
+    IPuzzleDropHandler, IPuzzleDropTarget, IPuzzleExitGuard, ISaveable
 {
     private const string DefaultSaveId = "generator_puzzle";
+    private const float RaycastDistance = 100f;
+    private const string GhostMaterialPath = "Materials/CardLock/CardLamp_Ghost.mat";
+
+    // ── Inspector ───────────────────────────────────────────────────────────────
 
     [Header("Save Settings")]
     [Tooltip("Стабильный уникальный идентификатор сохранения. Не меняй после назначения — по нему сопоставляются данные при загрузке.")]
@@ -23,50 +31,102 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
     [Header("References")]
     [SerializeField] private PuzzleModeController _controller;
 
-    [Tooltip("Коллайдер якоря дропа (SpartkPlugInput).")]
-    [SerializeField] private Collider _inputAnchorCollider;
-
-    [Tooltip("Точка спавна визуала вставленного предмета.")]
-    [SerializeField] private Transform _inputAnchorTransform;
-
-    [Tooltip("Prefab визуала вставленного предмета. Если пуст — берётся inspectionPrefab предмета.")]
-    [SerializeField] private GameObject _placedItemPrefab;
-
     [SerializeField] private GeneratorTimingMinigame _minigame;
 
     [Tooltip("Корневой UI мини-игры. Выключен по умолчанию.")]
     [SerializeField] private GameObject _minigamePanel;
 
-    [Header("Items")]
-    [Tooltip("Предметы, которые нужно перенести на генератор (например SparkPlug.asset).")]
-    [SerializeField] private ItemData[] _requiredItems;
+    [Header("Start Button")]
+    [Tooltip("Кнопка запуска мини-игры (Cylinder с ButtonPressAnimation). " +
+             "Мини-игра запускается только при нажатии этой кнопки, когда все предметы установлены.")]
+    [SerializeField] private ButtonPressAnimation _startButton;
 
-    [Tooltip("Слой якоря дропа для Raycast (например Interactable Layer).")]
+    [Header("Drop Slots")]
+    [Tooltip("Слоты установки предметов. Каждый слот — свой предмет, свой якорь, опциональная анимация заливки.")]
+    [SerializeField] private GeneratorDropSlot[] _dropSlots;
+
+    [Header("Common")]
+    [Tooltip("Слой якорей дропа для Raycast (например Interactable Layer).")]
     [SerializeField] private LayerMask _anchorLayer;
 
-    [Header("Audio")]
-    [Tooltip("Звук установки предмета в генератор.")]
-    [SerializeField] private AudioClip _insertClip;
-    [SerializeField, Range(0f, 1f)] private float _insertVolume = 1f;
-
-    [Header("Ghost Preview")]
     [Tooltip("Материал ghost-превью предмета. Если пуст — загружается CardLamp_Ghost.mat из Resources.")]
     [SerializeField] private Material _ghostMaterial;
 
     [Tooltip("Подсказка при наведении предмета на якорь генератора.")]
     [SerializeField] private string _dropHint = "Установить в генератор";
 
-    private const float RaycastDistance = 100f;
-    private const string GhostMaterialPath = "Materials/CardLock/CardLamp_Ghost.mat";
+    [Header("Missing Item Hints")]
+    [Tooltip("Подсказка при нажатии Cylinder, если не установлен ни один предмет.")]
+    [SerializeField] private string _hintNoItems = "Установите оба предмета в генератор.";
+
+    [Tooltip("Подсказка при нажатии Cylinder, если установлен только первый предмет (Item 1).")]
+    [SerializeField] private string _hintOnlyFirstItem = "Установите второй предмет в генератор.";
+
+    [Tooltip("Подсказка при нажатии Cylinder, если установлен только второй предмет (Item 2).")]
+    [SerializeField] private string _hintOnlySecondItem = "Установите первый предмет в генератор.";
+
+    // ── Slot Definition ─────────────────────────────────────────────────────────
+
+    [Serializable]
+    private class GeneratorDropSlot
+    {
+        [Tooltip("Предмет, который нужно установить в этот слот.")]
+        public ItemData item;
+
+        [Tooltip("Коллайдер якоря дропа — цель рейкаста при отпускании предмета.")]
+        public Collider anchorCollider;
+
+        [Tooltip("Точка спавна визуала / ghost-превью.")]
+        public Transform anchorTransform;
+
+        [Tooltip("Отдельная точка спавна для анимации заливки. Если пуст — используется anchorTransform.")]
+        public Transform pourSpawnTransform;
+
+        [Tooltip("Prefab визуала вставленного предмета. Если пуст — берётся inspectionPrefab предмета.")]
+        public GameObject placedPrefab;
+
+        [Tooltip("Звук установки предмета в генератор.")]
+        public AudioClip insertClip;
+
+        [Tooltip("Громкость звука установки.")]
+        [Range(0f, 1f)] public float insertVolume = 1f;
+
+        [Header("Pour Animation (optional)")]
+        [Tooltip("Включить анимацию залития топлива через Animator вместо статичного спавна.")]
+        public bool playPourAnimation;
+
+        [Tooltip("Имя trigger-параметра в Animator Controller для запуска анимации заливки.")]
+        public string pourAnimTrigger = "Pour";
+
+        [Tooltip("Имя состояния анимации заливки в Animator Controller (для отслеживания завершения).")]
+        public string pourStateName = "Pour";
+
+        [Tooltip("Звук заливки топлива. Проигрывается в момент запуска анимации.")]
+        [SerializeField] private AudioClip _pourClip;
+
+        [Tooltip("Громкость звука заливки.")]
+        [Range(0f, 1f)] [SerializeField] private float _pourVolume = 1f;
+
+        // ── Public accessors ──
+
+        public AudioClip PourClip => _pourClip;
+        public float PourVolume => _pourVolume;
+    }
+
+    // ── State ───────────────────────────────────────────────────────────────────
 
     private readonly HashSet<string> _placedItemIds = new HashSet<string>();
     private bool _isSolved;
+    private bool _isProcessing; // true во время анимации заливки
+    private bool _allItemsReady; // true когда все предметы установлены — кнопка активна
 
+    // Ghost preview
     private GameObject _ghostPreview;
     private Material _runtimeGhostMaterial;
     private bool _ghostVisible;
+    private string _ghostItemId; // для пересоздания ghost при смене предмета
 
-    // ── ISaveable ──────────────────────────────────────────────────────────────
+    // ── ISaveable ───────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
 
@@ -120,6 +180,9 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
 
         if (_minigame != null)
             _minigame.OnCompleted += HandleMinigameCompleted;
+
+        if (_startButton != null)
+            _startButton.OnPressed += HandleStartButtonPressed;
     }
 
     private void OnDisable()
@@ -132,13 +195,21 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
 
         if (_minigame != null)
             _minigame.OnCompleted -= HandleMinigameCompleted;
+
+        if (_startButton != null)
+            _startButton.OnPressed -= HandleStartButtonPressed;
     }
 
     private void Start()
     {
         // Восстановление визуала уже вставленных предметов после загрузки.
-        for (int i = 0; i < _placedItemIds.Count; i++)
-            SpawnPlacedVisual(FindItemById(GetPlacedIdAt(i)));
+        // Слоты с анимацией заливки не восстанавливают визуал — канистра была израсходована.
+        foreach (var slot in _dropSlots)
+        {
+            if (slot == null || slot.item == null) continue;
+            if (_placedItemIds.Contains(slot.item.ItemId) && !slot.playPourAnimation)
+                SpawnPlacedVisual(slot, slot.item);
+        }
 
         SetMinigameVisible(false);
 
@@ -158,73 +229,90 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
 
     private void Update()
     {
-        if (_isSolved || _controller == null || !_controller.IsActive)
+        if (_isSolved || _isProcessing || _controller == null || !_controller.IsActive)
         {
-            if (_ghostVisible) SetGhostVisible(false);
+            if (_ghostVisible) SetGhostVisible(false, null);
             return;
         }
 
         if (PuzzleInventoryBar.IsDragging && PuzzleInventoryBar.DraggedItem != null
             && CanAccept(PuzzleInventoryBar.DraggedItem))
         {
-            bool isHovering = IsMouseOverAnchor();
+            var slot = FindSlotForItem(PuzzleInventoryBar.DraggedItem);
+            if (slot == null)
+            {
+                if (_ghostVisible) SetGhostVisible(false, null);
+                return;
+            }
+
+            bool isHovering = IsMouseOverSlot(slot);
             if (isHovering && !_ghostVisible)
-                SetGhostVisible(true);
+                SetGhostVisible(true, slot);
             else if (!isHovering && _ghostVisible)
-                SetGhostVisible(false);
+                SetGhostVisible(false, null);
         }
         else if (_ghostVisible)
         {
-            SetGhostVisible(false);
+            SetGhostVisible(false, null);
         }
     }
 
-    private bool IsMouseOverAnchor()
+    private bool IsMouseOverSlot(GeneratorDropSlot slot)
     {
-        if (Mouse.current == null || _inputAnchorCollider == null) return false;
+        if (Mouse.current == null || slot == null || slot.anchorCollider == null) return false;
 
         Vector2 mousePos = Mouse.current.position.ReadValue();
         if (Camera.main == null) return false;
 
         Ray ray = Camera.main.ScreenPointToRay(mousePos);
         if (Physics.Raycast(ray, out RaycastHit hit, RaycastDistance, _anchorLayer))
-            return hit.collider == _inputAnchorCollider;
+            return hit.collider == slot.anchorCollider;
 
         return false;
     }
 
-    private void SetGhostVisible(bool visible)
+    private void SetGhostVisible(bool visible, GeneratorDropSlot slot)
     {
-        _ghostVisible = visible;
-
-        if (visible)
+        if (visible && slot != null)
         {
-            if (_ghostPreview == null)
-                CreateGhostPreview();
+            // Пересоздаём ghost если предмет сменился
+            if (_ghostPreview == null || _ghostItemId != slot.item.ItemId)
+            {
+                if (_ghostPreview != null)
+                    Destroy(_ghostPreview);
+
+                CreateGhostPreview(slot);
+                _ghostItemId = slot.item.ItemId;
+            }
+
             if (_ghostPreview != null)
                 _ghostPreview.SetActive(true);
+
+            _ghostVisible = true;
         }
         else
         {
             if (_ghostPreview != null)
                 _ghostPreview.SetActive(false);
+
+            _ghostVisible = false;
         }
     }
 
-    private void CreateGhostPreview()
+    private void CreateGhostPreview(GeneratorDropSlot slot)
     {
-        if (_inputAnchorTransform == null) return;
-        if (PuzzleInventoryBar.DraggedItem == null) return;
+        var ghostPoint = slot.pourSpawnTransform != null ? slot.pourSpawnTransform : slot.anchorTransform;
+        if (ghostPoint == null || slot.item == null) return;
 
         EnsureGhostMaterial();
 
-        var prefab = _placedItemPrefab != null ? _placedItemPrefab
-                    : PuzzleInventoryBar.DraggedItem.inspectionPrefab;
+        var prefab = slot.placedPrefab != null ? slot.placedPrefab
+                    : slot.item.inspectionPrefab;
         if (prefab == null) return;
 
-        _ghostPreview = Instantiate(prefab, _inputAnchorTransform.position,
-                                    _inputAnchorTransform.rotation, _inputAnchorTransform);
-        _ghostPreview.name = "SparkPlugGhost";
+        _ghostPreview = Instantiate(prefab, ghostPoint.position,
+                                    ghostPoint.rotation, ghostPoint);
+        _ghostPreview.name = slot.item.itemName + "Ghost";
 
         foreach (var col in _ghostPreview.GetComponentsInChildren<Collider>(true))
             col.enabled = false;
@@ -260,18 +348,16 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
 
     private void HandleEntered()
     {
-        // Если все нужные предметы уже установлены — сразу открываем мини-игру.
-        if (AllItemsPlaced())
-            StartMinigame();
-        else
-            SetMinigameVisible(false);
+        _allItemsReady = AllItemsPlaced();
+        SetMinigameVisible(false);
     }
 
     private void HandleExited()
     {
-        SetGhostVisible(false);
+        SetGhostVisible(false, null);
         SetMinigameVisible(false);
         _minigame?.StopMinigame();
+        _allItemsReady = false;
     }
 
     private void HandleMinigameCompleted()
@@ -279,11 +365,75 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
         if (_isSolved) return;
 
         _isSolved = true;
+        _allItemsReady = false;
         SetMinigameVisible(false);
         _controller?.SetSolved(); // выходит из режима пазла и сохраняет прогресс
     }
 
-    // ── IPuzzleDropTarget ──────────────────────────────────────────────────────
+    // ── Start Button ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Вызывается при нажатии кнопки запуска (ButtonPressAnimation.OnPressed).
+    /// Запускает мини-игру если все предметы установлены.
+    /// Если предметы установлены не полностью — показывает подсказку в зависимости от того, каких предметов не хватает.
+    /// </summary>
+    private void HandleStartButtonPressed()
+    {
+        if (_isSolved || _isProcessing)
+            return;
+
+        if (_controller == null || !_controller.IsActive)
+            return;
+
+        if (_allItemsReady)
+        {
+            StartMinigame();
+            _allItemsReady = false; // предотвращаем повторный запуск
+            return;
+        }
+
+        ShowMissingItemHint();
+    }
+
+    /// <summary>
+    /// Показывает подсказку в зависимости от того, какие предметы установлены в генератор:
+    /// 1) ни один не установлен — _hintNoItems,
+    /// 2) установлен только Item 1 — _hintOnlyFirstItem,
+    /// 3) установлен только Item 2 — _hintOnlySecondItem.
+    /// </summary>
+    private void ShowMissingItemHint()
+    {
+        if (_dropSlots == null || _dropSlots.Length < 2)
+            return;
+
+        bool item1Placed = IsSlotItemPlaced(_dropSlots[0]);
+        bool item2Placed = IsSlotItemPlaced(_dropSlots[1]);
+
+        string hint = null;
+
+        if (!item1Placed && !item2Placed)
+            hint = _hintNoItems;
+        else if (item1Placed && !item2Placed)
+            hint = _hintOnlyFirstItem;
+        else if (!item1Placed && item2Placed)
+            hint = _hintOnlySecondItem;
+
+        if (!string.IsNullOrEmpty(hint))
+            PopupMessageSystem.Instance?.Show(hint, PopupMessageType.Hint);
+    }
+
+    /// <summary>Возвращает true, если предмет из указанного слота уже установлен в генератор.</summary>
+    private bool IsSlotItemPlaced(GeneratorDropSlot slot)
+    {
+        return slot != null && slot.item != null && _placedItemIds.Contains(slot.item.ItemId);
+    }
+
+    // ── IPuzzleExitGuard ────────────────────────────────────────────────────────
+
+    /// <summary>Блокирует выход из пазла во время анимации заливки топлива.</summary>
+    public bool CanExitPuzzle() => !_isProcessing;
+
+    // ── IPuzzleDropTarget ───────────────────────────────────────────────────────
 
     /// <summary>Возвращает текст-подсказку при наведении предмета на якорь генератора.</summary>
     public string GetDropHint() => _dropHint;
@@ -291,20 +441,26 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
     /// <summary>True, если предмет подходит для установки и ещё не размещён.</summary>
     public bool CanAccept(ItemData item)
     {
-        if (item == null || _isSolved) return false;
-        return IsRequired(item) && !_placedItemIds.Contains(item.ItemId);
+        if (item == null || _isSolved || _isProcessing) return false;
+        return FindSlotForItem(item) != null && !_placedItemIds.Contains(item.ItemId);
     }
 
-    // ── IPuzzleDropHandler ─────────────────────────────────────────────────────
+    // ── IPuzzleDropHandler ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Принимает предмет, брошенный из инвентарного бара на якорь SpartkPlugInput.
+    /// Принимает предмет, брошенный из инвентарного бара на соответствующий якорь.
+    /// SparkPlug → SpartkPlugInput (статичный спавн).
+    /// Canister → CanisterInput (анимация залития топлива).
     /// </summary>
     public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
         replacement = null;
 
-        if (item == null || !IsRequired(item) || _placedItemIds.Contains(item.ItemId))
+        if (item == null || _isSolved || _isProcessing)
+            return false;
+
+        var slot = FindSlotForItem(item);
+        if (slot == null || _placedItemIds.Contains(item.ItemId))
             return false;
 
         var cam = Camera.main;
@@ -314,73 +470,138 @@ public class GeneratorPuzzleController : MonoBehaviour, IPuzzleDropHandler, IPuz
         if (!Physics.Raycast(ray, out var hit, RaycastDistance, _anchorLayer))
             return false;
 
-        if (hit.collider != _inputAnchorCollider)
+        if (hit.collider != slot.anchorCollider)
             return false;
 
-        SetGhostVisible(false);
+        SetGhostVisible(false, null);
 
+        // Помечаем как установленный ДО анимации — корректно для системы сохранений.
         _placedItemIds.Add(item.ItemId);
-        SpawnPlacedVisual(item);
-        AudioManager.Instance?.PlaySFX(_insertClip, _insertVolume);
         SaveManager.Instance?.Save();
 
-        if (AllItemsPlaced() && _controller != null && _controller.IsActive)
-            StartMinigame();
+        if (slot.playPourAnimation)
+        {
+            StartCoroutine(PourAnimationRoutine(slot, item));
+        }
+        else
+        {
+            SpawnPlacedVisual(slot, item);
+            AudioManager.Instance?.PlaySFX(slot.insertClip, slot.insertVolume);
+            TryStartMinigameIfReady();
+        }
 
         return true; // предмет принят и удаляется из инвентаря
     }
 
-    // ── Helpers ────────────────────────────────────────────────────────────────
+    // ── Pour Animation ──────────────────────────────────────────────────────────
 
-    private bool IsRequired(ItemData item)
+    /// <summary>
+    /// Анимация залития топлива через Animator: канистра появляется,
+    /// проигрывает анимацию заливки, затем удаляется.
+    /// </summary>
+    private IEnumerator PourAnimationRoutine(GeneratorDropSlot slot, ItemData item)
     {
-        if (_requiredItems == null) return false;
-        foreach (var req in _requiredItems)
+        _isProcessing = true;
+
+        // Точка спавна — отдельная pourSpawnTransform, если назначена; иначе anchorTransform.
+        var spawnPoint = slot.pourSpawnTransform != null ? slot.pourSpawnTransform : slot.anchorTransform;
+
+        var prefab = slot.placedPrefab != null ? slot.placedPrefab
+                    : (item != null ? item.inspectionPrefab : null);
+        if (prefab == null || spawnPoint == null)
         {
-            if (req != null && req.ItemId == item.ItemId)
-                return true;
+            _isProcessing = false;
+            TryStartMinigameIfReady();
+            yield break;
         }
-        return false;
+
+        var canisterObj = Instantiate(prefab, spawnPoint.position,
+                                       spawnPoint.rotation, spawnPoint);
+        canisterObj.name = "CanisterPour";
+
+        foreach (var col in canisterObj.GetComponentsInChildren<Collider>(true))
+            col.enabled = false;
+
+        // Звук установки
+        AudioManager.Instance?.PlaySFX(slot.insertClip, slot.insertVolume);
+
+        var animator = canisterObj.GetComponentInChildren<Animator>();
+        if (animator == null)
+        {
+            Debug.LogWarning($"[{nameof(GeneratorPuzzleController)}] На префабе канистры нет Animator. Анимация заливки не будет проиграна.", this);
+            _isProcessing = false;
+            TryStartMinigameIfReady();
+            yield break;
+        }
+
+        // Запускаем анимацию заливки через trigger
+        animator.SetTrigger(slot.pourAnimTrigger);
+
+        // Ждём перехода в состояние анимации заливки
+        yield return null;
+        float timeout = 5f;
+        float elapsed = 0f;
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName(slot.pourStateName) && elapsed < timeout)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Проигрываем звук заливки в начале анимации
+        AudioManager.Instance?.PlaySFX(slot.PourClip, slot.PourVolume);
+
+        // Ждём завершения анимации заливки
+        while (animator.GetCurrentAnimatorStateInfo(0).IsName(slot.pourStateName) &&
+               animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+        {
+            yield return null;
+        }
+
+        // Удаляем канистру — топливо залито, предмет израсходован
+        Destroy(canisterObj);
+
+        _isProcessing = false;
+        TryStartMinigameIfReady();
+    }
+
+    /// <summary>Помечает что все предметы установлены — кнопка запуска становится активной.</summary>
+    private void TryStartMinigameIfReady()
+    {
+        if (AllItemsPlaced())
+            _allItemsReady = true;
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────────────────
+
+    private GeneratorDropSlot FindSlotForItem(ItemData item)
+    {
+        if (item == null || _dropSlots == null) return null;
+
+        foreach (var slot in _dropSlots)
+        {
+            if (slot != null && slot.item != null && slot.item.ItemId == item.ItemId)
+                return slot;
+        }
+
+        return null;
     }
 
     private bool AllItemsPlaced()
     {
-        int required = _requiredItems != null ? _requiredItems.Length : 0;
-        return required > 0 && _placedItemIds.Count >= required;
+        if (_dropSlots == null || _dropSlots.Length == 0) return false;
+        return _placedItemIds.Count >= _dropSlots.Length;
     }
 
-    private ItemData FindItemById(string id)
+    private void SpawnPlacedVisual(GeneratorDropSlot slot, ItemData item)
     {
-        if (string.IsNullOrEmpty(id) || _requiredItems == null) return null;
-        foreach (var req in _requiredItems)
-        {
-            if (req != null && req.ItemId == id)
-                return req;
-        }
-        return null;
-    }
+        if (slot.anchorTransform == null) return;
 
-    private string GetPlacedIdAt(int index)
-    {
-        int i = 0;
-        foreach (var id in _placedItemIds)
-        {
-            if (i == index) return id;
-            i++;
-        }
-        return null;
-    }
-
-    private void SpawnPlacedVisual(ItemData item)
-    {
-        if (_inputAnchorTransform == null) return;
-
-        var prefab = _placedItemPrefab != null ? _placedItemPrefab
+        var prefab = slot.placedPrefab != null ? slot.placedPrefab
                                                : (item != null ? item.inspectionPrefab : null);
         if (prefab == null) return;
 
-        Instantiate(prefab, _inputAnchorTransform.position,
-                    _inputAnchorTransform.rotation, _inputAnchorTransform);
+        Instantiate(prefab, slot.anchorTransform.position,
+                    slot.anchorTransform.rotation, slot.anchorTransform);
     }
 
     private void StartMinigame()
