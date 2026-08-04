@@ -34,6 +34,11 @@ public class ScreenFader : MonoBehaviour
     /// <summary>Fades the screen to black over the given duration.</summary>
     public Coroutine FadeIn(float duration) => StartFade(1f, duration);
 
+    /// <summary>Fades the screen to the given target alpha over the given duration.</summary>
+    /// <param name="duration">Fade duration in seconds.</param>
+    /// <param name="targetAlpha">Target alpha: 1 = fully black, 0 = fully clear.</param>
+    public Coroutine FadeIn(float duration, float targetAlpha) => StartFade(targetAlpha, duration);
+
     /// <summary>Fades the screen from black to clear over the default duration.</summary>
     public Coroutine FadeOut() => FadeOut(_defaultFadeDuration);
 
