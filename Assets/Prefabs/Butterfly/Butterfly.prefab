@@ -639,8 +639,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 421922}
-  - component: {fileID: 11160076}
-  - component: {fileID: 4648424109749062566}
   m_Layer: 0
   m_Name: Butterfly
   m_TagString: Untagged
@@ -666,45 +664,6 @@ Transform:
   - {fileID: 420778}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!111 &11160076
-Animation:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 138252}
-  m_Enabled: 1
-  serializedVersion: 4
-  m_Animation: {fileID: 7400000, guid: bf1b95fba89fb2e438e098ef4361e389, type: 3}
-  m_Animations:
-  - {fileID: 7400000, guid: bf1b95fba89fb2e438e098ef4361e389, type: 3}
-  m_WrapMode: 0
-  m_PlayAutomatically: 1
-  m_AnimatePhysics: 0
-  m_UpdateMode: 0
-  m_CullingType: 0
---- !u!114 &4648424109749062566
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 138252}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d7c7d2095c5d1834a8284d29a778b059, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ButterflyFlight
-  _waypoints: []
-  _waypointReachedThreshold: 0.5
-  _speed: 1.5
-  _turnSpeed: 3
-  _flutterScale: 0.5
-  _bobAmplitude: 0.15
-  _player: {fileID: 0}
-  _fleeDistance: 2.5
-  _fleeSpeedMultiplier: 2.5
-  _fleeOvershoot: 1
 --- !u!1 &138564
 GameObject:
   m_ObjectHideFlags: 0

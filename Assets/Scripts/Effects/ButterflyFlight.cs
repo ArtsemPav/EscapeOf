@@ -29,6 +29,12 @@ public class ButterflyFlight : MonoBehaviour
     [Tooltip("Amplitude of vertical bobbing added on top of route movement.")]
     [SerializeField] private float _bobAmplitude = 0.15f;
 
+    [Tooltip("Maximum wing bank angle in degrees when turning.")]
+    [SerializeField] private float _maxBankAngle = 15f;
+
+    [Tooltip("Yaw offset in degrees to correct the model's forward direction. 0 = model faces +Z, 180 = model faces -Z, 90 = model faces +X, -90 = model faces -X.")]
+    [SerializeField] private float _forwardOffset = 0f;
+
     [Header("Player Avoidance")]
     [Tooltip("Player transform to flee from. Auto-detected via FPSController if left empty.")]
     [SerializeField] private Transform _player;
@@ -42,20 +48,36 @@ public class ButterflyFlight : MonoBehaviour
     [Tooltip("Extra distance added beyond flee range when picking a flee destination.")]
     [SerializeField] private float _fleeOvershoot = 1f;
 
+    [Header("Obstacle Avoidance")]
+    [Tooltip("Radius of the sphere used to detect nearby colliders.")]
+    [SerializeField] private float _avoidanceRadius = 0.8f;
+
+    [Tooltip("How strongly the butterfly steers away from detected obstacles.")]
+    [SerializeField] private float _avoidanceStrength = 5f;
+
+    [Tooltip("Layer mask for obstacle colliders. Defaults to everything except Ignore Raycast.")]
+    [SerializeField] private LayerMask _obstacleMask = ~0;
+
     private int _currentWaypointIndex;
     private Vector3 _currentTarget;
     private Vector3 _velocity;
+    private Vector3 _avoidanceForce;
     private float _perlinOffset;
+    private float _initialRotationX;
+    private float _currentYaw;
+    private float _previousYaw;
     private bool _isFleeing;
 
     private const float VELOCITY_LERP_RATE = 2f;
     private const float PERLIN_SPEED_SCALE = 0.3f;
-    private const float FLEE_DEST_MIN_DISTANCE = 0.5f;
     private const float SQR_VELOCITY_THRESHOLD = 0.01f;
 
     private void Awake()
     {
         _perlinOffset = Random.Range(0f, 1000f);
+        _initialRotationX = transform.eulerAngles.x;
+        _currentYaw = transform.eulerAngles.y + _forwardOffset;
+        _previousYaw = _currentYaw;
     }
 
     private void Start()
@@ -80,6 +102,7 @@ public class ButterflyFlight : MonoBehaviour
     private void Update()
     {
         EvaluateFleeState();
+        ComputeAvoidance();
         MoveTowardTarget();
         ApplyFlutter();
     }
@@ -113,6 +136,50 @@ public class ButterflyFlight : MonoBehaviour
     }
 
     /// <summary>
+    /// Detects nearby colliders via OverlapSphere and computes a steering force
+    /// that pushes the butterfly away from the closest obstacle surface.
+    /// </summary>
+    private void ComputeAvoidance()
+    {
+        Collider[] hits = Physics.OverlapSphere(
+            transform.position, _avoidanceRadius, _obstacleMask,
+            QueryTriggerInteraction.Ignore);
+
+        if (hits.Length == 0)
+        {
+            _avoidanceForce = Vector3.zero;
+            return;
+        }
+
+        Vector3 strongestPush = Vector3.zero;
+        float strongestWeight = 0f;
+
+        foreach (Collider hit in hits)
+        {
+            Vector3 closestPoint = hit.ClosestPoint(transform.position);
+            Vector3 toButterfly = transform.position - closestPoint;
+            float distance = toButterfly.magnitude;
+
+            if (distance < 0.001f)
+            {
+                toButterfly = Random.insideUnitSphere.normalized;
+                distance = 0.01f;
+            }
+
+            float weight = 1f - (distance / _avoidanceRadius);
+            weight = Mathf.Clamp01(weight);
+
+            if (weight > strongestWeight)
+            {
+                strongestWeight = weight;
+                strongestPush = toButterfly.normalized * weight;
+            }
+        }
+
+        _avoidanceForce = strongestPush * _avoidanceStrength;
+    }
+
+    /// <summary>
     /// Moves the butterfly toward the current target with smooth velocity and rotation.
     /// </summary>
     private void MoveTowardTarget()
@@ -127,15 +194,35 @@ public class ButterflyFlight : MonoBehaviour
         }
 
         Vector3 desiredVelocity = toTarget.normalized * currentSpeed;
+
+        // Blend in obstacle avoidance force
+        desiredVelocity += _avoidanceForce;
+
         _velocity = Vector3.Lerp(_velocity, desiredVelocity, Time.deltaTime * _turnSpeed);
 
         transform.position += _velocity * Time.deltaTime;
 
         if (_velocity.sqrMagnitude > SQR_VELOCITY_THRESHOLD)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(_velocity.normalized);
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation, targetRotation, Time.deltaTime * VELOCITY_LERP_RATE);
+            Vector3 flatDirection = _velocity.normalized;
+            flatDirection.y = 0f;
+
+            if (flatDirection.sqrMagnitude > SQR_VELOCITY_THRESHOLD)
+            {
+                float targetYaw = Mathf.Atan2(flatDirection.x, flatDirection.z) * Mathf.Rad2Deg;
+                targetYaw += _forwardOffset;
+
+                _currentYaw = Mathf.LerpAngle(_currentYaw, targetYaw, Time.deltaTime * VELOCITY_LERP_RATE);
+
+                float yawDelta = Mathf.DeltaAngle(_previousYaw, _currentYaw);
+                float bank = Mathf.Clamp01(Mathf.Abs(yawDelta) / 5f) * _maxBankAngle * Mathf.Sign(yawDelta);
+                _previousYaw = _currentYaw;
+
+                transform.rotation = Quaternion.Euler(
+                    _initialRotationX,
+                    _currentYaw,
+                    bank);
+            }
         }
     }
 
@@ -205,5 +292,8 @@ public class ButterflyFlight : MonoBehaviour
             Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
             Gizmos.DrawWireSphere(_player.position, _fleeDistance);
         }
+
+        Gizmos.color = new Color(0f, 1f, 1f, 0.2f);
+        Gizmos.DrawWireSphere(transform.position, _avoidanceRadius);
     }
 }
