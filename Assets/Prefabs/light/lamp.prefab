@@ -243,7 +243,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 640
+  m_RenderingLayerMask: 2560
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 4ca44e6e1844357489e411e0bf254e47, type: 2}
@@ -406,6 +406,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3626984121313815478}
+  - component: {fileID: 1252099864921230253}
   m_Layer: 0
   m_Name: lamp
   m_TagString: Untagged
@@ -433,6 +434,20 @@ Transform:
   - {fileID: 5125353786344501131}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1252099864921230253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7677051484031674452}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d99332458fb155b42b08bb5d1f6cb837, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmergencyLamp
+  _emergencyLight: {fileID: 0}
+  _lampGlassRenderer: {fileID: 0}
 --- !u!1 &7939033910414723819
 GameObject:
   m_ObjectHideFlags: 0

@@ -4,15 +4,23 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Central singleton that manages all light zones and the master power state.
+/// Central singleton that manages all light zones, the master power state,
+/// the generator readiness flag, and power consumer registration.
 /// 
 /// Power model:
+///   - Generator must be restored first (SetGeneratorReady) before the electric
+///     panel puzzle can be solved.
+///   - Solving the electric panel puzzle calls ActivatePower() — this enables
+///     general power for the first time.
+///   - After initial activation, ElectricPanel can toggle power on/off for scares.
 ///   - When power is OFF → all lights are disabled regardless of switch states.
 ///   - When power is ON  → each zone reflects its own switch state (on/off).
 /// 
 /// LightZone components register themselves on Awake.
 /// LightSwitch components call SetZoneSwitch() to toggle individual zones.
 /// ElectricPanel calls SetPower() to control the master breaker.
+/// IPowerConsumer implementations register via RegisterConsumer() and receive
+/// notifications whenever master power changes.
 /// </summary>
 [DefaultExecutionOrder(-5)]
 public class LightingSystem : MonoBehaviour, ISaveable
@@ -31,12 +39,29 @@ public class LightingSystem : MonoBehaviour, ISaveable
     /// <summary>Fired when a zone's switch state changes. Parameters: zoneId, isSwitchedOn.</summary>
     public event Action<string, bool> OnZoneSwitchChanged;
 
+    /// <summary>Fired when the generator readiness state changes. Parameter: isReady.</summary>
+    public event Action<bool> OnGeneratorReadyChanged;
+
     // ── State ─────────────────────────────────────────────────────────────────
 
-    private bool _isPowered = true;
+    // Power starts OFF — the electric panel puzzle must activate it first.
+    private bool _isPowered = false;
 
     /// <summary>True when the master breaker (щиток) is supplying power.</summary>
     public bool IsPowered => _isPowered;
+
+    // Generator must be restored before the electric panel puzzle can be solved.
+    private bool _isGeneratorReady = false;
+
+    /// <summary>True when the generator has been restored and is supplying power to the electric panel.</summary>
+    public bool IsGeneratorReady => _isGeneratorReady;
+
+    // Tracks whether power has ever been activated by the electric panel puzzle.
+    // Until this is true, ElectricPanel cannot toggle power.
+    private bool _isPowerActivated = false;
+
+    /// <summary>True after the electric panel puzzle has activated power at least once.</summary>
+    public bool IsPowerActivated => _isPowerActivated;
 
     // zoneId → list of LightZone components registered from the scene/prefabs
     private readonly Dictionary<string, List<LightZone>> _zones = new();
@@ -50,6 +75,9 @@ public class LightingSystem : MonoBehaviour, ISaveable
     // Active fade coroutines per zone
     private readonly Dictionary<string, Coroutine> _fadeCoroutines = new();
 
+    // Registered power consumers — notified whenever master power changes.
+    private readonly List<IPowerConsumer> _consumers = new();
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => "LightingSystem";
@@ -58,6 +86,8 @@ public class LightingSystem : MonoBehaviour, ISaveable
     private class SaveData
     {
         public bool isPowered;
+        public bool isGeneratorReady;
+        public bool isPowerActivated;
         public List<ZoneRecord> zones = new();
     }
 
@@ -70,7 +100,12 @@ public class LightingSystem : MonoBehaviour, ISaveable
 
     public string GetSaveData()
     {
-        var data = new SaveData { isPowered = _isPowered };
+        var data = new SaveData
+        {
+            isPowered = _isPowered,
+            isGeneratorReady = _isGeneratorReady,
+            isPowerActivated = _isPowerActivated
+        };
         foreach (var kvp in _switchStates)
             data.zones.Add(new ZoneRecord { zoneId = kvp.Key, switchOn = kvp.Value });
         return JsonUtility.ToJson(data);
@@ -82,6 +117,16 @@ public class LightingSystem : MonoBehaviour, ISaveable
         if (data == null) return;
 
         _isPowered = data.isPowered;
+        _isGeneratorReady = data.isGeneratorReady;
+        _isPowerActivated = data.isPowerActivated;
+
+        // Backwards compatibility: old saves lack isGeneratorReady/isPowerActivated.
+        // If power was on, assume the full chain was already completed.
+        if (_isPowered && !_isPowerActivated)
+        {
+            _isPowerActivated = true;
+            _isGeneratorReady = true;
+        }
 
         _switchStates.Clear();
         foreach (var record in data.zones)
@@ -89,6 +134,10 @@ public class LightingSystem : MonoBehaviour, ISaveable
 
         // Apply loaded state to all already-registered lights.
         RefreshAllZones();
+
+        // Re-notify consumers — they registered during Awake() when _isPowered
+        // was still the default (false). Save data may have changed it to true.
+        NotifyConsumers(_isPowered);
     }
 
     // ── Unity ─────────────────────────────────────────────────────────────────
@@ -147,18 +196,73 @@ public class LightingSystem : MonoBehaviour, ISaveable
     /// Turns the master breaker on or off.
     /// When off, all lights go dark regardless of their switch states.
     /// When on, each zone restores to its switch state.
+    /// Also notifies all registered IPowerConsumer instances.
     /// </summary>
     public void SetPower(bool on)
     {
         if (_isPowered == on) return;
         _isPowered = on;
         OnPowerChanged?.Invoke(_isPowered);
+        NotifyConsumers(_isPowered);
         RefreshAllZones();
         SaveManager.Instance?.Save();
     }
 
     /// <summary>Toggles master power.</summary>
     public void TogglePower() => SetPower(!_isPowered);
+
+    /// <summary>
+    /// Marks the generator as restored. Called by GeneratorPuzzleController
+    /// when the generator mini-game is completed. This unlocks the electric
+    /// panel puzzle — the fuse can be inserted and the lever can be pulled.
+    /// </summary>
+    public void SetGeneratorReady(bool ready)
+    {
+        if (_isGeneratorReady == ready) return;
+        _isGeneratorReady = ready;
+        OnGeneratorReadyChanged?.Invoke(ready);
+        SaveManager.Instance?.Save();
+    }
+
+    /// <summary>
+    /// Called by ElectricPuzzleController when the wire puzzle is solved.
+    /// Activates general power for the first time. After this, SetPower /
+    /// TogglePower can be used by ElectricPanel for scripted scares.
+    /// </summary>
+    public void ActivatePower()
+    {
+        _isPowerActivated = true;
+        SetPower(true);
+    }
+
+    // ── Power Consumer Registration ───────────────────────────────────────────
+
+    /// <summary>
+    /// Registers an IPowerConsumer to receive power state notifications.
+    /// The current power state is delivered immediately upon registration.
+    /// </summary>
+    public void RegisterConsumer(IPowerConsumer consumer)
+    {
+        if (consumer == null) return;
+        if (!_consumers.Contains(consumer))
+        {
+            _consumers.Add(consumer);
+            consumer.OnPowerStateChanged(_isPowered);
+        }
+    }
+
+    /// <summary>Unregisters an IPowerConsumer. No further notifications will be sent.</summary>
+    public void UnregisterConsumer(IPowerConsumer consumer)
+    {
+        _consumers.Remove(consumer);
+    }
+
+    /// <summary>Notifies all registered consumers of the current power state.</summary>
+    private void NotifyConsumers(bool isPowered)
+    {
+        foreach (var consumer in _consumers)
+            consumer?.OnPowerStateChanged(isPowered);
+    }
 
     // ── Zone Switch API ───────────────────────────────────────────────────────
 

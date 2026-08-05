@@ -101,6 +101,71 @@ public class PeepholeTVCamera : MonoBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        BlackoutScreen();
+    }
+
+    private void OnEnable()
+    {
+        // Re-activate the current camera after being disabled.
+        // Skips on first Awake call (cameras not yet set up).
+        if (_cameras == null || _cameras.Count == 0 || _renderTexture == null) return;
+        ActivateCamera(_currentIndex);
+        RestoreScreen();
+    }
+
+    /// <summary>
+    /// Swaps the screen material to a plain black material with no emission
+    /// and stops all TV cameras. The screen goes fully dark.
+    /// </summary>
+    private void BlackoutScreen()
+    {
+        // Stop all cameras.
+        if (_cameras != null)
+        {
+            foreach (var cam in _cameras)
+            {
+                if (cam == null) continue;
+                cam.targetTexture = null;
+                cam.enabled = false;
+            }
+        }
+
+        // Replace the screen material with a black one — no texture, no emission.
+        if (_screenRenderer != null)
+        {
+            var blackMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            blackMat.name = "TVScreen_Blackout";
+            blackMat.SetColor("_BaseColor", Color.black);
+            blackMat.SetColor("_EmissionColor", Color.black);
+            blackMat.DisableKeyword("_EMISSION");
+
+            var mats = _screenRenderer.sharedMaterials;
+            if (_materialIndex >= 0 && _materialIndex < mats.Length)
+            {
+                mats[_materialIndex] = blackMat;
+                _screenRenderer.materials = mats;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Restores the runtime RT material on the screen and re-enables the active camera.
+    /// </summary>
+    private void RestoreScreen()
+    {
+        if (_screenRenderer != null && _screenMaterial != null)
+        {
+            var mats = _screenRenderer.sharedMaterials;
+            if (_materialIndex >= 0 && _materialIndex < mats.Length)
+            {
+                mats[_materialIndex] = _screenMaterial;
+                _screenRenderer.materials = mats;
+            }
+        }
+    }
+
 #if UNITY_EDITOR
     private void OnValidate()
     {
