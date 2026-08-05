@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8634560054451557267}
-  - component: {fileID: 1665843874532859387}
+  - component: {fileID: 1514333454145789459}
   m_Layer: 6
-  m_Name: SparkPlug
+  m_Name: SparkPlugAnimated
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -27,33 +27,34 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.09419501, y: 0.094195, z: 0.09419501}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7564427214342578812}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1665843874532859387
-BoxCollider:
+--- !u!95 &1514333454145789459
+Animator:
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7379171002960528252}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 4, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 09e9e747fff4d1a41b03b48253491eb1, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1001 &8030066588169438615
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -64,15 +65,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1
+      value: 0.09419501
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1
+      value: 0.09419501
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
+      value: 0.09419501
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
       propertyPath: m_LocalPosition.x
@@ -113,6 +114,10 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -7511558181221131132, guid: dc1635d1589610948a5f56303469bc0f, type: 3}
       propertyPath: m_RenderingLayerMask

@@ -139,6 +139,13 @@ public class GeneratorPuzzleController : MonoBehaviour,
         [Tooltip("Имя состояния анимации заливки в Animator Controller (для отслеживания завершения).")]
         public string pourStateName = "Pour";
 
+        [Tooltip("Если true — предмет остаётся на якоре после анимации заливки. " +
+                 "Если false — удаляется (топливо израсходовано).")]
+        [SerializeField] private bool _keepAfterPour = false;
+
+        /// <summary>True, если предмет должен остаться visible после анимации заливки.</summary>
+        public bool KeepAfterPour => _keepAfterPour;
+
         [Tooltip("Звук заливки топлива. Проигрывается в момент запуска анимации.")]
         [SerializeField] private AudioClip _pourClip;
 
@@ -259,7 +266,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
         foreach (var slot in _dropSlots)
         {
             if (slot == null || slot.item == null) continue;
-            if (_placedItemIds.Contains(slot.item.ItemId) && !slot.playPourAnimation)
+            if (_placedItemIds.Contains(slot.item.ItemId) && (!slot.playPourAnimation || slot.KeepAfterPour))
                 SpawnPlacedVisual(slot, slot.item);
         }
 
@@ -467,8 +474,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
     /// <summary>Проигрывает звук и VFX попадания в зелёную зону, запускает импульсную тряску генератора.</summary>
     private void HandleMinigameHit()
     {
-        if (_minigame != null && _minigame.SuccessStreak < _minigame.RequiredSuccesses)
-            AudioManager.Instance?.PlaySFXExclusive(_successClip, _successVolume);
+        AudioManager.Instance?.PlaySFXExclusive(_successClip, _successVolume);
 
         if (_hitVfx != null)
         {
@@ -689,8 +695,18 @@ public class GeneratorPuzzleController : MonoBehaviour,
         // Останавливаем эффект наливания — анимация завершена
         slot.PourEffect?.StopPour();
 
-        // Удаляем канистру — топливо залито, предмет израсходован
-        Destroy(canisterObj);
+        if (slot.KeepAfterPour)
+        {
+            // Предмет остаётся на якоре после заливки
+            var pourAnimator = canisterObj.GetComponentInChildren<Animator>();
+            if (pourAnimator != null)
+                pourAnimator.enabled = false;
+        }
+        else
+        {
+            // Удаляем канистру — топливо залито, предмет израсходован
+            Destroy(canisterObj);
+        }
 
         _isProcessing = false;
         TryStartMinigameIfReady();

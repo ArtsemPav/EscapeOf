@@ -10,10 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 1747961881041451518}
   - component: {fileID: 2515327953166520295}
-  - component: {fileID: 6829269640734895697}
   - component: {fileID: 336000672127590247}
   m_Layer: 6
-  m_Name: canisterGenerator
+  m_Name: CanisterAnimated
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -54,26 +53,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.48, y: 0.6, z: 0.15}
-  m_Center: {x: 0, y: 0.33, z: 0}
---- !u!114 &6829269640734895697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4943202398487032281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
-  itemData: {fileID: 11400000, guid: 02e62270a61a9ca4ea66a65211ca0531, type: 2}
-  _previewSound: {fileID: 0}
-  _previewSoundVolume: 1
-  inspectOnly: 0
-  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
-  _saveId: canister
+  m_Size: {x: 0.3, y: 0.45, z: 0.15}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!95 &336000672127590247
 Animator:
   serializedVersion: 7
@@ -106,15 +87,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 722c029ac8cf7cc46a30cecaae91ae26, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.6
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 722c029ac8cf7cc46a30cecaae91ae26, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.6
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 722c029ac8cf7cc46a30cecaae91ae26, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.6
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 722c029ac8cf7cc46a30cecaae91ae26, type: 3}
       propertyPath: m_LocalPosition.x
