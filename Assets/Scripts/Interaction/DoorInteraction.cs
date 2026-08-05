@@ -83,6 +83,11 @@ namespace Escape.Core {
         [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
         [SerializeField] private string _saveId;
 
+        [Header("Occlusion")]
+        [Tooltip("OcclusionPortal on this door. When assigned, its 'open' state is synced with the door " +
+                 "so baked occlusion culling does not hide objects behind an open door.")]
+        [SerializeField] private OcclusionPortal _occlusionPortal;
+
         [Header("Events")]
         [Tooltip("Fired when the door reaches the fully closed position (openFraction → 0).")]
         [SerializeField] private UnityEvent _onDoorClosed;
@@ -204,6 +209,7 @@ namespace Escape.Core {
             if (!_isUnlockAnimating)
                 _dragActive = _openFraction > 0f || _isOpen;
             if (_dragActive) ApplyAngle();
+            UpdateOcclusionPortal();
         }
 
         private void Update() {
@@ -460,6 +466,13 @@ namespace Escape.Core {
 
         // ── Private helpers ──────────────────────────────────────────────────────
 
+    /// <summary>Syncs the optional OcclusionPortal's open state with the door's open fraction.</summary>
+    private void UpdateOcclusionPortal()
+    {
+        if (_occlusionPortal != null)
+            _occlusionPortal.open = _openFraction > 0f;
+    }
+
         /// <summary>
         /// Click mode: starts a smooth open/close animation toward the opposite state.
         /// A locked, closed door only plays the locked sound and stays shut.
@@ -495,6 +508,7 @@ namespace Escape.Core {
                 default:                 e.y = targetAngle; break;
             }
             _pivot.localEulerAngles = e;
+            UpdateOcclusionPortal();
         }
 
         /// <summary>Returns the initial euler angle of the pivot along the configured axis.</summary>
