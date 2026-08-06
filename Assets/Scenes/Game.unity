@@ -1548,6 +1548,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 90979415}
   m_CullTransparentMesh: 1
+--- !u!114 &94874551 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8672730920739067243, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31f7f6272ec384d4098d7596f23445ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomController
 --- !u!1 &98444783
 GameObject:
   m_ObjectHideFlags: 0
@@ -4092,6 +4103,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: cabe80cb266196449b9d99b9a77ce17f, type: 2}
   - {fileID: 11400000, guid: 17a014dc52cd9fa4f8ae51a789f16d9b, type: 2}
   - {fileID: 11400000, guid: b4bc04d5a2beaf340a72f38acebae0e8, type: 2}
+  - {fileID: 11400000, guid: 48707e517ff49044697d873b8740eda1, type: 2}
   - {fileID: 11400000, guid: 02e62270a61a9ca4ea66a65211ca0531, type: 2}
   - {fileID: 11400000, guid: ae0626fcceabc2943b0cde4859f673a8, type: 2}
   - {fileID: 11400000, guid: a663a2e164064444aae064390c68c87f, type: 2}
@@ -4135,7 +4147,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: dfcde2a5fc6a1bc4ebd5f3582ffcf457, type: 2}
   - {fileID: 11400000, guid: f78b3031cc9a8eb4b80e00d909027b9f, type: 2}
   - {fileID: 11400000, guid: 8019a527ff1b4f249926940f055914c9, type: 2}
-  - {fileID: 11400000, guid: 48707e517ff49044697d873b8740eda1, type: 2}
 --- !u!4 &392788460
 Transform:
   m_ObjectHideFlags: 0
@@ -12008,16 +12019,36 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4234533341629323153, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _triggerZones.Array.data[0].VisibleRooms.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 4234533341629323153, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _triggerZones.Array.data[1].VisibleRooms.Array.size
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4234533341629323153, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: '_triggerZones.Array.data[0].VisibleRooms.Array.data[2]'
       value: 
       objectReference: {fileID: 160146389}
     - target: {fileID: 4234533341629323153, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: '_triggerZones.Array.data[0].VisibleRooms.Array.data[3]'
+      value: 
+      objectReference: {fileID: 94874551}
+    - target: {fileID: 4234533341629323153, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: '_triggerZones.Array.data[1].VisibleRooms.Array.data[3]'
       value: 
       objectReference: {fileID: 160146389}
+    - target: {fileID: 4234533341629323153, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: '_triggerZones.Array.data[1].VisibleRooms.Array.data[4]'
+      value: 
+      objectReference: {fileID: 94874551}
     - target: {fileID: 4238369713552626067, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 85
+      objectReference: {fileID: 0}
+    - target: {fileID: 4301544801571391025, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Intensity
+      value: 9.18
       objectReference: {fileID: 0}
     - target: {fileID: 4445677467191305640, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: m_Shadows.m_Type
