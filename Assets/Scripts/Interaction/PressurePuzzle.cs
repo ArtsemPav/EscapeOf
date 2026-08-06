@@ -146,11 +146,20 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     [Tooltip("Steam particle systems that ramp up as pressure approaches the danger angle.")]
     [SerializeField] private ParticleSystem[] _steamEmitters;
     [Tooltip("Maximum emission rate when pressure is at the danger angle.")]
-    [SerializeField] private float _maxSteamEmission = 50f;
+    [SerializeField] private float _maxSteamEmission = 100f;
     [Tooltip("Emission rate forced during a reset — much higher than warning.")]
-    [SerializeField] private float _resetSteamEmission = 200f;
+    [SerializeField] private float _resetSteamEmission = 400f;
     [Tooltip("Instant particle burst on each emitter when a reset triggers.")]
-    [SerializeField] private int _resetBurstCount = 100;
+    [SerializeField] private int _resetBurstCount = 200;
+
+    [Tooltip("Mesh renderers with the SteamDistortion material. Their _SteamIntensity " +
+             "property is animated in sync with steam emission.")]
+    [SerializeField] private MeshRenderer[] _distortionMeshes;
+
+    [Tooltip("Distortion reaches maximum at this fraction of max steam emission. " +
+             "E.g. 0.6 → distortion is at 100%% when steam is only at 60%% of max, " +
+             "so the player sees full distortion before the danger peak.")]
+    [SerializeField] [Range(0.2f, 1f)] private float _distortionPeakFraction = 0.6f;
 
     // ── Steam Audio ────────────────────────────────────────────────────────────
 
@@ -220,6 +229,12 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     private bool _wasDoorOpen;      // tracks door state for close-detection
     private float _activationLogTimer;
 
+    /// <summary>Shader property name for steam distortion intensity.</summary>
+    private static readonly int SteamIntensityId = Shader.PropertyToID("_SteamIntensity");
+
+    /// <summary>Cached MaterialPropertyBlock for distortion meshes (avoids material instances).</summary>
+    private MaterialPropertyBlock _distortionBlock;
+
     // ── Unity lifecycle ───────────────────────────────────────────────────────
 
     private void Awake()
@@ -268,6 +283,7 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         if (_loadedIsSolved)
         {
             RestoreSolvedState();
+            UpdateDistortion(0f);
             return;
         }
 
@@ -311,6 +327,10 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
                   $"_roomTrigger: {(_roomTrigger != null ? _roomTrigger.gameObject.name : "NULL")}, " +
                   $"_steamSupplied: {_steamSupplied}, " +
                   $"door fully closed: {(_entryDoor != null ? _entryDoor.IsFullyClosed.ToString() : "N/A")}");
+
+        // Hide distortion meshes from the very start — they should only appear
+        // when steam ramps up during gameplay.
+        UpdateDistortion(0f);
     }
 
     // ── Lever value generation ────────────────────────────────────────────────
@@ -464,7 +484,20 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
 
     private void Update()
     {
-        if (IsSolved) return;
+        // When solved, keep updating steam/distortion so they fade out cleanly.
+        if (IsSolved)
+        {
+            UpdateDistortion(0f);
+            foreach (var ps in _steamEmitters)
+            {
+                if (ps == null) continue;
+                var emission = ps.emission;
+                emission.rateOverTime = 0f;
+            }
+            if (_steamAudioSource != null && _steamAudioSource.isPlaying)
+                _steamAudioSource.Stop();
+            return;
+        }
 
         // ── Activation logic ───────────────────────────────────────────────
         // Check if the entry door just transitioned from open to closed.
@@ -538,12 +571,28 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             {
                 _entryDoor.Lock();
                 IsActivated = true;
+                StartSteamEmitters();
                 Debug.Log("[PressurePuzzle] Activated — door locked, player inside, steam supplied.");
             }
             else
             {
                 Debug.Log($"[PressurePuzzle] Door closed but conditions not met — " +
                           $"playerInside: {playerInside}, steamSupplied: {_steamSupplied}");
+            }
+        }
+        else if (doorClosedNow && !_wasDoorOpen && !IsActivated)
+        {
+            // Door was already closed on load (e.g. after save/load) — if the
+            // player is inside and steam is supplied, activate immediately.
+            bool playerInside = _roomTrigger == null || _roomTrigger.IsPlayerInside;
+
+            if (playerInside && _steamSupplied)
+            {
+                _entryDoor.Lock();
+                IsActivated = true;
+                StartSteamEmitters();
+                Debug.Log("[PressurePuzzle] Activated (post-load) — door was already closed, " +
+                          "player inside, steam supplied.");
             }
         }
 
@@ -568,19 +617,39 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     // ── Steam VFX ─────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Starts all steam particle systems when the puzzle activates.
+    /// Ensures particles are actually playing before emission rate is ramped.
+    /// </summary>
+    private void StartSteamEmitters()
+    {
+        foreach (var ps in _steamEmitters)
+        {
+            if (ps == null) continue;
+            var emission = ps.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 0f;
+            if (!ps.isPlaying)
+                ps.Play();
+        }
+    }
+
+    /// <summary>
     /// Ramps steam emission based on proximity to the danger angle.
     /// Steam starts at _warningFraction × _dangerAngle and reaches maximum
-    /// at _dangerAngle. During a reset, steam bursts at full intensity then
-    /// linearly fades to zero over the cooldown period.
+    /// at _distortionPeakFraction of the warning range — so the player sees
+    /// full steam before actually hitting the danger angle.
+    /// During a reset, steam bursts at full intensity then fades to zero.
     /// </summary>
     private void UpdateSteam()
     {
         float warningStart = _dangerAngle * _warningFraction;
+        float warningRange = _dangerAngle - warningStart;
+        float peakAngle = warningStart + warningRange * _distortionPeakFraction;
 
         float dangerProgress = 0f;
         if (!_wasInDanger)
             dangerProgress = Mathf.Clamp01(
-                Mathf.InverseLerp(warningStart, _dangerAngle, _currentArrowAngle));
+                Mathf.InverseLerp(warningStart, peakAngle, _currentArrowAngle));
 
         float rate = Mathf.Lerp(0f, _maxSteamEmission, dangerProgress);
 
@@ -597,7 +666,39 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             emission.rateOverTime = rate;
         }
 
+        UpdateDistortion(rate);
         UpdateSteamAudio(rate);
+    }
+
+    /// <summary>
+    /// Animates the _SteamIntensity property on the distortion meshes in sync
+    /// with the steam emission rate. Distortion reaches its maximum at
+    /// _distortionPeakFraction of the max steam emission — so the player sees
+    /// full distortion before the steam itself peaks.
+    /// </summary>
+    /// <param name="rate">Current steam emission rate (particles per second).</param>
+    private void UpdateDistortion(float rate)
+    {
+        if (_distortionMeshes == null || _distortionMeshes.Length == 0) return;
+
+        // The rate at which distortion should be at maximum.
+        float peakRate = IsResetting
+            ? _resetSteamEmission * _distortionPeakFraction
+            : _maxSteamEmission * _distortionPeakFraction;
+
+        // Remap: 0 at rate=0, 1 at rate=peakRate, clamped at 1 beyond.
+        float intensity = peakRate > 0f ? Mathf.Clamp01(rate / peakRate) : 0f;
+
+        if (_distortionBlock == null)
+            _distortionBlock = new MaterialPropertyBlock();
+
+        _distortionBlock.SetFloat(SteamIntensityId, intensity);
+
+        foreach (var renderer in _distortionMeshes)
+        {
+            if (renderer == null) continue;
+            renderer.SetPropertyBlock(_distortionBlock);
+        }
     }
 
     /// <summary>
@@ -716,6 +817,8 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
                     emission.rateOverTime = 0f;
                 }
 
+            UpdateDistortion(0f);
+
             if (!_fadeClipPlayed && _steamFadeClip != null)
             {
                 _audioSource.PlayOneShot(_steamFadeClip, _steamFadeVolume);
@@ -810,6 +913,8 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
                 emission.rateOverTime = 0f;
             }
 
+        UpdateDistortion(0f);
+
         if (_steamAudioSource != null && _steamAudioSource.isPlaying)
             _steamAudioSource.Stop();
 
@@ -850,6 +955,8 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
                 var emission = ps.emission;
                 emission.rateOverTime = 0f;
             }
+
+        UpdateDistortion(0f);
 
         if (_steamAudioSource != null && _steamAudioSource.isPlaying)
             _steamAudioSource.Stop();

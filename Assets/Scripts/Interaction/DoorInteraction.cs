@@ -134,13 +134,36 @@ namespace Escape.Core {
         public string SaveId => _saveId;
 
         /// <summary>Serializes door state: open fraction, locked state, open state.</summary>
-        public string GetSaveData() => JsonUtility.ToJson(new DoorSaveData
+        public string GetSaveData()
         {
-            isOpen       = _isOpen || _openFraction > 0f,
-            isLocked     = _isLocked,
-            openFraction = _openFraction,
-            wasUnlocked  = !_isLocked && (_isOpen || _openFraction > 0f || _isUnlockAnimating),
-        });
+            // Click-mode doors are logically binary (fully open or fully closed).
+            // While the click animation is in progress, _openFraction holds an
+            // intermediate value that does NOT represent the door's real state.
+            // Save the animation target instead so a mid-animation snapshot
+            // never persists a partially-open door that triggers the ajar
+            // unlock swing on load.
+            bool resolvedIsOpen;
+            float resolvedFraction;
+
+            if (_openMode == DoorOpenMode.Click && _isClickAnimating)
+            {
+                resolvedFraction = _clickTarget;
+                resolvedIsOpen   = _clickTarget > 0.5f;
+            }
+            else
+            {
+                resolvedIsOpen   = _isOpen || _openFraction > 0f;
+                resolvedFraction = _openFraction;
+            }
+
+            return JsonUtility.ToJson(new DoorSaveData
+            {
+                isOpen       = resolvedIsOpen,
+                isLocked     = _isLocked,
+                openFraction = resolvedFraction,
+                wasUnlocked  = !_isLocked && (resolvedIsOpen || resolvedFraction > 0f || _isUnlockAnimating),
+            });
+        }
 
         /// <summary>Stores pending state. Applied in Start() after pivot is initialized.</summary>
         public void LoadSaveData(string json)
