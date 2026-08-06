@@ -139,6 +139,11 @@ public class GeneratorPuzzleController : MonoBehaviour,
         [Tooltip("Имя состояния анимации заливки в Animator Controller (для отслеживания завершения).")]
         public string pourStateName = "Pour";
 
+        [Tooltip("Имя состояния, в которое Animator переходит после заливки. " +
+                 "Если задано — контроллер ждёт завершения этого состояния перед заморозкой/удалением. " +
+                 "Если пусто — объект замораживается/удаляется сразу после Pour.")]
+        public string pourExitStateName = "";
+
         [Tooltip("Если true — предмет остаётся на якоре после анимации заливки. " +
                  "Если false — удаляется (топливо израсходовано).")]
         [SerializeField] private bool _keepAfterPour = false;
@@ -692,15 +697,32 @@ public class GeneratorPuzzleController : MonoBehaviour,
             yield return null;
         }
 
-        // Останавливаем эффект наливания — анимация завершена
+        // Останавливаем эффект наливания — анимация заливки завершена
         slot.PourEffect?.StopPour();
+
+        // Ждём завершения пост-анимации, если задано состояние перехода
+        if (!string.IsNullOrEmpty(slot.pourExitStateName))
+        {
+            // Ждём перехода в пост-анимацию
+            elapsed = 0f;
+            while (!animator.GetCurrentAnimatorStateInfo(0).IsName(slot.pourExitStateName) && elapsed < timeout)
+            {
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Ждём завершения пост-анимации
+            while (animator.GetCurrentAnimatorStateInfo(0).IsName(slot.pourExitStateName) &&
+                   animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+            {
+                yield return null;
+            }
+        }
 
         if (slot.KeepAfterPour)
         {
-            // Предмет остаётся на якоре после заливки
-            var pourAnimator = canisterObj.GetComponentInChildren<Animator>();
-            if (pourAnimator != null)
-                pourAnimator.enabled = false;
+            // Предмет остаётся на якоре — Animator не отключается,
+            // чтобы продолжить проигрывать дальнейшие переходы/Idle.
         }
         else
         {

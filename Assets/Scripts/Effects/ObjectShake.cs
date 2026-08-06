@@ -46,10 +46,6 @@ public class ObjectShake : MonoBehaviour
     [Tooltip("Какие оси вращения затрагивает тряска.")]
     [SerializeField] private Vector3 _rotationAxes = new Vector3(1f, 1f, 1f);
 
-    [Header("Audio (optional)")]
-    [Tooltip("Зацикленный аудио-источник для постоянного дрожания. Включается/выключается вместе с continuous-режимом.")]
-    [SerializeField] private AudioSource _continuousAudio;
-
     private Vector3 _baseLocalPosition;
     private Vector3 _baseLocalEulerAngles;
     private Coroutine _impulseRoutine;
@@ -62,13 +58,10 @@ public class ObjectShake : MonoBehaviour
 
     private void OnEnable()
     {
-        if (_shakeContinuously)
-            SetContinuousAudio(true);
     }
 
     private void OnDisable()
     {
-        SetContinuousAudio(false);
         ResetTransform();
     }
 
@@ -104,7 +97,6 @@ public class ObjectShake : MonoBehaviour
     public void SetContinuous(bool enabled)
     {
         _shakeContinuously = enabled;
-        SetContinuousAudio(enabled);
     }
 
     /// <summary>
@@ -156,17 +148,6 @@ public class ObjectShake : MonoBehaviour
         _impulseBlend = 0f;
         transform.localPosition = _baseLocalPosition;
         transform.localEulerAngles = _baseLocalEulerAngles;
-    }
-
-    private void SetContinuousAudio(bool play)
-    {
-        if (_continuousAudio == null)
-            return;
-
-        if (play && !_continuousAudio.isPlaying)
-            _continuousAudio.Play();
-        else if (!play && _continuousAudio.isPlaying)
-            _continuousAudio.Stop();
     }
 
     private static Vector3 SamplePerlin(float t, float amplitude, Vector3 axes)

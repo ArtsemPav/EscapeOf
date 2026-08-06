@@ -142,7 +142,19 @@ MonoBehaviour:
       m_Calls: []
   OnPuzzleSolved:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 5931102526136568893}
+        m_TargetAssemblyTypeName: LoopAudioController, Assembly-CSharp
+        m_MethodName: StartLoop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &8254027769696541074
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -182,6 +194,7 @@ MonoBehaviour:
     playPourAnimation: 1
     pourAnimTrigger: Pour
     pourStateName: Pour
+    pourExitStateName: 
     _keepAfterPour: 1
     _pourClip: {fileID: 0}
     _pourVolume: 1
@@ -196,6 +209,7 @@ MonoBehaviour:
     playPourAnimation: 1
     pourAnimTrigger: Pour
     pourStateName: Pour
+    pourExitStateName: 'ExitStateName '
     _keepAfterPour: 0
     _pourClip: {fileID: 8300000, guid: 0180354689301814cb512b229f87cf73, type: 3}
     _pourVolume: 1
@@ -5409,6 +5423,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8016577116952974205}
     m_Modifications:
+    - target: {fileID: 2647697442364639646, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
+      propertyPath: _audio
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2647697442364639646, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
+      propertyPath: _positionAxes.y
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3356650367485020923, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
       propertyPath: m_Name
       value: Generator
@@ -5454,8 +5476,7 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects:
-    - {fileID: 9171119983669218715, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
+    m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
@@ -5506,6 +5527,17 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 9206932500541081582, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
   m_PrefabInstance: {fileID: 4287635185766193557}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5931102526136568893 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7624382163961877928, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}
+  m_PrefabInstance: {fileID: 4287635185766193557}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45d008f9639e1294cb23e5447e4fec97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LoopAudioController
 --- !u!4 &5956691635306306647 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7578104650452583874, guid: 8f819900305bb474eb899c80b1ba2558, type: 3}

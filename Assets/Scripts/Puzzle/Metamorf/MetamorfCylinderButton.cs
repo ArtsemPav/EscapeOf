@@ -20,6 +20,10 @@ public class MetamorfCylinderButton : MonoBehaviour, IInteractable
     [SerializeField] private float _stepAngle = 90f;
     [SerializeField] private Vector3 _rotationAxis = Vector3.up;
 
+    [Header("Audio")]
+    [Tooltip("Звук, проигрываемый при повороте цилиндра.")]
+    [SerializeField] private AudioClip _rotationSound;
+
     // ── Events ────────────────────────────────────────────────────────────────
 
     /// <summary>Fired after each rotation step completes.</summary>
@@ -69,6 +73,9 @@ public class MetamorfCylinderButton : MonoBehaviour, IInteractable
     private IEnumerator RotateStepRoutine()
     {
         _isAnimating = true;
+
+        if (_rotationSound != null)
+            AudioManager.Instance.PlaySFX(_rotationSound);
 
         // 1. Capture decor cylinders
         CaptureDecors();

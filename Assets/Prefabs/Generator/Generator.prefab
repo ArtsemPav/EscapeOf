@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 9206932500541081582}
   - component: {fileID: 2647697442364639646}
   - component: {fileID: 6762540220659560582}
+  - component: {fileID: 7624382163961877928}
   m_Layer: 0
   m_Name: Generator
   m_TagString: Untagged
@@ -94,7 +95,6 @@ MonoBehaviour:
   _impulseFrequency: 40
   _positionAxes: {x: 1, y: 1, z: 1}
   _rotationAxes: {x: 1, y: 1, z: 1}
-  _continuousAudio: {fileID: 6762540220659560582}
 --- !u!82 &6762540220659560582
 AudioSource:
   m_ObjectHideFlags: 0
@@ -192,6 +192,24 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &7624382163961877928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3356650367485020923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45d008f9639e1294cb23e5447e4fec97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LoopAudioController
+  _loopAudio: {fileID: 6762540220659560582}
+  _loopMinDistance: 3
+  _loopMaxDistance: 6
+  _sfxClip: {fileID: 8300000, guid: 1732d3c673934c648988148bafd5de85, type: 3}
+  _loopVolume: 1
+  _sfxVolume: 1
 --- !u!1 &4570040127405049197
 GameObject:
   m_ObjectHideFlags: 0
@@ -417,8 +435,7 @@ Transform:
   m_LocalPosition: {x: 0.3436985, y: 0.61, z: 0.00850153}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7996800268607462772}
+  m_Children: []
   m_Father: {fileID: 9206932500541081582}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!136 &519767355221902267
@@ -760,68 +777,6 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 2148412142962102433, guid: 57970c6bb711ec24b8d98424b1806f3b, type: 3}
   m_PrefabInstance: {fileID: 1706205336790269674}
-  m_PrefabAsset: {fileID: 0}
---- !u!1001 &1814468954538921703
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 7325367185507684268}
-    m_Modifications:
-    - target: {fileID: 7379171002960528252, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_Name
-      value: SparkPlugAnimated
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
---- !u!4 &7996800268607462772 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8634560054451557267, guid: 3e2e81a044176784da062ed31a949ee3, type: 3}
-  m_PrefabInstance: {fileID: 1814468954538921703}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5609478976677499937
 PrefabInstance:

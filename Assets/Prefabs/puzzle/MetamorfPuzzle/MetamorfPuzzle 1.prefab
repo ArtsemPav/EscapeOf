@@ -1786,6 +1786,7 @@ MonoBehaviour:
   _rotationDuration: 0.4
   _stepAngle: 90
   _rotationAxis: {x: 0, y: 0, z: 1}
+  _rotationSound: {fileID: 8300000, guid: b4414a8d206c210498d83f36302b2a4c, type: 3}
 --- !u!114 &5044302289922227039
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2331,6 +2332,7 @@ MonoBehaviour:
   _rotationDuration: 0.4
   _stepAngle: 90
   _rotationAxis: {x: 0, y: 0, z: 1}
+  _rotationSound: {fileID: 8300000, guid: b4414a8d206c210498d83f36302b2a4c, type: 3}
 --- !u!114 &4766099681638643794
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2886,6 +2888,96 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3446110164016214492}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 544
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 213ce492c31ccb842bfda5b00d6e8b06, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &3608709809480055814
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4113193026798846515}
+  - component: {fileID: 5119121307472070025}
+  - component: {fileID: 6826965455215466305}
+  m_Layer: 0
+  m_Name: cylindr
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4113193026798846515
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3608709809480055814}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.000000005268355, y: 0.000000005268355, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0.004200118}
+  m_LocalScale: {x: 1, y: 1, z: 0.2}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8229552922417036466}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5119121307472070025
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3608709809480055814}
+  m_Mesh: {fileID: -5569863029367460850, guid: e29d01a2f7a3b03418b270d36fc26e7d, type: 3}
+--- !u!23 &6826965455215466305
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3608709809480055814}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -4544,6 +4636,7 @@ MonoBehaviour:
   _rotationDuration: 0.4
   _stepAngle: 90
   _rotationAxis: {x: 0, y: 0, z: 1}
+  _rotationSound: {fileID: 8300000, guid: b4414a8d206c210498d83f36302b2a4c, type: 3}
 --- !u!114 &6573228701993592859
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6527,6 +6620,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 8881713381140134228}
+  - {fileID: 4113193026798846515}
   m_Father: {fileID: 9049133473072805765}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
 --- !u!33 &7442682133223668256
@@ -6954,6 +7048,7 @@ MonoBehaviour:
   _rotationDuration: 0.4
   _stepAngle: 90
   _rotationAxis: {x: 0, y: 0, z: 1}
+  _rotationSound: {fileID: 8300000, guid: b4414a8d206c210498d83f36302b2a4c, type: 3}
 --- !u!114 &1746346480343272534
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7135,7 +7230,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 0.2, y: 0.05, z: 0.2}
   m_Center: {x: 0, y: 0, z: 0}
