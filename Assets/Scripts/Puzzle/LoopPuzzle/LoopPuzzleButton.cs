@@ -109,6 +109,12 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns false when the component is disabled (e.g. by ElectricDevice
+    /// when power is off) — prevents interaction while remaining visible.
+    /// </summary>
+    public bool CanInteract() => enabled;
+
     public void Interact()
     {
         if (IsLocked) return;

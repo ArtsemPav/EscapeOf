@@ -56,6 +56,10 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("GameObject to activate when the puzzle is fully solved (lever pulled).")]
     [SerializeField] private GameObject _solvedObject;
 
+    [Header("Generator")]
+    [Tooltip("Hint shown when the player tries to insert the fuse before the generator is running.")]
+    [SerializeField] private string _noGeneratorHint = "Сначала нужно запустить генератор.";
+
     [Header("Lamp")]
     [Tooltip("Renderer on the lamp mesh (pSphere25) whose material is tinted red→green based on puzzle state.")]
     [SerializeField] private Renderer _lampRenderer;
@@ -790,6 +794,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (_wiresCorrect)
         {
             if (_solvedObject != null) _solvedObject.SetActive(true);
+            LightingSystem.Instance?.ActivatePower();
             SaveManager.Instance?.Save();
 
             // Delegate exit to PuzzleModeController — consistent with all other puzzles.
@@ -892,6 +897,14 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (item == null) return false;
         if (_acceptedItems == null || Array.IndexOf(_acceptedItems, item) < 0) return false;
         if (_fuseInserted) return false;
+
+        // Block fuse insertion until the generator is running.
+        if (LightingSystem.Instance != null && !LightingSystem.Instance.IsGeneratorReady)
+        {
+            PopupMessageSystem.Instance?.Show(_noGeneratorHint, PopupMessageType.Hint);
+            return false;
+        }
+
         if (_fuseAnchorCollider == null || Camera.main == null) return false;
 
         var ray = Camera.main.ScreenPointToRay(screenPosition);

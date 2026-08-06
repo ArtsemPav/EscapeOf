@@ -443,6 +443,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
         StopHitVfx();
         PlayCompletionVfx();
         EnableGeneratorShake();
+        LightingSystem.Instance?.SetGeneratorReady(true);
         _controller?.SetSolved(); // выходит из режима пазла и сохраняет прогресс
     }
 

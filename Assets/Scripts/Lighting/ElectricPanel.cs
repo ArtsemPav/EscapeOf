@@ -29,13 +29,27 @@ public class ElectricPanel : MonoBehaviour, IInteractable
     [SerializeField] private AudioClip _powerOnClip;
     [SerializeField] private AudioClip _powerOffClip;
 
+    [Header("Hints")]
+    [Tooltip("Text shown when looking at the panel before the electric puzzle has been solved.")]
+    [SerializeField] private string _hintNotActivated = "Щиток [Нет питания]";
+
     // ── IInteractable ─────────────────────────────────────────────────────────
 
-    public bool CanInteract() => LightingSystem.Instance != null;
+    /// <summary>
+    /// The breaker can only be toggled after the electric panel puzzle has
+    /// activated power at least once AND the generator is still running.
+    /// </summary>
+    public bool CanInteract()
+    {
+        var ls = LightingSystem.Instance;
+        return ls != null && ls.IsPowerActivated && ls.IsGeneratorReady;
+    }
 
     public void Interact()
     {
         if (LightingSystem.Instance == null) return;
+        if (!LightingSystem.Instance.IsPowerActivated) return;
+        if (!LightingSystem.Instance.IsGeneratorReady) return;
 
         LightingSystem.Instance.TogglePower();
         bool isPowered = LightingSystem.Instance.IsPowered;
@@ -45,8 +59,13 @@ public class ElectricPanel : MonoBehaviour, IInteractable
 
     public string GetInteractText()
     {
-        if (LightingSystem.Instance == null) return _hintPoweredOn;
-        return LightingSystem.Instance.IsPowered ? _hintPoweredOn : _hintPoweredOff;
+        var ls = LightingSystem.Instance;
+        if (ls == null) return _hintPoweredOn;
+
+        if (!ls.IsPowerActivated || !ls.IsGeneratorReady)
+            return _hintNotActivated;
+
+        return ls.IsPowered ? _hintPoweredOn : _hintPoweredOff;
     }
 
     public bool IsPickable() => false;
