@@ -271,7 +271,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2950492794843609858
 Transform:
   m_ObjectHideFlags: 0
@@ -614,6 +614,9 @@ MonoBehaviour:
   _puzzleCamera: {fileID: 4380350430016505632}
   _blendDuration: 0.75
   _showInventoryBar: 1
+  _disableFlashlightInPuzzle: 1
+  _flashlightSupportLights:
+  - {fileID: 7532652650368245830}
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls:
@@ -757,10 +760,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
   _isOpen: 0
   _isLocked: 1
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u0432\u0435\u0441\u0442\u0438
     \u043A\u043E\u0434"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 2269009649599135909}
@@ -769,7 +773,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -779,6 +784,10 @@ MonoBehaviour:
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _saveId: safe_door_id
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!65 &5504881251143862351
 BoxCollider:
   m_ObjectHideFlags: 0

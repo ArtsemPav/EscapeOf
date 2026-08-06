@@ -33,6 +33,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     private const float MinCursorDistanceSqr  = 1f;
     private const float MinDragDeltaThreshold = 0.05f;
 
+    // Max distance for the IsMouseOverDial raycast — the puzzle camera is close to the dial.
+    private const float DialRaycastMaxDistance = 10f;
+
     // ── Inspector ──────────────────────────────────────────────────────────────
     [SerializeField] private PuzzleModeController _puzzleMode;
     [Header("Rotation")]
@@ -217,7 +220,14 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (_mainCamera == null) return false;
 
         Ray ray = _mainCamera.ScreenPointToRay(mouse.position.ReadValue());
-        if (Physics.Raycast(ray, out RaycastHit hit))
+
+        // Use a layer mask that only includes PuzzleInteractable so the Safe's MeshCollider
+        // (on Default layer) and other geometry don't block the raycast to the dial.
+        int puzzleLayer = LayerMask.NameToLayer("PuzzleInteractable");
+        if (puzzleLayer == -1) return false;
+        int mask = 1 << puzzleLayer;
+
+        if (Physics.Raycast(ray, out RaycastHit hit, DialRaycastMaxDistance, mask))
         {
             return hit.collider.transform == transform || hit.collider.transform.IsChildOf(transform);
         }
@@ -420,6 +430,10 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private void OnPuzzleEntered()
     {
+        // Ensure the dial collider is enabled so IsMouseOverDial can detect it.
+        // It may have been disabled by RoomController.Lock() or left disabled in the prefab.
+        if (_colliderLock != null) _colliderLock.enabled = true;
+
         if (_isRequiredItemApplied) {
             AudioManager.Instance?.MuteBackground();
 
@@ -430,6 +444,10 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private void OnPuzzleExited()
     {
+        // Disable the dial collider so it doesn't block PuzzleInteract's collider
+        // (they overlap on the door) when not in puzzle mode.
+        if (_colliderLock != null) _colliderLock.enabled = false;
+
         if (!HasRequiredItem()) return;
 
         AudioManager.Instance?.StopBackgroundLayer();
