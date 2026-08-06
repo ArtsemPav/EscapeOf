@@ -10,9 +10,18 @@ public class DigitalLockSystem : MonoBehaviour
     [Header("Settings")]
     [Tooltip("The correct combination to solve the puzzle.")]
     [SerializeField] private string _correctCode = "1234";
-    
+
+    [Tooltip("If true, a random code is generated on Start instead of using _correctCode.")]
+    [SerializeField] private bool _useRandomCode = false;
+
+    [Tooltip("Number of digits for the randomly generated code.")]
+    [SerializeField] private int _randomCodeLength = 4;
+
     [Tooltip("Maximum number of digits that can be entered.")]
     [SerializeField] private int _maxCodeLength = 8;
+
+    private const int MIN_RANDOM_CODE_LENGTH = 1;
+    private const int MAX_RANDOM_CODE_LENGTH = 10;
 
     [Tooltip("Text to display on the screen when the puzzle is solved.")]
     [SerializeField] private string _solvedText = "SOLVED";
@@ -40,15 +49,59 @@ public class DigitalLockSystem : MonoBehaviour
     [Tooltip("Sound played when an incorrect code is entered.")]
     [SerializeField] private AudioClip _errorSound;
 
+    /// <summary>
+    /// The currently active code (fixed or randomly generated).
+    /// </summary>
+    public string ActiveCode => _activeCode;
+
     private string _currentInput = string.Empty;
+    private string _activeCode;
     private bool _isDisplayingTemporaryMessage = false;
     private bool _blinkState = true;
     private float _blinkTimer = 0f;
     private const float BLINK_INTERVAL = 0.5f;
 
+    private void Awake()
+    {
+        _activeCode = _correctCode;
+        if (_useRandomCode)
+        {
+            GenerateRandomCode();
+        }
+    }
+
     private void Start()
     {
         UpdateDisplay();
+    }
+
+    /// <summary>
+    /// Generates a random numeric code of length _randomCodeLength and sets it as the active code.
+    /// </summary>
+    public void GenerateRandomCode()
+    {
+        int length = Mathf.Clamp(_randomCodeLength, MIN_RANDOM_CODE_LENGTH, MAX_RANDOM_CODE_LENGTH);
+        _activeCode = string.Empty;
+        for (int i = 0; i < length; i++)
+        {
+            _activeCode += Random.Range(0, 10).ToString();
+        }
+    }
+
+    /// <summary>
+    /// Toggles between the fixed correct code and a randomly generated code.
+    /// </summary>
+    public void ToggleRandomCode()
+    {
+        _useRandomCode = !_useRandomCode;
+        if (_useRandomCode)
+        {
+            GenerateRandomCode();
+        }
+        else
+        {
+            _activeCode = _correctCode;
+        }
     }
 
     private void Update()
@@ -101,7 +154,7 @@ public class DigitalLockSystem : MonoBehaviour
     {
         if (_isDisplayingTemporaryMessage) return;
 
-        if (_currentInput == _correctCode)
+        if (_currentInput == _activeCode)
         {
             if (_puzzleController != null)
             {
