@@ -3,13 +3,94 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 
+// ═══════════════════════════════════════════════════════════════════════════
+// HORROR EVENT — ИНСТРУКЦИЯ
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// ЧТО ЭТО:
+//   Один компонент = один хоррор-момент в игре.
+//   У события есть ТРИГГЕР (когда сработать) и ЭФФЕКТ (что показать/скрыть).
+//
+// КАК ДОБАВИТЬ ХОРРОР-МОМЕНТ:
+//   1. Создай дочерний GameObject под HorrorSystem (например Event_Shadow).
+//   2. Добавь компонент HorrorEvent.
+//   3. Выбери Trigger Type — что запустит событие.
+//   4. Выбери Effect Type — что произойдёт с Target.
+//   5. Назначь Target — объект который появится/исчезнет (должен быть НЕактивен).
+//   6. При необходимости подключи On Activated / On Deactivated (звук, анимация).
+//
+// ТИПЫ ТРИГГЕРОВ:
+//   OnItemPickup        — игрок подбирает конкретный предмет (Required Item).
+//   OnRoomEnter         — игрок входит в комнату с индексом Required Room Index.
+//   OnManual            — только ручной вызов: HorrorSystem.Instance.Trigger("id").
+//   OnPlayerEnterZone   — игрок входит в trigger-коллайдер на этом GameObject
+//                         (нужен BoxCollider с Is Trigger = true).
+//   OnPuzzleSolved      — привязка к загадке. Укажи Puzzle To Watch (объект с
+//                         PuzzleModeController). Событие сработает когда загадка
+//                         решена. Если загадка уже решена (из сейва) — сработает
+//                         сразу при старте.
+//   OnPowerStateChanged — привязка к электричеству. Событие сработает когда
+//                         мастер-питание LightingSystem перейдёт в состояние
+//                         Required Power State (true = включилось, false = выключилось).
+//                         Если питание уже в нужном состоянии при старте — сработает сразу.
+//   OnZoneSwitchChanged — привязка к выключателю света. Укажи Required Zone Id
+//                         (строковый ID зоны освещения) и Required Zone State
+//                         (true = свет включился, false = выключился).
+//                         Если зона уже в нужном состоянии при старте — сработает сразу.
+//
+// ТИПЫ ЭФФЕКТОВ:
+//   AppearAndStay                   — Target появляется и остаётся навсегда.
+//   AppearThenDisappearOnLookAway   — Target появляется; исчезает после того как
+//                                     игрок посмотрел на него и отвернулся.
+//   AppearThenDisappearAfterDelay   — Target появляется и исчезает через Disappear Delay секунд.
+//   DisappearOnTrigger              — Target стартует видимым; скрывается при срабатывании.
+//
+// ПРИВЯЗКА К ДРУГИМ СИСТЕМАМ (универсальный способ):
+//   Если нужного триггера нет в списке — используй OnManual и подключи через
+//   GameEventListener (компонент) который вызовет HorrorEvent.Activate().
+//   Или вызови из кода: HorrorSystem.Instance.Trigger("event_id");
+//
+// SOUND OBJECT:
+//   В поле Sound Object можно перетащить GameObject с AudioSource из сцены
+//   (например дочерний объект SoundSource под этим событием).
+//   При активации события AudioSource.Play() вызовется автоматически.
+//   AudioSource должен иметь Play On Awake = false и SpatialBlend = 3D.
+//   Если поле пусто — звук не проиграется.
+//
+// INTERACTABLE OBJECT:
+//   В поле Interactable Object можно перетащить GameObject с HorrorInteractable
+//   (например телефон, картина, радио). При активации события объект автоматически
+//   «включится» (Arm) и игрок сможет с ним взаимодействовать.
+//   Когда игрок ответит/взаимодействует — вызовется StopSoundObject() автоматически,
+//   звук остановится. Не нужно настраивать On Activated вручную.
+//   Если поле пусто — интерактивный объект не активируется.
+//
+// ПРИМЕР — ТЕЛЕФОН:
+//   Sound Object:        SoundSource (phoneRing.aif, loop)   ← звук звонка
+//   Interactable Object: phone (HorrorInteractable)          ← телефон станет активным
+//   On Activated:        (пусто — больше не нужно настраивать!)
+//
+// ПРИМЕР — СТУК В ДВЕРЬ:
+//   Sound Object:        SoundSource (woodenKnock.aif)       ← звук стука
+//   Interactable Object: (пусто — стук не требует ответа)
+//   On Activated:        (пусто)
+//
+// СЕЙВ-СИСТЕМА:
+//   HorrorEvent сохраняет HasFired — событие не повторится после загрузки.
+//   Ключ сейва: "horror_" + EventId. EventId должен быть уникальным.
+//
+// ═══════════════════════════════════════════════════════════════════════════
+
 /// <summary>What causes this horror event to fire.</summary>
 public enum HorrorTriggerType
 {
-    OnItemPickup,      // Player picks up a specific ItemData
-    OnRoomEnter,       // Player enters a specific room (GameManager.OnRoomChanged index)
-    OnManual,          // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
-    OnPlayerEnterZone  // Player enters the trigger collider on this GameObject (requires BoxCollider + isTrigger)
+    OnItemPickup,        // Player picks up a specific ItemData
+    OnRoomEnter,         // Player enters a specific room (GameManager.OnRoomChanged index)
+    OnManual,            // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
+    OnPlayerEnterZone,   // Player enters the trigger collider on this GameObject
+    OnPuzzleSolved,      // A referenced PuzzleModeController is solved
+    OnPowerStateChanged, // LightingSystem master power matches desired state
+    OnZoneSwitchChanged  // A specific light zone switch matches desired state
 }
 
 /// <summary>What happens to the target when the event fires.</summary>
@@ -25,7 +106,7 @@ public enum HorrorEffectType
 /// Defines one self-contained horror moment: a trigger condition, a scene effect,
 /// and optional UnityEvent callbacks for sounds, animations, etc.
 ///
-/// Place this component on any always-active GameObject.
+/// Place this component on any always-active GameObject (typically a child of HorrorSystem).
 /// The _target object is what gets shown/hidden — it can be anywhere in the scene.
 /// All HorrorEvents register automatically with HorrorSystem on Start.
 /// Implements ISaveable: persists HasFired state so events don't replay after load.
@@ -53,6 +134,26 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     [Tooltip("Seconds between trigger and effect start.")]
     [SerializeField] private float _activationDelay = 0f;
 
+    [Header("Puzzle Trigger")]
+    [Tooltip("Puzzle to watch (OnPuzzleSolved only). Drag a GameObject with PuzzleModeController here.\n" +
+             "The event fires when this puzzle is solved.")]
+    [SerializeField] private PuzzleModeController _puzzleToWatch;
+
+    [Header("Power Trigger")]
+    [Tooltip("Desired power state (OnPowerStateChanged only).\n" +
+             "true  = fire when master power turns ON (e.g. electricity restored).\n" +
+             "false = fire when master power turns OFF (e.g. blackout scare).")]
+    [SerializeField] private bool _requiredPowerState = true;
+
+    [Header("Zone Switch Trigger")]
+    [Tooltip("Zone ID to watch (OnZoneSwitchChanged only). Must match a LightingSystem zone ID.")]
+    [SerializeField] private string _requiredZoneId = "";
+
+    [Tooltip("Desired zone switch state (OnZoneSwitchChanged only).\n" +
+             "true  = fire when this zone's light turns ON.\n" +
+             "false = fire when this zone's light turns OFF.")]
+    [SerializeField] private bool _requiredZoneState = true;
+
     [Header("Effect")]
     [SerializeField] private HorrorEffectType _effectType = HorrorEffectType.AppearThenDisappearOnLookAway;
 
@@ -73,6 +174,20 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     [Tooltip("Dot product below which the player is considered to have looked away.\n" +
              "0 = 90° off-axis. Only active AFTER the player has first confirmed seeing the target.")]
     [SerializeField] private float _lookAwayThreshold = 0f;
+
+    [Header("Sound")]
+    [Tooltip("GameObject с AudioSource который проиграется при активации события.\n" +
+             "Перетащи объект из сцены (например дочерний SoundSource).\n" +
+             "AudioSource должен иметь Play On Awake = false и SpatialBlend = 3D.\n" +
+             "Оставь пустым если звук не нужен.")]
+    [SerializeField] private GameObject _soundObject;
+
+    [Header("Interactable")]
+    [Tooltip("Объект с HorrorInteractable который станет активным при срабатывании события.\n" +
+             "Перетащи объект (например телефон). При активации он автоматически «включится»\n" +
+             "и игрок сможет с ним взаимодействовать. Когда игрок ответит — звук остановится.\n" +
+             "Оставь пустым если интерактивный объект не нужен.")]
+    [SerializeField] private GameObject _interactableObject;
 
     [Header("Callbacks")]
     [Tooltip("Fired when the effect starts (after delay). Wire up audio, animation, etc.")]
@@ -146,13 +261,106 @@ public class HorrorEvent : MonoBehaviour, ISaveable
             HorrorSystem.Instance.Register(this);
         else
             Debug.LogWarning($"[HorrorEvent '{_eventId}'] HorrorSystem not found. Make sure HorrorSystem is in the scene.", this);
+
+        SubscribeToTriggerSource();
     }
 
     private void OnDestroy()
     {
         SaveManager.Instance?.Unregister(this);
         HorrorSystem.Instance?.Unregister(this);
+        UnsubscribeFromTriggerSource();
     }
+
+    // ── Trigger source subscription ───────────────────────────────────────────
+
+    /// <summary>
+    /// Subscribes to the event source matching the current trigger type.
+    /// Also checks if the condition is already met (e.g. puzzle solved from a previous save)
+    /// and fires immediately if so.
+    /// </summary>
+    private void SubscribeToTriggerSource()
+    {
+        if (HasFired) return;
+
+        switch (_triggerType)
+        {
+            case HorrorTriggerType.OnPuzzleSolved:
+                if (_puzzleToWatch == null)
+                {
+                    Debug.LogWarning($"[HorrorEvent '{_eventId}'] Puzzle To Watch is not assigned for OnPuzzleSolved trigger.", this);
+                    return;
+                }
+                _puzzleToWatch.OnSolved += OnPuzzleSolvedHandler;
+                // If already solved (restored from save), fire now.
+                if (_puzzleToWatch.IsSolved)
+                    Activate();
+                break;
+
+            case HorrorTriggerType.OnPowerStateChanged:
+                if (LightingSystem.Instance == null)
+                {
+                    Debug.LogWarning($"[HorrorEvent '{_eventId}'] LightingSystem not found for OnPowerStateChanged trigger.", this);
+                    return;
+                }
+                LightingSystem.Instance.OnPowerChanged += OnPowerChangedHandler;
+                // If power is already in the desired state, fire now.
+                if (LightingSystem.Instance.IsPowered == _requiredPowerState)
+                    Activate();
+                break;
+
+            case HorrorTriggerType.OnZoneSwitchChanged:
+                if (LightingSystem.Instance == null)
+                {
+                    Debug.LogWarning($"[HorrorEvent '{_eventId}'] LightingSystem not found for OnZoneSwitchChanged trigger.", this);
+                    return;
+                }
+                if (string.IsNullOrEmpty(_requiredZoneId))
+                {
+                    Debug.LogWarning($"[HorrorEvent '{_eventId}'] Required Zone Id is empty for OnZoneSwitchChanged trigger.", this);
+                    return;
+                }
+                LightingSystem.Instance.OnZoneSwitchChanged += OnZoneSwitchChangedHandler;
+                // If zone is already in the desired state, fire now.
+                if (LightingSystem.Instance.GetZoneSwitchState(_requiredZoneId) == _requiredZoneState)
+                    Activate();
+                break;
+        }
+    }
+
+    /// <summary>Unsubscribes from the event source matching the current trigger type.</summary>
+    private void UnsubscribeFromTriggerSource()
+    {
+        if (_puzzleToWatch != null)
+            _puzzleToWatch.OnSolved -= OnPuzzleSolvedHandler;
+
+        if (LightingSystem.Instance != null)
+        {
+            LightingSystem.Instance.OnPowerChanged -= OnPowerChangedHandler;
+            LightingSystem.Instance.OnZoneSwitchChanged -= OnZoneSwitchChangedHandler;
+        }
+    }
+
+    // ── Trigger handlers ──────────────────────────────────────────────────────
+
+    private void OnPuzzleSolvedHandler()
+    {
+        if (!HasFired) Activate();
+    }
+
+    private void OnPowerChangedHandler(bool isPowered)
+    {
+        if (!HasFired && isPowered == _requiredPowerState)
+            Activate();
+    }
+
+    private void OnZoneSwitchChangedHandler(string zoneId, bool isOn)
+    {
+        if (!HasFired && zoneId == _requiredZoneId && isOn == _requiredZoneState)
+            Activate();
+    }
+
+    // ── Zone trigger (physics) ────────────────────────────────────────────────
 
     private void OnTriggerEnter(Collider other)
     {
@@ -160,6 +368,8 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         if (!other.CompareTag(_playerTag)) return;
         Activate();
     }
+
+    // ── Look detection ────────────────────────────────────────────────────────
 
     private void Update()
     {
@@ -183,6 +393,27 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         }
     }
 
+    // ── Activation / Deactivation ─────────────────────────────────────────────
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ЦЕПОЧКА СОБЫТИЙ — ЧТО ПРОИСХОДИТ ПРИ СРАБАТЫВАНИИ
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // Когда триггер срабатывает (замок открыт / игрок вошёл в зону / и т.д.),
+    // вызывается Activate() → запускается ActivateRoutine().
+    //
+    // ActivateRoutine() — это пошаговая цепочка. Каждый шаг — отдельное действие.
+    // Можно менять порядок, удалять шаги или добавлять новые.
+    //
+    // Шаг 1: Ждём задержку (Activation Delay)
+    // Шаг 2: Показываем Target (если назначен)
+    // Шаг 3: Проигрываем звук (Sound Object)
+    // Шаг 4: Активируем интерактивный объект (Interactable Object — телефон, картина)
+    // Шаг 5: Вызываем On Activated (дополнительные действия через UnityEvent)
+    // Шаг 6: Применяем эффект (показать навсегда / исчезнуть по взгляду / исчезнуть по таймеру)
+    //
+    // ═══════════════════════════════════════════════════════════════════════════
+
     /// <summary>Called by HorrorSystem when the trigger condition is met, or call directly for manual control.</summary>
     public void Activate()
     {
@@ -191,33 +422,69 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         StartCoroutine(ActivateRoutine());
     }
 
+    /// <summary>
+    /// Пошаговая цепочка активации события.
+    /// Меняй порядок шагов здесь — это повлияет на ход события.
+    /// </summary>
     private IEnumerator ActivateRoutine()
     {
+        // ── Шаг 1: Ждём задержку ──────────────────────────────────────────────
+        // Сколько секунд подождать перед началом (поле Activation Delay в Inspector)
         if (_activationDelay > 0f)
             yield return new WaitForSeconds(_activationDelay);
 
+        // ── Шаг 2: Показываем Target ──────────────────────────────────────────
+        // Включаем объект (например манекен). Если Target не назначен — пропускается.
         if (_target != null)
             _target.SetActive(true);
 
+        // ── Шаг 3: Проигрываем звук ───────────────────────────────────────────
+        // Запускаем AudioSource на объекте из поля Sound Object.
+        // Обычно это дочерний объект SoundSource с клипом (звонок, стук, шёпот).
+        if (_soundObject != null && _soundObject.TryGetComponent(out AudioSource soundAudio))
+            soundAudio.Play();
+
+        // ── Шаг 4: Активируем интерактивный объект ────────────────────────────
+        // «Включаем» объект из поля Interactable Object (телефон, картина, радио).
+        // После этого игрок сможет с ним взаимодействовать (нажать E).
+        // Когда игрок ответит — HorrorInteractable сам остановит звук через
+        // поле Stop Sound On Trigger.
+        if (_interactableObject != null && _interactableObject.TryGetComponent(out HorrorInteractable interactable))
+            interactable.Arm();
+
+        // ── Шаг 5: Дополнительные действия (On Activated) ─────────────────────
+        // UnityEvent — для сложных цепочек: анимация, активация других объектов,
+        // вызов методов на других компонентах. Обычно пустой — шаги 2-4够了.
         _onActivated?.Invoke();
 
+        // ── Шаг 6: Применяем эффект ───────────────────────────────────────────
+        // Что происходит с Target после показа:
+        //
+        //   AppearAndStay                   — остаётся навсегда
+        //   AppearThenDisappearOnLookAway   — исчезнет когда игрок посмотрит и отвернётся
+        //   AppearThenDisappearAfterDelay   — исчезнет через Disappear Delay секунд
+        //   DisappearOnTrigger              — был виден → теперь скрывается
+        //
         switch (_effectType)
         {
             case HorrorEffectType.AppearAndStay:
+                // Ничего не делаем — Target остаётся видимым
                 break;
 
             case HorrorEffectType.AppearThenDisappearOnLookAway:
+                // Включаем отслеживание взгляда в Update()
                 _targetVisible = true;
                 _hasSeenTarget = false;
                 break;
 
             case HorrorEffectType.AppearThenDisappearAfterDelay:
+                // Ждём Disappear Delay секунд, затем скрываем
                 yield return new WaitForSeconds(_disappearDelay);
                 Deactivate();
                 break;
 
             case HorrorEffectType.DisappearOnTrigger:
-                // Target was already visible — just hide it (with optional delay).
+                // Target был видим → скрываем (с дополнительной задержкой если нужно)
                 if (_activationDelay > 0f)
                     yield return new WaitForSeconds(_activationDelay);
                 Deactivate();
@@ -225,14 +492,39 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         }
     }
 
-    /// <summary>Hides the target and fires OnDeactivated. Safe to call from outside.</summary>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // ДЕАКТИВАЦИЯ — скрытие Target и остановка
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Скрывает Target и вызывает On Deactivated.
+    /// Вызывается автоматически (по взгляду / по таймеру) или вручную.
+    /// </summary>
     public void Deactivate()
     {
+        // Скрываем Target
         if (_target != null)
             _target.SetActive(false);
 
         _targetVisible = false;
+
+        // Останавливаем звук если был
+        if (_soundObject != null && _soundObject.TryGetComponent(out AudioSource audio))
+            audio.Stop();
+
+        // Дополнительные действия при скрытии
         _onDeactivated?.Invoke();
+    }
+
+    /// <summary>
+    /// Останавливает звук на Sound Object.
+    /// Вызывается автоматически из HorrorInteractable когда игрок отвечает
+    /// (поле Stop Sound On Trigger на телефоне/картине).
+    /// </summary>
+    public void StopSoundObject()
+    {
+        if (_soundObject != null && _soundObject.TryGetComponent(out AudioSource audio))
+            audio.Stop();
     }
 
     /// <summary>Helper for UnityEvents in prefabs to play sound without scene dependencies.</summary>
