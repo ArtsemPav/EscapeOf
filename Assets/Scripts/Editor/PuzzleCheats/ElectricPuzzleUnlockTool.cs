@@ -91,6 +91,10 @@ public static class ElectricPuzzleUnlockTool
 
         type.GetMethod("StartSolvedLoop", InstanceFlags).Invoke(controller, null);
 
+        // ── Activate building power (same as HandleLeverPulled on correct solve)
+
+        LightingSystem.Instance?.ActivatePower();
+
         // ── Persist state ────────────────────────────────────────────────────
 
         SaveManager.Instance?.Save();

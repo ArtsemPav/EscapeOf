@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using ChemicalPuzzle;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -31,12 +33,15 @@ using UnityEngine.InputSystem;
 /// </summary>
 [RequireComponent(typeof(Collider))]
 [RequireComponent(typeof(PuzzleModeController))]
-public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHandler
+public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleExitGuard
 {
     // ── Constants ─────────────────────────────────────────────────────────────
 
     private const int TerminalCount     = 6;
     private const int DisconnectedValue = -1;
+
+    // High enough to override the puzzle camera (priority 2000) during the solved cinematic.
+    private const int CinematicCameraPriority = 3000;
 
     // ── Inspector ─────────────────────────────────────────────────────────────
 
@@ -134,6 +139,27 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [SerializeField, Range(0f, 1f)] private float _wrongPullVolume     = 0.6f;
     [SerializeField, Range(0f, 1f)] private float _solvedLoopVolume    = 1f;
 
+    [Header("Solved Cinematic")]
+    [Tooltip("CinemachineCamera for the dramatic solved shot. Must start inactive in the hierarchy.")]
+    [SerializeField] private CinemachineCamera _cinematicCamera;
+
+    [Tooltip("Animator that plays the lamp turn-on animation during the cinematic. " +
+             "Optional — assign when the animation is ready.")]
+    [SerializeField] private Animator _lampAnimator;
+
+    [Tooltip("Trigger parameter name that starts the lamp turn-on animation.")]
+    [SerializeField] private string _lampAnimTrigger = "PlayLampAnimation";
+
+    [Tooltip("How long to hold the cinematic shot while the lamp animation plays (seconds).")]
+    [SerializeField, Min(0f)] private float _lampAnimDuration = 3f;
+
+    [Tooltip("Duration of the screen fade when cutting to the cinematic camera (seconds). " +
+             "Keep short for a sharp cut.")]
+    [SerializeField, Min(0f)] private float _cutFadeDuration = 0.3f;
+
+    [Tooltip("Duration of the screen fade when returning to the player camera (seconds).")]
+    [SerializeField, Min(0f)] private float _solvedFadeDuration = 1f;
+
     [Header("Events")]
     [Tooltip("Items that can be applied to this puzzle (fuse). " +
              "Leave empty to disable the inventory bar for this puzzle.")]
@@ -191,6 +217,11 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
     private PuzzleModeController _controller;
     private uint                 _cachedRenderingLayerMask;
+
+    // Cinematic camera state
+    private CinemachineBrain _brain;
+    private float            _originalBlendTime;
+    private bool             _isCinematicPlaying;
 
     /// <summary>
     /// Returns the rendering layer mask (Light Layers) that should be applied to dynamic wires.
@@ -278,6 +309,18 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (_lever != null)
             _lever.OnPulled += HandleLeverPulled;
 
+        // Cache CinemachineBrain for solved cinematic camera transitions.
+        _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
+        if (_brain == null)
+            _brain = FindFirstObjectByType<CinemachineBrain>();
+
+        if (_brain != null)
+            _originalBlendTime = _brain.DefaultBlend.Time;
+
+        // Deactivate cinematic camera until the solved cinematic plays.
+        if (_cinematicCamera != null)
+            _cinematicCamera.gameObject.SetActive(false);
+
         InitConnections();
         SaveManager.Instance?.Register(this);
     }
@@ -335,6 +378,20 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (_lampMaterial != null)
             Destroy(_lampMaterial);
+
+        // Emergency cleanup — if the cinematic is interrupted, restore everything.
+        if (_isCinematicPlaying)
+        {
+            if (_cinematicCamera != null)
+            {
+                _cinematicCamera.Priority = 0;
+                _cinematicCamera.gameObject.SetActive(false);
+            }
+            SetBlendDuration(_originalBlendTime);
+            if (ScreenFader.Instance != null)
+                ScreenFader.Instance.FadeOut(0f);
+            _isCinematicPlaying = false;
+        }
 
         SaveManager.Instance?.Unregister(this);
     }
@@ -590,9 +647,8 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         else
         {
             _isSolved = true;
-            UpdateLamp();
-            PlaySFX(_solvedClip, _solvedVolume);
-            StartSolvedLoop();
+            // Lamp, sound, and power activation are deferred to SolvedCinematicRoutine
+            // so they sync with the cinematic camera shot.
         }
 
         lever.Interact();
@@ -794,16 +850,125 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (_wiresCorrect)
         {
             if (_solvedObject != null) _solvedObject.SetActive(true);
-            LightingSystem.Instance?.ActivatePower();
             SaveManager.Instance?.Save();
 
-            // Delegate exit to PuzzleModeController — consistent with all other puzzles.
-            _controller?.SetSolved();
+            if (_cinematicCamera != null && gameObject.activeInHierarchy)
+                StartCoroutine(SolvedCinematicRoutine());
+            else
+            {
+                // Fallback: no cinematic camera — solve immediately.
+                UpdateLamp();
+                PlaySFX(_solvedClip, _solvedVolume);
+                StartSolvedLoop();
+                LightingSystem.Instance?.ActivatePower();
+                _controller?.SetSolved();
+            }
         }
         else
         {
             _lever?.Reset();
         }
+    }
+
+    // ── Solved cinematic ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Cinematic sequence played when the puzzle is solved:
+    /// quick fade to black → instant cut to cinematic camera → fade in →
+    /// lamp animation + power activation → fade to black → switch back to
+    /// player camera → fade in.
+    /// Reuses ScreenFader for the UI darkening. Cinemachine blends are
+    /// temporarily set to 0 so camera switches are instant (hidden by the fade).
+    /// </summary>
+    private IEnumerator SolvedCinematicRoutine()
+    {
+        _isCinematicPlaying = true;
+
+        // ── Phase 1: Quick fade to black (sharp cut) ───────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_cutFadeDuration);
+        else
+            yield return new WaitForSeconds(_cutFadeDuration);
+
+        // ── Phase 2: Instant cut to cinematic camera (screen is black) ─────────
+        SetBlendDuration(0f);
+
+        if (_cinematicCamera != null)
+        {
+            _cinematicCamera.Priority = CinematicCameraPriority;
+            _cinematicCamera.gameObject.SetActive(true);
+        }
+
+        // Wait one frame so the brain processes the instant cut.
+        yield return null;
+
+        // ── Phase 3: Fade from black — player sees the cinematic shot ──────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_cutFadeDuration);
+        else
+            yield return new WaitForSeconds(_cutFadeDuration);
+
+        // ── Phase 4: Turn on lamp, play sound, trigger animation
+        // Power activation is deferred to Phase 7 (during fade to black) so
+        // the building lights turn on while the screen is hidden — the player
+        // sees the result only when the camera returns, not during the close-up.
+        UpdateLamp();
+        PlaySFX(_solvedClip, _solvedVolume);
+        StartSolvedLoop();
+
+        if (_lampAnimator != null)
+            _lampAnimator.SetTrigger(_lampAnimTrigger);
+
+        // ── Phase 5: Hold the shot for the lamp animation ──────────────────────
+        yield return new WaitForSeconds(_lampAnimDuration);
+
+        // ── Phase 6: Fade to black ─────────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_solvedFadeDuration);
+        else
+            yield return new WaitForSeconds(_solvedFadeDuration);
+
+        // ── Phase 7: Activate building power while the screen is black ─────────
+        LightingSystem.Instance?.ActivatePower();
+
+        if (_cinematicCamera != null)
+        {
+            _cinematicCamera.Priority = 0;
+            _cinematicCamera.gameObject.SetActive(false);
+        }
+
+        // Wait one frame so the brain processes the instant cut back.
+        yield return null;
+
+        // Restore the original Cinemachine blend for the exit transition.
+        SetBlendDuration(_originalBlendTime);
+
+        // ── Phase 8: Exit puzzle mode — camera blends back to player ───────────
+        _controller?.SetSolved();
+
+        // Wait for the puzzle mode exit blend to complete.
+        if (_brain != null)
+        {
+            yield return null;
+            while (_brain.IsBlending) yield return null;
+        }
+
+        // ── Phase 9: Fade from black — player regains control ──────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_solvedFadeDuration);
+        else
+            yield return new WaitForSeconds(_solvedFadeDuration);
+
+        _isCinematicPlaying = false;
+    }
+
+    /// <summary>Sets the DefaultBlend duration on the CinemachineBrain (0 = instant cut).</summary>
+    private void SetBlendDuration(float duration)
+    {
+        if (_brain == null) return;
+        var blend = _brain.DefaultBlend;
+        blend.Time = duration;
+        _brain.DefaultBlend = blend;
     }
 
     /// <summary>
@@ -1030,6 +1195,11 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         go.AddComponent<LineRenderer>();
         return go.AddComponent<ElectricWire>();
     }
+
+    // ── IPuzzleExitGuard ──────────────────────────────────────────────────────
+
+    /// <summary>Blocks ESC exit while the solved cinematic is playing.</summary>
+    public bool CanExitPuzzle() => !_isCinematicPlaying;
 
     /// <summary>Routes SFX through AudioManager singleton — consistent with all other puzzle sounds.</summary>
     private static void PlaySFX(AudioClip clip, float volume)

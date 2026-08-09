@@ -12216,6 +12216,18 @@ PrefabInstance:
       value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 2684921790995199706, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _lampAnimator
+      value: 
+      objectReference: {fileID: 1777402943}
+    - target: {fileID: 2684921790995199706, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _cinematicCamera
+      value: 
+      objectReference: {fileID: 1967913822}
+    - target: {fileID: 2684921790995199706, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _lampAnimDuration
+      value: 2.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2684921790995199706, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: _solvedLoopMaxDistance
       value: 6
       objectReference: {fileID: 0}
@@ -12491,6 +12503,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 6747639008864523560, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: Lens.FieldOfView
+      value: 41
+      objectReference: {fileID: 0}
     - target: {fileID: 7396248741421677955, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -12538,6 +12554,34 @@ PrefabInstance:
     - target: {fileID: 8378796412777879110, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: m_DynamicOccludee
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.042986
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 2.4480636
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.26123196
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: -0.13024095
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.007515578
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.9825575
+      objectReference: {fileID: 0}
+    - target: {fileID: 9176847379037346212, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.1325203
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7316671499311494337, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
@@ -12820,6 +12864,11 @@ MonoBehaviour:
 --- !u!82 &1777402941 stripped
 AudioSource:
   m_CorrespondingSourceObject: {fileID: 8583562473831476847, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &1777402943 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 8057028895472842581, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
   m_PrefabInstance: {fileID: 1777402938}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &1779367180 stripped
@@ -13332,6 +13381,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1960831777}
   m_CullTransparentMesh: 1
+--- !u!114 &1967913822 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6747639008864523560, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!1 &2001833919
 GameObject:
   m_ObjectHideFlags: 0
