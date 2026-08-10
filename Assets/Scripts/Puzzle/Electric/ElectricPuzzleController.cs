@@ -884,6 +884,10 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         _isCinematicPlaying = true;
 
+        // ── Phase 0: Hide puzzle UI before the fade so it disappears seamlessly ─
+        PuzzleInventoryBar.Instance?.Hide();
+        UI.PuzzleCursor.Instance?.Hide();
+
         // ── Phase 1: Quick fade to black (sharp cut) ───────────────────────────
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeIn(_cutFadeDuration);

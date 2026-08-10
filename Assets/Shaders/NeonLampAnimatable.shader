@@ -1,6 +1,7 @@
 Shader "Custom/NeonLampAnimatable"
 {
-    // Same properties as URP/Lit, plus _EmissionIntensity (Range 0–20) for animation.
+    // NeonLampAnimatable — URP/Lit variant with animatable emission intensity.
+// Same properties as URP/Lit, plus _EmissionIntensity (Range 0–20) for animation.
     // The Forward pass multiplies emission by _EmissionIntensity, so you can
     // keyframe the slider in the Animation window to drive the lamp turn-on.
 
@@ -149,12 +150,8 @@ Shader "Custom/NeonLampAnimatable"
             #pragma instancing_options renderinglayer
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Assets/Shaders/NeonLampLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitForwardPass.hlsl"
-
-            // Animated emission intensity — declared outside UnityPerMaterial CBUFFER
-            // so the standard LitInput layout stays intact for SRP-batcher passes.
-            float _EmissionIntensity;
 
             // ── Custom fragment — identical to LitPassFragment but scales emission
             void LitPassFragmentEmission(
@@ -237,7 +234,7 @@ Shader "Custom/NeonLampAnimatable"
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Assets/Shaders/NeonLampLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
             ENDHLSL
         }
@@ -266,7 +263,7 @@ Shader "Custom/NeonLampAnimatable"
             #pragma multi_compile_instancing
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Assets/Shaders/NeonLampLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
             ENDHLSL
         }
@@ -299,7 +296,7 @@ Shader "Custom/NeonLampAnimatable"
             #pragma multi_compile_instancing
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Assets/Shaders/NeonLampLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitDepthNormalsPass.hlsl"
             ENDHLSL
         }
@@ -327,7 +324,7 @@ Shader "Custom/NeonLampAnimatable"
             #pragma shader_feature_local_fragment _SPECGLOSSMAP
             #pragma shader_feature EDITOR_VISUALIZATION
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Assets/Shaders/NeonLampLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/LitMetaPass.hlsl"
             ENDHLSL
         }
@@ -353,7 +350,7 @@ Shader "Custom/NeonLampAnimatable"
 
             #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/LitInput.hlsl"
+            #include "Assets/Shaders/NeonLampLitInput.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Universal2D.hlsl"
             ENDHLSL
         }
