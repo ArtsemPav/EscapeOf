@@ -9,8 +9,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3177638285967469863}
-  - component: {fileID: 1450782066459166102}
   - component: {fileID: 3484653912952260092}
+  - component: {fileID: 795337482323613472}
   m_Layer: 6
   m_Name: PuzzleInteract
   m_TagString: Untagged
@@ -27,33 +27,12 @@ Transform:
   m_GameObject: {fileID: 3002447721795382468}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0048356103, y: -0.0024219798, z: 0}
+  m_LocalPosition: {x: 0.0048356103, y: -0.00101, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2269009649599135909}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1450782066459166102
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3002447721795382468}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.0036281405, y: 0.0021323042, z: 0.0036281417}
-  m_Center: {x: -0.0000000024447218, y: 0.00091994635, z: 0.000000003608875}
 --- !u!114 &3484653912952260092
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -72,6 +51,27 @@ MonoBehaviour:
   _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
   _exitPopupType: 0
   _controller: {fileID: 5537032744249801686}
+--- !u!135 &795337482323613472
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3002447721795382468}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.004
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &4956244186293029507
 GameObject:
   m_ObjectHideFlags: 0
@@ -138,7 +138,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 33280
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 61a182b3d209f5449a5354c04213e399, type: 2}
@@ -281,7 +281,7 @@ Transform:
   m_GameObject: {fileID: 5441698666116885734}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 0.011625304, y: 0.03336, z: 0.015564003}
+  m_LocalPosition: {x: -0.00019, y: 0.02277, z: 0.01992}
   m_LocalScale: {x: 0.020000003, y: 0.014000004, z: 0.014000001}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -296,9 +296,9 @@ Light:
   m_GameObject: {fileID: 5441698666116885734}
   m_Enabled: 1
   serializedVersion: 12
-  m_Type: 0
+  m_Type: 2
   m_Color: {r: 0.63235295, g: 0.63235295, b: 0.63235295, a: 1}
-  m_Intensity: 10
+  m_Intensity: 5
   m_Range: 1.88
   m_SpotAngle: 170.11877
   m_InnerSpotAngle: 157.19247
@@ -336,7 +336,7 @@ Light:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 32768
   m_Lightmapping: 1
   m_LightShadowCasterMode: 2
   m_AreaSize: {x: 1, y: 1}
@@ -372,7 +372,7 @@ MonoBehaviour:
   m_SoftShadowQuality: 0
   m_RenderingLayersMask:
     serializedVersion: 0
-    m_Bits: 1
+    m_Bits: 32768
   m_ShadowRenderingLayersMask:
     serializedVersion: 0
     m_Bits: 1
@@ -393,7 +393,7 @@ GameObject:
   - component: {fileID: 2768946116413669349}
   - component: {fileID: 3957353909726801387}
   - component: {fileID: 6894371154135444524}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: 'Handle '
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -445,7 +445,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 33280
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 6bc708527fca85649bec19e9025c742a, type: 2}
@@ -484,7 +484,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b2255d8785952e4f8f36c7f3b5959e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RotateOnTrigger
-  _saveId: safe_handle_01
+  _saveId: 
   _rotationAxis: {x: 0, y: 1, z: 0}
   _targetAngle: 270
   _rotationSpeed: 180
@@ -590,7 +590,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 7.40514, y: 7.10863, z: -3.14049}
-  m_LocalScale: {x: 50, y: 50, z: 50}
+  m_LocalScale: {x: 71.42857, y: 71.42857, z: 71.42857}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2950492794843609858}
@@ -619,34 +619,10 @@ MonoBehaviour:
   - {fileID: 7532652650368245830}
   OnPuzzleModeEntered:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 5441698666116885734}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
+      m_Calls: []
   OnPuzzleModeExited:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 5441698666116885734}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   OnPuzzleSolved:
     m_PersistentCalls:
       m_Calls: []
@@ -718,7 +694,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 33280
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: eaec38640a6dffc47b78144cbd16197b, type: 2}
@@ -783,7 +759,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: safe_door_id
+  _saveId: 
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -807,8 +783,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.014414737, y: 0.0031758433, z: 0.024314744}
-  m_Center: {x: 0.007207372, y: 0.0008356894, z: 0.0000000037252903}
+  m_Size: {x: 0.007, y: 0.0031758433, z: 0.024314744}
+  m_Center: {x: 0.011, y: 0.0008356894, z: 0}
 --- !u!1 &8131441352662286998
 GameObject:
   m_ObjectHideFlags: 0
@@ -822,7 +798,7 @@ GameObject:
   - component: {fileID: 4539360932526338675}
   - component: {fileID: 8156858943078473375}
   - component: {fileID: 3473876111231531262}
-  m_Layer: 0
+  m_Layer: 2
   m_Name: Safe
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -875,7 +851,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 33280
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: eaec38640a6dffc47b78144cbd16197b, type: 2}

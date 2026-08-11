@@ -18,6 +18,8 @@ public class SafeUnlockSequence : MonoBehaviour
     [SerializeField] private float _delayBeforeHandle = 0.5f;
     [SerializeField] private float _delayBeforeDoor = 1.0f;
 
+    private bool _isStarted;
+
     private void Awake()
     {
         if (_handleRotate == null) _handleRotate = GetComponentInChildren<RotateOnTrigger>();
@@ -30,6 +32,8 @@ public class SafeUnlockSequence : MonoBehaviour
     /// </summary>
     public void StartSequence()
     {
+        if (_isStarted) return;
+        _isStarted = true;
         StartCoroutine(UnlockSequenceRoutine());
     }
 

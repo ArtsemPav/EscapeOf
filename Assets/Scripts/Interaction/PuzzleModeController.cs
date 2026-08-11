@@ -75,6 +75,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     private bool _flashlightWasOn;
     private bool _flashlightStateSaved;
 
+    private SimpleInteractable[] _cachedChildInteractables;
+    private PuzzleInteractable[] _cachedPuzzleInteractables;
+
     // High enough to override any player camera (PlayerCamera uses 1000).
     private const int PuzzleCameraPriority = 2000;
 
@@ -169,6 +172,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         if (_brain != null)
             _originalBlendTime = _brain.DefaultBlend.Time;
+
+        // Cache child interactables for efficient enable/disable during puzzle mode transitions.
+        _cachedChildInteractables = GetComponentsInChildren<SimpleInteractable>(true);
+        _cachedPuzzleInteractables = GetComponentsInChildren<PuzzleInteractable>(true);
 
         // Ensure support lights are off until the puzzle is entered with flashlight on.
         SetSupportLightsEnabled(false);
@@ -320,8 +327,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private void SetChildInteractablesEnabled(bool isEnabled)
     {
-        var interactables = GetComponentsInChildren<SimpleInteractable>(true);
-        foreach (var interactable in interactables)
+        if (_cachedChildInteractables == null) return;
+        foreach (var interactable in _cachedChildInteractables)
         {
             if (interactable.TryGetComponent<Collider>(out var col))
             {
@@ -332,8 +339,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private void SetPuzzleInteractableColliderEnabled(bool isEnabled)
     {
-        var puzzleInteractables = GetComponentsInChildren<PuzzleInteractable>(true);
-        foreach (var pi in puzzleInteractables)
+        if (_cachedPuzzleInteractables == null) return;
+        foreach (var pi in _cachedPuzzleInteractables)
         {
             if (pi.TryGetComponent<Collider>(out var col))
             {

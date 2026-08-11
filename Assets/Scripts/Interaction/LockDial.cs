@@ -32,6 +32,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     private const float SnapAngleThreshold    = 0.1f;
     private const float MinCursorDistanceSqr  = 1f;
     private const float MinDragDeltaThreshold = 0.05f;
+    private const float ComboResetStepMultiplier = 2f;
 
     // Max distance for the IsMouseOverDial raycast — the puzzle camera is close to the dial.
     private const float DialRaycastMaxDistance = 10f;
@@ -117,7 +118,8 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         currentStep = _currentStep,
         isUnlocked  = _isUnlocked,
-        isRequiredItemApplied = _isRequiredItemApplied
+        isRequiredItemApplied = _isRequiredItemApplied,
+        comboProgressIndex = _comboProgressIndex
     });
 
     public void LoadSaveData(string json)
@@ -126,6 +128,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         _currentStep = data.currentStep;
         _isUnlocked  = data.isUnlocked;
         _isRequiredItemApplied = data.isRequiredItemApplied;
+        _comboProgressIndex = data.comboProgressIndex;
         SnapToStep(_currentStep);
     }
 
@@ -135,6 +138,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         public int  currentStep;
         public bool isUnlocked;
         public bool isRequiredItemApplied;
+        public int  comboProgressIndex;
     }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
@@ -143,7 +147,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         _stepsPerRevolution = Mathf.RoundToInt(FullRevolutionDegrees / _stepAngle);
         _targetRotation     = transform.localRotation;
-        _colliderLock = GetComponent<BoxCollider>();
+        _colliderLock = GetComponent<Collider>();
         _mainCamera         = Camera.main;
         if (_puzzleMode == null) {
             _puzzleMode = GetComponentInParent<PuzzleModeController>();
@@ -224,7 +228,11 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         // Use a layer mask that only includes PuzzleInteractable so the Safe's MeshCollider
         // (on Default layer) and other geometry don't block the raycast to the dial.
         int puzzleLayer = LayerMask.NameToLayer("PuzzleInteractable");
-        if (puzzleLayer == -1) return false;
+        if (puzzleLayer == -1)
+        {
+            Debug.LogError($"[{nameof(LockDial)}] Layer 'PuzzleInteractable' not found in project settings. Dial interaction will not work.", this);
+            return false;
+        }
         int mask = 1 << puzzleLayer;
 
         if (Physics.Raycast(ray, out RaycastHit hit, DialRaycastMaxDistance, mask))
@@ -258,7 +266,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         float maxDelta = _maxInputRotationSpeed * Time.deltaTime;
         delta = Mathf.Clamp(delta, -maxDelta, maxDelta);
 
-        _previousMouseAngle = Mathf.MoveTowardsAngle(_previousMouseAngle, currentAngle, _maxInputRotationSpeed * Time.deltaTime);
+        _previousMouseAngle = currentAngle;
         _dragRotationDelta += delta;
         _angleAccumulator += delta;
 
@@ -360,7 +368,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
                 Unlock();
             }
         }
-        else if (Mathf.Abs(_dragRotationDelta) > _stepAngle * 0.5f)
+        else if (Mathf.Abs(_dragRotationDelta) > _stepAngle * ComboResetStepMultiplier)
         {
             // Reset if significant movement in wrong way
             _comboProgressIndex = 0;
@@ -456,18 +464,6 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     }
 
     // ── UI & Visuals ───────────────────────────────────────────────────────────
-
-    private void UpdateUI()
-    {
-        IInteractable interactable = GetComponent<IInteractable>();
-        if (interactable == null) return;
-
-        string hint = interactable.GetInteractText();
-        CrosshairMode mode = interactable.GetCrosshairMode();
-
-        InteractionUI.Instance?.SetCrosshair(mode);
-        InteractionUI.Instance?.SetHint(true, hint, false, mode);
-    }
 
     private void ResetUI()
     {
