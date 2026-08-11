@@ -7,22 +7,20 @@ using UnityEngine;
 /// </summary>
 public class TVChannelButton : MonoBehaviour, IInteractable
 {
-    [SerializeField] private string            _interactText = "Переключить камеру";
+    [SerializeField] private string            _interactText  = "Переключить камеру";
+    [SerializeField] private string            _noPowerText   = "Нет электричества";
     [SerializeField] private PeepholeTVCamera  _controller;
-
-    /// <summary>
-    /// Returns false when the component is disabled (e.g. by ElectricDevice
-    /// when power is off) — prevents interaction while power is cut.
-    /// </summary>
-    public bool CanInteract() => enabled;
 
     /// <summary>Advances to the next camera on the TV.</summary>
     public void Interact()
     {
+        // General power off (enabled set by LoopPuzzleController.OnPowerStateChanged).
+        // The button press animation still plays so the player sees the button respond.
+        if (!enabled) return;
         _controller?.NextCamera();
     }
 
-    public bool   IsPickable()    => false;
-    public bool   UseLMBClick     => true;
-    public string GetInteractText() => _interactText;
+    public bool   IsPickable()      => false;
+    public bool   UseLMBClick       => true;
+    public string GetInteractText() => enabled ? _interactText : _noPowerText;
 }

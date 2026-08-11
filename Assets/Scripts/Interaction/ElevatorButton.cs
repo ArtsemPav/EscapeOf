@@ -33,13 +33,9 @@ namespace Escape.Interaction
                 return;
             }
 
+            // MoveToFloor checks HasPower internally — the button press animation
+            // still plays so the player understands the button exists but is inactive.
             _controller.MoveToFloor(_floorIndex);
-        }
-
-        public bool CanInteract()
-        {
-            if (_controller == null) return false;
-            return _controller.HasPower;
         }
 
         public string GetInteractText()

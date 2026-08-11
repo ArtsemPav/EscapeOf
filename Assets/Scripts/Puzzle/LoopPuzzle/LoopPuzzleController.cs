@@ -200,9 +200,11 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
 
     /// <summary>
     /// Called by LightingSystem when general power changes.
-    /// When power is off: disables all puzzle interaction — buttons, TV, spotlights,
-    /// column triggers, and the power circuit itself. Everything stays visible but
-    /// non-interactive. When power is restored: everything re-enables.
+    /// When power is off: disables puzzle logic (buttons, TV, spotlights,
+    /// column triggers, power circuit) by setting enabled = false. Components
+    /// remain visible and clickable — Interact() checks enabled and bails out,
+    /// showing a "Нет электричества" hint so the player understands the button
+    /// exists but is inactive. When power is restored: everything re-enables.
     /// </summary>
     public void OnPowerStateChanged(bool isPowered)
     {
@@ -213,7 +215,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
         if (_tvCamera != null)
             _tvCamera.enabled = isPowered;
 
-        // TV channel button — CanInteract() checks enabled.
+        // TV channel button — Interact() checks enabled.
         if (_tvChannelButton != null)
             _tvChannelButton.enabled = isPowered;
 
@@ -226,12 +228,12 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
         if (_spotlightsParent != null)
             _spotlightsParent.SetActive(isPowered);
 
-        // Column buttons (Q1–Q4) — CanInteract() checks enabled on PaintingColumnTrigger.
+        // Column buttons (Q1–Q4) — Interact() checks enabled on PaintingColumnTrigger.
         if (_columnButtons != null)
             foreach (var btn in _columnButtons)
                 if (btn != null) btn.enabled = isPowered;
 
-        // Power switch buttons (S1–S6) — CanInteract() checks enabled.
+        // Power switch buttons (S1–S6) — Interact() checks enabled.
         if (_powerButtons != null)
             foreach (var btn in _powerButtons)
                 if (btn != null) btn.enabled = isPowered;

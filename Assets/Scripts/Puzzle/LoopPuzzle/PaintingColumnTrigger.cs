@@ -140,17 +140,14 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Returns false when the component is disabled (e.g. by LoopPuzzleController
-    /// when general power is off) — prevents interaction while remaining visible.
-    /// </summary>
-    public bool CanInteract() => enabled;
-
     /// <summary>Locks the button permanently. Called by LoopPuzzleController when the puzzle is solved.</summary>
     public void SetLocked(bool locked) => _isLockedByPuzzle = locked;
 
     public void Interact()
     {
+        // General power off (enabled set by LoopPuzzleController.OnPowerStateChanged).
+        // The button press animation still plays so the player sees the button respond.
+        if (!enabled) return;
         if (IsBlocked) return;
 
         _pendingMoves  = (_primaryColumn != null ? 1 : 0)
@@ -167,8 +164,9 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
     public bool   UseLMBClick       => true;
     public string GetInteractText()
     {
-        if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving) return _lockedInteractText;
-        if (_isLockedByPower)                                 return _noPowerText;
+        if (!enabled)                                            return _noPowerText;
+        if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving)     return _lockedInteractText;
+        if (_isLockedByPower)                                    return _noPowerText;
         return _interactText;
     }
 }

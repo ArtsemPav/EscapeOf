@@ -15,6 +15,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     [Header("Interaction")]
     [SerializeField] private string _interactText       = "Нажать";
     [SerializeField] private string _lockedInteractText = "Заблокировано";
+    [SerializeField] private string _noPowerText        = "Нет электричества";
 
     [Header("Indicator")]
     [SerializeField] private Renderer _indicatorRenderer;
@@ -109,19 +110,21 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Returns false when the component is disabled (e.g. by ElectricDevice
-    /// when power is off) — prevents interaction while remaining visible.
-    /// </summary>
-    public bool CanInteract() => enabled;
-
     public void Interact()
     {
+        // General power off (enabled set by LoopPuzzleController.OnPowerStateChanged).
+        // The button press animation still plays so the player sees the button respond.
+        if (!enabled) return;
         if (IsLocked) return;
         Toggle();
     }
 
-    public bool IsPickable()        => false;
-    public bool UseLMBClick         => true;
-    public string GetInteractText() => IsLocked ? _lockedInteractText : _interactText;
+    public bool IsPickable() => false;
+    public bool UseLMBClick  => true;
+    public string GetInteractText()
+    {
+        if (!enabled)       return _noPowerText;
+        if (IsLocked)       return _lockedInteractText;
+        return _interactText;
+    }
 }
