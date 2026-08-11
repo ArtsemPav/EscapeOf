@@ -405,8 +405,16 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
             Camera cam = Camera.main;
             if (cam == null) return false;
 
+            int puzzleLayer = LayerMask.NameToLayer("PuzzleInteractable");
+            if (puzzleLayer == -1)
+            {
+                Debug.LogError($"[{nameof(LockDial)}] Layer 'PuzzleInteractable' not found. Drop will not work.", this);
+                return false;
+            }
+            int mask = 1 << puzzleLayer;
+
             Ray ray = cam.ScreenPointToRay(screenPosition);
-            if (!Physics.Raycast(ray, out RaycastHit hit) || hit.collider != _colliderLock)
+            if (!Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, mask) || hit.collider != _colliderLock)
                 return false;
         }
 
