@@ -23,7 +23,7 @@ namespace Escape.Interaction
     /// Implements ISaveable: persists current floor index and door state.
     /// </summary>
     [RequireComponent(typeof(Collider))]
-    public class ElevatorController : MonoBehaviour, ISaveable
+    public class ElevatorController : MonoBehaviour, ISaveable, IPowerConsumer
     {
         private const string DEFAULT_SAVE_ID = "elevator_controller";
         private const int DOOR_CLOSED = 0;
@@ -101,9 +101,19 @@ namespace Escape.Interaction
         [Tooltip("Через сколько секунд двери закроются автоматически, если игрок не в лифте.")]
         [SerializeField] [Min(1f)] private float _autoCloseDelay = 20f;
 
+        [Header("Power")]
+        [Tooltip("Подсказка, которую показывают кнопки лифта, когда нет электричества.")]
+        [SerializeField] private string _noPowerHint = "Нет электричества";
+
         public int CurrentFloor { get; private set; }
         public bool IsMoving { get; private set; }
         public bool AreDoorsOpen { get; private set; }
+
+        /// <summary>True when master power is on — the elevator can move.</summary>
+        public bool HasPower { get; private set; } = false;
+
+        /// <summary>Hint text shown by elevator buttons when power is off.</summary>
+        public string NoPowerHint => _noPowerHint;
 
         private bool _isBusy;
         private Transform _playerTransform;
@@ -142,6 +152,26 @@ namespace Escape.Interaction
         {
             public int currentFloor;
             public bool doorsOpen;
+        }
+
+        // ── IPowerConsumer ───────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Called by LightingSystem when master power changes (and once on registration).
+        /// When power is off the ambient music stops and MoveToFloor is blocked.
+        /// When power returns the ambient music resumes.
+        /// </summary>
+        public void OnPowerStateChanged(bool isPowered)
+        {
+            HasPower = isPowered;
+
+            if (_ambientLoopSource != null)
+            {
+                if (isPowered)
+                    _ambientLoopSource.volume = _ambientVolume;
+                else
+                    _ambientLoopSource.volume = 0f;
+            }
         }
 
         private void Awake()
@@ -187,6 +217,7 @@ namespace Escape.Interaction
         private void OnDestroy()
         {
             SaveManager.Instance?.Unregister(this);
+            LightingSystem.Instance?.UnregisterConsumer(this);
             CancelAutoClose();
 
             if (_ambientLoopSource != null)
@@ -195,6 +226,9 @@ namespace Escape.Interaction
 
         private void Start()
         {
+            // Register as power consumer — receives current state immediately
+            LightingSystem.Instance?.RegisterConsumer(this);
+
             // If no save was loaded, initialize at starting floor
             if (_floorMarkers == null || _floorMarkers.Length == 0) return;
 
@@ -211,9 +245,11 @@ namespace Escape.Interaction
         /// Requests the elevator to move to the given floor index.
         /// If already there with doors open, does nothing.
         /// If busy, the request is ignored (no queue to keep logic simple).
+        /// Does nothing when master power is off.
         /// </summary>
         public void MoveToFloor(int floorIndex)
         {
+            if (!HasPower) return;
             if (_isBusy) return;
             if (floorIndex < 0 || floorIndex >= _floorMarkers.Length) return;
             if (floorIndex == CurrentFloor && AreDoorsOpen) return;

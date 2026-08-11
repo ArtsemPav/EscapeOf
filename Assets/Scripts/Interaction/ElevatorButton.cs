@@ -36,7 +36,18 @@ namespace Escape.Interaction
             _controller.MoveToFloor(_floorIndex);
         }
 
-        public string GetInteractText() => _hintText;
+        public bool CanInteract()
+        {
+            if (_controller == null) return false;
+            return _controller.HasPower;
+        }
+
+        public string GetInteractText()
+        {
+            if (_controller != null && !_controller.HasPower)
+                return _controller.NoPowerHint;
+            return _hintText;
+        }
 
         public bool IsPickable() => false;
 

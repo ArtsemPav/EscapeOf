@@ -34,7 +34,7 @@ public struct PaintingCondition
 /// so RoomLightSwitch and room lights can live in any prefab.
 /// Persists the solved state via ISaveable.
 /// </summary>
-public class LoopPuzzleController : MonoBehaviour, ISaveable
+public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
 {
     [Header("Save")]
     [SerializeField] private string _saveId = "loop_puzzle_controller";
@@ -43,6 +43,22 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     [SerializeField] private LoopPuzzlePowerCircuit    _powerCircuit;
     [SerializeField] private DrawerDrag                _rewardDrawer;
     [SerializeField] private PaintingRoomLightSwitch   _roomLightSwitch;
+
+    [Header("Power — General Electricity")]
+    [Tooltip("TV camera controller. Disabled (blackout) when general power is off.")]
+    [SerializeField] private PeepholeTVCamera _tvCamera;
+
+    [Tooltip("TV channel switch button. Disabled when general power is off.")]
+    [SerializeField] private TVChannelButton _tvChannelButton;
+
+    [Tooltip("Spotlights parent GameObject. Deactivated when general power is off.")]
+    [SerializeField] private GameObject _spotlightsParent;
+
+    [Tooltip("Column buttons (Q1–Q4). Disabled when general power is off.")]
+    [SerializeField] private PaintingColumnTrigger[] _columnButtons;
+
+    [Tooltip("Power switch buttons (S1–S6). Disabled when general power is off.")]
+    [SerializeField] private LoopPuzzleButton[] _powerButtons;
 
     [Header("Room Light Zone")]
     [Tooltip("ZoneId of the painting room lights in LightingSystem. " +
@@ -142,6 +158,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
         if (LightingSystem.Instance != null)
             _roomLightOff = !LightingSystem.Instance.GetZoneSwitchState(_roomLightZoneId);
 
+        // Register as power consumer — receives current power state immediately.
+        LightingSystem.Instance?.RegisterConsumer(this);
+
         if (_isSolved)
         {
             RestoreSolvedState();
@@ -160,6 +179,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
     {
         UnsubscribeFromEvents();
         SaveManager.Instance?.Unregister(this);
+        LightingSystem.Instance?.UnregisterConsumer(this);
 
         // Emergency cleanup — if the cinematic is interrupted, restore everything.
         if (_solvedCamera != null)
@@ -174,6 +194,51 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable
 
         if (ScreenFader.Instance != null)
             ScreenFader.Instance.FadeOut(0f);
+    }
+
+    // ── IPowerConsumer ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by LightingSystem when general power changes.
+    /// When power is off: disables all puzzle interaction — buttons, TV, spotlights,
+    /// column triggers, and the power circuit itself. Everything stays visible but
+    /// non-interactive. When power is restored: everything re-enables.
+    /// </summary>
+    public void OnPowerStateChanged(bool isPowered)
+    {
+        if (_isSolved) return;
+
+        // TV — PeepholeTVCamera.OnDisable blacks out the screen,
+        // OnEnable restores the RT material and camera.
+        if (_tvCamera != null)
+            _tvCamera.enabled = isPowered;
+
+        // TV channel button — CanInteract() checks enabled.
+        if (_tvChannelButton != null)
+            _tvChannelButton.enabled = isPowered;
+
+        // TV glitch effect.
+        var glitch = _tvCamera != null ? _tvCamera.GetComponent<TVGlitchEffect>() : null;
+        if (glitch != null)
+            glitch.enabled = isPowered;
+
+        // Spotlights — fully deactivate parent (all 4 lights).
+        if (_spotlightsParent != null)
+            _spotlightsParent.SetActive(isPowered);
+
+        // Column buttons (Q1–Q4) — CanInteract() checks enabled on PaintingColumnTrigger.
+        if (_columnButtons != null)
+            foreach (var btn in _columnButtons)
+                if (btn != null) btn.enabled = isPowered;
+
+        // Power switch buttons (S1–S6) — CanInteract() checks enabled.
+        if (_powerButtons != null)
+            foreach (var btn in _powerButtons)
+                if (btn != null) btn.enabled = isPowered;
+
+        // Power circuit — stops evaluating spotlight power.
+        if (_powerCircuit != null)
+            _powerCircuit.enabled = isPowered;
     }
 
     // ── Event Subscriptions ────────────────────────────────────────────────────

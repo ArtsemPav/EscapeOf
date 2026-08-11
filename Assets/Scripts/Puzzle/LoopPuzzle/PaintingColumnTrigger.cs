@@ -140,6 +140,12 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
 
     // ── IInteractable ──────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Returns false when the component is disabled (e.g. by LoopPuzzleController
+    /// when general power is off) — prevents interaction while remaining visible.
+    /// </summary>
+    public bool CanInteract() => enabled;
+
     /// <summary>Locks the button permanently. Called by LoopPuzzleController when the puzzle is solved.</summary>
     public void SetLocked(bool locked) => _isLockedByPuzzle = locked;
 
