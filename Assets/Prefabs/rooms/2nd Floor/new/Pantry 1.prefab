@@ -4732,31 +4732,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.142
+      value: -1.042986
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.097
+      value: 2.4480636
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.15
+      value: 0.26123196
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.097648695
+      value: -0.13024095
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.026818024
+      value: -0.007515578
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.9805437
+      value: -0.9825575
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.16816577
+      value: 0.1325203
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -4945,6 +4945,10 @@ PrefabInstance:
     - target: {fileID: 3681178999718247195, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 1049088
+      objectReference: {fileID: 0}
+    - target: {fileID: 3719414771469201966, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: Lens.FieldOfView
+      value: 41
       objectReference: {fileID: 0}
     - target: {fileID: 3781018861747702647, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_Layer
@@ -5187,8 +5191,12 @@ PrefabInstance:
       value: 0.5202156
       objectReference: {fileID: 0}
     - target: {fileID: 5438285451633496540, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: _cinematicCamera
+      value: 
+      objectReference: {fileID: 7906304114646907339}
+    - target: {fileID: 5438285451633496540, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: _lampAnimDuration
-      value: 2.7
+      value: 2.5
       objectReference: {fileID: 0}
     - target: {fileID: 5438285451633496540, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: _lampGreenColor.a
@@ -5221,6 +5229,14 @@ PrefabInstance:
     - target: {fileID: 5438285451633496540, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: _lampGreenEmission.g
       value: 3.5902963
+      objectReference: {fileID: 0}
+    - target: {fileID: 5438285451633496540, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: _solvedLoopMaxDistance
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5438285451633496540, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: _solvedLoopMinDistance
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 5461697093714355910, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.w
@@ -5699,6 +5715,17 @@ MeshRenderer:
   m_CorrespondingSourceObject: {fileID: 963368118257041353, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
   m_PrefabInstance: {fileID: 6784340462632160229}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7906304114646907339 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3719414771469201966, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+  m_PrefabInstance: {fileID: 6784340462632160229}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!108 &9072418991721591323 stripped
 Light:
   m_CorrespondingSourceObject: {fileID: 2576451194569193982, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
