@@ -60,6 +60,9 @@ public class GeneratorPuzzleController : MonoBehaviour,
     [Tooltip("ObjectShake на генераторе — включается при завершении мини-игры (постоянное дрожание работающего двигателя).")]
     [SerializeField] private ObjectShake _generatorShake;
 
+    [Tooltip("LoopAudioController на генераторе. Запускается после проигрывания звука успеха (_successClip).")]
+    [SerializeField] private LoopAudioController _generatorLoopAudio;
+
     [Header("Hit Shake")]
     [Tooltip("Амплитуда смещения позиции при импульсной тряске генератора при попадании в зелёную зону (метры).")]
     [SerializeField, Min(0f)] private float _generatorShakePositionAmplitude = 0.05f;
@@ -445,6 +448,27 @@ public class GeneratorPuzzleController : MonoBehaviour,
         EnableGeneratorShake();
         LightingSystem.Instance?.SetGeneratorReady(true);
         _controller?.SetSolved(); // выходит из режима пазла и сохраняет прогресс
+
+        // Запускаем зацикленный звук после окончания success clip
+        StartCoroutine(StartLoopAfterSuccessClip());
+    }
+
+    /// <summary>
+    /// Ждёт окончания проигрывания _successClip, затем запускает зацикленный звук генератора.
+    /// </summary>
+    private IEnumerator StartLoopAfterSuccessClip()
+    {
+        if (_generatorLoopAudio == null)
+            yield break;
+
+        // _successClip уже проигрывается из HandleMinigameHit на последнем попадании.
+        // Ждём его длительности перед запуском лупа.
+        if (_successClip != null)
+            yield return new WaitForSecondsRealtime(_successClip.length);
+        else
+            yield return null;
+
+        _generatorLoopAudio.StartLoop();
     }
 
     /// <summary>Запускает VFX завершения мини-игры (дым работающего генератора).</summary>

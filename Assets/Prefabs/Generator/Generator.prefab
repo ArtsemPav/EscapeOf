@@ -208,8 +208,9 @@ MonoBehaviour:
   _loopMinDistance: 3
   _loopMaxDistance: 6
   _sfxClip: {fileID: 8300000, guid: 1732d3c673934c648988148bafd5de85, type: 3}
-  _loopVolume: 1
+  _loopVolume: 0.5
   _sfxVolume: 1
+  _playOnEnable: 0
 --- !u!1 &4570040127405049197
 GameObject:
   m_ObjectHideFlags: 0
@@ -415,7 +416,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7325367185507684268}
-  - component: {fileID: 519767355221902267}
+  - component: {fileID: 1683885864758160981}
   m_Layer: 6
   m_Name: SpartkPlugInput
   m_TagString: Untagged
@@ -438,8 +439,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 9206932500541081582}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!136 &519767355221902267
-CapsuleCollider:
+--- !u!135 &1683885864758160981
+SphereCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -456,10 +457,8 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 0.06
-  m_Height: 0.3
-  m_Direction: 1
+  serializedVersion: 3
+  m_Radius: 0.25
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6888511708584108662
 GameObject:
@@ -694,7 +693,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.18
+  m_Radius: 0.3
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &1706205336790269674
 PrefabInstance:
