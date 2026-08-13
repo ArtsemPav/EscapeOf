@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using System.Collections.Generic;
 using System.Collections;
 
@@ -12,6 +13,10 @@ namespace PuzzleGame
         [Header("Save")]
         [SerializeField] private string _saveId = "fifteen_puzzle";
 
+        [Header("Events")]
+        [Tooltip("Fired once when the puzzle is solved.")]
+        public UnityEvent OnPuzzleSolved;
+
         [Header("Grid Settings")]
         [SerializeField] private int width = 3;
         [SerializeField] private int height = 3;
@@ -19,8 +24,6 @@ namespace PuzzleGame
 
         [Header("Setup")]
         [SerializeField] private List<FifteenPuzzleElement> elements = new List<FifteenPuzzleElement>();
-        [SerializeField] private GameObject lastElementPrefab; // The last tile to show on win
-        [SerializeField] private ItemData rewardItemData;      // Item to add to inventory on restore (skips LastElement spawn)
 
         [Header("Visual Settings")]
         [SerializeField] private bool useImageAtlas = true;
@@ -29,7 +32,6 @@ namespace PuzzleGame
         private FifteenPuzzleElement[,] grid;
         private Vector2Int emptyPosition;
         private bool isShuffling;
-        private GameObject spawnedLastElement;
 
         private bool isPuzzleSolved;
         private bool isLoadedAsSolved;
@@ -56,11 +58,12 @@ namespace PuzzleGame
                 ApplyAtlasToElements();
             }
 
-            PrepareLastElement();
-
             if (isLoadedAsSolved)
             {
                 RestoreSolvedState();
+                // Re-fire the event so listeners (doors, lights, etc.) can restore their state.
+                // Deferred by one frame so all listeners have completed their Awake/Start.
+                StartCoroutine(InvokeSolvedDeferred());
             }
             else
             {
@@ -92,31 +95,7 @@ namespace PuzzleGame
             emptyPosition = new Vector2Int(width - 1, height - 1);
             grid[emptyPosition.x, emptyPosition.y] = null;
 
-            // Do NOT spawn LastElement — its PickableItem would be immediately destroyed by
-            // the save system (collected=true). Instead, add the reward item directly to the
-            // inventory if it is not already there.
-            if (rewardItemData != null && InventorySystem.Instance != null
-                && !InventorySystem.Instance.HasItem(rewardItemData))
-            {
-                if (!InventorySystem.Instance.AddItem(rewardItemData))
-                    Debug.LogWarning($"[PuzzleManager] Could not restore '{rewardItemData.itemName}' — inventory is full.");
-                else
-                    Debug.Log($"[PuzzleManager] Restored: added '{rewardItemData.itemName}' to inventory.");
-            }
-
             Debug.Log("[PuzzleManager] Restored solved state from save.");
-        }
-
-        private void PrepareLastElement()
-        {
-            if (lastElementPrefab == null) return;
-
-            // Instantiate the last element but keep it hidden initially
-            spawnedLastElement = Instantiate(lastElementPrefab, transform);
-            spawnedLastElement.SetActive(false);
-
-            // Set its position to the empty slot's initial world position
-            spawnedLastElement.transform.localPosition = GetWorldPosition(width - 1, height - 1);
         }
 
         private void ApplyAtlasToElements()
@@ -289,10 +268,10 @@ namespace PuzzleGame
                     index++;
                 }
             }
-            OnPuzzleSolved();
+            HandlePuzzleSolved();
         }
 
-        private void OnPuzzleSolved()
+        private void HandlePuzzleSolved()
         {
             Debug.Log("Puzzle Solved!");
             isPuzzleSolved = true;
@@ -306,16 +285,9 @@ namespace PuzzleGame
                     if (col != null) col.enabled = false;
                 }
             }
-            
-            // Show the last element to complete the image
-            if (spawnedLastElement != null)
-            {
-                // Ensure it's in the correct final position (the empty slot)
-                spawnedLastElement.transform.localPosition = GetWorldPosition(emptyPosition.x, emptyPosition.y);
-                spawnedLastElement.SetActive(true);
-            }
 
             SaveManager.Instance?.Save();
+            OnPuzzleSolved.Invoke();
         }
 
         // ── ISaveable ─────────────────────────────────────────────────────────────
@@ -381,6 +353,15 @@ namespace PuzzleGame
             }
 
             CheckWinCondition();
+        }
+
+        /// <summary>
+        /// Invokes OnPuzzleSolved after one frame so all listener Awake/Start calls have run.
+        /// </summary>
+        private IEnumerator InvokeSolvedDeferred()
+        {
+            yield return null;
+            OnPuzzleSolved.Invoke();
         }
 
     }
