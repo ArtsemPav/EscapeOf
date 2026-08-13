@@ -123,96 +123,6 @@ Transform:
   - {fileID: 5494309088843385577}
   m_Father: {fileID: 3080717217916578980}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &5014616338540446691
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2502436208997555}
-  - component: {fileID: 3121443632046791459}
-  - component: {fileID: 4457904998190790942}
-  m_Layer: 0
-  m_Name: cofeemachine
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2502436208997555
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5014616338540446691}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.73, y: 1.7931685, z: 2.01}
-  m_LocalScale: {x: 100, y: 99.99996, z: 99.99996}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 3080717217916578980}
-  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
---- !u!33 &3121443632046791459
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5014616338540446691}
-  m_Mesh: {fileID: 3472241937676383542, guid: 76587c260f8eab04cba929d6b1e780e8, type: 3}
---- !u!23 &4457904998190790942
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5014616338540446691}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: b4a606ef987a7a345aad1570ecd0b3fc, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_MaskInteraction: 0
-  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &6027120333253840432
 GameObject:
   m_ObjectHideFlags: 0
@@ -277,7 +187,6 @@ Transform:
   - {fileID: 8411981967436239407}
   - {fileID: 692723313464131057}
   - {fileID: 4176485328465992687}
-  - {fileID: 2502436208997555}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &293732076830411815
@@ -340,10 +249,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
-    - target: {fileID: 2300000, guid: 5263e9a4eb90cee4e90bad28e830662f, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: da7a7706682f4634796336b13f691a7e, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -560,7 +465,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1851866696750548390, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2561
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 3059885113039760560, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_LocalScale.x
@@ -660,7 +565,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6032850779797996308, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2561
+      value: 2560
+      objectReference: {fileID: 0}
+    - target: {fileID: 6709410033813362878, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 7803015208724860424, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -782,7 +691,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 23802013872350056, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 544
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Type
@@ -1030,7 +939,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2300000, guid: ed00183f03362854b9eb2bf8c97aba65, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 544
+      value: 2560
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1184,10 +1093,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
-    - target: {fileID: 2300000, guid: 5263e9a4eb90cee4e90bad28e830662f, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f970e648d1ee4ee42a50b96f5b5417a0, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1240,7 +1145,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1851866696750548390, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2561
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 3059885113039760560, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_LocalScale.x
@@ -1332,7 +1237,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6032850779797996308, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2561
+      value: 2560
+      objectReference: {fileID: 0}
+    - target: {fileID: 6709410033813362878, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 7803015208724860424, guid: 8e6bc746ab2033048a2ea0fda19995c6, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -1460,7 +1369,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 306fde77f10bf8d44bcd385d5d892492, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -0.18000267
+      value: -0.48
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 306fde77f10bf8d44bcd385d5d892492, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1664,7 +1573,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2300000, guid: ed00183f03362854b9eb2bf8c97aba65, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 544
+      value: 2560
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1982,10 +1891,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
-    - target: {fileID: 2300000, guid: 5263e9a4eb90cee4e90bad28e830662f, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: da7a7706682f4634796336b13f691a7e, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2286,10 +2191,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
-    - target: {fileID: 2300000, guid: 5263e9a4eb90cee4e90bad28e830662f, type: 3}
-      propertyPath: 'm_Materials.Array.data[2]'
-      value: 
-      objectReference: {fileID: 2100000, guid: f970e648d1ee4ee42a50b96f5b5417a0, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2494,7 +2395,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 306fde77f10bf8d44bcd385d5d892492, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -7.27
+      value: -6.65
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 306fde77f10bf8d44bcd385d5d892492, type: 3}
       propertyPath: m_LocalPosition.y
