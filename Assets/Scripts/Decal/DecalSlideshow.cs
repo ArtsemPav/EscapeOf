@@ -12,7 +12,7 @@ using UnityEngine.Rendering.Universal;
 /// via a single _ScrollOffset float.
 /// </summary>
 [RequireComponent(typeof(DecalProjector))]
-public class DecalSlideshow : MonoBehaviour
+public class DecalSlideshow : MonoBehaviour, IPowerConsumer
 {
     private const string CurrentIndexProperty     = "_CurrentIndex";
     private const string NextIndexProperty        = "_NextIndex";
@@ -91,6 +91,13 @@ public class DecalSlideshow : MonoBehaviour
     [Tooltip("Fired after each frame transition completes. Hook up a clicking sound or other effect here.")]
     [SerializeField] private UnityEvent _onSlideChanged;
 
+    [Header("Power — Linked Components")]
+    [Tooltip("Зацикленный звук проектора. Останавливается при выключенном питании. Может быть null.")]
+    [SerializeField] private LoopAudioController _audioController;
+
+    [Tooltip("Мерцание луча света проектора. Отключается при выключенном питании. Может быть null.")]
+    [SerializeField] private ProjectorLightFlicker _lightFlicker;
+
     private DecalProjector  _decalProjector;
     private Material        _material;
     private Texture2DArray  _textureArray;
@@ -112,20 +119,62 @@ public class DecalSlideshow : MonoBehaviour
         _decalProjector = GetComponent<DecalProjector>();
         EnsureMaterial();
         BuildTextureArray();
-    }
-
-    private void Start()
-    {
-        if (_playOnAwake && SlideCount > 1)
-            Play();
+        LightingSystem.Instance?.RegisterConsumer(this);
     }
 
     private void OnDestroy()
     {
+        LightingSystem.Instance?.UnregisterConsumer(this);
+
         if (_textureArray != null)
         {
             Destroy(_textureArray);
             _textureArray = null;
+        }
+    }
+
+    /// <summary>
+    /// Called by LightingSystem when master power changes (and once on registration).
+    /// Controls the slideshow, projector audio, and light ray based on power state.
+    /// </summary>
+    public void OnPowerStateChanged(bool isPowered)
+    {
+        if (isPowered)
+        {
+            if (_playOnAwake && SlideCount > 1)
+                Play();
+
+            if (_decalProjector != null)
+                _decalProjector.enabled = true;
+
+            if (_audioController != null)
+                _audioController.StartLoop();
+
+            if (_lightFlicker != null)
+            {
+                _lightFlicker.enabled = true;
+                MeshRenderer rayRenderer = _lightFlicker.GetComponent<MeshRenderer>();
+                if (rayRenderer != null)
+                    rayRenderer.enabled = true;
+            }
+        }
+        else
+        {
+            Pause();
+
+            if (_decalProjector != null)
+                _decalProjector.enabled = false;
+
+            if (_audioController != null)
+                _audioController.StopLoop();
+
+            if (_lightFlicker != null)
+            {
+                MeshRenderer rayRenderer = _lightFlicker.GetComponent<MeshRenderer>();
+                if (rayRenderer != null)
+                    rayRenderer.enabled = false;
+                _lightFlicker.enabled = false;
+            }
         }
     }
 
