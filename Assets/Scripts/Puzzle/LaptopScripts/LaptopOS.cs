@@ -12,7 +12,7 @@ namespace EscapeOf.Puzzle.Laptop
     /// Attach to LaptopContainer alongside PuzzleModeController.
     /// </summary>
     [RequireComponent(typeof(PuzzleModeController))]
-    public class LaptopOS : MonoBehaviour, ISaveable
+    public class LaptopOS : MonoBehaviour, ISaveable, IPowerConsumer
     {
         // ── Inspector ──────────────────────────────────────────────────────────────
 
@@ -84,6 +84,7 @@ namespace EscapeOf.Puzzle.Laptop
         private bool   _isUnlocked;
         private string _lastOpenedFileId;
         private bool   _isProcessing;
+        private bool   _hasPower;
 
         // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -91,13 +92,18 @@ namespace EscapeOf.Puzzle.Laptop
         {
             _puzzleMode = GetComponent<PuzzleModeController>();
             SaveManager.Instance?.Register(this);
+            LightingSystem.Instance?.RegisterConsumer(this);
         }
 
         private void Start()
         {
             // Apply saved screen state immediately so the render texture
             // shows the correct screen before the player enters puzzle mode.
-            ApplyScreenState();
+            // OnPowerStateChanged already handles initial state during Awake
+            // registration, but Start may run after save data is loaded, so
+            // re-apply only if power is available.
+            if (_hasPower)
+                ApplyScreenState();
         }
 
         private void OnEnable()
@@ -115,11 +121,12 @@ namespace EscapeOf.Puzzle.Laptop
         private void OnDestroy()
         {
             SaveManager.Instance?.Unregister(this);
+            LightingSystem.Instance?.UnregisterConsumer(this);
         }
 
         private void Update()
         {
-            if (_isProcessing || _isUnlocked) return;
+            if (!_hasPower || _isProcessing || _isUnlocked) return;
 
             var kb = Keyboard.current;
             if (kb == null) return;
@@ -141,10 +148,39 @@ namespace EscapeOf.Puzzle.Laptop
             }
         }
 
+        // ── IPowerConsumer ───────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Called by LightingSystem when master power changes (and once on registration).
+        /// When power is off the laptop screen turns off and input is blocked.
+        /// When power returns the screen restores to its saved state.
+        /// </summary>
+        public void OnPowerStateChanged(bool isPowered)
+        {
+            _hasPower = isPowered;
+
+            if (isPowered)
+            {
+                ApplyScreenState();
+            }
+            else
+            {
+                _loginScreen?.SetActive(false);
+                _desktopScreen?.SetActive(false);
+
+                if (Keyboard.current != null)
+                    Keyboard.current.onTextInput -= OnCharacterTyped;
+
+                _windowManager?.PauseMediaAll();
+            }
+        }
+
         // ── Puzzle Mode hooks ──────────────────────────────────────────────────────
 
         private void HandleEntered()
         {
+            if (!_hasPower) return;
+
             _isProcessing = false;
             ApplyScreenState();
 

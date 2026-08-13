@@ -39,6 +39,14 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
              "Deactivated on exit.")]
     [SerializeField] private Light[] _flashlightSupportLights;
 
+    [Header("Power")]
+    [Tooltip("If true, the puzzle cannot be entered while master power is off. " +
+             "A popup hint is shown to the player instead.")]
+    [SerializeField] private bool _requirePower = false;
+
+    [Tooltip("Hint message shown when the player tries to enter the puzzle without power.")]
+    [SerializeField] private string _noPowerHint = "Нужно включить свет";
+
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
     [SerializeField] private UnityEvent OnPuzzleModeEntered;
@@ -222,6 +230,12 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     public void EnterPuzzleMode()
     {
         if (_isActive || _isSolved) return;
+
+        if (_requirePower && LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
+        {
+            PopupMessageSystem.Instance?.Show(_noPowerHint, PopupMessageType.Hint, 3f);
+            return;
+        }
 
         _isActive = true;
         DisableLensDistortion();
