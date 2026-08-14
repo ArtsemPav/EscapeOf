@@ -241,7 +241,7 @@ public class DevPanelController : MonoBehaviour
         _gamePage = CreateUIObject("GamePage", contentArea.transform);
         Stretch(_gamePage);
         _gamePage.SetActive(false);
-        AddVerticalLayout(_gamePage);
+        AddVerticalLayout(_gamePage, spacing: 8);
         PopulateGameActions(_gamePage.transform);
 
         BuildStatusBar(_panel.transform);
@@ -347,7 +347,7 @@ public class DevPanelController : MonoBehaviour
         contentRect.offsetMin = Vector2.zero;
         contentRect.offsetMax = Vector2.zero;
 
-        AddVerticalLayout(content, spacing: 2, padding: 4);
+        AddVerticalLayout(content, spacing: 8, padding: 4);
         AddContentSizeFitter(content, vertical: ContentSizeFitter.FitMode.PreferredSize);
 
         scrollRect.content = contentRect;
@@ -441,11 +441,11 @@ public class DevPanelController : MonoBehaviour
             ("Solve Electric Puzzle",     DevPuzzleCheats.SolveElectricPuzzle),
             ("Solve Generator Puzzle",    DevPuzzleCheats.SolveGeneratorPuzzle),
             ("Solve Fifteen Puzzle",      DevPuzzleCheats.SolveFifteenPuzzle),
-            ("Solve Paint (Loop) Puzzle", DevPuzzleCheats.SolvePaintPuzzle),
+            ("Solve Paint Puzzle", DevPuzzleCheats.SolvePaintPuzzle),
             ("Unlock Procedural Safes",   DevPuzzleCheats.SolveProceduralSafes),
             ("Unlock Da Vinci (Room 4)",   DevPuzzleCheats.SolveDaVinciPuzzle),
             ("Unlock Padlock (Room 2)",    DevPuzzleCheats.SolvePadlockPuzzle),
-            ("Unlock Doctor Room Safes",  DevPuzzleCheats.SolveDoctorSafes),
+            ("Unlock Doctor Room Safe",  DevPuzzleCheats.SolveDoctorSafes),
         };
 
         foreach (var (label, solver) in puzzles)
