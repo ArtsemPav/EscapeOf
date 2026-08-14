@@ -6,9 +6,9 @@ namespace Bezi.Editor.Tools
     /// <summary>
     /// Editor tool to quickly unlock any LockDial in the scene.
     /// </summary>
-    public static class LockDialUnlockTool
+    public static class DocktorSafeUnlockTool
     {
-        [MenuItem("Tools/PuzzlesCheats/Doctor Room Safe Unlock")]
+        [MenuItem("Tools/PuzzlesCheats/Unlock Doctor Room Safe")]
         public static void UnlockSelectedLockDial()
         {
             // Try to get LockDial from selection first, if not - find all in scene

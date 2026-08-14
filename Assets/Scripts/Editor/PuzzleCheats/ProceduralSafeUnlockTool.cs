@@ -2,9 +2,9 @@ using UnityEngine;
 using UnityEditor;
 using System.Reflection;
 
-public static class DigitalLockUnlockTool
+public static class ProceduralSafeUnlockTool
 {
-    [MenuItem("Tools/PuzzlesCheats/Unlock Digital Locks")]
+    [MenuItem("Tools/PuzzlesCheats/Unlock Procedural Safe")]
     public static void UnlockAllLocks()
     {
         DigitalLockSystem[] locks = Object.FindObjectsByType<DigitalLockSystem>(FindObjectsSortMode.None);

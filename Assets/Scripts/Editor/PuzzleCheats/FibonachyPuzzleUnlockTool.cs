@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Reflection;
 
-public static class MechanicalLockUnlockTool
+public static class FibonachyPuzzleUnlockTool
 {
     [MenuItem("Tools/PuzzlesCheats/Unlock Mechanical Locks")]
     public static void UnlockAllLocks()
