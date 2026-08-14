@@ -227,7 +227,6 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     private bool  _solveLocked;
     private bool _fadeClipPlayed;
     private bool _wasDoorOpen;      // tracks door state for close-detection
-    private float _activationLogTimer;
 
     /// <summary>Shader property name for steam distortion intensity.</summary>
     private static readonly int SteamIntensityId = Shader.PropertyToID("_SteamIntensity");
@@ -543,20 +542,6 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     {
         if (IsActivated || IsSolved) return;
         if (_entryDoor == null) return;
-
-        // Log diagnostic info once per second.
-        _activationLogTimer += Time.deltaTime;
-        if (_activationLogTimer >= 1f)
-        {
-            _activationLogTimer = 0f;
-            bool doorClosed = _entryDoor.IsFullyClosed;
-            bool playerInside = _roomTrigger != null && _roomTrigger.IsPlayerInside;
-            Debug.Log($"[PressurePuzzle] CheckActivation — " +
-                      $"doorClosed: {doorClosed}, " +
-                      $"wasDoorOpen: {_wasDoorOpen}, " +
-                      $"playerInside: {playerInside}, " +
-                      $"steamSupplied: {_steamSupplied}");
-        }
 
         bool doorClosedNow = _entryDoor.IsFullyClosed;
 
