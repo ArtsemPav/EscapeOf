@@ -59,7 +59,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -241,7 +241,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -535,7 +535,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -717,7 +717,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -857,7 +857,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &497505110520559514
 Transform:
   m_ObjectHideFlags: 0
@@ -867,8 +867,8 @@ Transform:
   m_GameObject: {fileID: 2518660798966329828}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0.5, z: -0.5, w: 0.5}
-  m_LocalPosition: {x: 0.011625304, y: -1.46, z: 1.497}
-  m_LocalScale: {x: 0.020000003, y: 0.014000004, z: 0.014000001}
+  m_LocalPosition: {x: 0.011625304, y: -1.009, z: 0.674}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2519944777819826996}
@@ -884,7 +884,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.63235295, g: 0.63235295, b: 0.63235295, a: 1}
-  m_Intensity: 10
+  m_Intensity: 0.25
   m_Range: 1.88
   m_SpotAngle: 170.11877
   m_InnerSpotAngle: 157.19247
@@ -922,7 +922,7 @@ Light:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16385
   m_Lightmapping: 1
   m_LightShadowCasterMode: 2
   m_AreaSize: {x: 1, y: 1}
@@ -958,7 +958,7 @@ MonoBehaviour:
   m_SoftShadowQuality: 0
   m_RenderingLayersMask:
     serializedVersion: 0
-    m_Bits: 1
+    m_Bits: 16385
   m_ShadowRenderingLayersMask:
     serializedVersion: 0
     m_Bits: 1
@@ -1026,7 +1026,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -1208,7 +1208,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -1465,7 +1465,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -1647,7 +1647,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -1818,13 +1818,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
-  _saveId: 
+  _saveId: LabRoomSafe_Controller
   _puzzleCamera: {fileID: 7480847257359950458}
   _blendDuration: 0.75
   _showInventoryBar: 0
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights:
   - {fileID: 1754012729737337463}
+  _requirePower: 0
+  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
+    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -1977,7 +1980,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -2159,7 +2162,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -2341,7 +2344,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -2523,7 +2526,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -2705,7 +2708,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 16896
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 76c2659f0c373cf4aa1428892d173d2f, type: 2}
@@ -4266,7 +4269,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: 
+  _saveId: LabRoomSafe_Door
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:

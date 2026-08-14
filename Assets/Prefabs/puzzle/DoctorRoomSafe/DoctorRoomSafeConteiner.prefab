@@ -178,6 +178,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LockDial
   _puzzleMode: {fileID: 5537032744249801686}
+  _saveId: DocktorRoomSafe_Lock
   _stepAngle: 3.6
   _rotationAxis: {x: 0, y: 1, z: 0}
   _rotationSpeed: 720
@@ -213,7 +214,6 @@ MonoBehaviour:
   _onRotated:
     m_PersistentCalls:
       m_Calls: []
-  _saveId: 
 --- !u!114 &7870356248011688336
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -484,7 +484,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9b2255d8785952e4f8f36c7f3b5959e0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RotateOnTrigger
-  _saveId: 
+  _saveId: DoctorRoomSafe_Handle
   _rotationAxis: {x: 0, y: 1, z: 0}
   _targetAngle: 270
   _rotationSpeed: 180
@@ -610,13 +610,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 628cda5d6a9cbb54b93e25c56ea7de06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleModeController
-  _saveId: 
+  _saveId: DoctorRoomSafe_Contr
   _puzzleCamera: {fileID: 4380350430016505632}
   _blendDuration: 0.75
   _showInventoryBar: 1
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights:
   - {fileID: 7532652650368245830}
+  _requirePower: 0
+  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
+    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -734,6 +737,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: DoctorRoomSafe_Door
   _isOpen: 0
   _isLocked: 1
   _openMode: 0
@@ -759,7 +763,6 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: 
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:

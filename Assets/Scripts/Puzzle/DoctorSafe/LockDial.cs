@@ -39,6 +39,10 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     // ── Inspector ──────────────────────────────────────────────────────────────
     [SerializeField] private PuzzleModeController _puzzleMode;
+
+    [Header("Save")]
+    [SerializeField] private string _saveId;
+
     [Header("Rotation")]
     [Tooltip("Degrees per discrete step. 3.6° gives 100 positions per revolution.")]
     [SerializeField] private float _stepAngle = 3.6f;
@@ -82,9 +86,6 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     [Tooltip("Fired on every discrete step rotation.")]
     [SerializeField] private UnityEvent _onRotated;
-
-    [Header("Save")]
-    [SerializeField] private string _saveId;
 
     // ── State ──────────────────────────────────────────────────────────────────
 

@@ -22,6 +22,10 @@ namespace Escape.Core {
     /// </summary>
     public class DoorInteraction : MonoBehaviour, IInteractable, IDraggable, ISaveable {
 
+        [Header("Save")]
+        [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
+        [SerializeField] private string _saveId;
+
         [Header("Door State")]
         [SerializeField] private bool _isOpen = false;
         [SerializeField] private bool _isLocked = false;
@@ -78,10 +82,6 @@ namespace Escape.Core {
         [SerializeField] private float _unlockAjarSpeed = 0.6f;
         [Tooltip("Громкость звуков движения двери.")]
         [SerializeField] [Range(0f, 1f)] private float _motionVolume = 0.7f;
-
-        [Header("Save")]
-        [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
-        [SerializeField] private string _saveId;
 
         [Header("Occlusion")]
         [Tooltip("OcclusionPortal on this door. When assigned, its 'open' state is synced with the door " +

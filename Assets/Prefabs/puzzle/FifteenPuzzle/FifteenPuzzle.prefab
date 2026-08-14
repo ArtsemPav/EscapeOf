@@ -27,7 +27,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.26147, y: 1.73, z: 8.41328}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5998300419143622385}
@@ -59,15 +59,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24550645612cb954daf208b8db36ccd7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleGame.PuzzleManager
-  _saveId: boss_puzzle
+  _saveId: FifteenPuzzle
+  OnPuzzleSolved:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: PuzzleSolvedCinematic, Assembly-CSharp
+        m_MethodName: PlayCinematic
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   width: 4
   height: 4
   spacing: 0.58
   elements: []
-  lastElementPrefab: {fileID: 2266997748470130263, guid: 2a6cb40807e79c643b01e288d934ae0c, type: 3}
-  rewardItemData: {fileID: 11400000, guid: b7ae1d248de487e49822c0fa3c192d3a, type: 2}
   useImageAtlas: 1
-  puzzleMaterial: {fileID: 2100000, guid: 6d1d0144745da9b4981021438a3d3002, type: 2}
+  puzzleMaterial: {fileID: 2100000, guid: 0865a7b0bb0b42e4e88e04fe2035ef46, type: 2}
 --- !u!1001 &646363489832776825
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -78,11 +91,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (13)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -160,11 +181,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (11)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -242,11 +271,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -324,11 +361,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -406,11 +451,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (9)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -488,11 +541,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (7)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -570,11 +631,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (8)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -652,11 +721,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (6)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -734,11 +811,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -816,11 +901,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (12)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -898,11 +991,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -980,11 +1081,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (10)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -1062,11 +1171,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (15)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -1144,11 +1261,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
@@ -1226,11 +1351,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 354655467196522014, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 768
+      value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 3821009873982432154, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: showDebugText
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5040464494010092533, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_Name
       value: FifteenPuzzeElement (14)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6623868194858264936, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 33280
       objectReference: {fileID: 0}
     - target: {fileID: 8109501422458336210, guid: a15cba5d09766c74fa1c29fafc86b1a4, type: 3}
       propertyPath: m_LocalScale.x
