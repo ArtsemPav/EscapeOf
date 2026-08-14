@@ -203,7 +203,7 @@ namespace Escape.Puzzle
 
         public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
         {
-            replacement = item;
+            replacement = null;
 
             if (_isAnimating || (_puzzleMode != null && _puzzleMode.IsSolved))
                 return false;

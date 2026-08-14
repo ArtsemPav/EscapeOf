@@ -4,13 +4,18 @@ using UnityEngine;
 /// Interactable light switch that controls a single lighting zone.
 /// Place on any GameObject with a Collider. The player interacts with it via E key.
 /// 
-/// When the master power (ElectricPanel) is off, the switch is blocked — it can
-/// be flipped visually but will have no effect on lights until power is restored.
+/// The switch always flips physically (animation + click sound) regardless of
+/// master power state. When power is off, the switch state is still tracked —
+/// lights will turn on when power is restored if the switch is in the ON position.
 /// </summary>
 public class LightSwitch : MonoBehaviour, IInteractable
 {
     [Tooltip("The zone ID this switch controls. Must match LightZone.ZoneId on the lamp objects.")]
     [SerializeField] private string _zoneId;
+
+    [Tooltip("Default switch state for a new game (no save). When power is first restored, " +
+             "the zone will be ON or OFF depending on this value. Ignored when save data exists.")]
+    [SerializeField] private bool _defaultSwitchState = true;
 
     [Tooltip("Text shown when the player looks at the switch while power is on.")]
     [SerializeField] private string _interactHint = "Выключатель";
@@ -36,16 +41,14 @@ public class LightSwitch : MonoBehaviour, IInteractable
 
     public bool CanInteract() => true;
 
+    /// <summary>
+    /// Toggles the switch. The physical flip, click sound, and state update
+    /// always happen — even without master power. LightingSystem.ApplyToZone
+    /// checks IsPowered internally, so lights only respond when power is on.
+    /// </summary>
     public void Interact()
     {
         if (LightingSystem.Instance == null) return;
-
-        // If power is off, switching is meaningless — show feedback but do nothing.
-        if (!LightingSystem.Instance.IsPowered)
-        {
-            // Optional: play a click-dead sound here.
-            return;
-        }
 
         bool newState = LightingSystem.Instance.ToggleZoneSwitch(_zoneId);
         UpdateVisuals(newState);
@@ -57,7 +60,7 @@ public class LightSwitch : MonoBehaviour, IInteractable
         if (LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
             return _noPowerHint;
 
-        bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? true;
+        bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? _defaultSwitchState;
         return $"{_interactHint} [{(isOn ? "ВКЛ" : "ВЫКЛ")}]";
     }
 
@@ -67,28 +70,17 @@ public class LightSwitch : MonoBehaviour, IInteractable
 
     private void Start()
     {
+        // Push the configured default into LightingSystem.
+        // Only applies for new games — if save data was loaded, the zone already
+        // has an explicit state and InitializeZoneSwitch will skip.
+        LightingSystem.Instance?.InitializeZoneSwitch(_zoneId, _defaultSwitchState);
+
         // Sync handle position to the actual zone state at game start.
-        bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? true;
+        bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? _defaultSwitchState;
         UpdateVisuals(isOn);
-
-        // Subscribe to power changes to update visuals when щиток cuts power.
-        if (LightingSystem.Instance != null)
-            LightingSystem.Instance.OnPowerChanged += OnPowerChanged;
-    }
-
-    private void OnDestroy()
-    {
-        if (LightingSystem.Instance != null)
-            LightingSystem.Instance.OnPowerChanged -= OnPowerChanged;
     }
 
     // ── Internals ─────────────────────────────────────────────────────────────
-
-    private void OnPowerChanged(bool isPowered)
-    {
-        // When power is cut, visually show the switch state hasn't changed — it just has no effect.
-        // Optionally you could snap the handle to OFF here if desired.
-    }
 
     private void UpdateVisuals(bool isOn)
     {
