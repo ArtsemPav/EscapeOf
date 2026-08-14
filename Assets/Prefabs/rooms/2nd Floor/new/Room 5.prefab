@@ -174,7 +174,6 @@ Transform:
   - {fileID: 1607316351937286680}
   - {fileID: 210722208865809569}
   - {fileID: 8720045413407637832}
-  - {fileID: 5608402578969675971}
   - {fileID: 2301356014701582528}
   m_Father: {fileID: 4569375799012946507}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -700,6 +699,7 @@ Transform:
   - {fileID: 597732613284217831}
   - {fileID: 8865835654004997208}
   - {fileID: 429593415450408909}
+  - {fileID: 5608402578969675971}
   m_Father: {fileID: 4569375799012946507}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!95 &3745490126091896951
@@ -769,6 +769,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: 
   _isOpen: 0
   _isLocked: 0
   _openMode: 0
@@ -793,7 +794,6 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: 
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -3132,7 +3132,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 3783777046583996997}
+    m_TransformParent: {fileID: 7944201496792885322}
     m_Modifications:
     - target: {fileID: 5778162021173046346, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
       propertyPath: m_Name
@@ -3152,7 +3152,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6592134136739952368, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.6117
+      value: -1.6367
       objectReference: {fileID: 0}
     - target: {fileID: 6592134136739952368, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
       propertyPath: m_LocalPosition.y
@@ -3160,7 +3160,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6592134136739952368, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 11.6968
+      value: 6.8137984
       objectReference: {fileID: 0}
     - target: {fileID: 6592134136739952368, guid: 805210323a261e04ba0cc030dbaa609f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -3570,7 +3570,7 @@ MonoBehaviour:
   _previewSoundVolume: 1
   inspectOnly: 0
   inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
-  _saveId: KeyWard6
+  _saveId: pickable_KeyWard6
 --- !u!1001 &1851654384926526711
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5151,6 +5151,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MetamorfPuzzle 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3748020909556206828, guid: c8d4f9ef3ac80bf48b258bad38e8212e, type: 3}
+      propertyPath: _saveId
+      value: pickable_MedallionButterfly
+      objectReference: {fileID: 0}
     - target: {fileID: 4854690008228174404, guid: c8d4f9ef3ac80bf48b258bad38e8212e, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.8549995
@@ -5203,6 +5207,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 966f4084fabff714083f712cb34736a3, type: 2}
+    - target: {fileID: 8283288828524771194, guid: c8d4f9ef3ac80bf48b258bad38e8212e, type: 3}
+      propertyPath: _saveId
+      value: metamorfpuzzle
+      objectReference: {fileID: 0}
     - target: {fileID: 8283288828524771194, guid: c8d4f9ef3ac80bf48b258bad38e8212e, type: 3}
       propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_Target
       value: 
@@ -5731,6 +5739,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room5
+  _defaultSwitchState: 1
   _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 7723564350556568231}

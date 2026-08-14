@@ -26,9 +26,9 @@ using System.Linq;
 /// </summary>
 public class BoardPuzzleManager : MonoBehaviour, ISaveable {
 
-    [Header("Events")]
-    [Tooltip("Fired once when the full terminal sequence is successfully traced.")]
-    public UnityEvent OnPuzzleSolved;
+    [Header("Save")]
+    [Tooltip("Unique identifier for the save system. Must be unique across the entire game.")]
+    [SerializeField] private string _saveId = "board_puzzle";
 
     [Header("Puzzle Grid")]
     [Tooltip("All cylinders in the puzzle.")]
@@ -42,10 +42,6 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     [Tooltip("Radius used by OverlapSphere to find physically adjacent connector points.")]
     [SerializeField] private float _connectionDetectionRadius = 0.15f;
 
-    [Header("Save")]
-    [Tooltip("Unique identifier for the save system. Must be unique across the entire game.")]
-    [SerializeField] private string _saveId = "board_puzzle";
-
     [Header("Debug")]
     [Tooltip("If enabled, path tracing details will be printed to the console.")]
     [SerializeField] private bool _showDebugLogs = true;
@@ -58,6 +54,10 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
     [Tooltip("Sound played when the correct path is completed.")]
     [SerializeField] private AudioClip _solvedClip;
     [SerializeField, Range(0f, 1f)] private float _solvedVolume = 1f;
+
+    [Header("Events")]
+    [Tooltip("Fired once when the full terminal sequence is successfully traced.")]
+    public UnityEvent OnPuzzleSolved;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 

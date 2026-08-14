@@ -1168,6 +1168,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: GeneratorRoom
+  _defaultSwitchState: 1
   _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 2583867855169630107}
@@ -2246,7 +2247,7 @@ MonoBehaviour:
   _previewSoundVolume: 1
   inspectOnly: 0
   inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
-  _saveId: 
+  _saveId: pickable_Canister
 --- !u!1001 &2353465716669099898
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2460,9 +2461,17 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8254027769696541074, guid: 92cd86a9699dd664cb7d57a1a45f8b82, type: 3}
+      propertyPath: _saveId
+      value: generatorpuzzle
+      objectReference: {fileID: 0}
+    - target: {fileID: 8254027769696541074, guid: 92cd86a9699dd664cb7d57a1a45f8b82, type: 3}
       propertyPath: _generatorLoopAudio
       value: 
       objectReference: {fileID: 8322183374357258287}
+    - target: {fileID: 8639931752049438150, guid: 92cd86a9699dd664cb7d57a1a45f8b82, type: 3}
+      propertyPath: _saveId
+      value: generatorpuzzle_contr
+      objectReference: {fileID: 0}
     - target: {fileID: 8639931752049438150, guid: 92cd86a9699dd664cb7d57a1a45f8b82, type: 3}
       propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.size
       value: 0
@@ -4991,7 +5000,7 @@ MonoBehaviour:
   _previewSoundVolume: 1
   inspectOnly: 0
   inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
-  _saveId: 
+  _saveId: pickable_sparkplug
 --- !u!1001 &6107292203363163279
 PrefabInstance:
   m_ObjectHideFlags: 0
