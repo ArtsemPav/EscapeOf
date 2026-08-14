@@ -174,9 +174,9 @@ public class LightingSystem : MonoBehaviour, ISaveable
             _zones[zone.ZoneId] = new List<LightZone>();
         _zones[zone.ZoneId].Add(zone);
 
-        // Ensure a default switch state exists for newly discovered zones.
-        if (!_switchStates.ContainsKey(zone.ZoneId))
-            _switchStates[zone.ZoneId] = true;
+        // Default switch state is NOT set here — LightSwitch.Start() calls
+        // InitializeZoneSwitch() with its configured _defaultSwitchState.
+        // Zones without a LightSwitch default to true via GetZoneSwitchState fallback.
 
         // Apply current state immediately so the light starts correct.
         zone.SetActive(IsZoneActive(zone.ZoneId));
@@ -265,6 +265,21 @@ public class LightingSystem : MonoBehaviour, ISaveable
     }
 
     // ── Zone Switch API ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sets the initial switch state for a zone. Only applies when the zone has
+    /// no prior state (new game with no save data). If save data was loaded or
+    /// the zone was already initialized, this call is ignored.
+    /// Called by LightSwitch.Start() to push its configured _defaultSwitchState.
+    /// </summary>
+    public void InitializeZoneSwitch(string zoneId, bool defaultOn)
+    {
+        if (string.IsNullOrEmpty(zoneId)) return;
+        if (_switchStates.ContainsKey(zoneId)) return;
+
+        _switchStates[zoneId] = defaultOn;
+        ApplyToZone(zoneId, IsZoneActive(zoneId));
+    }
 
     /// <summary>
     /// Sets the switch state for a zone. The zone lights up only if power is also on.
