@@ -2,40 +2,53 @@ using UnityEngine;
 using UnityEditor;
 using System.Reflection;
 
-public static class FibonachyPuzzleUnlockTool
+/// <summary>
+/// Editor cheat tool to individually unlock the Padlock puzzle in Room 2.
+/// Finds the MechanicalLock by its save ID and triggers the full solve flow.
+/// </summary>
+public static class PadlockRoom2UnlockTool
 {
-    [MenuItem("Tools/PuzzlesCheats/Unlock Mechanical Locks")]
-    public static void UnlockAllLocks()
-    {
-        MechanicalLock[] locks = Object.FindObjectsByType<MechanicalLock>(FindObjectsSortMode.None);
+    private const string MENU_PATH = "Tools/PuzzlesCheats/Unlock Padlock (Room 2)";
+    private const string TARGET_SAVE_ID = "lock_padlock_room2";
 
-        if (locks.Length == 0)
+    [MenuItem(MENU_PATH)]
+    public static void UnlockPadlock()
+    {
+        MechanicalLock target = FindLockBySaveId(TARGET_SAVE_ID);
+
+        if (target == null)
         {
-            Debug.Log("[Cheat] No MechanicalLock components found in the current scene.");
+            Debug.LogWarning($"[PuzzleCheats] No MechanicalLock with save ID '{TARGET_SAVE_ID}' found.");
             return;
         }
 
-        int count = 0;
+        UnlockLock(target);
+    }
+
+    private static MechanicalLock FindLockBySaveId(string saveId)
+    {
+        MechanicalLock[] locks = Object.FindObjectsByType<MechanicalLock>(FindObjectsSortMode.None);
+
         foreach (var lockObj in locks)
         {
-            UnlockLock(lockObj);
-            count++;
+            string id = GetPrivateField<string>(lockObj, "_saveId");
+            if (id == saveId)
+                return lockObj;
         }
 
-        Debug.Log($"[Cheat] Successfully processed {count} mechanical locks in the scene.");
+        return null;
     }
 
     private static void UnlockLock(MechanicalLock lockObj)
     {
-        Undo.RecordObject(lockObj, "Cheat Unlock");
+        Undo.RecordObject(lockObj, "Cheat Unlock Padlock Room 2");
 
-        // Ensure we have a PuzzleModeController
         PuzzleModeController controller = GetPrivateField<PuzzleModeController>(lockObj, "_puzzleController");
         if (controller == null)
         {
             controller = lockObj.GetComponent<PuzzleModeController>();
             if (controller == null) controller = lockObj.GetComponentInParent<PuzzleModeController>();
-            
+
             if (controller != null)
             {
                 SetPrivateField(lockObj, "_puzzleController", controller);
@@ -64,17 +77,16 @@ public static class FibonachyPuzzleUnlockTool
             }
         }
 
-        // Call Solve() via reflection
         MethodInfo solveMethod = typeof(MechanicalLock).GetMethod("Solve", BindingFlags.NonPublic | BindingFlags.Instance);
         solveMethod?.Invoke(lockObj, null);
 
-        // Force trigger events if Solve didn't for any reason (e.g. if field was null inside)
         if (controller != null && !controller.IsSolved)
         {
             controller.SetSolved();
         }
 
         EditorUtility.SetDirty(lockObj);
+        Debug.Log($"<color=green>[PuzzleCheats] Padlock (Room 2) has been force-solved!</color>");
     }
 
     private static T GetPrivateField<T>(object obj, string fieldName)

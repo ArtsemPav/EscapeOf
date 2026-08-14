@@ -34,6 +34,12 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
     public int MaxSlots => maxSlots;
 
+    /// <summary>Read-only access to all registered ItemData assets. Used by the dev panel.</summary>
+    public ItemData[] AllItems => _allItems;
+
+    /// <summary>Finds an item by its ItemId. Public accessor for the dev panel.</summary>
+    public ItemData FindItemByIdPublic(string id) => FindItemById(id);
+
     public event Action OnInventoryChanged;
 
     /// <summary>Fires whenever a crafting recipe is successfully matched and executed.</summary>

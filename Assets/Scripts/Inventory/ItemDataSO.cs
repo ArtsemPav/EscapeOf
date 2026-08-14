@@ -21,6 +21,14 @@ public class ItemData : ScriptableObject
     [Header("Visual")]
     public Sprite icon;
 
+    [Header("Usage")]
+    [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
+    public bool consumeOnUse = true;
+
+    [Header("Dev Panel")]
+    [Tooltip("If enabled, this item appears in the developer panel item list for quick testing.")]
+    public bool showInDevPanel = false;
+
     [Header("Inspection")]
     [Tooltip("3D prefab shown in the inspection view. If null, item is picked up directly.")]
     public GameObject inspectionPrefab;
@@ -49,10 +57,6 @@ public class ItemData : ScriptableObject
 
     [Tooltip("Множитель масштаба модели в превью осмотра. 1 = реальный размер, >1 = больше, <1 = меньше.")]
     public float previewScale = 1f;
-
-    [Header("Usage")]
-    [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
-    public bool consumeOnUse = true;
 
     private static readonly int LiquidColorId = Shader.PropertyToID("_LiquidColor");
 
