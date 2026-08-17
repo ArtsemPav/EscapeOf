@@ -111,7 +111,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomController
   _localVolume: {fileID: 0}
-  _triggerZones: []
+  _triggerZones:
+  - Trigger: {fileID: 8059302629395217413}
+    VisibleRooms:
+    - {fileID: 0}
 --- !u!1 &6999564605887631284
 GameObject:
   m_ObjectHideFlags: 0
@@ -1411,7 +1414,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _saveId
-      value: toiletBox_door_1st_1
+      value: door_bathroom1f_toiletbox1
       objectReference: {fileID: 0}
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _maxOpenAngle
@@ -1991,15 +1994,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 100002, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 100004, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 400000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: m_LocalScale.x
@@ -2069,13 +2072,21 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 3623173885355038829, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.045
+      objectReference: {fileID: 0}
+    - target: {fileID: 3623173885355038829, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.03
+      objectReference: {fileID: 0}
     - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: _isOpen
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: _saveId
-      value: door_bathroom_1stfloor_main
+      value: door_bathroom1f_main
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -6009,7 +6020,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _saveId
-      value: toiletBox_door_1st_2
+      value: door_bathroom1f_toiletbox2
       objectReference: {fileID: 0}
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _maxOpenAngle
@@ -6665,11 +6676,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
       propertyPath: _saveId
-      value: door_bathroom_1st_case1_right
+      value: door_bathroom1f_case1_right
       objectReference: {fileID: 0}
     - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
       propertyPath: _saveId
-      value: door_bathroom_1st_case1_left
+      value: door_bathroom1f_case1_left
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -22,6 +22,10 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     [Header("Combination Settings")]
     [SerializeField] private int[] _correctCombination = new int[5] { 1, 2, 3, 4, 5 };
 
+    [Header("Save")]
+    [Tooltip("Unique ID for saving the state of lock cylinders (their current rotation values).")]
+    [SerializeField] private string _saveId;
+
     [Header("References")]
     [SerializeField] private PuzzleModeController _puzzleController;
     [SerializeField] private LockCylinder[] _cylinders;
@@ -43,10 +47,6 @@ public class MechanicalLock : MonoBehaviour, ISaveable
     [Header("Rewards")]
     [Tooltip("Items added to inventory after the puzzle is solved. Given one by one.")]
     [SerializeField] private ItemData[] _rewardItems;
-
-    [Header("Save")]
-    [Tooltip("Unique ID for saving the state of lock cylinders (their current rotation values).")]
-    [SerializeField] private string _saveId;
 
     // ── State ───────────────────────────────────────────────────────────────────
 
