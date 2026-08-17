@@ -180,6 +180,14 @@ public class PuzzleInventoryBar : MonoBehaviour
         CancelDragIfActive();
         UnsubscribeFromInventory();
         ItemTooltip.Instance?.Hide();
+
+        // Release any stale slot reservations left by device drops whose results
+        // were never returned (e.g. puzzle solved while devices were still processing
+        // or results were discarded during cleanup). Without this, AddItem skips the
+        // reserved slots and new items appear at wrong positions after the puzzle exits.
+        InventorySystem.Instance?.ReleaseAllReservations();
+        InventorySystem.Instance?.Compact();
+
         SetBarVisible(false);
     }
 

@@ -1272,7 +1272,14 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                 // 2. Discard any remaining queued results — the puzzle is solved.
                 _pendingResults.Clear();
 
-                // 3. Mark the puzzle solved and persist only after the inventory is clean.
+                // 3. Release all slot reservations left by device drops whose results
+                //    were discarded above, then compact so AddItem finds the leftmost
+                //    free slot. Without this, reserved slots are skipped by AddItem and
+                //    new items appear at wrong positions.
+                InventorySystem.Instance?.ReleaseAllReservations();
+                InventorySystem.Instance?.Compact();
+
+                // 4. Mark the puzzle solved and persist only after the inventory is clean.
                 _puzzleMode?.SetSolved();
                 SaveManager.Instance?.Save();
             }) : null

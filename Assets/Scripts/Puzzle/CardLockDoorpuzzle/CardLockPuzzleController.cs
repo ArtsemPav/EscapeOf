@@ -43,6 +43,7 @@ namespace Escape.Puzzle
         [SerializeField] private Material _blackMaterial;
         [SerializeField] private Material _ghostMaterial;
         [SerializeField] private string _dropHint = "Провести картой";
+        [SerializeField] private string _noPowerHint = "Нужно включить свет";
         [SerializeField] private float _slideDuration = 1.0f;
         [SerializeField] private Vector3 _slideOffset = new Vector3(0, -0.2f, 0);
 
@@ -210,6 +211,14 @@ namespace Escape.Puzzle
 
             if (item == _requiredCard && (_isGhostVisible || PerformRaycast(screenPosition)))
             {
+                bool hasPower = LightingSystem.Instance != null && LightingSystem.Instance.IsPowered;
+
+                if (!hasPower)
+                {
+                    PopupMessageSystem.Instance?.Show(_noPowerHint, PopupMessageType.Hint, 3f);
+                    return false;
+                }
+
                 StartCoroutine(ProcessCardSwipe());
                 return true;
             }
