@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -8,20 +9,26 @@ using UnityEngine;
 /// and lets Animation Events in that clip control camera transitions
 /// and cinematic completion.
 /// </summary>
-public class PuzzleSolvedCinematic : MonoBehaviour
+public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
 {
     // ── Constants ───────────────────────────────────────────────────────────────
 
     private const int CinematicCameraPriority = 3000;
 
+    // If PlayCinematic is called within this many frames of Awake, treat it as
+    // a load-time restoration rather than a real first-time solve. This covers
+    // old save files that don't contain the cinematic's wasAlreadySolved entry.
+    private const int LoadWindowFrames = 120;
+
     // ── Inspector ───────────────────────────────────────────────────────────────
+
+    [Header("Save")]
+    [Tooltip("Unique save ID. Must be different from the puzzle manager's SaveId.")]
+    [SerializeField] private string _saveId = "cinematic_unique_id";
 
     [Header("Camera")]
     [Tooltip("CinemachineCamera used for the cinematic shot. Must start inactive in the hierarchy.")]
     [SerializeField] private CinemachineCamera _cinematicCamera;
-
-    [Tooltip("Duration of the blend when switching to and from the cinematic camera.")]
-    [SerializeField, Min(0f)] private float _blendDuration = 1f;
 
     [Header("Animation")]
     [Tooltip("Animator that plays the cinematic animation. Auto-found on the same GameObject if not assigned.")]
@@ -29,6 +36,9 @@ public class PuzzleSolvedCinematic : MonoBehaviour
 
     [Tooltip("Trigger parameter name that starts the cinematic animation.")]
     [SerializeField] private string _animationTrigger = "PlayCinematic";
+
+    [Tooltip("Bool parameter name that transitions the Animator to the solved pose. Set together with the cinematic trigger when the puzzle is solved, or set alone on load.")]
+    [SerializeField] private string _puzzleSolvedParam = "PuzzleSolved";
 
     [Header("Audio")]
     [Tooltip("Controls all audio for this cinematic. Auto-found on the same GameObject if not assigned.")]
@@ -43,6 +53,8 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     private CinemachineBrain _brain;
     private float _originalBlendTime;
     private bool _isPlaying;
+    private bool _wasAlreadySolved;
+    private int _awakeFrame;
 
     // ── Unity Lifecycle ─────────────────────────────────────────────────────────
 
@@ -63,10 +75,16 @@ public class PuzzleSolvedCinematic : MonoBehaviour
 
         if (_brain != null)
             _originalBlendTime = _brain.DefaultBlend.Time;
+
+        _awakeFrame = Time.frameCount;
+
+        SaveManager.Instance?.Register(this);
     }
 
     private void OnDestroy()
     {
+        SaveManager.Instance?.Unregister(this);
+
         if (!_isPlaying) return;
 
         // Emergency cleanup — restore everything immediately.
@@ -101,6 +119,38 @@ public class PuzzleSolvedCinematic : MonoBehaviour
         if (_isPlaying) return;
         if (!gameObject.activeInHierarchy) return;
 
+        StartCoroutine(PlayCinematicOrSnap());
+    }
+
+    private IEnumerator PlayCinematicOrSnap()
+    {
+        // Wait one frame so all ISaveable.LoadSaveData calls from SaveManager.Load()
+        // have completed before checking _wasAlreadySolved. This ensures the flag
+        // is set correctly regardless of the iteration order in SaveManager.
+        yield return null;
+
+        // Primary check: the flag was set by LoadSaveData (new saves).
+        // Fallback: if called within the load window after Awake, this is a
+        // restoration from an old save that lacks the cinematic's entry.
+        bool isLoadTime = _wasAlreadySolved
+                          || (Time.frameCount - _awakeFrame) < LoadWindowFrames;
+
+        if (isLoadTime)
+        {
+            _wasAlreadySolved = true;
+            SnapToSolvedState();
+            yield break;
+        }
+
+        // Set the flag before playing so that any debounced save from the
+        // puzzle manager's FireSolvedEvents() captures wasAlreadySolved = true.
+        // The initial Save() call in FireSolvedEvents runs in the same frame as
+        // PlayCinematic — before this coroutine executes — so it would otherwise
+        // snapshot false. Calling Save() here merges the updated flag into the
+        // pending snapshot.
+        _wasAlreadySolved = true;
+        SaveManager.Instance?.Save();
+
         _isPlaying = true;
         StartCoroutine(PlayCinematicRoutine());
     }
@@ -115,6 +165,7 @@ public class PuzzleSolvedCinematic : MonoBehaviour
         if (_animator != null)
         {
             _animator.SetTrigger(_animationTrigger);
+            _animator.SetBool(_puzzleSolvedParam, true);
         }
         else
         {
@@ -127,15 +178,25 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     // ── Animation Event callbacks ───────────────────────────────────────────────
 
     /// <summary>
+    /// Instantly transitions the Animator to the Puzzle Solved state
+    /// without playing the cinematic. Call this on load when the puzzle is already solved.
+    /// </summary>
+    public void SnapToSolvedState()
+    {
+        if (_animator == null) return;
+        _animator.SetBool(_puzzleSolvedParam, true);
+    }
+
+    /// <summary>
     /// Called from an Animation Event to activate the cinematic camera
     /// and blend away from the player camera.
-    /// Pass blendDuration from the Animation Event; uses _blendDuration if 0.
+    /// Pass blendDuration from the Animation Event.
     /// </summary>
     public void OnCinematicCameraActivate(float blendDuration = 0f)
     {
         if (_cinematicCamera == null) return;
 
-        SetBlendDuration(blendDuration > 0f ? blendDuration : _blendDuration);
+        SetBlendDuration(blendDuration);
         _cinematicCamera.Priority = CinematicCameraPriority;
         _cinematicCamera.gameObject.SetActive(true);
     }
@@ -161,13 +222,13 @@ public class PuzzleSolvedCinematic : MonoBehaviour
     /// <summary>
     /// Called from an Animation Event to deactivate the cinematic camera
     /// and blend back to the player camera.
-    /// Pass blendDuration from the Animation Event; uses _blendDuration if 0.
+    /// Pass blendDuration from the Animation Event.
     /// </summary>
     public void OnCinematicCameraDeactivate(float blendDuration = 0f)
     {
         if (_cinematicCamera == null) return;
 
-        SetBlendDuration(blendDuration > 0f ? blendDuration : _blendDuration);
+        SetBlendDuration(blendDuration);
         _cinematicCamera.Priority = 0;
         StartCoroutine(WaitForBlendAndDeactivate());
     }
@@ -194,6 +255,27 @@ public class PuzzleSolvedCinematic : MonoBehaviour
         InputManager.Instance?.SetPlayerInputEnabled(true);
         SetBlendDuration(_originalBlendTime);
         _isPlaying = false;
+    }
+
+    // ── ISaveable ──────────────────────────────────────────────────────────────
+
+    public string SaveId => _saveId;
+
+    public string GetSaveData()
+    {
+        return JsonUtility.ToJson(new CinematicSaveData { wasAlreadySolved = _wasAlreadySolved });
+    }
+
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<CinematicSaveData>(json);
+        _wasAlreadySolved = data.wasAlreadySolved;
+    }
+
+    [Serializable]
+    private struct CinematicSaveData
+    {
+        public bool wasAlreadySolved;
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────────

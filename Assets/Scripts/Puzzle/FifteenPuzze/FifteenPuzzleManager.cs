@@ -25,6 +25,10 @@ namespace PuzzleGame
         [Header("Setup")]
         [SerializeField] private List<FifteenPuzzleElement> elements = new List<FifteenPuzzleElement>();
 
+        [Header("Audio")]
+        [SerializeField] private AudioClip moveSound;
+        [SerializeField] private float moveSoundVolume = 0.7f;
+
         [Header("Visual Settings")]
         [SerializeField] private bool useImageAtlas = true;
         [SerializeField] private Material puzzleMaterial;
@@ -35,6 +39,9 @@ namespace PuzzleGame
 
         private bool isPuzzleSolved;
         private bool isLoadedAsSolved;
+
+        /// <summary>True if the puzzle has been solved (either in this session or restored from save).</summary>
+        public bool IsPuzzleSolved => isPuzzleSolved;
 
         private void Awake()
         {
@@ -61,9 +68,6 @@ namespace PuzzleGame
             if (isLoadedAsSolved)
             {
                 RestoreSolvedState();
-                // Re-fire the event so listeners (doors, lights, etc.) can restore their state.
-                // Deferred by one frame so all listeners have completed their Awake/Start.
-                StartCoroutine(InvokeSolvedDeferred());
             }
             else
             {
@@ -198,7 +202,13 @@ namespace PuzzleGame
             // Update positions
             element.GridPosition = emptyPosition;
             emptyPosition = oldPos;
-            
+
+            // Play move sound
+            if (moveSound != null)
+            {
+                AudioManager.Instance?.PlaySFX(moveSound, moveSoundVolume);
+            }
+
             // Visual move
             element.MoveTo(transform.TransformPoint(GetWorldPosition(element.GridPosition.x, element.GridPosition.y)));
         }
@@ -353,15 +363,6 @@ namespace PuzzleGame
             }
 
             CheckWinCondition();
-        }
-
-        /// <summary>
-        /// Invokes OnPuzzleSolved after one frame so all listener Awake/Start calls have run.
-        /// </summary>
-        private IEnumerator InvokeSolvedDeferred()
-        {
-            yield return null;
-            OnPuzzleSolved.Invoke();
         }
 
     }
