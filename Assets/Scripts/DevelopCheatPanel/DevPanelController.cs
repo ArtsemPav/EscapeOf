@@ -6,7 +6,7 @@ using TMPro;
 
 /// <summary>
 /// In-game developer panel for testing and cheating.
-/// Toggle with the backquote (`) key.
+/// Toggle with the P key.
 /// Provides item giving, puzzle solving, and game progression controls.
 /// Attach to any GameObject in the scene — the panel auto-parents to the Canvas.
 /// </summary>
@@ -72,7 +72,7 @@ public class DevPanelController : MonoBehaviour
     private TMP_Text _statusText;
     private TMP_FontAsset _font;
     private bool _isVisible;
-    private bool _wasBackquotePressed;
+    private bool _wasPKeyPressed;
     private Action _pendingDeferredAction;
 
     private void Start()
@@ -124,13 +124,13 @@ public class DevPanelController : MonoBehaviour
     private void Update()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        bool isBackquotePressed = Keyboard.current != null && Keyboard.current[Key.Backquote].isPressed;
-        if (isBackquotePressed && !_wasBackquotePressed)
+        bool isPKeyPressed = Keyboard.current != null && Keyboard.current[Key.P].isPressed;
+        if (isPKeyPressed && !_wasPKeyPressed)
         {
             if (_isVisible) Close();
             else Toggle();
         }
-        _wasBackquotePressed = isBackquotePressed;
+        _wasPKeyPressed = isPKeyPressed;
 
         if (_pendingDeferredAction != null && Time.timeScale > 0f)
         {
@@ -473,6 +473,16 @@ public class DevPanelController : MonoBehaviour
         });
 
         CreateGameButton(parent, "Activate Building Power", ActivatePower);
+
+        CreateGameButton(parent, "Quit Game", () =>
+        {
+            Log("Quitting game...");
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        });
     }
 
     private void CreateGameButton(Transform parent, string label, Action onClick)
