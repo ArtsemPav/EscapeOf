@@ -451,7 +451,7 @@ public static class DevPuzzleCheats
     {
         Action fireAction = () =>
         {
-            var eventValue = type.GetField("OnPuzzleSolved", InstanceFlags)?.GetValue(instance);
+            var eventValue = type.GetField("OnPuzzleSolved", AllFlags)?.GetValue(instance);
             (eventValue as UnityEvent)?.Invoke();
             SaveManager.Instance?.Save();
         };

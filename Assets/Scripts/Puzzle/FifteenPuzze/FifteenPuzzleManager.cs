@@ -100,6 +100,10 @@ namespace PuzzleGame
             grid[emptyPosition.x, emptyPosition.y] = null;
 
             Debug.Log("[PuzzleManager] Restored solved state from save.");
+
+            // Notify connected systems (PuzzleSolvedCinematic, etc.) so they
+            // can silently restore their visual state on load.
+            OnPuzzleSolved?.Invoke();
         }
 
         private void ApplyAtlasToElements()
