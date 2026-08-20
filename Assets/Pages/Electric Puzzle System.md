@@ -1,66 +1,115 @@
-## Electric Puzzle System
+## Overview
 
-Загадка с электрическим щитком: игрок сначала вставляет предохранитель, затем соединяет шесть цветных клемм с шестью нейтральными в правильном порядке. При верном соединении лампочка загорается зелёным. Рычаг становится доступен только после вставки предохранителя — при верном решении пазл завершается, при неверном провода мгновенно исчезают и играет искровой эффект.
+The electric puzzle is a wire-connection panel. The player inserts a fuse to power the panel, then connects six colored terminals to six neutral terminals in the correct order. When all connections are correct the indicator lamp turns green. Pulling the lever with a correct solution completes the puzzle; pulling it with a wrong solution instantly resets all wires.
 
----
-
-## Компоненты системы
-
-```
-ElectricPuzzleController    ← на корневом объекте префаба (IInteractable, ISaveable, IPuzzleDropHandler)
-ElectricLever               ← на объекте рычага (pCube17)
-ElectricTerminal × 12       ← на каждой клемме в Contacts (6 цветных + 6 нейтральных)
-ElectricWire                ← создаётся в рантайме контроллером
-ElectricPuzzleData          ← ScriptableObject с решением и цветами проводов
-```
+Camera, cursor management, FPS input blocking, and ESC handling are delegated to `PuzzleModeController` — the same shared component used by all puzzles in the project. `ElectricPuzzleController` subscribes to its `OnEntered` / `OnExited` / `OnSolved` events.
 
 ---
 
-## Компоненты подробно
+## Scripts
 
-### `ElectricPuzzleController`
+```
+ElectricPuzzleController.cs   Orchestrator — input, wire lifecycle, fuse, save/load
+ElectricLever.cs              Lever animation and one-shot pull event
+ElectricTerminal.cs           Per-terminal state holder (type, index, attached wire)
+ElectricWire.cs               Verlet-physics wire simulation and LineRenderer rendering
+ElectricWireSettings.cs       Serializable settings struct shared by all wires
+ElectricPuzzleData.cs         ScriptableObject — solution mapping and per-wire colors
+```
 
-Размещается на корневом объекте `electric`. Реализует `IInteractable`, `ISaveable` и `IPuzzleDropHandler`.
+---
 
-**Inspector — References**
+## Puzzle Flow
 
-| Поле | Описание |
-|---|---|
-| `_panelCamera` | `CinemachineCamera`, которая наводится на щиток |
-| `_puzzleData` | `ElectricPuzzleData` — ScriptableObject с решением |
-| `_wirePrefab` | Prefab `ElectricWire` — создаётся при каждом соединении |
-| `_wrongPullParticles` | `ParticleSystem` искр при неверном нажатии рычага |
-| `_solvedObject` | GameObject, активируется при решении (свет, эффект) |
-| `_lever` | `ElectricLever` — находится автоматически через `GetComponentInChildren` |
-| `_lampLight` | `Light` — лампочка индикатора, находится автоматически |
+```
+Player clicks panel
+  └─ PuzzleInteractable calls PuzzleModeController.EnterPuzzleMode()
+       └─ HandleEntered()  →  _isOpen = true
+                             Cinemachine camera blends to ElectricCamera
+                             FPS input blocked, cursor freed
+                             PuzzleInventoryBar shown (_showInventoryBar = true)
+                             ElectricLever.SetInteractionEnabled(true)
 
-**Inspector — Fuse**
+Player inserts fuse
+  Drag Safeguard from PuzzleInventoryBar → drop on Safeguardanchor
+  └─ HandleDrop() raycasts _terminalLayer, checks hit.collider == _fuseAnchorCollider
+       └─ AnimateFuseInsertion()  →  Lerp fuse mesh from offset to anchor (ease-out, 0.5s)
+            └─ FinalizeFuseInsertion()  →  _fuseInserted = true, fuseItemId saved
+                                          anchor collider disabled, lamp = red, Save()
 
-| Поле | Описание |
-|---|---|
-| `_acceptedItems` | `ItemData[]` предметов, которые принимает пазл (назначить `Safeguard.asset`) |
-| `_fuseAnchorCollider` | `SphereCollider` на `Safeguardanchor` — зона дропа предохранителя |
-| `_fuseAnchorTransform` | `Transform` `Safeguardanchor` — точка спавна визуала предохранителя |
-| `_fusePrefab` | Prefab, инстанциируемый при вставке предохранителя (например `SafeGuard.prefab`); если не назначен — берётся `item.inspectionPrefab` |
+Player drags wires  (only after fuse is inserted; lamp must be on)
+  LMB press on colored terminal  →  StartDrag()       creates ElectricWire
+  LMB release on neutral terminal →  ConnectActiveWire() snaps wire, EvaluateWires()
+  LMB on occupied terminal        →  PickUpWire() / PickUpWireFromNeutral()
+  RMB                             →  CancelActiveDrag() discards floating wire
 
-**Inspector — Settings**
+EvaluateWires()
+  CheckSolution() matches _connections[] against ElectricPuzzleData.Solution
+  ├─ correct → lamp turns green, _wiresCorrect = true, Save()
+  └─ wrong   → lamp stays red
 
-| Поле | Описание |
-|---|---|
-| `_terminalLayer` | LayerMask для Raycast по клеммам, рычагу и `Safeguardanchor` |
-| `_lampDefaultColor` | Цвет лампы при вставленном предохранителе и неверных проводах |
-| `_lampSolvedColor` | Цвет лампы при верном соединении всех проводов |
-| `_blendDuration` | Длительность плавного перехода камеры (секунды) |
+Player clicks lever (pCube17 / ElectricLever)
+  TryInteractLever() returns early if !_fuseInserted
+  ├─ Wrong wires  →  particles play, ResetAllWires() instantly, lever animates down
+  │                   OnPulled fires → HandleLeverPulled() → lever.Reset() returns it
+  └─ Correct wires →  _isSolved = true
+                        lever.Interact() → animates down
+                        OnPulled fires → HandleLeverPulled()
+                        ├─ _cinematicCamera assigned → SolvedCinematicRoutine():
+                        │    1. Quick fade to black (_cutFadeDuration, default 0.3s)
+                        │    2. Instant cut to _cinematicCamera (EllectricCamera)
+                        │    3. Fade from black — player sees cinematic shot
+                        │    4. ActivatePower(), UpdateLamp() (green), _solvedClip, StartSolvedLoop()
+                        │       _lampAnimator.SetTrigger(_lampAnimTrigger) — lamp animation
+                        │    5. Hold shot for _lampAnimDuration (default 3s)
+                        │    6. Fade to black (_solvedFadeDuration, default 1s)
+                        │    7. Deactivate cinematic camera, restore blend
+                        │    8. _controller.SetSolved() → ExitPuzzleMode(), camera blends to player
+                        │    9. Fade from black — player regains control
+                        └─ _cinematicCamera null → fallback: ActivatePower(), lamp, sound, SetSolved()
+  ESC blocked during cinematic via IPuzzleExitGuard.CanExitPuzzle()
 
-**Inspector — Events**
+Player exits puzzle
+  └─ HandleExited()  →  _isOpen = false
+                        CancelActiveDrag(), ElectricLever.SetInteractionEnabled(false)
+                        PuzzleModeController.ExitPuzzleMode() restores camera, input, cursor
+```
 
-| Поле | Описание |
-|---|---|
-| `_onPuzzleSolved` | `UnityEvent` — срабатывает однократно при решении |
+---
 
-**Save ID:** `"electric_puzzle"`
+## Key Design Points
 
-**Что сохраняет:** флаг `isSolved`, флаг `wiresCorrect`, массив `connections[i]`, а также состояние предохранителя (`fuseInserted`, `fuseItemId`).
+**PuzzleModeController delegation.** Camera blending, cursor management, FPS input blocking, ESC handling, and the puzzle inventory bar are all handled by `PuzzleModeController` — the same shared component used by all puzzles. `ElectricPuzzleController` subscribes to `OnEntered`, `OnExited`, and `OnSolved` events in `OnEnable()` and unsubscribes in `OnDisable()`.
+
+**Fuse gates everything.** Without a fuse the lamp stays off, `TryInteractLever` returns early, and wires can still be moved — but the panel is treated as unpowered. Only `FinalizeFuseInsertion()` unlocks the lever and lights the lamp.
+
+**Lever is locked outside puzzle mode.** `ElectricLever.CanInteract()` checks `_interactionEnabled && !_isPulled`. The flag is set to `true` only in `HandleEntered()` and back to `false` in `HandleExited()`, preventing the player from pulling the lever through the world camera before entering the puzzle.
+
+**Fuse insertion is an animated mesh, not a prefab spawn.** `_fuseMesh` is an existing GameObject in the scene (hidden until insertion). `HandleDrop()` starts `AnimateFuseInsertion()` — a coroutine that Lerps the mesh from an offset position to the anchor with ease-out over `_fuseInsertDuration` (0.5s). A ghost preview (`_fuseGhostAlpha = 0.4`) shows a semi-transparent fuse while dragging over the anchor.
+
+**Lamp is a material tint, not a light source.** `_lampRenderer` (MeshRenderer on `pSphere25`) instantiates a unique material in `Awake()` and toggles `_BaseColor` / `_EmissionColor` between red and green. HDR emission values (3.59) give a bright glow. The lamp turns green during the solved cinematic — not when the lever is clicked — to sync with the camera cut and `ActivatePower()`.
+
+**Solved cinematic.** When the lever is pulled with correct wires, `HandleLeverPulled()` starts `SolvedCinematicRoutine()` — a coroutine that fades to black, cuts to `_cinematicCamera` (EllectricCamera), fades back in, then activates power + lamp + sound + lamp animation, holds the shot for `_lampAnimDuration`, fades to black again, and blends back to the player camera. ESC is blocked during the cinematic via `IPuzzleExitGuard`. If `_cinematicCamera` is null, the puzzle solves immediately without a cinematic (fallback). The `CinemachineBrain` blend is temporarily set to 0 for instant cuts hidden by fades, and restored to the original value for the exit transition.
+
+**Wire reset is instant.** `ResetAllWires()` is called in `TryInteractLever` on the same frame the player clicks — before the lever animation starts. The player sees all wires vanish immediately.
+
+`**_isPulling` flag prevents double-fire.** `OnPulled` fires only when the lever completes a *pull* animation (`_isPulling = true`). The return animation (`Reset()`) does not re-fire the event.
+
+**Auto-find references.** `_lever` is found automatically via `GetComponentInChildren<ElectricLever>(includeInactive: true)` in `Awake()` if not assigned. `_referenceRenderer` (for Light Layers) is similarly auto-found.
+
+**Wire material inheritance.** Each wire creates a `new Material(wireMaterial)` and overrides `_BaseColor` with the terminal's color. `Wire.mat` controls shared rendering properties. Smoothness is set to 0.5 for a rubber-like look.
+
+**Wire sleep system.** Each wire monitors interior point velocity; after 6 consecutive stable frames (below `SleepThresholdSq`), simulation pauses entirely — saving CPU and eliminating micro-vibration. Any `Wake()` call (from `ConnectEnd` / `DisconnectEnd`) resumes simulation.
+
+**Inter-wire repulsion at load only.** `repulsionRadius` (0.025) is applied during `PresettleWire` / `JointPresettle` so wires load without overlapping. At runtime repulsion is disabled to avoid fighting constraints and causing oscillation.
+
+**Solved ambient loop.** After solving, a 3D `AudioSource` on `SolvedLoopAudio` plays a looping generator hum. 3D settings are configured in code at runtime: `spatialBlend = 1.0` (fully 3D), `Linear` rolloff, `minDistance = 3m` (full volume), `maxDistance = 6m` (fades to silence). The source is at world Y ≈ -4.6 (basement); the 1st floor is at Y ≈ 0 (4.6m above) and the 2nd floor at Y ≈ 6.2 (10.8m above). With maxDistance = 6m the sound is inaudible on both upper floors. Both distances are exposed as Inspector fields `_solvedLoopMinDistance` and `_solvedLoopMaxDistance`. The source is registered with `AudioManager` for mute/volume tracking.
+
+---
+
+## Save Data
+
+`SaveId = "electric_puzzle"`
 
 ```json
 {
@@ -72,450 +121,169 @@ ElectricPuzzleData          ← ScriptableObject с решением и цвет
 }
 ```
 
----
-
-### `ElectricLever`
-
-Размещается на объекте рычага (`pCube17`). Реализует `IInteractable`.
-
-**Inspector**
-
-| Поле | Описание |
-|---|---|
-| `_angleOnDelta` | Угол поворота рычага в нажатом положении (градусы) |
-| `_rotationSpeed` | Скорость анимации поворота |
-| `_pullClip` / `_pullVolume` | Звук нажатия рычага |
-| `_interactText` | Текст подсказки при наведении |
-
-**Публичный API**
-
-| Метод / свойство | Описание |
-|---|---|
-| `SetInteractionEnabled(bool)` | Включает/выключает взаимодействие с рычагом из мирового режима. Вызывается `ElectricPuzzleController` при `Open()`/`Close()` |
-| `CanInteract()` | `true` только если `_interactionEnabled && !_isPulled` |
-| `Interact()` | Запускает анимацию нажатия |
-| `Reset()` | Возвращает рычаг в исходное положение (после неверного нажатия) |
-| `SetPulledQuiet()` | Мгновенно ставит рычаг в нажатое положение без анимации — при восстановлении из сохранения |
-| `OnPulled` | `Action` — срабатывает только при завершении анимации нажатия (не при возврате) |
-
-> **Рычаг заблокирован вне пазла.** `_interactionEnabled` по умолчанию `false`. До входа в режим пазла игрок не видит подсказку и не может нажать рычаг через мировую камеру.
+`connections[i]` is the neutral-terminal index connected to colored terminal `i`, or `-1` if disconnected. Partial progress and fuse state are saved on every change. On load, pending data is applied in `ApplyPendingLoad()` (called from `Start()`), wires are reconstructed, pre-settled via `ElectricWire.JointPresettle()`, and the fuse visual is restored via `ShowFuseMesh()`.
 
 ---
 
-### `ElectricTerminal`
+## Solution Configuration
 
-Размещается на каждой из 12 клемм. Хранит состояние подключения, не реализует `IInteractable` — взаимодействие только через Raycast контроллера.
+Open `Assets/Data/ElectricPuzzleData.asset` in the Inspector.
 
-| Поле | Описание |
-|---|---|
-| `_terminalType` | `Colored` или `Neutral` |
-| `_terminalIndex` | Индекс клеммы (0–5 в своей группе) |
 
----
+| Field         | Description                                                                             |
+| ------------- | --------------------------------------------------------------------------------------- |
+| `_solution`   | `solution[i]` = index of the neutral terminal that colored terminal `i` must connect to |
+| `_wireColors` | Visual color of each wire; index matches the colored terminal index                     |
 
-### `ElectricWire`
 
-Создаётся в рантайме через `_wirePrefab`. Симулирует провод между двумя точками с помощью Verlet-интеграции и рендерит через `LineRenderer`.
+Default solution: `[3, 5, 1, 4, 0, 2]`
 
-**Инициализация:** `Init(from, to, color, wireMaterial, settings)` — задаёт точки крепления, цвет и физические настройки.
+Wire colors (from the asset):
 
-Для корректного отображения цвета провод использует Unlit-шейдер. Если `wireMaterial` уже Unlit — делается его копия; иначе создаётся новый материал `Universal Render Pipeline/Unlit`.
 
----
+| #   | Color  | RGBA               |
+| --- | ------ | ------------------ |
+| 0   | Red    | `(1, 0.1, 0.1, 1)` |
+| 1   | Orange | `(1, 0.5, 0, 1)`   |
+| 2   | Green  | `(0.16, 1, 0, 1)`  |
+| 3   | White  | `(1, 1, 1, 1)`     |
+| 4   | Blue   | `(0.1, 0.4, 1, 1)` |
+| 5   | Black  | `(0, 0, 0, 1)`     |
 
-### `ElectricPuzzleData`
-
-ScriptableObject. Хранит решение и цвета проводов.
-
-`Assets/Data/ElectricPuzzleData.asset`
-
-| Поле | Описание |
-|---|---|
-| `_solution` | Массив из 6 int: `solution[i]` = индекс нейтральной клеммы для цветной клеммы `i` |
-| `_wireColors` | Массив из 6 Color: цвет провода, индекс совпадает с цветной клеммой |
-
-**Текущее решение:**
-
-| Цветная клемма | Цвет | → Нейтральная клемма |
-|---|---|---|
-| 0 | Красный | 3 |
-| 1 | Оранжевый | 5 |
-| 2 | Зелёный | 1 |
-| 3 | Белый | 4 |
-| 4 | Синий | 0 |
-| 5 | Тёмный (серый) | 2 |
 
 ---
 
-## Иерархия в сцене
+## Prefab Setup
 
 ```
-electric                               ← ElectricPuzzleController, BoxCollider, Interactable Layer
-  ElectricCamera                       ← CinemachineCamera (_panelCamera)
-  Point Light                          ← Light (_lampLight, находится автоматически)
-  pCube17                              ← ElectricLever (_lever, находится автоматически)
-  vfx_Sparks_01                        ← ParticleSystem (_wrongPullParticles), неактивен по умолчанию
-  Safeguardanchor                      ← SphereCollider, Interactable Layer
-  │                                       Назначить в _fuseAnchorCollider и _fuseAnchorTransform
-  Contacts
-    Terminal_Colored_0..5              ← ElectricTerminal (Type = Colored)
-    Terminal_Neutral_0..5              ← ElectricTerminal (Type = Neutral)
-  [Wire_0..5]                          ← ElectricWire, создаются в рантайме
+electric  (root — ElectricPuzzleController, BoxCollider, PuzzleModeController, PuzzleInteractable, Interactable Layer)
+├── ElectricCamera            CinemachineCamera — assign to PuzzleModeController._puzzleCamera
+├── pSphere25                 MeshRenderer — assign to _lampRenderer (material tinted red→green)
+├── pCube17                   ElectricLever — auto-found as _lever in Awake()
+├── pCube18                   MeshRenderer — auto-found as _referenceRenderer (Light Layers source)
+├── Safeguardanchor           Drop zone for the fuse (SphereCollider, Interactable Layer)
+│                             Assign to _fuseAnchorCollider and _fuseAnchorTransform
+├── SafeGuard (3)             Fuse mesh GameObject — assign to _fuseMesh (hidden until inserted)
+├── vfx_Sparks_01             ParticleSystem — assign to _wrongPullParticles
+├── SolvedLoopAudio           AudioSource — assign to _solvedLoopSource (3D settings configured in code at runtime)
+├── Camera
+│   └── EllectricCamera       CinemachineCamera — assign to _cinematicCamera (solved cinematic shot)
+├── LightSupport
+│   ├── Point Light           Flashlight support light (enabled during puzzle mode)
+│   └── Point Light (1)
+├── Contacts
+│   ├── Terminal_Colored_0..5  ElectricTerminal (Type = Colored) — assign to _coloredTerminals
+│   └── Terminal_Neutral_0..5  ElectricTerminal (Type = Neutral) — assign to _neutralTerminals
+└── [Wire_0..5]               Created at runtime by ElectricPuzzleController
 ```
 
 ---
 
-## Как работает полный цикл
+## Inspector Fields — ElectricPuzzleController
 
-```
-Старт сессии
-  └─ SaveManager.Start() → LoadSaveData()
-       └─ ElectricPuzzleController.ApplyPendingLoad()
-            ├─ isSolved=true     → SetPulledQuiet(), _solvedObject.SetActive(true)
-            ├─ connections[]     → пересоздаёт провода через JointPresettle (без физики)
-            └─ fuseInserted=true → SpawnFuseVisual(), якорь отключается, лампа включается
+### References
 
-Игрок кликает на щиток
-  └─ ElectricPuzzleController.Interact()
-       └─ Open()
-            ├─ Cinemachine переходит на панельную камеру
-            ├─ PuzzleInventoryBar.Instance.Show(this) — бар всегда виден в режиме пазла
-            └─ ElectricLever.SetInteractionEnabled(true)
 
-Игрок вставляет предохранитель (если ещё не вставлен)
-  Перетащить Safeguard из PuzzleInventoryBar → бросить на Safeguardanchor
-  └─ HandleDrop() — Raycast по _terminalLayer, проверка hit.collider == _fuseAnchorCollider
-       └─ InsertFuse()
-            ├─ _fuseInserted = true, _fuseItemId = item.ItemId
-            ├─ SafeGuard.prefab инстанциируется на Safeguardanchor
-            ├─ Коллайдер якоря отключается (больше не мешает Raycast)
-            ├─ Лампа включается (красная)
-            └─ Save()
+| Field               | Description                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `_panel`            | Root panel GameObject in Canvas — opened/closed via UIManager (optional)               |
+| `_coloredTerminals` | `ElectricTerminal[6]` — colored terminals in order 0..5                                |
+| `_neutralTerminals` | `ElectricTerminal[6]` — neutral terminals in order 0..5                                |
+| `_puzzleData`       | `ElectricPuzzleData` ScriptableObject — solution mapping and wire colors               |
+| `_solvedObject`     | GameObject activated when the puzzle is fully solved (lever pulled with correct wires) |
 
-Игрок тянет провод (только при _fuseInserted = true)
-  ЛКМ на цветной клемме  →  StartDrag() — создаёт ElectricWire
-  ЛКМ на нейтральной     →  ConnectActiveWire() — крепит провод, EvaluateWires()
-  ЛКМ на занятой клемме  →  PickUpWire() / PickUpWireFromNeutral() — переподключение
-  ПКМ                    →  CancelActiveDrag() — удаляет незакреплённый провод
 
-EvaluateWires()
-  └─ CheckSolution() — сравнивает connections[] с ElectricPuzzleData.Solution
-       ├─ верно  → лампа зелёная, Save()
-       └─ неверно → лампа остаётся красной
+### Lamp
 
-Игрок кликает рычаг (только при _fuseInserted = true)
-  ├─ Неверные провода → искры, все провода удаляются мгновенно, рычаг анимируется и возвращается
-  └─ Верные провода   → рычаг анимируется вниз
-                         OnPulled → HandleLeverPulled() → пазл решён, Close(), Save()
 
-Игрок выходит из пазла (ESC / WASD)
-  └─ Close()
-       ├─ ElectricLever.SetInteractionEnabled(false)
-       ├─ PuzzleInventoryBar.Instance.Hide()
-       └─ Cinemachine возвращается к мировой камере
-```
+| Field                | Description                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `_lampRenderer`      | `Renderer` on the lamp mesh (`pSphere25`) — material tinted red→green based on puzzle state |
+| `_lampRedColor`      | Base color of the lamp material in the unsolved state (default: dark red)                   |
+| `_lampRedEmission`   | Emission color in the unsolved state (HDR, default: 3.59 red)                               |
+| `_lampGreenColor`    | Base color when the puzzle is solved (default: dark green)                                  |
+| `_lampGreenEmission` | Emission color when solved (HDR, default: 3.59 green)                                       |
 
----
 
-## Ключевые принципы
+### Lever
 
-**Предохранитель блокирует всё.** Без него лампа выключена (`enabled = false`), `TryInteractLever` возвращает `false`, провода можно двигать — но рычаг не реагирует.
 
-**Рычаг заблокирован вне режима пазла.** `ElectricLever.CanInteract()` проверяет `_interactionEnabled && !_isPulled`. Флаг выставляется в `true` только в `Open()` и сбрасывается в `Close()`.
+| Field                 | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| `_lever`              | `ElectricLever` on `pCube17` — auto-found in `Awake()` if not assigned                        |
+| `_wrongPullParticles` | `ParticleSystem` on `vfx_Sparks_01` — plays on incorrect lever pulls (requires fuse inserted) |
 
-**Бар всегда виден в режиме пазла.** `PuzzleInventoryBar.Show(this)` вызывается безусловно при каждом `Open()`. Бар отображается даже если предохранитель уже вставлен или инвентарь пуст.
 
-**Сброс проводов мгновенный.** `ResetAllWires()` вызывается в `TryInteractLever` на том же кадре — игрок видит исчезновение проводов немедленно, до завершения анимации рычага.
+### Settings
 
----
 
-## Настройка с нуля
+| Field                | Description                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| `_terminalLayer`     | Layer mask for terminal colliders (Interactable Layer) — used for mouse raycasting            |
+| `_wireCapPrefab`     | Prefab for visual caps at both wire ends (e.g. `WireCap.prefab`)                              |
+| `_wireMaterial`      | Material for wire LineRenderers (e.g. `Wire.mat`) — cloned per wire for color tinting         |
+| `_referenceRenderer` | Renderer to copy Light Layers from; auto-found in children if not assigned                    |
+| `_wireSettings`      | `ElectricWireSettings` — simulation and rendering parameters (segments, slack, gravity, etc.) |
 
-### 1 — ElectricPuzzleData
 
-Создай ScriptableObject (`Create → Game → Electric Puzzle Data`):
-- `_solution` — массив из 6 индексов
-- `_wireColors` — массив из 6 цветов (в том же порядке, что и `Terminal_Colored_0..5`)
+### Sounds
 
-### 2 — Предохранитель
 
-- Создай `ItemData` для предохранителя (`Create → Inventory → Item Data`): заполни `itemName`, `icon`, `ItemId`
-- Добавь в `InventorySystem._allItems`
-- В Inspector `ElectricPuzzleController` назначь в `_acceptedItems`
-- `_fuseAnchorCollider` / `_fuseAnchorTransform` → `Safeguardanchor`
-- `_fusePrefab` → `SafeGuard.prefab` (или оставь пустым, если у предмета заполнен `inspectionPrefab`)
+| Field                    | Description                                                                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `_fuseInsertClip`        | Played when the fuse is inserted                                                                                             |
+| `_wireConnectClip`       | Played when a wire is connected to a neutral terminal                                                                        |
+| `_wireDisconnectClip`    | Played when a wire is disconnected (picked up from a terminal)                                                               |
+| `_solvedClip`            | Played when the puzzle is fully solved                                                                                       |
+| `_wrongPullClip`         | Played when the lever is pulled with incorrect connections                                                                   |
+| `_solvedLoopSource`      | Looping 3D AudioSource — generator hum after solving                                                                         |
+| `_solvedLoopMinDistance` | 3D distance within which the solved loop plays at full volume (default: 3)                                                   |
+| `_solvedLoopMaxDistance` | 3D distance at which the solved loop fades to silence (default: 6)                                                           |
+| Volume fields            | `_fuseInsertVolume`, `_wireConnectVolume`, `_wireDisconnectVolume`, `_solvedVolume`, `_wrongPullVolume`, `_solvedLoopVolume` |
 
-### 3 — Клеммы (ElectricTerminal)
 
-На каждом из 12 дочерних объектов в `Contacts`:
-- Добавь `ElectricTerminal` и `Collider`
-- Установи `_terminalType` и `_terminalIndex` (0–5 в каждой группе)
-- Поставь на слой `_terminalLayer`
+### Solved Cinematic
 
-### 4 — Рычаг (ElectricLever)
 
-На объекте рычага (`pCube17`) добавь компонент `ElectricLever` и `Collider`. Настрой `_angleOnDelta`. Компонент будет найден автоматически через `GetComponentInChildren`.
+| Field                 | Description                                                                                          |
+| --------------------- | ---------------------------------------------------------------------------------------------------- |
+| `_cinematicCamera`    | `CinemachineCamera` (EllectricCamera) for the dramatic solved shot — assigned on the scene object    |
+| `_lampAnimator`       | Animator that plays the lamp turn-on animation during the cinematic (assign when animation is ready) |
+| `_lampAnimTrigger`    | Trigger parameter name for the lamp animation (default: `"PlayLampAnimation"`)                       |
+| `_lampAnimDuration`   | How long to hold the cinematic shot while the lamp animation plays (default: 3s)                     |
+| `_cutFadeDuration`    | Duration of the quick fade when cutting to the cinematic camera (default: 0.3s)                      |
+| `_solvedFadeDuration` | Duration of the fade when returning to the player camera (default: 1s)                               |
 
-### 5 — Лампа и партикл
 
-- Дочерний `Light` — находится автоматически. Настрой `_lampDefaultColor` и `_lampSolvedColor`
-- Дочерний `ParticleSystem` → назначь в `_wrongPullParticles`. Деактивируй GameObject по умолчанию
+### Fuse / Inventory
+
+
+| Field                    | Description                                                                                          |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `_acceptedItems`         | `ItemData[]` of items the puzzle accepts (assign `Safeguard.asset`)                                  |
+| `_fuseAnchorCollider`    | `SphereCollider` on `Safeguardanchor` — raycast target for fuse drop                                 |
+| `_fuseAnchorTransform`   | `Transform` of `Safeguardanchor` — position for the fuse visual                                      |
+| `_fuseMesh`              | In-scene GameObject (`SafeGuard (3)`) — shown as ghost during drag, animated into place on insertion |
+| `_fuseInsertStartOffset` | Local position offset from anchor where the insertion animation starts (default: `(0, 0.15, -0.12)`) |
+| `_fuseInsertDuration`    | Duration of the fuse insertion animation in seconds (default: 0.5)                                   |
+| `_fuseGhostAlpha`        | Alpha (0–1) of the fuse mesh when shown as a ghost preview during drag (default: 0.4)                |
+
+
+**Required setup for `Safeguard.asset`:** fill in `itemName` and `icon`, and register the item in `InventorySystem._allItems` so save/load can resolve it by `ItemId`.
 
 ---
 
-## Часто встречающиеся ошибки
+## Cheat Tool
 
-**Провода чёрные или не отображают цвет**
-- Убедись что `Wire.mat` назначен в `_wirePrefab → ElectricWire._wireMaterial`. Контроллер автоматически переключается на `URP/Unlit`.
+Menu path: `Tools/PuzzlesCheats/Solve Electric Puzzle`
 
-**Рычаг не реагирует на клик в режиме пазла**
-- Убедись что `Open()` вызывает `_lever?.SetInteractionEnabled(true)`. Проверь что `_lever` найден (`GetComponentInChildren` в `Awake`).
+Script: `Assets/Scripts/Editor/PuzzleCheats/ElectricPuzzleUnlockTool.cs`
 
-**Рычаг доступен вне режима пазла**
-- Убедись что `Close()` вызывает `_lever?.SetInteractionEnabled(false)`.
+Play Mode only. Uses reflection to set the puzzle state as if the player had inserted the fuse, connected all wires correctly, and pulled the lever:
 
-**Предохранитель не принимается при дропе**
-- Проверь что `Safeguardanchor` находится на слое `_terminalLayer` и его `SphereCollider` назначен в `_fuseAnchorCollider`. Radius коллайдера должен перекрывать видимую зону дропа.
-
-**Лампа не загорается после вставки предохранителя**
-- Убедись что `_lampLight` найден. Проверь что `InsertFuse()` вызывает `UpdateLamp()`.
-
-**Провода не восстанавливаются после перезагрузки**
-- `ApplyPendingLoad()` вызывается в `Start()` — убедись что `SaveManager` зарегистрировал `ElectricPuzzleController` в `Awake()`.
-
-**Партикл виден при старте сцены**
-- GameObject `vfx_Sparks_01` должен быть неактивен по умолчанию в prefab.
-
----
-
-## Компоненты системы
-
-```
-ElectricPuzzleController    ← на корневом объекте префаба (IInteractable, ISaveable)
-ElectricLever               ← на объекте рычага (pCube17)
-ElectricTerminal × 12       ← на каждой клемме в Contacts (6 цветных + 6 нейтральных)
-ElectricWire                ← создаётся в рантайме контроллером
-ElectricPuzzleData          ← ScriptableObject с решением и цветами проводов
-```
-
----
-
-## Компоненты подробно
-
-### `ElectricPuzzleController`
-
-Размещается на корневом объекте `electric`. Реализует `IInteractable` и `ISaveable`.
-
-**Inspector — References**
-
-| Поле | Описание |
-|---|---|
-| `_panelCamera` | `CinemachineCamera`, которая наводится на щиток |
-| `_puzzleData` | `ElectricPuzzleData` — ScriptableObject с решением |
-| `_wirePrefab` | Prefab `ElectricWire` — создаётся при каждом соединении |
-| `_wrongPullParticles` | `ParticleSystem` искр при неверном нажатии рычага |
-| `_solvedObject` | GameObject, активируется при решении (свет, эффект) |
-| `_lever` | `ElectricLever` — находится автоматически через `GetComponentInChildren` |
-| `_lampLight` | `Light` — лампочка индикатора, находится автоматически |
-
-**Inspector — Settings**
-
-| Поле | Описание |
-|---|---|
-| `_terminalLayer` | LayerMask для Raycast по клеммам и рычагу |
-| `_lampDefaultColor` | Цвет лампы в обычном состоянии |
-| `_lampSolvedColor` | Цвет лампы при верном соединении всех проводов |
-| `_blendDuration` | Длительность плавного перехода камеры (секунды) |
-| `_sideZoneWidth` | Ширина боковой зоны клика для закрытия панели |
-
-**Inspector — Events**
-
-| Поле | Описание |
-|---|---|
-| `_onPuzzleSolved` | `UnityEvent` — срабатывает однократно при решении |
-
-**Save ID:** `"electric_puzzle"`
-
-**Что сохраняет:** флаг `isSolved`, флаг `wiresCorrect`, массив `connections[i]` — индекс нейтральной клеммы для цветной клеммы `i`, или `-1` если не подключена.
-
-```json
-{ "isSolved": false, "wiresCorrect": false, "connections": [3, 5, -1, -1, -1, -1] }
-```
-
----
-
-### `ElectricLever`
-
-Размещается на объекте рычага (`pCube17`). Управляет анимацией и одноразовым событием.
-
-**Inspector**
-
-| Поле | Описание |
-|---|---|
-| `_angleOnDelta` | Угол поворота рычага в нажатом положении (градусы) |
-| `_animationSpeed` | Скорость анимации поворота |
-| `_pullClip` / `_pullVolume` | Звук нажатия рычага |
-
-**Публичный API**
-
-| Метод / свойство | Описание |
-|---|---|
-| `CanInteract()` | `true` если рычаг ещё не был нажат (`!_isPulled`) |
-| `Interact()` | Запускает анимацию нажатия |
-| `Reset()` | Возвращает рычаг в исходное положение (после неверного нажатия) |
-| `SetPulledQuiet()` | Мгновенно ставит рычаг в нажатое положение без анимации — при восстановлении из сохранения |
-| `OnPulled` | `Action` — срабатывает только при завершении анимации нажатия (не при возврате) |
-
----
-
-### `ElectricTerminal`
-
-Размещается на каждой из 12 клемм. Хранит состояние подключения.
-
-**Inspector**
-
-| Поле | Описание |
-|---|---|
-| `_terminalType` | `Colored` или `Neutral` |
-| `_terminalIndex` | Индекс клеммы (0–5 в своей группе) |
-
----
-
-### `ElectricWire`
-
-Создаётся в рантайме через `_wirePrefab`. Симулирует провод между двумя точками с помощью Verlet-интеграции и рендерит через `LineRenderer`.
-
-**Инициализация:** `Init(from, to, color, wireMaterial, settings)` — задаёт точки крепления, цвет и физические настройки.
-
-Для корректного отображения цвета провод использует Unlit-шейдер. Если `wireMaterial` уже Unlit — делается его копия; иначе создаётся новый материал `Universal Render Pipeline/Unlit`.
-
----
-
-### `ElectricPuzzleData`
-
-ScriptableObject. Хранит решение и цвета проводов.
-
-`Assets/Data/ElectricPuzzleData.asset`
-
-| Поле | Описание |
-|---|---|
-| `_solution` | Массив из 6 int: `solution[i]` = индекс нейтральной клеммы для цветной клеммы `i` |
-| `_wireColors` | Массив из 6 Color: цвет провода, индекс совпадает с цветной клеммой |
-
-**Текущее решение:**
-
-| Цветная клемма | Цвет | → Нейтральная клемма |
-|---|---|---|
-| 0 | Красный | 3 |
-| 1 | Оранжевый | 5 |
-| 2 | Зелёный | 1 |
-| 3 | Белый | 4 |
-| 4 | Синий | 0 |
-| 5 | Тёмный (серый) | 2 |
-
----
-
-## Иерархия в сцене
-
-```
-electric                               ← ElectricPuzzleController, BoxCollider, Interactable Layer
-  ElectricCamera                       ← CinemachineCamera (_panelCamera)
-  Point Light                          ← Light (_lampLight, находится автоматически)
-  pCube17                              ← ElectricLever (_lever, находится автоматически)
-  vfx_Sparks_01                        ← ParticleSystem (_wrongPullParticles), неактивен по умолчанию
-  Contacts
-    Terminal_Colored_0..5              ← ElectricTerminal (Type = Colored)
-    Terminal_Neutral_0..5              ← ElectricTerminal (Type = Neutral)
-  [Wire_0..5]                          ← ElectricWire, создаются в рантайме
-```
-
----
-
-## Как работает полный цикл
-
-```
-Старт сессии
-  └─ SaveManager.Start() → LoadSaveData()
-       └─ ElectricPuzzleController.ApplyPendingLoad()
-            ├─ isSolved=true  → SetPulledQuiet(), _solvedObject.SetActive(true)
-            └─ connections[]  → пересоздаёт провода через JointPresettle (без физики)
-
-Игрок кликает на щиток
-  └─ ElectricPuzzleController.Interact()
-       └─ Open() — Cinemachine переходит на панельную камеру, вход в режим взаимодействия
-
-Игрок тянет провод
-  ЛКМ на цветной клемме  →  StartDrag() — создаёт ElectricWire
-  ЛКМ на нейтральной     →  ConnectActiveWire() — крепит провод, EvaluateWires()
-  ЛКМ на занятой клемме  →  PickUpWire() / PickUpWireFromNeutral() — переподключение
-  ПКМ                    →  CancelActiveDrag() — удаляет незакреплённый провод
-
-EvaluateWires()
-  └─ CheckSolution() — сравнивает connections[] с ElectricPuzzleData.Solution
-       ├─ верно  → лампа зелёная, Save()
-       └─ неверно → лампа обычная
-
-Игрок кликает рычаг
-  ├─ Неверные провода → искры, все провода удаляются мгновенно, рычаг анимируется и возвращается
-  └─ Верные провода   → рычаг анимируется вниз
-                         OnPulled → HandleLeverPulled() → пазл решён, Close(), Save()
-```
-
----
-
-## Настройка с нуля
-
-### 1 — ElectricPuzzleData
-
-Создай ScriptableObject (`Create → Game → Electric Puzzle Data`):
-- `_solution` — массив из 6 индексов
-- `_wireColors` — массив из 6 цветов (в том же порядке, что и `Terminal_Colored_0..5`)
-
-### 2 — Клеммы (ElectricTerminal)
-
-На каждом из 12 дочерних объектов в `Contacts`:
-- Добавь `ElectricTerminal` и `Collider`
-- Установи `_terminalType` и `_terminalIndex` (0–5 в каждой группе)
-- Поставь на слой, указанный в `_terminalLayer`
-
-### 3 — Рычаг (ElectricLever)
-
-На объекте рычага (`pCube17`) добавь компонент `ElectricLever` и `Collider`. Настрой `_angleOnDelta` и `_animationSpeed` по размеру модели. Компонент будет найден автоматически через `GetComponentInChildren`.
-
-### 4 — Лампа (Light)
-
-Добавь любой дочерний `Light`-объект — контроллер найдёт его автоматически через `GetComponentInChildren`. Настрой `_lampDefaultColor` и `_lampSolvedColor` в Inspector контроллера.
-
-### 5 — Партикл (vfx_Sparks_01)
-
-Добавь дочерний `ParticleSystem` и назначь его в поле `_wrongPullParticles`. Деактивируй GameObject по умолчанию — контроллер активирует его сам при неверном нажатии и скрывает по завершении воспроизведения.
-
-### 6 — ElectricPuzzleController
-
-На корневом объекте:
-- `_panelCamera` — CinemachineCamera щитка
-- `_puzzleData` — созданный ElectricPuzzleData
-- `_wirePrefab` — prefab с компонентом ElectricWire
-- `_terminalLayer` — LayerMask клемм и рычага
-
----
-
-## Часто встречающиеся ошибки
-
-**Провода чёрные или не отображают цвет**
-- Материал `Wire.mat` использует Lit-шейдер с высоким металликом. Контроллер автоматически переключается на `URP/Unlit` — убедись что `Wire.mat` назначен в `_wirePrefab → ElectricWire._wireMaterial`.
-
-**Рычаг не реагирует на клик**
-- `ElectricLever` не попадает под Raycast. Проверь, что объект рычага находится на слое `_terminalLayer` и имеет `Collider`.
-
-**После неверного нажатия рычаг остаётся в нажатом положении**
-- `HandleLeverPulled()` должен вызывать `_lever?.Reset()` при `!_wiresCorrect`. Убедись что `_lever` найден (`GetComponentInChildren` в `Awake`).
-
-**Провода не восстанавливаются после перезагрузки**
-- `ApplyPendingLoad()` вызывается в `Start()` — убедись что `SaveManager` зарегистрировал `ElectricPuzzleController` в `Awake()`.
-
-**Пазл не помечается решённым после перезагрузки**
-- `_solvedObject` не назначен, или его `SetActive(true)` не вызывается в `RefreshVisuals()` при `_isSolved=true`.
-
-**Партикл виден при старте сцены**
-- GameObject `vfx_Sparks_01` должен быть неактивен по умолчанию. `Awake()` контроллера принудительно вызывает `SetActive(false)` как страховку — но лучше выставить это в prefab через Override.
+1. Reads the solution from `_puzzleData` and the fuse item ID from `_acceptedItems`.
+2. Sets pending-load fields and calls `ApplyPendingLoad()` — recreates all 6 wires between correct terminals.
+3. Calls `ElectricWire.JointPresettle()` — wires settle into natural hanging shape.
+4. Shows the fuse mesh, disables the anchor collider, refreshes visuals (lamp green, lever pulled).
+5. Starts the solved ambient loop and saves state.
+6. Calls `PuzzleModeController.SetSolved()` — if the puzzle is open, exits puzzle mode; if paused, defers until unpause.
