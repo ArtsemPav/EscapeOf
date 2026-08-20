@@ -1,6 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// Represents one hole in the medallion box.
@@ -11,10 +13,25 @@ using UnityEngine;
 /// <c>_EMISSION</c> keyword is enabled on a per-instance material copy. <see cref="Highlight"/>
 /// then drives <c>_EmissionColor</c> via <see cref="MaterialPropertyBlock"/> (zero GC).
 /// MedallionBoxUI calls <see cref="Highlight"/> every frame based on cursor raycast results.</para>
+///
+/// <para><b>Ghost preview:</b> while the player drags a medallion icon over an empty hole,
+/// <see cref="ShowGhost"/> instantiates a semi-transparent 3D preview of the coin at the
+/// hole's final position. <see cref="HideGhost"/> removes it. The preview is replaced by
+/// the real drop animation when <see cref="Fill"/> is called.</para>
 /// </summary>
 public class MedallionHole : MonoBehaviour
 {
     private static readonly Quaternion CoinRotation = Quaternion.Euler(0f, -90f, 0f);
+
+    // URP/Lit shader property IDs for runtime transparency.
+    private static readonly int SurfacePropId       = Shader.PropertyToID("_Surface");
+    private static readonly int BlendPropId         = Shader.PropertyToID("_Blend");
+    private static readonly int SrcBlendPropId      = Shader.PropertyToID("_SrcBlend");
+    private static readonly int DstBlendPropId      = Shader.PropertyToID("_DstBlend");
+    private static readonly int ZWritePropId        = Shader.PropertyToID("_ZWrite");
+    private static readonly int AlphaClipPropId     = Shader.PropertyToID("_AlphaClip");
+    private static readonly int BaseColorPropId     = Shader.PropertyToID("_BaseColor");
+    private static readonly int SurfaceTransparentKw = Shader.PropertyToID("_SURFACE_TYPE_TRANSPARENT");
 
     [Header("Coin Animation")]
     [Tooltip("Optional material override for the spawned coin. Leave null to use prefab default.")]
@@ -24,6 +41,14 @@ public class MedallionHole : MonoBehaviour
     [Tooltip("HDR emission colour applied to the coin when the cursor hovers over it.")]
     [ColorUsage(false, true)]
     [SerializeField] private Color _highlightEmission = new Color(0.55f, 0.42f, 0.08f);
+
+    [Header("Ghost Preview")]
+    [Tooltip("Material used for the 3D ghost preview when dragging a medallion over this hole. " +
+             "If null, the coin material is made semi-transparent at runtime (requires URP/Lit).")]
+    [SerializeField] private Material _ghostMaterial;
+
+    [Tooltip("Alpha (transparency) of the ghost preview when no explicit _ghostMaterial is assigned.")]
+    [SerializeField, Range(0.1f, 0.9f)] private float _ghostAlpha = 0.45f;
 
     /// <summary>Raised when a medallion is successfully placed into this hole.</summary>
     public event System.Action OnFilled;
@@ -38,6 +63,7 @@ public class MedallionHole : MonoBehaviour
     public bool IsFilled => PlacedItem != null;
 
     private GameObject _placedCoin;
+    private GameObject _ghostCoin;
     private Renderer _placedRenderer;
     private MaterialPropertyBlock _propBlock;
 
@@ -46,10 +72,12 @@ public class MedallionHole : MonoBehaviour
     /// <summary>
     /// Places <paramref name="item"/> into this hole and plays a drop animation.
     /// Uses <paramref name="item"/>.inspectionPrefab if assigned, otherwise falls back to <paramref name="fallbackPrefab"/>.
+    /// Clears any active ghost preview before placing.
     /// </summary>
     public void Fill(ItemData item, GameObject fallbackPrefab, float dropHeight, float dropDuration)
     {
         if (IsFilled || item == null) return;
+        HideGhost();
         var prefab = item.inspectionPrefab != null ? item.inspectionPrefab : fallbackPrefab;
         if (prefab == null) return;
 
@@ -124,6 +152,79 @@ public class MedallionHole : MonoBehaviour
         _placedRenderer.GetPropertyBlock(_propBlock);
         _propBlock.SetColor("_EmissionColor", on ? _highlightEmission : Color.black);
         _placedRenderer.SetPropertyBlock(_propBlock);
+    }
+
+    // ── Ghost Preview ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Shows a semi-transparent 3D preview of <paramref name="item"/> at this hole's
+    /// final position. Called every frame by the UI while the player drags a medallion
+    /// icon over an empty hole. If a ghost is already showing on this hole, does nothing.
+    /// </summary>
+    public void ShowGhost(ItemData item, GameObject fallbackPrefab)
+    {
+        if (IsFilled || item == null) return;
+        if (_ghostCoin != null) return;
+
+        var prefab = item.inspectionPrefab != null ? item.inspectionPrefab : fallbackPrefab;
+        if (prefab == null) return;
+
+        _ghostCoin = Instantiate(prefab, transform.position, CoinRotation, transform);
+        StripInteractableComponents(_ghostCoin);
+        _ghostCoin.transform.localScale = Vector3.one;
+
+        ApplyGhostAppearance(_ghostCoin);
+    }
+
+    /// <summary>Removes the ghost preview if one is active.</summary>
+    public void HideGhost()
+    {
+        if (_ghostCoin != null)
+        {
+            Destroy(_ghostCoin);
+            _ghostCoin = null;
+        }
+    }
+
+    /// <summary>
+    /// Makes the ghost coin semi-transparent. If <see cref="_ghostMaterial"/> is assigned,
+    /// uses it directly. Otherwise switches the URP/Lit material to Transparent surface
+    /// mode at runtime and reduces <c>_BaseColor</c> alpha to <see cref="_ghostAlpha"/>.
+    /// </summary>
+    private void ApplyGhostAppearance(GameObject coin)
+    {
+        var renderers = coin.GetComponentsInChildren<Renderer>();
+
+        if (_ghostMaterial != null)
+        {
+            foreach (var rend in renderers)
+                rend.sharedMaterial = _ghostMaterial;
+            return;
+        }
+
+        // Runtime transparency for URP/Lit materials.
+        foreach (var rend in renderers)
+        {
+            // material getter creates a per-instance copy we can modify safely.
+            var mat = rend.material;
+
+            mat.SetFloat(SurfacePropId, 1f);
+            mat.SetFloat(BlendPropId, 0f);
+            mat.SetFloat(SrcBlendPropId, (float)BlendMode.SrcAlpha);
+            mat.SetFloat(DstBlendPropId, (float)BlendMode.OneMinusSrcAlpha);
+            mat.SetFloat(ZWritePropId, 0f);
+            mat.SetFloat(AlphaClipPropId, 0f);
+            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+
+            if (mat.HasProperty(BaseColorPropId))
+            {
+                var color = mat.GetColor(BaseColorPropId);
+                color.a = _ghostAlpha;
+                mat.SetColor(BaseColorPropId, color);
+            }
+
+            rend.material = mat;
+        }
     }
 
     // ── Private ───────────────────────────────────────────────────────────────

@@ -1548,6 +1548,27 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 90979415}
   m_CullTransparentMesh: 1
+--- !u!1 &97785729 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7172788697306702133, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &97785732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 97785729}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1 &98444783
 GameObject:
   m_ObjectHideFlags: 0
@@ -3262,6 +3283,115 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.RectMask2D
   m_Padding: {x: 0, y: 0, z: 0, w: 0}
   m_Softness: {x: 0, y: 0}
+--- !u!1 &310583719 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5090504508080705167, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &310583721
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310583719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73608f03d54faaf42bffa90da56eb7ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorPuzzleUI
+  _doorHoles:
+  - {fileID: 676592954}
+  - {fileID: 1997588939}
+  - {fileID: 798906052}
+  - {fileID: 809646063}
+  - {fileID: 811794623}
+  - {fileID: 97785732}
+  _holeLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  _coinPrefab: {fileID: 0}
+  _dropHeight: 0.005
+  _dropDuration: 0.35
+  _sideZoneWidth: 0.08
+  _controller: {fileID: 0}
+--- !u!114 &310583722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310583719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 308c7475dad391842a7125b57cd530f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorPuzzleInteraction
+  _controller: {fileID: 0}
+  _doorHoles:
+  - {fileID: 676592954}
+  - {fileID: 1997588939}
+  - {fileID: 798906052}
+  - {fileID: 809646063}
+  - {fileID: 811794623}
+  - {fileID: 97785732}
+  _doorMedallionOrder:
+  - {fileID: 11400000, guid: c24ac5bc12c14914f9a761b2191aa749, type: 2}
+  - {fileID: 11400000, guid: 62990b72e77139c458909abbab561493, type: 2}
+  - {fileID: 11400000, guid: 4e72062358337f849ba85362e67fb27f, type: 2}
+  - {fileID: 11400000, guid: 340dd329dbad8454aaa79b6ffa38690c, type: 2}
+  - {fileID: 11400000, guid: 345df6943cc96c94ea036a725c34b15a, type: 2}
+  - {fileID: 11400000, guid: a728d9bcc92bd3c42bbc57d28e0d42ae, type: 2}
+  _allMedallions: []
+  _activationAnimator: {fileID: 0}
+  _activationTrigger: Activate
+  _activationDuration: 3
+  _solvedObject: {fileID: 0}
+  _activationClip: {fileID: 0}
+  _solvedClip: {fileID: 0}
+  _coinDropClip: {fileID: 0}
+  _coinPickupClip: {fileID: 0}
+  _activationVolume: 1
+  _solvedVolume: 1
+  _coinDropVolume: 0.8
+  _coinPickupVolume: 0.7
+--- !u!114 &310583723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 310583719}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dce8bb7c113a09438e00ed4b96141c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorPuzzleController
+  _saveId: final_door_puzzle_mode
+  _cameras:
+  - {fileID: 1777402941}
+  - {fileID: 793456977}
+  - {fileID: 1777402942}
+  - {fileID: 0}
+  _entryCamera: 1
+  _blendDuration: 0.75
+  _showInventoryBar: 1
+  _disableFlashlightInPuzzle: 1
+  _flashlightSupportLights: []
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
+  _useExitPopup: 1
+  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
+  _exitPopupType: 2
+  OnPuzzleModeEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleModeExited:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleSolved:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &310981216
 GameObject:
   m_ObjectHideFlags: 0
@@ -6025,6 +6155,27 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 596750664}
   m_CullTransparentMesh: 1
+--- !u!1 &676592951 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5269285374478525175, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &676592954
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 676592951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1 &693603416
 GameObject:
   m_ObjectHideFlags: 0
@@ -7074,6 +7225,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 782144107}
   m_CullTransparentMesh: 1
+--- !u!114 &793456977 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7155397698290231549, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!1 &794903968
 GameObject:
   m_ObjectHideFlags: 0
@@ -7211,6 +7373,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 794903968}
   m_CullTransparentMesh: 1
+--- !u!1 &798906049 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4230795907407759294, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &798906052
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 798906049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
+--- !u!1 &809646060 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8948066765109333699, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &809646063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 809646060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
+--- !u!1 &811794620 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1474442750395373557, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &811794623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 811794620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1 &827425833
 GameObject:
   m_ObjectHideFlags: 0
@@ -10604,6 +10829,28 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1387529076}
   m_CullTransparentMesh: 1
+--- !u!1 &1398235514 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 239346685039135701, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1398235517
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1398235514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65a66e286bdb3f146befa90a0eb96201, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorSideInteractable
+  _controller: {fileID: 0}
+  _cameraId: 1
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043B\u0435\u0432\u0443\u044E
+    \u0441\u0442\u043E\u0440\u043E\u043D\u0443"
+  _crosshairMode: 1
 --- !u!1 &1400730450
 GameObject:
   m_ObjectHideFlags: 0
@@ -11598,6 +11845,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+--- !u!1 &1713921897 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2663373027053438014, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1713921900
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713921897}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65a66e286bdb3f146befa90a0eb96201, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorSideInteractable
+  _controller: {fileID: 0}
+  _cameraId: 2
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0440\u0430\u0432\u0443\u044E
+    \u0441\u0442\u043E\u0440\u043E\u043D\u0443"
+  _crosshairMode: 1
 --- !u!114 &1724890206 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7946796424760886689, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
@@ -11995,6 +12264,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.x
       value: -24.05
       objectReference: {fileID: 0}
+    - target: {fileID: 239346685039135701, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 550933661750176378, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -12003,6 +12276,14 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 1474442750395373557, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 1488421138725759312, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 2236372517798367002, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -12010,6 +12291,10 @@ PrefabInstance:
     - target: {fileID: 2287802711773868623, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 2663373027053438014, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 2665402420552522678, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -12030,6 +12315,10 @@ PrefabInstance:
     - target: {fileID: 3857254438189078649, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4230795907407759294, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 4480662244849408330, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -12054,6 +12343,10 @@ PrefabInstance:
     - target: {fileID: 5242749440713357183, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: m_IsActive
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5269285374478525175, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 5277794797041226356, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: OnPuzzleModeExited.m_PersistentCalls.m_Calls.Array.data[0].m_Target
@@ -12139,6 +12432,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 7172788697306702133, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 7396248741421677955, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -12179,6 +12476,18 @@ PrefabInstance:
       propertyPath: _panel
       value: 
       objectReference: {fileID: 153042912}
+    - target: {fileID: 8948066765109333699, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_Layer
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 9024790131389510774, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.00021048954
+      objectReference: {fileID: 0}
+    - target: {fileID: 9024790131389510774, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -5.722025
+      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 8377340974116970524, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
     m_RemovedGameObjects: []
@@ -12421,6 +12730,39 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 6557218645542727247, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 5090504508080705167, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 310583723}
+    - targetCorrespondingSourceObject: {fileID: 5090504508080705167, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 310583722}
+    - targetCorrespondingSourceObject: {fileID: 5090504508080705167, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 310583721}
+    - targetCorrespondingSourceObject: {fileID: 239346685039135701, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1398235517}
+    - targetCorrespondingSourceObject: {fileID: 5269285374478525175, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 676592954}
+    - targetCorrespondingSourceObject: {fileID: 1488421138725759312, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1997588939}
+    - targetCorrespondingSourceObject: {fileID: 4230795907407759294, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 798906052}
+    - targetCorrespondingSourceObject: {fileID: 2663373027053438014, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1713921900}
+    - targetCorrespondingSourceObject: {fileID: 8948066765109333699, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 809646063}
+    - targetCorrespondingSourceObject: {fileID: 1474442750395373557, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 811794623}
+    - targetCorrespondingSourceObject: {fileID: 7172788697306702133, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 97785732}
   m_SourcePrefab: {fileID: 100100000, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
 --- !u!114 &1777402939 stripped
 MonoBehaviour:
@@ -12444,6 +12786,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d23874784e588c498d2149ac8b383d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HorrorInteractable
+--- !u!114 &1777402941 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2299096938487264556, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+--- !u!114 &1777402942 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2593070816874300015, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!1 &1798465258
 GameObject:
   m_ObjectHideFlags: 0
@@ -12932,6 +13296,27 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1960831777}
   m_CullTransparentMesh: 1
+--- !u!1 &1997588936 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1488421138725759312, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1997588939
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1997588936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1 &2001833919
 GameObject:
   m_ObjectHideFlags: 0
