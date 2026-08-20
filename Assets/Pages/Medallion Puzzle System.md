@@ -1,6 +1,4 @@
-## Medallion Puzzle System
-
-Загадка с китайской шкатулкой: игрок подбирает 5 медальонов стихий, открывает шкатулку и раскладывает монеты по лункам в правильном порядке. Состояние полностью сохраняется через Save System.
+Загадка с китайской шкатулкой: игрок подбирает 5 медальонов стихий, открывает шкатулку и раскладывает монеты по лункам в правильном порядке. Состояние полностью сохраняется через [@ id="/Pages/Private/Save System.md" label="Save System"].
 
 ---
 
@@ -21,30 +19,38 @@ PickableItem × 5           ← на каждой монете в сцене (IS
 
 ### `MedallionBoxInteraction`
 
-Размещается на 3D-объекте шкатулки. Реализует `IInteractable` и `ISaveable`.
+Размещается на 3D-объекте шкатулки. Реализует `ISaveable`. Управляет звуками, анимацией открытия шкатулки и синхронизацией с `PuzzleModeController`.
 
 **Inspector — References**
 
-| Поле | Описание |
-|---|---|
-| `_boxCamera` | `CinemachineCamera`, которая наводится на шкатулку |
-| `_panel` | Корневой GameObject панели `MedallionBoxPanel` в Canvas |
-| `_solvedObject` | GameObject, который активируется когда загадка решена (свет, эффект) |
+
+| Поле              | Описание                                                                         |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `_controller`     | `PuzzleModeController` на том же объекте                                         |
+| `_panel`          | Корневой GameObject панели `MedallionBoxPanel` в Canvas                          |
+| `_solvedObject`   | GameObject, который активируется когда загадка решена (свет, эффект)             |
 | `_medallionOrder` | Массив `ItemData` в правильном порядке: 0=Fire, 1=Earth, 2=Iron, 3=Water, 4=Wood |
+| `_holes`          | Массив `MedallionHole` (Hole_0..Hole_4) — для подписки на звуки                  |
+
 
 **Inspector — Settings**
 
-| Поле | Описание |
-|---|---|
-| `_interactText` | Текст подсказки на прицеле (`"Осмотреть шкатулку"` по умолчанию) |
-| `_blendDuration` | Длительность плавного перехода камеры (секунды) |
+
+| Поле             | Описание                                                               |
+| ---------------- | ---------------------------------------------------------------------- |
 | `_sideZoneWidth` | Ширина боковой зоны клика для закрытия (доля ширины экрана, 0.05–0.49) |
 
-**Inspector — Events**
 
-| Поле | Описание |
-|---|---|
-| `_onPuzzleSolved` | `UnityEvent` — срабатывает однократно при решении загадки |
+**Inspector — Sounds**
+
+
+| Поле              | Описание                                             |
+| ----------------- | ---------------------------------------------------- |
+| `_openBoxClip`    | Звук первого осмотра шкатулки (один раз за сессию)   |
+| `_solvedClip`     | Звук решения загадки (в момент начала анимации Open) |
+| `_coinDropClip`   | Звук укладки медальона в лунку                       |
+| `_coinPickupClip` | Звук извлечения медальона из лунки                   |
+
 
 **Save ID:** `"medallion_puzzle"`
 
@@ -56,31 +62,72 @@ PickableItem × 5           ← на каждой монете в сцене (IS
 
 ---
 
+### Анимация шкатулки
+
+Аниматор (`ChineseBoxAnimator.controller`) должен содержать:
+
+**Параметр:**
+
+- `IsOpen` — `Bool`
+
+**Стейты:**
+
+```
+[Entry] → Idle ──(IsOpen=true)──→ Open ──(Has Exit Time)──→ Opened
+```
+
+
+| Стейт    | Описание                                                       |
+| -------- | -------------------------------------------------------------- |
+| `Idle`   | Шкатулка закрыта. Стейт по умолчанию (оранжевый)               |
+| `Open`   | Анимация открытия крышки. Воспроизводится один раз при решении |
+| `Opened` | Шкатулка открыта. Финальная поза. Без зацикливания             |
+
+
+**Переход Idle → Open:**
+
+- Condition: `IsOpen = true`
+- Has Exit Time: выключено
+
+**Переход Open → Opened:**
+
+- Condition: нет
+- Has Exit Time: включено (переход срабатывает по окончании клипа)
+
+**Логика в коде:**
+
+- При решении: `SetBool("IsOpen", true)` → корутина ждёт `normalizedTime >= 1f` стейта `Open` → вызывает `SetSolved()` → камера возвращается к игроку.
+- При загрузке сохранения: `SetBool("IsOpen", true)` + `Play("Opened", 0, 1f)` — мгновенный телепорт в конец `Opened`, анимация `Open` не воспроизводится.
+
+---
+
 ### `MedallionBoxUI`
 
 Размещается на `MedallionBoxPanel`. Управляет drag-and-drop, размещением монет в лунках и проверкой победы. Реализует `IPuzzleDropHandler` — принимает предметы из `PuzzleInventoryBar`.
 
 **Inspector**
 
-| Поле | Описание |
-|---|---|
-| `_holes` | Массив `MedallionHole` в порядке 0=Fire..4=Wood |
-| `_holeLayer` | LayerMask коллайдеров лунок (для Physics.Raycast) |
-| `_coinPrefab` | Запасной prefab монеты — используется только если у `ItemData` не заполнен `inspectionPrefab` |
-| `_dropHeight` | Высота начала анимации падения / подъёма монеты (метры) |
-| `_dropDuration` | Длительность падения / подъёма (секунды) |
-| `_ghostSize` | Размер иконки-призрака при перетаскивании (пиксели) |
+
+| Поле            | Описание                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| `_holes`        | Массив `MedallionHole` в порядке 0=Fire..4=Wood                                               |
+| `_holeLayer`    | LayerMask коллайдеров лунок (для Physics.Raycast)                                             |
+| `_coinPrefab`   | Запасной prefab монеты — используется только если у `ItemData` не заполнен `inspectionPrefab` |
+| `_dropHeight`   | Высота начала анимации падения / подъёма монеты (метры)                                       |
+| `_dropDuration` | Длительность падения / подъёма (секунды)                                                      |
+| `_ghostSize`    | Размер иконки-призрака при перетаскивании (пиксели)                                           |
+
 
 **Событие:** `OnPuzzleSolved` — Action без аргументов, подписывается `MedallionBoxInteraction`.
 
 **Логика победы:** все 5 лунок заполнены И каждая содержит правильный `ItemData` согласно `_medallionOrder`.
 
-**Интеграция с `PuzzleInventoryBar`**
+**Интеграция с `PuzzleInventoryBar**`
 
-`HandleDrop` выполняет два последовательных условия:
+`MedallionBoxUI` реализует `IPuzzleDropHandler`. `HandleDrop` выполняет два последовательных условия:
 
-1. Предмет должен быть в `_medallionOrder` — иначе возвращает `false` и медальон возвращается в бар
-2. Raycast по `_holeLayer` определяет целевую лунку — если попали в свободную, монета вставляется
+1. Предмет должен присутствовать в `_medallionOrder` — иначе возвращает `false` и медальон возвращается в бар
+2. Raycast по `_holeLayer` от позиции курсора определяет целевую лунку — если попали в свободную лунку, монета вставляется
 
 ```csharp
 public bool HandleDrop(ItemData item, Vector2 screenPosition)
@@ -101,7 +148,7 @@ public bool HandleDrop(ItemData item, Vector2 screenPosition)
 }
 ```
 
-`MedallionBoxInteraction.Open()` вызывает `PuzzleInventoryBar.Instance.Show(this)`, `Close()` — `PuzzleInventoryBar.Instance.Hide()`.
+`MedallionBoxInteraction.Open()` вызывает `PuzzleInventoryBar.Instance.Show(this)`, `Close()` — `PuzzleInventoryBar.Instance.Hide()`. Бар показывает весь инвентарь; предметы, не являющиеся медальонами из `_medallionOrder`, возвращаются в бар при попытке бросить их на шкатулку.
 
 ---
 
@@ -109,19 +156,36 @@ public bool HandleDrop(ItemData item, Vector2 screenPosition)
 
 Размещается на каждом из объектов `Hole_0`..`Hole_4` на шкатулке.
 
-| Поле | Описание |
-|---|---|
+**Inspector — Coin Animation**
+
+
+| Поле            | Описание                                                                        |
+| --------------- | ------------------------------------------------------------------------------- |
 | `_coinMaterial` | Опциональный материал для монеты. Если `null` — используется материал из prefab |
+
+
+**Inspector — Hover Highlight**
+
+
+| Поле                 | Описание                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `_highlightEmission` | HDR-цвет emission при наведении курсора (пикер поддерживает HDR). По умолчанию тёплое золото `(0.55, 0.42, 0.08)` |
+
 
 **Публичный API**
 
-| Метод / свойство | Описание |
-|---|---|
-| `IsFilled` | `true` если лунка занята |
-| `PlacedItem` | `ItemData` монеты в лунке, или `null` |
-| `Fill(item, fallbackPrefab, height, duration)` | Разместить монету с анимацией падения (ease-in). Использует `item.inspectionPrefab`; если он `null` — `fallbackPrefab` |
-| `FillImmediate(item, fallbackPrefab)` | Разместить монету мгновенно — при восстановлении из сохранения. Та же логика выбора prefab |
-| `Retrieve(riseHeight, riseDuration)` | Извлечь монету: возвращает `ItemData` немедленно, монета поднимается вверх с анимацией ease-out и уничтожается в верхней точке |
+
+| Метод / свойство                               | Описание                                                                                                                       |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `IsFilled`                                     | `true` если лунка занята                                                                                                       |
+| `PlacedItem`                                   | `ItemData` монеты в лунке, или `null`                                                                                          |
+| `Fill(item, fallbackPrefab, height, duration)` | Разместить монету с анимацией падения (ease-in). Использует `item.inspectionPrefab`; если он `null` — `fallbackPrefab`         |
+| `FillImmediate(item, fallbackPrefab)`          | Разместить монету мгновенно — при восстановлении из сохранения. Та же логика выбора prefab                                     |
+| `Retrieve(riseHeight, riseDuration)`           | Извлечь монету: возвращает `ItemData` немедленно, монета поднимается вверх с анимацией ease-out и уничтожается в верхней точке |
+| `Highlight(bool on)`                           | Включить / выключить emission-подсветку на коине. Вызывается из `MedallionBoxUI` при наведении курсора                         |
+
+
+**Как работает подсветка:** при `Fill` / `FillImmediate` инстанцируется коин, получается его `Renderer`, на нём вызывается `renderer.material.EnableKeyword("_EMISSION")` (создаёт per-instance материал). `Highlight()` меняет `_EmissionColor` через `MaterialPropertyBlock` без дополнительных аллокаций. При `Retrieve()` подсветка сбрасывается и ссылка на рендерер обнуляется.
 
 ---
 
@@ -131,9 +195,11 @@ public bool HandleDrop(ItemData item, Vector2 screenPosition)
 
 **Inspector**
 
-| Поле | Описание |
-|---|---|
+
+| Поле          | Описание                                       |
+| ------------- | ---------------------------------------------- |
 | `_medallions` | Все 5 `ItemData` медальонов (порядок не важен) |
+
 
 **Save ID:** `"medallion_collection"`
 
@@ -154,7 +220,7 @@ chinesBox                                ← MedallionBoxInteraction, Collider, 
 Canvas
   MedallionBoxPanel                      ← MedallionBoxUI (активен только при осмотре)
     MedallionSlot_0..N                   ← MedallionSlot
-    CloseButton
+    CloseButton                          ← находится по имени автоматически
 
 Env/FirstRoom/props/chinesCoin           ← PickableItem (Fire)
 Env/FirstRoom/props/chinesCoin (1)       ← PickableItem (Earth)
@@ -175,7 +241,10 @@ MedallionCollectionTracker               ← отдельный GameObject с к
        ├─ MedallionBoxInteraction хранит данные в _pendingLoad
        └─ PickableItem: collected=true → Destroy (монета не появляется в сцене)
   └─ MedallionBoxInteraction.Start() → ApplyPendingLoad()
-       └─ MedallionBoxUI.RestoreState() → FillImmediate() для каждой занятой лунки
+       ├─ MedallionBoxUI.RestoreState() → FillImmediate() для каждой занятой лунки
+       └─ если solved=true:
+            ├─ _animator.SetBool("IsOpen", true)
+            └─ _animator.Play("Opened", 0, 1f)  ← мгновенно, без воспроизведения Open
 
 Игрок подбирает монету
   └─ PickableItem.Interact() → ItemInspector.BeginInspection()
@@ -197,16 +266,62 @@ MedallionCollectionTracker               ← отдельный GameObject с к
        └─ CheckVictory() — если всё верно → OnPuzzleSolved
 
 ЛКМ по занятой лунке → монета возвращается в инвентарь
-  └─ MedallionHole.Retrieve(riseHeight, riseDuration)
-       ├─ Возвращает ItemData немедленно → InventorySystem.AddItem() → Save()
-       └─ RiseRoutine: монета поднимается вверх (ease-out) и уничтожается
+  └─ MedallionBoxUI.Update() → TryRetrieveFromHole()
+       ├─ MedallionHole.Retrieve(riseHeight, riseDuration)
+       │    ├─ Highlight(false) + _placedRenderer = null
+       │    └─ RiseRoutine: монета поднимается вверх (ease-out) и уничтожается
+       └─ InventorySystem.AddItem() → Save()
 
 Загадка решена
-  └─ _solvedObject.SetActive(true)
-  └─ _onPuzzleSolved UnityEvent
-  └─ SaveManager.Save() (финальный снимок с solved=true)
-  └─ Панель и камера закрываются (ForceClose)
+  └─ HandlePuzzleSolved():
+       ├─ _solvedObject.SetActive(true)
+       ├─ PlaySFX(_solvedClip)
+       ├─ _animator.SetBool("IsOpen", true)  ← переход Idle → Open
+       └─ StartCoroutine(WaitForOpenAnimationRoutine())
+            └─ ждёт пока IsName("Open") && normalizedTime >= 1f
+                 └─ _controller.SetSolved()
+                      ├─ ExitPuzzleMode() ← камера возвращается к игроку
+                      └─ SaveManager.Save() (финальный снимок с solved=true)
 ```
+
+---
+
+## Известные исправления
+
+### Дублирование медальонов / исчезновение при перезагрузке
+
+**Симптом:** после вставки медальона в лунку и перезапуска игры — медальон оказывался одновременно и в инвентаре, и в лунке. Либо другие уже подобранные медальоны пропадали.
+
+**Причина — race condition при инициализации:**
+
+```
+SaveManager.Start()               [order -10] → LoadSaveData() на всех объектах
+MedallionCollectionTracker.Start() [order  -5] → OnInventoryChanged() → Save()
+MedallionBoxInteraction.Start()   [order   0] → ApplyPendingLoad() ← НЕ УСПЕЛ
+```
+
+`MedallionCollectionTracker.Start()` мог вызвать `Save()` до того, как `MedallionBoxInteraction.Start()` применил `_pendingLoad`. `BuildSnapshot()` фиксировал лунки как **пустые** — корректный файл перезаписывался. При следующей загрузке: медальон снова в инвентаре, лунка пуста. Цикл повторялся.
+
+**Исправление — два взаимодополняющих механизма:**
+
+1. `MedallionBoxInteraction` получил `[DefaultExecutionOrder(-7)]` — теперь `ApplyPendingLoad()` выполняется **раньше** Start трекера, и когда тот вызывает `Save()`, лунки уже заполнены.
+2. `MedallionCollectionTracker` получил флаг `_isReady` — стартовая синхронизация в `Start()` обновляет `_collectionOrder` без вызова `Save()`. Флаг выставляется после синхронизации; только после этого реальные игровые события могут инициировать сохранение.
+
+### Анимация при повторной загрузке проигрывается снова
+
+**Симптом:** игрок уже решил загадку, перезапустил игру — при входе в сцену анимация открытия шкатулки воспроизводится повторно.
+
+**Причина:** при загрузке `ApplyPendingLoad()` устанавливал только `SetBool("IsOpen", true)`, что запускало переход `Idle → Open` через аниматор.
+
+**Исправление:** добавлен вызов `_animator.Play("Opened", 0, 1f)` сразу после `SetBool`. Это телепортирует аниматор напрямую в стейт `Opened` в нормализованное время `1f` (конец клипа), минуя воспроизведение `Open`.
+
+### Камера возвращается к игроку до окончания анимации открытия
+
+**Симптом:** после решения загадки камера сразу улетала обратно, пока анимация крышки ещё играла.
+
+**Причина:** `HandlePuzzleSolved()` вызывал `_controller.SetSolved()` немедленно, что в свою очередь сразу вызывало `ExitPuzzleMode()`.
+
+**Исправление:** `HandlePuzzleSolved()` запускает анимацию и стартует корутину `WaitForOpenAnimationRoutine()`. Корутина ждёт пока `IsName("Open") && normalizedTime >= 1f`, и только потом вызывает `_controller.SetSolved()` → камера возвращается к игроку.
 
 ---
 
@@ -215,24 +330,28 @@ MedallionCollectionTracker               ← отдельный GameObject с к
 ### 1 — ItemData медальонов
 
 Для каждого из 5 медальонов создай `ItemData` (`Create → Game → Item Data`):
+
 - Заполни `itemName`, `icon`, `inspectionPrefab`
 - `ItemId` — уникальная строка, используется системой сохранений
 
 ### 2 — PickableItem в сцене
 
 На каждом 3D-объекте монеты на столе:
+
 1. Компонент `PickableItem` → поле `Item Data` — нужный `ItemData`
-2. Поле `_saveId` — задай уникальный ID вручную
+2. Поле `_saveId` — задай вручную или через **ПКМ на компоненте → Generate Save ID**
 
 Использованные в проекте Save ID:
 
-| Монета | Save ID |
-|---|---|
-| Earth | `pickable_medallion_earth` |
-| Fire | `pickable_medallion_fire` |
-| Iron | `pickable_medallion_iron` |
-| Water | `pickable_medallion_water` |
-| Wood | `pickable_medallion_wood` |
+
+| Монета | Save ID                    |
+| ------ | -------------------------- |
+| Earth  | `pickable_medallion_earth` |
+| Fire   | `pickable_medallion_fire`  |
+| Iron   | `pickable_medallion_iron`  |
+| Water  | `pickable_medallion_water` |
+| Wood   | `pickable_medallion_wood`  |
+
 
 ### 3 — Лунки (MedallionHole)
 
@@ -241,6 +360,7 @@ MedallionCollectionTracker               ← отдельный GameObject с к
 ### 4 — MedallionBoxUI
 
 Назначь в Inspector:
+
 - `_holes` — перетащи `Hole_0`..`Hole_4` в порядке 0=Fire, 1=Earth, 2=Iron, 3=Water, 4=Wood
 - `_coinPrefab` — prefab монеты
 - `_holeLayer` — Layer лунок
@@ -248,12 +368,14 @@ MedallionCollectionTracker               ← отдельный GameObject с к
 ### 5 — MedallionBoxInteraction
 
 На объекте шкатулки:
+
 - `_medallionOrder` — те же 5 `ItemData` в том же порядке, что и `_holes`
 - `_boxCamera`, `_panel`, `_solvedObject` — назначить соответствующие объекты
 
 ### 6 — MedallionCollectionTracker
 
 На отдельном GameObject добавь компонент `MedallionCollectionTracker`:
+
 - `_medallions` — все 5 `ItemData` (порядок не важен)
 
 ### 7 — InventorySystem._allItems
@@ -265,19 +387,25 @@ MedallionCollectionTracker               ← отдельный GameObject с к
 ## Часто встречающиеся ошибки
 
 **В лунке всегда отображается одна и та же монета (например, Iron)**
+
 - `Fill()` и `FillImmediate()` используют `item.inspectionPrefab` для 3D-модели в лунке. Убедись что `inspectionPrefab` заполнен у каждого из 5 `ItemData` медальонов. Если поле пустое — используется общий `_coinPrefab` из `MedallionBoxUI`.
 
 **Монета не исчезает из сцены после подбора при перезагрузке**
-- Пустой `_saveId` у `PickableItem`. Задай его вручную в Inspector.
+
+- Пустой `_saveId` у `PickableItem`. Задай его вручную или через Generate Save ID.
 
 **Инвентарь пустой после перезагрузки, хотя монеты были подобраны**
+
 - Медальонов нет в массиве `_allItems` у `InventorySystem`. `FindItemById()` вернёт `null` и слот останется пустым.
 
-**Монеты дублируются (и в лунках, и в инвентаре)**
-- Те же причины выше — состояние мира и инвентаря оказывается рассинхронизировано.
+**Монеты дублируются (и в лунках, и в инвентаре) / медальоны пропадают после перезагрузки**
 
-**Загадка не помечается решённой после перезагрузки**
-- `_solvedObject` не назначен, или `ApplyPendingLoad()` не вызывается в `Start()` у `MedallionBoxInteraction`.
+- Race condition при инициализации — описан в разделе **Известные исправления** выше. Убедись что в проекте актуальная версия скриптов с `[DefaultExecutionOrder(-7)]` на `MedallionBoxInteraction` и флагом `_isReady` в `MedallionCollectionTracker`.
 
-**Слоты в панели отображаются не в том порядке**
-- `MedallionCollectionTracker._medallions` пуст или не содержит все 5 медальонов.
+**Анимация Open воспроизводится повторно при загрузке уже решённой загадки**
+
+- Стейт `Opened` не существует в аниматоре, или называется иначе. `Play("Opened", 0, 1f)` не сработает и аниматор начнёт переход `Idle → Open`. Убедись что стейт называется ровно `Opened`.
+
+**Камера возвращается к игроку до окончания анимации**
+
+- Стейт называется не `Open` (чувствительно к регистру). Корутина `WaitForOpenAnimationRoutine` ищет `IsName("Open")` — если имя не совпадает, ожидание пропускается и `SetSolved()` вызывается мгновенно.
