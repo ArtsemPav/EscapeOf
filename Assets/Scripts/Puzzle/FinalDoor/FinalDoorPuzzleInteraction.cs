@@ -70,7 +70,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     private bool _isActivating;
     private PuzzleSaveData? _pendingLoad;
 
-    private static readonly int AnimActivate = Animator.StringToHash("Activate");
+    private int _animActivateHash;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -112,6 +112,8 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     private void Awake()
     {
         _controller = _controller != null ? _controller : GetComponent<FinalDoorPuzzleController>();
+
+        _animActivateHash = Animator.StringToHash(_activationTrigger);
 
         // Auto-populate door holes from children if the Inspector array was left empty.
         if (_doorHoles == null || _doorHoles.Length == 0 || System.Array.TrueForAll(_doorHoles, h => h == null))
@@ -169,8 +171,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
 
         ui.Populate(_doorMedallionOrder);
 
-        // Start with the left side camera.
-        _controller.SwitchCamera(FinalDoorPuzzleController.CameraId.LeftSide);
+        // Camera is already set by FinalDoorSideInteractable — no switch needed here.
     }
 
     private void HandleExited()
@@ -198,11 +199,11 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         ui?.MarkSolved();
 
         // Switch to overview camera to show the full door activation.
-        _controller.SwitchCamera(FinalDoorPuzzleController.CameraId.Overview);
+        _controller.SwitchToOverview();
 
         // Play activation animation if an animator is assigned.
         if (_activationAnimator != null)
-            _activationAnimator.SetTrigger(AnimActivate);
+            _activationAnimator.SetTrigger(_animActivateHash);
 
         StartCoroutine(ActivationSequenceRoutine());
     }
@@ -274,7 +275,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
             // Restore activation animator to end state.
             if (_activationAnimator != null)
             {
-                _activationAnimator.SetTrigger(AnimActivate);
+                _activationAnimator.SetTrigger(_animActivateHash);
                 _activationAnimator.Play("Activated", 0, 1f);
             }
 

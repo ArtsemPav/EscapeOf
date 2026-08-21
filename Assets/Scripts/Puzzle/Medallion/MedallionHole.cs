@@ -21,8 +21,6 @@ using UnityEngine.Rendering;
 /// </summary>
 public class MedallionHole : MonoBehaviour
 {
-    private static readonly Quaternion CoinRotation = Quaternion.Euler(0f, -90f, 0f);
-
     // URP/Lit shader property IDs for runtime transparency.
     private static readonly int SurfacePropId       = Shader.PropertyToID("_Surface");
     private static readonly int BlendPropId         = Shader.PropertyToID("_Blend");
@@ -50,6 +48,37 @@ public class MedallionHole : MonoBehaviour
     [Tooltip("Alpha (transparency) of the ghost preview when no explicit _ghostMaterial is assigned.")]
     [SerializeField, Range(0.1f, 0.9f)] private float _ghostAlpha = 0.45f;
 
+    [Tooltip("Duration of the ghost fade-in/out animation (seconds).")]
+    [SerializeField, Min(0.05f)] private float _ghostFadeDuration = 0.2f;
+
+    [Header("Coin Placement")]
+    [Tooltip("If true, the coin is positioned at the world-space center of the hole's collider. " +
+             "If false, uses the hole's transform.position (legacy behaviour).")]
+    [SerializeField] private bool _useColliderCenter = true;
+
+    [Tooltip("Additional position offset applied to the coin in local space (relative to the hole). " +
+             "Use for fine-tuning when the collider center doesn't match the visual slot.")]
+    [SerializeField] private Vector3 _coinPositionOffset = Vector3.zero;
+
+    [Tooltip("Rotation offset applied to the coin in local space (Euler degrees). " +
+             "The final rotation is: holeTransform.rotation * Quaternion.Euler(this offset). " +
+             "Default (0, -90, 180) flips the coin face-up and keeps the symbol right-side up.")]
+    [SerializeField] private Vector3 _coinRotationOffset = new Vector3(0f, -90f, 180f);
+
+    [Header("Insert Animation")]
+    [Tooltip("How far above the hole the coin starts its insert animation (metres).")]
+    [SerializeField, Min(0.01f)] private float _insertHeight = 0.3f;
+
+    [Tooltip("Duration of the insert animation (seconds).")]
+    [SerializeField, Min(0.05f)] private float _insertDuration = 0.4f;
+
+    [Header("Retrieve Animation")]
+    [Tooltip("How far above the hole the coin rises during retrieval before fading out (metres).")]
+    [SerializeField, Min(0.01f)] private float _retrieveHeight = 0.25f;
+
+    [Tooltip("Duration of the retrieve animation (seconds).")]
+    [SerializeField, Min(0.05f)] private float _retrieveDuration = 0.4f;
+
     /// <summary>Raised when a medallion is successfully placed into this hole.</summary>
     public event System.Action OnFilled;
 
@@ -64,13 +93,15 @@ public class MedallionHole : MonoBehaviour
 
     private GameObject _placedCoin;
     private GameObject _ghostCoin;
+    private Renderer _ghostRenderer;
+    private Coroutine _ghostFadeRoutine;
     private Renderer _placedRenderer;
     private MaterialPropertyBlock _propBlock;
 
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Places <paramref name="item"/> into this hole and plays a drop animation.
+    /// Places <paramref name="item"/> into this hole and plays an insert animation.
     /// Uses <paramref name="item"/>.inspectionPrefab if assigned, otherwise falls back to <paramref name="fallbackPrefab"/>.
     /// Clears any active ghost preview before placing.
     /// </summary>
@@ -82,7 +113,7 @@ public class MedallionHole : MonoBehaviour
         if (prefab == null) return;
 
         PlacedItem = item;
-        StartCoroutine(DropRoutine(prefab, dropHeight, dropDuration));
+        StartCoroutine(InsertRoutine(prefab, dropHeight, dropDuration));
         OnFilled?.Invoke();
     }
 
@@ -99,14 +130,10 @@ public class MedallionHole : MonoBehaviour
 
         PlacedItem = item;
 
-        var coin = Instantiate(prefab, transform.position, Quaternion.identity, transform);
+        var coin = Instantiate(prefab, GetCoinWorldPosition(), GetCoinWorldRotation(), transform);
         StripInteractableComponents(coin);
-        
-        // The coin prefab's localScale is tuned for world placement (as a pickable item).
-        // Inside the hole, we need scale (1,1,1) so the mesh fills the hole properly.
+
         coin.transform.localScale = Vector3.one;
-        // Flip 180° on X so the symbol face points up.
-        coin.transform.localRotation = CoinRotation;
 
         _placedCoin = coin;
         CacheRenderer(coin);
@@ -121,8 +148,8 @@ public class MedallionHole : MonoBehaviour
 
     /// <summary>
     /// Removes the medallion from this hole and returns the item immediately so the caller
-    /// can restore it to the inventory. The coin GameObject plays a rise animation and is
-    /// destroyed at the top — mirroring the drop animation in reverse.
+    /// can restore it to the inventory. The coin GameObject plays a retrieve animation:
+    /// rises from the hole with a spin and fades out at the top.
     /// </summary>
     public ItemData Retrieve(float riseHeight, float riseDuration)
     {
@@ -134,7 +161,7 @@ public class MedallionHole : MonoBehaviour
         _placedRenderer = null;
 
         if (_placedCoin != null)
-            StartCoroutine(RiseRoutine(_placedCoin, riseHeight, riseDuration));
+            StartCoroutine(RetrieveRoutine(_placedCoin, riseHeight, riseDuration));
 
         OnRetrieved?.Invoke();
         return item;
@@ -169,20 +196,65 @@ public class MedallionHole : MonoBehaviour
         var prefab = item.inspectionPrefab != null ? item.inspectionPrefab : fallbackPrefab;
         if (prefab == null) return;
 
-        _ghostCoin = Instantiate(prefab, transform.position, CoinRotation, transform);
+        _ghostCoin = Instantiate(prefab, GetCoinWorldPosition(), GetCoinWorldRotation(), transform);
         StripInteractableComponents(_ghostCoin);
         _ghostCoin.transform.localScale = Vector3.one;
 
         ApplyGhostAppearance(_ghostCoin);
+        _ghostRenderer = _ghostCoin.GetComponentInChildren<Renderer>();
+
+        if (_ghostFadeRoutine != null) StopCoroutine(_ghostFadeRoutine);
+        _ghostFadeRoutine = StartCoroutine(GhostFadeRoutine(0f, _ghostAlpha, _ghostFadeDuration));
     }
 
-    /// <summary>Removes the ghost preview if one is active.</summary>
+    /// <summary>Removes the ghost preview with a fade-out, then destroys it.</summary>
     public void HideGhost()
     {
-        if (_ghostCoin != null)
+        if (_ghostCoin == null) return;
+        if (_ghostFadeRoutine != null) StopCoroutine(_ghostFadeRoutine);
+        _ghostFadeRoutine = StartCoroutine(GhostFadeOutRoutine());
+    }
+
+    private IEnumerator GhostFadeRoutine(float from, float to, float duration)
+    {
+        float elapsed = 0f;
+        while (elapsed < duration)
         {
-            Destroy(_ghostCoin);
-            _ghostCoin = null;
+            elapsed += Time.deltaTime;
+            SetGhostAlpha(Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration)));
+            yield return null;
+        }
+        SetGhostAlpha(to);
+        _ghostFadeRoutine = null;
+    }
+
+    private IEnumerator GhostFadeOutRoutine()
+    {
+        float elapsed = 0f;
+        while (elapsed < _ghostFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            SetGhostAlpha(Mathf.Lerp(_ghostAlpha, 0f, Mathf.Clamp01(elapsed / _ghostFadeDuration)));
+            yield return null;
+        }
+        if (_ghostCoin != null) Destroy(_ghostCoin);
+        _ghostCoin = null;
+        _ghostRenderer = null;
+        _ghostFadeRoutine = null;
+    }
+
+    private void SetGhostAlpha(float alpha)
+    {
+        if (_ghostCoin == null) return;
+        foreach (var rend in _ghostCoin.GetComponentsInChildren<Renderer>())
+        {
+            var mat = rend.material;
+            if (mat.HasProperty(BaseColorPropId))
+            {
+                var c = mat.GetColor(BaseColorPropId);
+                c.a = alpha;
+                mat.SetColor(BaseColorPropId, c);
+            }
         }
     }
 
@@ -219,12 +291,44 @@ public class MedallionHole : MonoBehaviour
             if (mat.HasProperty(BaseColorPropId))
             {
                 var color = mat.GetColor(BaseColorPropId);
-                color.a = _ghostAlpha;
+                color.a = 0f;
                 mat.SetColor(BaseColorPropId, color);
             }
 
             rend.material = mat;
         }
+    }
+
+    // ── Coin Placement Helpers ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the world-space position where the coin should be placed.
+    /// Uses the collider's world center (if _useColliderCenter is true and a collider exists),
+    /// otherwise falls back to the hole's transform.position. Adds _coinPositionOffset.
+    /// </summary>
+    private Vector3 GetCoinWorldPosition()
+    {
+        Vector3 basePos = transform.position;
+
+        if (_useColliderCenter)
+        {
+            var col = GetComponent<Collider>();
+            if (col != null)
+                basePos = col.bounds.center;
+        }
+
+        return basePos + transform.TransformDirection(_coinPositionOffset);
+    }
+
+    /// <summary>
+    /// Returns the world-space rotation for the coin.
+    /// Combines the hole's own rotation with the configurable _coinRotationOffset.
+    /// This ensures the coin's symbol face points "up" relative to the hole's surface,
+    /// not just world-up.
+    /// </summary>
+    private Quaternion GetCoinWorldRotation()
+    {
+        return transform.rotation * Quaternion.Euler(_coinRotationOffset);
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
@@ -281,21 +385,31 @@ public class MedallionHole : MonoBehaviour
         // Create a per-instance material so enabling emission does not affect the shared asset.
         // EnableKeyword is required for URP/Lit to evaluate _EmissionColor at runtime.
         _placedRenderer.material.EnableKeyword("_EMISSION");
+
+        // Immediately suppress emission so the coin doesn't glow with the
+        // material's baked _EmissionColor until Highlight(true) is called.
+        _propBlock ??= new MaterialPropertyBlock();
+        _placedRenderer.GetPropertyBlock(_propBlock);
+        _propBlock.SetColor("_EmissionColor", Color.black);
+        _placedRenderer.SetPropertyBlock(_propBlock);
     }
 
-    private IEnumerator DropRoutine(GameObject prefab, float dropHeight, float dropDuration)
+    /// <summary>
+    /// Insert animation: coin flies in from above the hole and settles
+    /// into the final position with an ease-in curve. No rotation.
+    /// </summary>
+    private IEnumerator InsertRoutine(GameObject prefab, float fallbackHeight, float fallbackDuration)
     {
-        Vector3 endPos   = transform.position;
-        Vector3 startPos = endPos + Vector3.up * dropHeight;
+        Vector3 endPos   = GetCoinWorldPosition();
+        float height     = _insertHeight > 0.01f ? _insertHeight : fallbackHeight;
+        float duration   = _insertDuration > 0.05f ? _insertDuration : fallbackDuration;
+        Vector3 startPos = endPos + transform.up * height;
 
-        var coin = Instantiate(prefab, startPos, Quaternion.identity, transform);
+        Quaternion finalRot = GetCoinWorldRotation();
+
+        var coin = Instantiate(prefab, startPos, finalRot, transform);
         StripInteractableComponents(coin);
-
-        // The coin prefab's localScale is tuned for world placement (as a pickable item).
-        // Inside the hole, we need scale (1,1,1) so the mesh fills the hole properly.
         coin.transform.localScale = Vector3.one;
-        // Flip 180° on X so the symbol face points up.
-        coin.transform.localRotation = CoinRotation;
 
         _placedCoin = coin;
         CacheRenderer(coin);
@@ -308,29 +422,74 @@ public class MedallionHole : MonoBehaviour
         }
 
         float elapsed = 0f;
-        while (elapsed < dropDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / dropDuration);
-            coin.transform.position = Vector3.Lerp(startPos, endPos, t * t); // ease-in
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = t * t; // ease-in: slow start, fast finish
+            coin.transform.position = Vector3.Lerp(startPos, endPos, eased);
             yield return null;
         }
 
         coin.transform.position = endPos;
     }
 
-    private IEnumerator RiseRoutine(GameObject coin, float riseHeight, float riseDuration)
+    /// <summary>
+    /// Retrieve animation: coin rises from the hole and fades out at the top,
+    /// then is destroyed. Ease-out for position, fade-out in the last 40%.
+    /// </summary>
+    private IEnumerator RetrieveRoutine(GameObject coin, float fallbackHeight, float fallbackDuration)
     {
         Vector3 startPos = coin.transform.position;
-        Vector3 endPos   = startPos + Vector3.up * riseHeight;
+        float height     = _retrieveHeight > 0.01f ? _retrieveHeight : fallbackHeight;
+        float duration   = _retrieveDuration > 0.05f ? _retrieveDuration : fallbackDuration;
+        Vector3 endPos   = startPos + transform.up * height;
+
+        // Cache renderers for fade-out.
+        var renderers = coin.GetComponentsInChildren<Renderer>();
+        var originalAlphas = new float[renderers.Length][];
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            var mat = renderers[i].material;
+            if (mat.HasProperty(BaseColorPropId))
+            {
+                originalAlphas[i] = new[] { mat.GetColor(BaseColorPropId).a };
+                mat.SetFloat(SurfacePropId, 1f);
+                mat.SetFloat(BlendPropId, 0f);
+                mat.SetFloat(SrcBlendPropId, (float)BlendMode.SrcAlpha);
+                mat.SetFloat(DstBlendPropId, (float)BlendMode.OneMinusSrcAlpha);
+                mat.SetFloat(ZWritePropId, 0f);
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            }
+            else
+            {
+                originalAlphas[i] = null;
+            }
+        }
 
         float elapsed = 0f;
-        while (elapsed < riseDuration)
+        while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float t      = Mathf.Clamp01(elapsed / riseDuration);
-            float eased  = t * (2f - t); // ease-out: fast start, slow finish
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = t * (2f - t); // ease-out
+
             coin.transform.position = Vector3.Lerp(startPos, endPos, eased);
+
+            // Fade out in the last 40% of the animation.
+            if (t > 0.6f)
+            {
+                float fadeT = Mathf.Clamp01((t - 0.6f) / 0.4f);
+                for (int i = 0; i < renderers.Length; i++)
+                {
+                    if (originalAlphas[i] == null) continue;
+                    var mat = renderers[i].material;
+                    var c = mat.GetColor(BaseColorPropId);
+                    c.a = Mathf.Lerp(originalAlphas[i][0], 0f, fadeT);
+                    mat.SetColor(BaseColorPropId, c);
+                }
+            }
+
             yield return null;
         }
 

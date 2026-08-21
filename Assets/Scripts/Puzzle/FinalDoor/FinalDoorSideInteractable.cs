@@ -1,13 +1,14 @@
+using Unity.Cinemachine;
 using UnityEngine;
 
 /// <summary>
-/// Lightweight IInteractable placed on the LeftSide and RightSide colliders
-/// of the final door. When the player interacts with a side, enters puzzle
-/// mode and switches to the corresponding camera.
+/// Lightweight IInteractable placed on each medallion statue.
+/// When the player interacts with a statue, enters puzzle mode and
+/// instantly cuts to that statue's camera.
 ///
-/// FPSController finds this via TryGetComponent on the side's collider — it
-/// takes priority over FinalDoorPuzzleController's own IInteractable on the
-/// root, so the controller never needs to know which side was clicked.
+/// FPSController finds this via TryGetComponent on the statue's collider —
+/// it takes priority over FinalDoorPuzzleController's own IInteractable
+/// on the root, so the controller never needs to know which statue was clicked.
 /// </summary>
 public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
 {
@@ -15,9 +16,9 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
     [Tooltip("Auto-found via GetComponentInParent if empty.")]
     [SerializeField] private FinalDoorPuzzleController _controller;
 
-    [Header("Side")]
-    [Tooltip("Which camera to switch to when this side is interacted with.")]
-    [SerializeField] private FinalDoorPuzzleController.CameraId _cameraId;
+    [Header("Camera")]
+    [Tooltip("This statue's CinemachineCamera. The camera will be activated instantly on interact.")]
+    [SerializeField] private CinemachineCamera _camera;
 
     [Header("Interaction")]
     [SerializeField] private string _interactText = "Осмотреть";
@@ -29,6 +30,10 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
     {
         if (_controller == null)
             _controller = GetComponentInParent<FinalDoorPuzzleController>();
+
+        // Auto-find camera in children if not assigned.
+        if (_camera == null)
+            _camera = GetComponentInChildren<CinemachineCamera>(includeInactive: true);
     }
 
     // ── IInteractable ─────────────────────────────────────────────────────────
@@ -42,8 +47,7 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
     {
         if (!CanInteract()) return;
 
-        _controller.EnterPuzzleMode();
-        _controller.SwitchCamera(_cameraId);
+        _controller.EnterPuzzleMode(_camera);
     }
 
     public string GetInteractText()

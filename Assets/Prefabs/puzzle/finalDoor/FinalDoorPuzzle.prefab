@@ -9,6 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 7610254935480155803}
+  - component: {fileID: 3499899754468491137}
+  - component: {fileID: 8150637592079974187}
+  - component: {fileID: 7047837770592528019}
   m_Layer: 0
   m_Name: FinalDoorPuzzle
   m_TagString: Untagged
@@ -36,13 +39,117 @@ Transform:
   - {fileID: 5727692589007025641}
   - {fileID: 5631826308484932343}
   - {fileID: 7456638122317083854}
-  - {fileID: 1239338743092190317}
+  - {fileID: 6468808385670092860}
+  - {fileID: 7080886348380392122}
+  - {fileID: 8278917739630136292}
+  - {fileID: 2337355254655009281}
+  - {fileID: 6457823630729482624}
+  - {fileID: 631037447137154541}
   - {fileID: 1952911689961176199}
   - {fileID: 647761651727452342}
   - {fileID: 3369668730695954741}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1595709707433352239
+--- !u!114 &3499899754468491137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 25922275280787949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5dce8bb7c113a09438e00ed4b96141c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorPuzzleController
+  _saveId: final_door_puzzle_mode
+  _overviewCamera: {fileID: 0}
+  _statueCameras: []
+  _blendDuration: 0.75
+  _showInventoryBar: 1
+  _disableFlashlightInPuzzle: 1
+  _flashlightSupportLights: []
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
+  _useExitPopup: 1
+  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
+  _exitPopupType: 2
+  OnPuzzleModeEntered:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleModeExited:
+    m_PersistentCalls:
+      m_Calls: []
+  OnPuzzleSolved:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &8150637592079974187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 25922275280787949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 308c7475dad391842a7125b57cd530f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorPuzzleInteraction
+  _controller: {fileID: 0}
+  _doorHoles:
+  - {fileID: 5145356875997337488}
+  - {fileID: 7761351277347449636}
+  - {fileID: 9158202252911277001}
+  - {fileID: 313883191701778493}
+  - {fileID: 3620448299321867326}
+  - {fileID: 405763615526362890}
+  _doorMedallionOrder:
+  - {fileID: 11400000, guid: c24ac5bc12c14914f9a761b2191aa749, type: 2}
+  - {fileID: 11400000, guid: 62990b72e77139c458909abbab561493, type: 2}
+  - {fileID: 11400000, guid: 4e72062358337f849ba85362e67fb27f, type: 2}
+  - {fileID: 11400000, guid: 340dd329dbad8454aaa79b6ffa38690c, type: 2}
+  - {fileID: 11400000, guid: 345df6943cc96c94ea036a725c34b15a, type: 2}
+  - {fileID: 11400000, guid: a728d9bcc92bd3c42bbc57d28e0d42ae, type: 2}
+  _allMedallions: []
+  _activationAnimator: {fileID: 0}
+  _activationTrigger: Activate
+  _activationDuration: 3
+  _solvedObject: {fileID: 0}
+  _activationClip: {fileID: 0}
+  _solvedClip: {fileID: 0}
+  _coinDropClip: {fileID: 0}
+  _coinPickupClip: {fileID: 0}
+  _activationVolume: 1
+  _solvedVolume: 1
+  _coinDropVolume: 0.8
+  _coinPickupVolume: 0.7
+--- !u!114 &7047837770592528019
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 25922275280787949}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 73608f03d54faaf42bffa90da56eb7ef, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorPuzzleUI
+  _doorHoles:
+  - {fileID: 5145356875997337488}
+  - {fileID: 7761351277347449636}
+  - {fileID: 9158202252911277001}
+  - {fileID: 313883191701778493}
+  - {fileID: 3620448299321867326}
+  - {fileID: 405763615526362890}
+  _holeLayer:
+    serializedVersion: 2
+    m_Bits: 1024
+  _coinPrefab: {fileID: 0}
+  _dropHeight: 0.005
+  _dropDuration: 0.35
+  _controller: {fileID: 0}
+--- !u!1 &1256418112815214496
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -50,22 +157,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2019123444284820701}
-  - component: {fileID: 7279350707020682509}
+  - component: {fileID: 9107794636847681927}
+  - component: {fileID: 8974611186727015373}
   m_Layer: 6
-  m_Name: FinalDoorCameraRight
+  m_Name: CameraMedalion3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &2019123444284820701
+--- !u!4 &9107794636847681927
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1595709707433352239}
+  m_GameObject: {fileID: 1256418112815214496}
   serializedVersion: 2
   m_LocalRotation: {x: 0.062002763, y: -0.6311428, z: 0.07173528, w: 0.76984966}
   m_LocalPosition: {x: 3.21, y: -0.31, z: 1.75}
@@ -74,13 +181,13 @@ Transform:
   m_Children: []
   m_Father: {fileID: 3369668730695954741}
   m_LocalEulerAnglesHint: {x: 10.72, y: 281.485, z: 1.877}
---- !u!114 &7279350707020682509
+--- !u!114 &8974611186727015373
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1595709707433352239}
+  m_GameObject: {fileID: 1256418112815214496}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
@@ -117,6 +224,189 @@ MonoBehaviour:
       BarrelClipping: 0.25
       Anamorphism: 0
   BlendHint: 0
+--- !u!1 &1595709707433352239
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2019123444284820701}
+  - component: {fileID: 7279350707020682509}
+  m_Layer: 6
+  m_Name: CameraMedalion2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2019123444284820701
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1595709707433352239}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.017480664, y: -0.99816805, z: -0.05162657, w: 0.026261266}
+  m_LocalPosition: {x: 6.007617, y: -0.63462657, z: 0.9096333}
+  m_LocalScale: {x: 0.019999992, y: 0.020000001, z: 0.019999994}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3369668730695954741}
+  m_LocalEulerAnglesHint: {x: 10.72, y: 281.485, z: 1.877}
+--- !u!114 &7279350707020682509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1595709707433352239}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 41
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
+--- !u!1 &1688215723691389328
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6457823630729482624}
+  - component: {fileID: 3236878817326541261}
+  m_Layer: 0
+  m_Name: Medalion5
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6457823630729482624
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1688215723691389328}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.473, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3094036511421303855}
+  m_Father: {fileID: 7610254935480155803}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3236878817326541261
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1688215723691389328}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.11199092, y: 0.5478048, z: 0.47798485}
+  m_Center: {x: -0.04077767, y: -0.02918181, z: 0.02222643}
+--- !u!1 &2959851212755206634
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7080886348380392122}
+  - component: {fileID: 8198898439202414457}
+  m_Layer: 0
+  m_Name: Medalion2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7080886348380392122
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2959851212755206634}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0, y: 0.395, z: -0.601}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3035869446016217738}
+  m_Father: {fileID: 7610254935480155803}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8198898439202414457
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2959851212755206634}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.124617584, y: 0.49547517, z: 0.48157853}
+  m_Center: {x: 0.009019749, y: 0.021730632, z: -0.029900476}
 --- !u!1 &3346022219911243155
 GameObject:
   m_ObjectHideFlags: 0
@@ -148,9 +438,13 @@ Transform:
   m_Children:
   - {fileID: 1050867428030934884}
   - {fileID: 2019123444284820701}
+  - {fileID: 9107794636847681927}
+  - {fileID: 6398480174200943737}
+  - {fileID: 3644922422336181887}
+  - {fileID: 3932230757007367336}
   m_Father: {fileID: 7610254935480155803}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &5020201075020504247
+--- !u!1 &4340409270115590832
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -158,54 +452,223 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1239338743092190317}
-  - component: {fileID: 4649590182295766567}
-  m_Layer: 0
-  m_Name: LeftSide
+  - component: {fileID: 3644922422336181887}
+  - component: {fileID: 8398225662467021181}
+  m_Layer: 6
+  m_Name: CameraMedalion5
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1239338743092190317
+--- !u!4 &3644922422336181887
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5020201075020504247}
+  m_GameObject: {fileID: 4340409270115590832}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.322, y: 0, z: -2.172}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.007566325, y: -0.0017744896, z: 0.016081829, w: 0.99984056}
+  m_LocalPosition: {x: 5.912418, y: -0.118246, z: -1.2744304}
+  m_LocalScale: {x: 0.019999992, y: 0.020000001, z: 0.019999994}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 8621648010936875309}
-  - {fileID: 3035869446016217738}
-  - {fileID: 301937406210940004}
-  m_Father: {fileID: 7610254935480155803}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &4649590182295766567
-BoxCollider:
+  m_Children: []
+  m_Father: {fileID: 3369668730695954741}
+  m_LocalEulerAnglesHint: {x: 10.72, y: 281.485, z: 1.877}
+--- !u!114 &8398225662467021181
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5020201075020504247}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
+  m_GameObject: {fileID: 4340409270115590832}
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.31507924, y: 2.1277292, z: 1}
-  m_Center: {x: -0.07687715, y: -0.8674329, z: 5.0408307e-16}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 40
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
+--- !u!1 &4713410183836506930
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3932230757007367336}
+  - component: {fileID: 3208119989193672587}
+  m_Layer: 6
+  m_Name: CameraMedalion6
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3932230757007367336
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4713410183836506930}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.014775575, y: 0.49125168, z: 0.010144718, w: 0.8708333}
+  m_LocalPosition: {x: 5.45001, y: -0.29351744, z: 0.11992124}
+  m_LocalScale: {x: 0.019999992, y: 0.020000001, z: 0.019999994}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3369668730695954741}
+  m_LocalEulerAnglesHint: {x: 10.72, y: 281.485, z: 1.877}
+--- !u!114 &3208119989193672587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4713410183836506930}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 40
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
+--- !u!1 &6206843967225129154
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6398480174200943737}
+  - component: {fileID: 1320111892890971317}
+  m_Layer: 6
+  m_Name: CameraMedalion4
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6398480174200943737
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6206843967225129154}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.06627595, y: -0.3675609, z: -0.008913047, w: 0.9275921}
+  m_LocalPosition: {x: 5.4028845, y: -0.9111814, z: 0.14606959}
+  m_LocalScale: {x: 0.019999992, y: 0.020000001, z: 0.019999994}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3369668730695954741}
+  m_LocalEulerAnglesHint: {x: 10.72, y: 281.485, z: 1.877}
+--- !u!114 &1320111892890971317
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6206843967225129154}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
+  Priority:
+    Enabled: 0
+    m_Value: 0
+  OutputChannel: 1
+  StandbyUpdate: 2
+  m_StreamingVersion: 20241001
+  m_LegacyPriority: 0
+  Target:
+    TrackingTarget: {fileID: 0}
+    LookAtTarget: {fileID: 0}
+    CustomLookAtTarget: 0
+  Lens:
+    FieldOfView: 40
+    OrthographicSize: 10
+    NearClipPlane: 0.1
+    FarClipPlane: 5000
+    Dutch: 0
+    ModeOverride: 0
+    PhysicalProperties:
+      GateFit: 2
+      SensorSize: {x: 21.946, y: 16.002}
+      LensShift: {x: 0, y: 0}
+      FocusDistance: 10
+      Iso: 200
+      ShutterSpeed: 0.005
+      Aperture: 16
+      BladeCount: 5
+      Curvature: {x: 2, y: 11}
+      BarrelClipping: 0.25
+      Anamorphism: 0
+  BlendHint: 0
 --- !u!1 &6966394899076632233
 GameObject:
   m_ObjectHideFlags: 0
@@ -217,7 +680,7 @@ GameObject:
   - component: {fileID: 1050867428030934884}
   - component: {fileID: 2716821242600619935}
   m_Layer: 6
-  m_Name: FinalDoorCameraLeft
+  m_Name: CameraMedalion1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -231,8 +694,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6966394899076632233}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.04507695, y: -0.7822909, z: 0.08341678, w: 0.6156547}
-  m_LocalPosition: {x: 2.66, y: -0.41, z: -1.49}
+  m_LocalRotation: {x: -0.054814607, y: -0.9187305, z: -0.090045534, w: 0.38055402}
+  m_LocalPosition: {x: 5.182542, y: -1.0182803, z: 0.24375881}
   m_LocalScale: {x: 0.019999992, y: 0.020000001, z: 0.019999994}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -290,7 +753,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1952911689961176199}
-  - component: {fileID: 1060965776978672442}
+  - component: {fileID: 545321982362570100}
   m_Layer: 0
   m_Name: RightSide
   m_TagString: Untagged
@@ -310,19 +773,67 @@ Transform:
   m_LocalPosition: {x: 0.287, y: 0, z: 2.161}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 4804099859843798297}
-  - {fileID: 3094036511421303855}
-  - {fileID: 6704911377935071983}
+  m_Children: []
   m_Father: {fileID: 7610254935480155803}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1060965776978672442
-BoxCollider:
+--- !u!114 &545321982362570100
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7065920650357887836}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65a66e286bdb3f146befa90a0eb96201, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorSideInteractable
+  _controller: {fileID: 0}
+  _camera: {fileID: 0}
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0440\u0430\u0432\u0443\u044E
+    \u0441\u0442\u043E\u0440\u043E\u043D\u0443"
+  _crosshairMode: 1
+--- !u!1 &8577886920419321868
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6468808385670092860}
+  - component: {fileID: 8025971312539590326}
+  - component: {fileID: 7510026920753866234}
+  m_Layer: 0
+  m_Name: Medalion1
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6468808385670092860
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8577886920419321868}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.72, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8621648010936875309}
+  m_Father: {fileID: 7610254935480155803}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8025971312539590326
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8577886920419321868}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -335,8 +846,186 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.14862873, y: 2.1662495, z: 1}
-  m_Center: {x: -0.0020314378, y: -0.79550815, z: -3.8252306e-19}
+  m_Size: {x: 0.10921849, y: 0.40299252, z: 0.42460832}
+  m_Center: {x: -0.026066748, y: -0.01373401, z: 0.019199988}
+--- !u!114 &7510026920753866234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8577886920419321868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65a66e286bdb3f146befa90a0eb96201, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FinalDoorSideInteractable
+  _controller: {fileID: 0}
+  _camera: {fileID: 2716821242600619935}
+  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
+--- !u!1 &8735277918366721645
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8278917739630136292}
+  - component: {fileID: 4569384048732519370}
+  m_Layer: 0
+  m_Name: Medalion3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8278917739630136292
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8735277918366721645}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.451, z: 0.406}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 301937406210940004}
+  m_Father: {fileID: 7610254935480155803}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4569384048732519370
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8735277918366721645}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.0635655, y: 0.4062451, z: 0.4235075}
+  m_Center: {x: 0.037960898, y: -0.0080285175, z: -0.008784594}
+--- !u!1 &8803717797989339299
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2337355254655009281}
+  - component: {fileID: 6603863409074196788}
+  m_Layer: 0
+  m_Name: Medalion4
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2337355254655009281
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8803717797989339299}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.553, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4804099859843798297}
+  m_Father: {fileID: 7610254935480155803}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &6603863409074196788
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8803717797989339299}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.05549542, y: 0.49997085, z: 0.5120074}
+  m_Center: {x: 0.03101684, y: 0.01057528, z: -0.008625777}
+--- !u!1 &8966200459571248414
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 631037447137154541}
+  - component: {fileID: 1157992677727324578}
+  m_Layer: 0
+  m_Name: Medalion6
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &631037447137154541
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8966200459571248414}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6704911377935071983}
+  m_Father: {fileID: 7610254935480155803}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1157992677727324578
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8966200459571248414}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.09219916, y: 0.46104172, z: 0.46860075}
+  m_Center: {x: 0.018068507, y: 0.013045943, z: 0.005849613}
 --- !u!1001 &160740429546438989
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -461,7 +1150,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1239338743092190317}
+    m_TransformParent: {fileID: 6468808385670092860}
     m_Modifications:
     - target: {fileID: 1401539932079325727, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalScale.z
@@ -478,6 +1167,10 @@ PrefabInstance:
     - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_Name
       value: MedallionBase
+      objectReference: {fileID: 0}
+    - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3260980678138443499, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -513,7 +1206,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.17
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.z
@@ -557,6 +1250,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2061252623187544486}
+    - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5145356875997337488}
   m_SourcePrefab: {fileID: 100100000, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
 --- !u!1 &1142016464526079381 stripped
 GameObject:
@@ -583,7 +1279,23 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.14
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.08, z: 0}
+--- !u!114 &5145356875997337488
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142016464526079381}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!4 &8621648010936875309 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
@@ -595,7 +1307,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1952911689961176199}
+    m_TransformParent: {fileID: 2337355254655009281}
     m_Modifications:
     - target: {fileID: 1401539932079325727, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalScale.z
@@ -612,6 +1324,10 @@ PrefabInstance:
     - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_Name
       value: MedallionBase (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3260980678138443499, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -647,7 +1363,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.17
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.z
@@ -691,6 +1407,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4542204799846704889}
+    - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 313883191701778493}
   m_SourcePrefab: {fileID: 100100000, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
 --- !u!1 &4239270011033573793 stripped
 GameObject:
@@ -717,7 +1436,23 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.14
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.08, z: 0}
+--- !u!114 &313883191701778493
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4239270011033573793}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!4 &4804099859843798297 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
@@ -965,7 +1700,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1952911689961176199}
+    m_TransformParent: {fileID: 631037447137154541}
     m_Modifications:
     - target: {fileID: 1401539932079325727, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalScale.z
@@ -982,6 +1717,10 @@ PrefabInstance:
     - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_Name
       value: MedallionBase (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3260980678138443499, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -1017,7 +1756,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.257
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1061,6 +1800,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9009057017171071884}
+    - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 405763615526362890}
   m_SourcePrefab: {fileID: 100100000, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
 --- !u!1 &2698746462928008791 stripped
 GameObject:
@@ -1087,7 +1829,23 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.14
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.08, z: 0}
+--- !u!114 &405763615526362890
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2698746462928008791}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!4 &6704911377935071983 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
@@ -1331,7 +2089,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1239338743092190317}
+    m_TransformParent: {fileID: 7080886348380392122}
     m_Modifications:
     - target: {fileID: 1401539932079325727, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalScale.z
@@ -1348,6 +2106,10 @@ PrefabInstance:
     - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_Name
       value: MedallionBase (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3260980678138443499, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -1383,7 +2145,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.70200014
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1427,6 +2189,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2947955792667363244}
+    - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7761351277347449636}
   m_SourcePrefab: {fileID: 100100000, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
 --- !u!4 &3035869446016217738 stripped
 Transform:
@@ -1458,14 +2223,30 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.14
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.08, z: 0}
+--- !u!114 &7761351277347449636
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5935442969332235826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1001 &5742201247166609836
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1952911689961176199}
+    m_TransformParent: {fileID: 6457823630729482624}
     m_Modifications:
     - target: {fileID: 1401539932079325727, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalScale.z
@@ -1482,6 +2263,10 @@ PrefabInstance:
     - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_Name
       value: MedallionBase (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3260980678138443499, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -1517,7 +2302,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.70200014
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1561,6 +2346,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3240929615819418101}
+    - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3620448299321867326}
   m_SourcePrefab: {fileID: 100100000, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
 --- !u!4 &3094036511421303855 stripped
 Transform:
@@ -1592,14 +2380,30 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.14
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.08, z: 0}
+--- !u!114 &3620448299321867326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5949051782674645143}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1001 &7021373728574122471
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 1239338743092190317}
+    m_TransformParent: {fileID: 8278917739630136292}
     m_Modifications:
     - target: {fileID: 1401539932079325727, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalScale.z
@@ -1616,6 +2420,10 @@ PrefabInstance:
     - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_Name
       value: MedallionBase (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3260980678138443499, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -1651,7 +2459,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -1.257
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7295932878623389059, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1695,6 +2503,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6125176760721107742}
+    - targetCorrespondingSourceObject: {fileID: 2107441152210876731, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9158202252911277001}
   m_SourcePrefab: {fileID: 100100000, guid: d59d14582d4f0d744a0d6dc720b68741, type: 3}
 --- !u!4 &301937406210940004 stripped
 Transform:
@@ -1726,7 +2537,23 @@ SphereCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Radius: 0.14
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.08, z: 0}
+--- !u!114 &9158202252911277001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8957603289012768988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+  _coinMaterial: {fileID: 0}
+  _highlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
+  _ghostMaterial: {fileID: 0}
+  _ghostAlpha: 0.45
 --- !u!1001 &7221611717687573573
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using ChemicalPuzzle;
 using Unity.Cinemachine;
 using UnityEngine;
@@ -9,34 +10,33 @@ using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Multi-camera puzzle mode controller for the final door puzzle.
-/// Manages an array of Cinemachine cameras, FPS input blocking, flashlight,
-/// cursor, and Esc handling. Implements <see cref="IInteractable"/> directly
-/// so the player can interact with any child collider on the Interactable layer
-/// (FPSController resolves via GetComponentInParent).
+/// Each medallion statue has its own camera and interaction point.
+/// When the player interacts with a statue, the camera cuts instantly
+/// to that statue's close-up. The player inserts a medallion, presses Esc
+/// to exit, and walks to the next statue.
 ///
-/// Cameras are auto-discovered by name if the _cameras array is left empty:
-///   "FinalDoorCameraAll"   → Overview (index 0)
-///   "FinalDoorCameraLeft"  → LeftSide  (index 1)
-///   "FinalDoorCameraRight" → RightSide (index 2)
-///   "FinalDoorCameraSkull" → Skull     (index 3, optional — added later)
+/// When all medallions are correct, the interaction script calls
+/// <see cref="SwitchToOverview"/> to play the activation sequence on
+/// the overview camera.
+///
+/// Implements <see cref="IInteractable"/> as a fallback on the root —
+/// normally each statue has its own <see cref="FinalDoorSideInteractable"/>
+/// that takes priority via TryGetComponent.
 /// </summary>
 public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 {
-    /// <summary>Camera slot indices within the _cameras array.</summary>
-    public enum CameraId { Overview = 0, LeftSide = 1, RightSide = 2, Skull = 3 }
-
     [Header("Save")]
     [SerializeField] private string _saveId = "final_door_puzzle_mode";
 
     [Header("Cameras")]
-    [Tooltip("Assign in order: 0=Overview, 1=LeftSide, 2=RightSide, 3=Skull (optional). " +
-             "Auto-discovered by name if empty.")]
-    [SerializeField] private CinemachineCamera[] _cameras;
+    [Tooltip("Overview camera for the activation sequence. Auto-found by name " +
+             "('All' or 'Overview') if not assigned.")]
+    [SerializeField] private CinemachineCamera _overviewCamera;
 
-    [Tooltip("Which camera to activate when entering puzzle mode.")]
-    [SerializeField] private CameraId _entryCamera = CameraId.LeftSide;
+    [Tooltip("All statue cameras. Auto-discovered from children if empty.")]
+    [SerializeField] private CinemachineCamera[] _statueCameras;
 
-    [Tooltip("Blend duration between cameras (seconds).")]
+    [Tooltip("Blend duration for transitions DURING puzzle mode (activation sequence, etc.).")]
     [SerializeField, Min(0f)] private float _blendDuration = 0.75f;
 
     [Header("UI")]
@@ -51,7 +51,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     [Tooltip("Lights activated during puzzle mode to compensate for the disabled flashlight.")]
     [SerializeField] private Light[] _flashlightSupportLights;
 
-    [Header("Interaction")]
+    [Header("Interaction (root fallback)")]
     [SerializeField] private string _interactText = "Осмотреть";
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
@@ -79,7 +79,8 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     private bool _isActive;
     private bool _isSolved;
     private bool _isSubscribed;
-    private CameraId _currentCamera;
+
+    private CinemachineCamera _activeCamera;
 
     private CinemachineBrain _brain;
     private float _originalBlendTime;
@@ -103,32 +104,126 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     /// <summary>True if the puzzle has been solved.</summary>
     public bool IsSolved => _isSolved;
 
-    /// <summary>The camera that is currently active.</summary>
-    public CameraId CurrentCamera => _currentCamera;
+    /// <summary>The camera that is currently active, or null if not in puzzle mode.</summary>
+    public CinemachineCamera ActiveCamera => _activeCamera;
 
     /// <summary>
-    /// Switches to the specified camera with a Cinemachine blend.
-    /// Silently ignores null camera slots (e.g. Skull before it is assigned).
+    /// Enters puzzle mode and instantly cuts to the specified camera.
+    /// Pass null to use the overview camera as default.
     /// </summary>
-    public void SwitchCamera(CameraId id)
+    public void EnterPuzzleMode(CinemachineCamera entryCamera = null)
     {
-        int index = (int)id;
-        if (_cameras == null || index < 0 || index >= _cameras.Length || _cameras[index] == null) return;
+        if (_isActive || _isSolved) return;
 
-        // Deactivate previous camera.
-        int prev = (int)_currentCamera;
-        if (prev >= 0 && prev < _cameras.Length && _cameras[prev] != null)
-            _cameras[prev].Priority = 0;
+        _isActive = true;
+        DisableLensDistortion();
 
-        // Activate new camera.
-        _cameras[index].Priority = PuzzleCameraPriority;
-        _currentCamera = id;
+        if (_ownCollider != null)
+            _ownCollider.enabled = false;
+
+        // Activate all cameras.
+        var allCams = GetAllCameras();
+        foreach (var cam in allCams)
+        {
+            if (cam == null) continue;
+            cam.gameObject.SetActive(true);
+            cam.Priority = 0;
+        }
+
+        // Cut instantly to the entry camera.
+        var target = entryCamera != null ? entryCamera : _overviewCamera;
+        if (target != null)
+        {
+            SetBlendDuration(0f);
+            target.Priority = PuzzleCameraPriority;
+            _activeCamera = target;
+            if (gameObject.activeInHierarchy)
+                StartCoroutine(RestoreBlendAfterTransition());
+        }
+
+        UIManager.Instance?.PushModalState();
+        SetCursorState(true);
+        if (UI.PuzzleCursor.Instance != null)
+            UI.PuzzleCursor.Instance.Show();
+
+        DisableFlashlight();
+
+        if (_showInventoryBar)
+        {
+            var handler = GetComponentInChildren<IPuzzleDropHandler>();
+            PuzzleInventoryBar.Instance?.Show(handler);
+        }
+
+        OnPuzzleModeEntered?.Invoke();
+        OnEntered?.Invoke();
+    }
+
+    /// <summary>
+    /// Exits puzzle mode — restores player camera, input, and cursor.
+    /// </summary>
+    public void ExitPuzzleMode()
+    {
+        if (!_isActive) return;
+
+        _isActive = false;
+        RestoreLensDistortion();
+
+        if (_ownCollider != null)
+            _ownCollider.enabled = true;
+
+        var allCams = GetAllCameras();
+        SetBlendDuration(_blendDuration);
+        foreach (var cam in allCams)
+        {
+            if (cam == null) continue;
+            cam.Priority = 0;
+            cam.gameObject.SetActive(false);
+        }
+        _activeCamera = null;
+
+        if (gameObject.activeInHierarchy)
+            StartCoroutine(RestoreBlendAfterTransition());
+        else
+            SetBlendDuration(_originalBlendTime);
+
+        UIManager.Instance?.PopModalState();
+        SetCursorState(false);
+        if (UI.PuzzleCursor.Instance != null)
+            UI.PuzzleCursor.Instance.Hide();
+
+        RestoreFlashlight();
+
+        if (_showInventoryBar)
+            PuzzleInventoryBar.Instance?.Hide();
+
+        OnPuzzleModeExited?.Invoke();
+        OnExited?.Invoke();
+    }
+
+    /// <summary>
+    /// Smoothly blends to the specified camera during puzzle mode.
+    /// Uses <see cref="_blendDuration"/>.
+    /// </summary>
+    public void SwitchCamera(CinemachineCamera camera)
+    {
+        if (camera == null) return;
+
+        if (_activeCamera != null)
+            _activeCamera.Priority = 0;
+
+        SetBlendDuration(_blendDuration);
+        camera.Priority = PuzzleCameraPriority;
+        _activeCamera = camera;
 
         if (_brain != null && gameObject.activeInHierarchy)
-        {
-            SetBlendDuration(_blendDuration);
             StartCoroutine(RestoreBlendAfterTransition());
-        }
+    }
+
+    /// <summary>Smoothly blends to the overview camera.</summary>
+    public void SwitchToOverview()
+    {
+        if (_overviewCamera != null)
+            SwitchCamera(_overviewCamera);
     }
 
     /// <summary>Marks the puzzle as solved and fires solve events.</summary>
@@ -150,7 +245,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         SaveManager.Instance?.Save();
     }
 
-    // ── IInteractable ──────────────────────────────────────────────────────────
+    // ── IInteractable (root fallback) ──────────────────────────────────────────
 
     public bool CanInteract() => !_isActive && !_isSolved;
 
@@ -158,7 +253,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     {
         if (CanInteract())
         {
-            EnterPuzzleMode();
+            EnterPuzzleMode(null);
             ShowEntryHint();
         }
     }
@@ -192,18 +287,22 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
     private void Awake()
     {
-        // Auto-discover cameras by name if not assigned.
-        if (_cameras == null || _cameras.Length == 0 || System.Array.TrueForAll(_cameras, c => c == null))
-            AutoDiscoverCameras();
+        // Auto-discover statue cameras from children if not assigned.
+        if (_statueCameras == null || _statueCameras.Length == 0 ||
+            System.Array.TrueForAll(_statueCameras, c => c == null))
+        {
+            AutoDiscoverStatueCameras();
+        }
+
+        // Auto-find overview camera by name if not assigned.
+        if (_overviewCamera == null)
+            AutoDiscoverOverviewCamera();
 
         // Deactivate all cameras on startup.
-        if (_cameras != null)
+        foreach (var cam in GetAllCameras())
         {
-            foreach (var cam in _cameras)
-            {
-                if (cam != null)
-                    cam.gameObject.SetActive(false);
-            }
+            if (cam != null)
+                cam.gameObject.SetActive(false);
         }
 
         _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
@@ -218,16 +317,8 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         SaveManager.Instance?.Register(this);
     }
 
-    private void Start()
-    {
-        SubscribeToInput();
-    }
-
-    private void OnDisable()
-    {
-        UnsubscribeFromInput();
-    }
-
+    private void Start() => SubscribeToInput();
+    private void OnDisable() => UnsubscribeFromInput();
     private void OnEnable()
     {
         if (!_isSubscribed && InputManager.Instance != null)
@@ -236,107 +327,23 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
     private void OnDestroy()
     {
-        if (_isActive)
-            ExitPuzzleMode();
+        if (_isActive) ExitPuzzleMode();
         UnsubscribeFromInput();
         SaveManager.Instance?.Unregister(this);
     }
 
-    // ── Puzzle Mode ────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Activates puzzle mode: enables cameras, blocks player input, shows cursor.
-    /// </summary>
-    public void EnterPuzzleMode()
-    {
-        if (_isActive || _isSolved) return;
-
-        _isActive = true;
-        DisableLensDistortion();
-
-        // Disable own collider so FPSController doesn't re-detect the door.
-        if (_ownCollider != null)
-            _ownCollider.enabled = false;
-
-        // Activate all cameras and set entry camera as active.
-        if (_cameras != null)
-        {
-            SetBlendDuration(_blendDuration);
-            int entryIndex = (int)_entryCamera;
-            _currentCamera = _entryCamera;
-
-            for (int i = 0; i < _cameras.Length; i++)
-            {
-                if (_cameras[i] == null) continue;
-                _cameras[i].gameObject.SetActive(true);
-                _cameras[i].Priority = (i == entryIndex) ? PuzzleCameraPriority : 0;
-            }
-
-            if (gameObject.activeInHierarchy)
-                StartCoroutine(RestoreBlendAfterTransition());
-        }
-
-        UIManager.Instance?.PushModalState();
-        SetCursorState(true);
-        if (UI.PuzzleCursor.Instance != null)
-            UI.PuzzleCursor.Instance.Show();
-
-        DisableFlashlight();
-
-        if (_showInventoryBar)
-        {
-            var handler = GetComponentInChildren<IPuzzleDropHandler>();
-            PuzzleInventoryBar.Instance?.Show(handler);
-        }
-
-        OnPuzzleModeEntered?.Invoke();
-        OnEntered?.Invoke();
-    }
-
-    /// <summary>
-    /// Deactivates puzzle mode: restores camera, player input, hides cursor.
-    /// </summary>
-    public void ExitPuzzleMode()
-    {
-        if (!_isActive) return;
-
-        _isActive = false;
-        RestoreLensDistortion();
-
-        if (_ownCollider != null)
-            _ownCollider.enabled = true;
-
-        if (_cameras != null)
-        {
-            SetBlendDuration(_blendDuration);
-            foreach (var cam in _cameras)
-            {
-                if (cam == null) continue;
-                cam.Priority = 0;
-                cam.gameObject.SetActive(false);
-            }
-
-            if (gameObject.activeInHierarchy)
-                StartCoroutine(RestoreBlendAfterTransition());
-            else
-                SetBlendDuration(_originalBlendTime);
-        }
-
-        UIManager.Instance?.PopModalState();
-        SetCursorState(false);
-        if (UI.PuzzleCursor.Instance != null)
-            UI.PuzzleCursor.Instance.Hide();
-
-        RestoreFlashlight();
-
-        if (_showInventoryBar)
-            PuzzleInventoryBar.Instance?.Hide();
-
-        OnPuzzleModeExited?.Invoke();
-        OnExited?.Invoke();
-    }
-
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>Returns all cameras (overview + statue cameras) as a single list.</summary>
+    private List<CinemachineCamera> GetAllCameras()
+    {
+        var list = new List<CinemachineCamera>();
+        if (_overviewCamera != null)
+            list.Add(_overviewCamera);
+        if (_statueCameras != null)
+            list.AddRange(_statueCameras);
+        return list;
+    }
 
     private void SetCursorState(bool visible)
     {
@@ -377,7 +384,6 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     {
         if (!_isActive) return;
 
-        // Check exit guards (e.g. activation sequence in progress).
         var exitGuards = GetComponentsInChildren<IPuzzleExitGuard>(true);
         foreach (var guard in exitGuards)
         {
@@ -467,26 +473,44 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
     // ── Camera Auto-Discovery ──────────────────────────────────────────────────
 
-    private void AutoDiscoverCameras()
+    private void AutoDiscoverStatueCameras()
     {
         var allCams = GetComponentsInChildren<CinemachineCamera>(true);
         if (allCams.Length == 0) return;
 
-        _cameras = new CinemachineCamera[4]; // 4 slots: Overview, Left, Right, Skull
+        var statueCams = new System.Collections.Generic.List<CinemachineCamera>();
 
         foreach (var cam in allCams)
         {
             if (cam == null) continue;
             string name = cam.gameObject.name;
 
+            // Overview camera is stored separately, not in _statueCameras.
             if (name.Contains("All") || name.Contains("Overview"))
-                _cameras[0] = cam;
-            else if (name.Contains("Left"))
-                _cameras[1] = cam;
-            else if (name.Contains("Right"))
-                _cameras[2] = cam;
-            else if (name.Contains("Skull"))
-                _cameras[3] = cam;
+            {
+                _overviewCamera = cam;
+                continue;
+            }
+
+            // Everything else is a statue camera.
+            statueCams.Add(cam);
+        }
+
+        _statueCameras = statueCams.ToArray();
+    }
+
+    private void AutoDiscoverOverviewCamera()
+    {
+        var allCams = GetComponentsInChildren<CinemachineCamera>(true);
+        foreach (var cam in allCams)
+        {
+            if (cam == null) continue;
+            string name = cam.gameObject.name;
+            if (name.Contains("All") || name.Contains("Overview"))
+            {
+                _overviewCamera = cam;
+                return;
+            }
         }
     }
 }

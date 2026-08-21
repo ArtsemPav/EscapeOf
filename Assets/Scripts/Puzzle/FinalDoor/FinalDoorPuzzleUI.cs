@@ -5,8 +5,11 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// UI controller for the final door puzzle. Handles drag-and-drop into 3D door
-/// holes, retrieval via LMB, hover highlight, and camera switching via screen
-/// edge zones.
+/// holes, retrieval via LMB, hover highlight, and ghost preview while dragging.
+///
+/// Each medallion statue has its own camera and entry point (FinalDoorSideInteractable).
+/// This component does NOT manage camera switching — the controller handles that
+/// based on which statue the player interacted with.
 ///
 /// Attach to the same GameObject as FinalDoorPuzzleController and
 /// FinalDoorPuzzleInteraction. Implements <see cref="IPuzzleDropHandler"/> so
@@ -37,11 +40,6 @@ public class FinalDoorPuzzleUI : MonoBehaviour, IPuzzleDropHandler
 
     [Tooltip("Duration of the drop animation in seconds.")]
     [SerializeField] private float _dropDuration = 0.35f;
-
-    [Header("Camera Switch — Side Zones")]
-    [Tooltip("Width of the left/right screen edge zone for camera switching " +
-             "(fraction of screen width, 0.05–0.25).")]
-    [SerializeField, Range(0.05f, 0.25f)] private float _sideZoneWidth = 0.08f;
 
     [Header("Controller")]
     [Tooltip("Auto-found via GetComponent if empty.")]
@@ -96,10 +94,6 @@ public class FinalDoorPuzzleUI : MonoBehaviour, IPuzzleDropHandler
         // Click on a filled hole → retrieve.
         if (Mouse.current.leftButton.wasPressedThisFrame && !overUI && !PuzzleInventoryBar.IsDragging)
             TryRetrieveFromHole(mousePos);
-
-        // Side zone camera switching (only while not dragging an item).
-        if (!overUI && !PuzzleInventoryBar.IsDragging)
-            CheckSideZoneSwitch(mousePos);
     }
 
     private void OnDisable()
@@ -235,27 +229,6 @@ public class FinalDoorPuzzleUI : MonoBehaviour, IPuzzleDropHandler
         {
             _ghostHole.HideGhost();
             _ghostHole = null;
-        }
-    }
-
-    // ── Camera Switching ──────────────────────────────────────────────────────
-
-    private void CheckSideZoneSwitch(Vector2 mousePos)
-    {
-        if (_controller == null) return;
-
-        float screenWidth = Screen.width;
-        float x = mousePos.x;
-
-        if (x < screenWidth * _sideZoneWidth)
-        {
-            if (_controller.CurrentCamera != FinalDoorPuzzleController.CameraId.LeftSide)
-                _controller.SwitchCamera(FinalDoorPuzzleController.CameraId.LeftSide);
-        }
-        else if (x > screenWidth * (1f - _sideZoneWidth))
-        {
-            if (_controller.CurrentCamera != FinalDoorPuzzleController.CameraId.RightSide)
-                _controller.SwitchCamera(FinalDoorPuzzleController.CameraId.RightSide);
         }
     }
 
