@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Escape.Interaction
@@ -45,7 +46,7 @@ namespace Escape.Interaction
         [Tooltip("Коридорные двери для каждого этажа (в том же порядке, что и маркеры).")]
         [SerializeField] private ElevatorDoorPair[] _floorDoors;
         [Tooltip("Индекс этажа, на котором лифт стартует при новой игре.")]
-        [SerializeField] private int _startingFloor = 1;
+        [SerializeField] private int _startingFloor = 0;
 
         [Header("Door Animation")]
         [Tooltip("Расстояние, на которое створки КАБИНЫ разъезжаются при открытии (по локальной оси Z).")]
@@ -125,6 +126,7 @@ namespace Escape.Interaction
         private Vector3 _cabinDoorAStart;
         private Vector3 _cabinDoorBStart;
         private Vector3[][] _floorDoorStarts;
+        private readonly HashSet<PhysicsDraggable> _draggablesInside = new HashSet<PhysicsDraggable>();
 
         public string SaveId => _saveId;
 
@@ -229,10 +231,18 @@ namespace Escape.Interaction
             // Register as power consumer — receives current state immediately
             LightingSystem.Instance?.RegisterConsumer(this);
 
-            // If no save was loaded, initialize at starting floor
+            // If no save was loaded, initialize at starting floor with open doors
             if (_floorMarkers == null || _floorMarkers.Length == 0) return;
 
-            if (CurrentFloor == 0 && !AreDoorsOpen && _startingFloor != 0)
+            if (!AreDoorsOpen && CurrentFloor == 0 && _startingFloor == 0)
+            {
+                // First launch: snap to basement and open doors
+                CurrentFloor = 0;
+                SnapToFloor(0);
+                SetDoorsImmediate(0, true);
+                AreDoorsOpen = true;
+            }
+            else if (_startingFloor != 0)
             {
                 CurrentFloor = Mathf.Clamp(_startingFloor, 0, _floorMarkers.Length - 1);
                 SnapToFloor(CurrentFloor);
@@ -267,18 +277,22 @@ namespace Escape.Interaction
             if (_playerFPSController != null)
                 _playerFPSController.SetElevatorMode(true);
 
-            // 1. Close doors at current floor
+            // 1. Wait while there are draggable objects inside — doors cannot close
+            while (HasDraggablesInside())
+                yield return null;
+
+            // 2. Close doors at current floor
             if (AreDoorsOpen)
             {
                 yield return AnimateDoors(CurrentFloor, DOOR_OPEN, DOOR_CLOSED);
                 AreDoorsOpen = false;
             }
 
-            // 2. Pause before moving
+            // 3. Pause before moving
             if (_pauseBeforeMove > 0f)
                 yield return new WaitForSeconds(_pauseBeforeMove);
 
-            // 3. Move cabin
+            // 4. Move cabin
             if (targetFloor != CurrentFloor)
             {
                 IsMoving = true;
@@ -289,21 +303,21 @@ namespace Escape.Interaction
                 Play3DOneShot(_arriveSound);
             }
 
-            // 4. Pause before opening
+            // 5. Pause before opening
             if (_pauseBeforeOpen > 0f)
                 yield return new WaitForSeconds(_pauseBeforeOpen);
 
-            // 5. Open doors at destination
+            // 6. Open doors at destination
             yield return AnimateDoors(CurrentFloor, DOOR_CLOSED, DOOR_OPEN);
             AreDoorsOpen = true;
 
-            // 6. Resume gravity
+            // 7. Resume gravity
             if (_playerFPSController != null)
                 _playerFPSController.SetElevatorMode(false);
 
             _isBusy = false;
 
-            // 7. If player already left, start auto-close timer
+            // 8. If player already left, start auto-close timer
             if (_playerTransform == null)
                 StartAutoCloseTimer();
         }
@@ -465,29 +479,52 @@ namespace Escape.Interaction
         private void OnTriggerEnter(Collider other)
         {
             var fps = other.GetComponentInParent<FPSController>();
-            if (fps == null) return;
+            if (fps != null)
+            {
+                _playerTransform = fps.transform;
+                _playerCharacterController = fps.GetComponent<CharacterController>();
+                _playerFPSController = fps;
 
-            _playerTransform = fps.transform;
-            _playerCharacterController = fps.GetComponent<CharacterController>();
-            _playerFPSController = fps;
+                // Player entered — cancel auto-close, duck game music
+                CancelAutoClose();
+                AudioManager.Instance?.FadeMusicVolume(0f, _musicFadeDuration);
+                return;
+            }
 
-            // Player entered — cancel auto-close, duck game music
-            CancelAutoClose();
-            AudioManager.Instance?.FadeMusicVolume(0f, _musicFadeDuration);
+            var draggable = other.GetComponentInParent<PhysicsDraggable>();
+            if (draggable != null)
+            {
+                _draggablesInside.Add(draggable);
+            }
         }
 
         private void OnTriggerExit(Collider other)
         {
             var fps = other.GetComponentInParent<FPSController>();
-            if (fps == null) return;
+            if (fps != null)
+            {
+                _playerTransform = null;
+                _playerCharacterController = null;
+                _playerFPSController = null;
 
-            _playerTransform = null;
-            _playerCharacterController = null;
-            _playerFPSController = null;
+                // Player left — restore game music, start auto-close timer
+                AudioManager.Instance?.FadeMusicVolume(1f, _musicFadeDuration);
+                StartAutoCloseTimer();
+                return;
+            }
 
-            // Player left — restore game music, start auto-close timer
-            AudioManager.Instance?.FadeMusicVolume(1f, _musicFadeDuration);
-            StartAutoCloseTimer();
+            var draggable = other.GetComponentInParent<PhysicsDraggable>();
+            if (draggable != null)
+            {
+                _draggablesInside.Remove(draggable);
+            }
+        }
+
+        /// <summary>True when at least one PhysicsDraggable object is inside the elevator cabin.</summary>
+        private bool HasDraggablesInside()
+        {
+            _draggablesInside.RemoveWhere(d => d == null);
+            return _draggablesInside.Count > 0;
         }
 
         /// <summary>
@@ -572,6 +609,13 @@ namespace Escape.Interaction
             yield return new WaitForSeconds(_autoCloseDelay);
 
             _autoCloseCoroutine = null;
+
+            // Don't close if draggable objects are still inside — restart timer
+            if (HasDraggablesInside())
+            {
+                StartAutoCloseTimer();
+                yield break;
+            }
 
             if (!AreDoorsOpen || _isBusy || _playerTransform != null) yield break;
 
