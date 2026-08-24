@@ -118,7 +118,7 @@ public static class DevPuzzleCheats
 
         // ── Mark all drop-slot items as placed ────────────────────────────────
         var placedItemIds = GetField<object>(instance, "_placedItemIds");
-        var dropSlots = GetField<UnityEngine.Object[]>(instance, "_dropSlots");
+        var dropSlots = GetField<object[]>(instance, "_dropSlots");
 
         if (placedItemIds != null && dropSlots != null)
         {
