@@ -92,6 +92,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     private bool _flashlightStateSaved;
 
     private Collider _ownCollider;
+    private MedallionHole[] _puzzleHoles;
 
     // High enough to override any player camera (PlayerCamera uses 1000).
     private const int PuzzleCameraPriority = 2000;
@@ -120,6 +121,8 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
         if (_ownCollider != null)
             _ownCollider.enabled = false;
+
+        SetHoleCollidersEnabled(true);
 
         // Activate all cameras.
         var allCams = GetAllCameras();
@@ -170,6 +173,8 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
         if (_ownCollider != null)
             _ownCollider.enabled = true;
+
+        SetHoleCollidersEnabled(false);
 
         var allCams = GetAllCameras();
         SetBlendDuration(_blendDuration);
@@ -224,6 +229,76 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     {
         if (_overviewCamera != null)
             SwitchCamera(_overviewCamera);
+    }
+
+    /// <summary>
+    /// Instantly cuts to the specified camera (blend = 0). Use during fades
+    /// where the screen is black and the cut should be invisible.
+    /// </summary>
+    public void SwitchCameraInstant(CinemachineCamera camera)
+    {
+        if (camera == null) return;
+
+        if (_activeCamera != null)
+            _activeCamera.Priority = 0;
+
+        SetBlendDuration(0f);
+        camera.Priority = PuzzleCameraPriority;
+        _activeCamera = camera;
+    }
+
+    /// <summary>Instantly cuts to the overview camera (blend = 0).</summary>
+    public void SwitchToOverviewInstant()
+    {
+        if (_overviewCamera != null)
+            SwitchCameraInstant(_overviewCamera);
+    }
+
+    /// <summary>
+    /// Exits puzzle mode with an instant camera cut (blend = 0). Use during
+    /// fades where the screen is black and the cut should be invisible.
+    /// </summary>
+    public void ExitPuzzleModeInstant()
+    {
+        if (!_isActive) return;
+
+        _isActive = false;
+        RestoreLensDistortion();
+
+        if (_ownCollider != null)
+            _ownCollider.enabled = true;
+
+        SetHoleCollidersEnabled(false);
+
+        var allCams = GetAllCameras();
+        SetBlendDuration(0f);
+        foreach (var cam in allCams)
+        {
+            if (cam == null) continue;
+            cam.Priority = 0;
+            cam.gameObject.SetActive(false);
+        }
+        _activeCamera = null;
+
+        // Restore the original blend AFTER the brain processes the instant cut,
+        // not in the same frame — otherwise the camera smoothly blends back.
+        if (gameObject.activeInHierarchy)
+            StartCoroutine(RestoreBlendAfterTransition());
+        else
+            SetBlendDuration(_originalBlendTime);
+
+        UIManager.Instance?.PopModalState();
+        SetCursorState(false);
+        if (UI.PuzzleCursor.Instance != null)
+            UI.PuzzleCursor.Instance.Hide();
+
+        RestoreFlashlight();
+
+        if (_showInventoryBar)
+            PuzzleInventoryBar.Instance?.Hide();
+
+        OnPuzzleModeExited?.Invoke();
+        OnExited?.Invoke();
     }
 
     /// <summary>Marks the puzzle as solved and fires solve events.</summary>
@@ -313,6 +388,11 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
         _ownCollider = GetComponent<Collider>();
 
+        // Cache hole references and disable their colliders on startup —
+        // they should only be active while the player is inside the puzzle.
+        _puzzleHoles = GetComponentsInChildren<MedallionHole>(includeInactive: true);
+        SetHoleCollidersEnabled(false);
+
         SetSupportLightsEnabled(false);
         SaveManager.Instance?.Register(this);
     }
@@ -333,6 +413,14 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>Toggles all medallion hole colliders on or off.</summary>
+    private void SetHoleCollidersEnabled(bool enabled)
+    {
+        if (_puzzleHoles == null) return;
+        foreach (var hole in _puzzleHoles)
+            if (hole != null) hole.SetColliderEnabled(enabled);
+    }
 
     /// <summary>Returns all cameras (overview + statue cameras) as a single list.</summary>
     private List<CinemachineCamera> GetAllCameras()

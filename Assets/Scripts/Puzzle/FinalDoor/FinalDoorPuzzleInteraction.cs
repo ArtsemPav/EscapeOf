@@ -45,8 +45,18 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     [Tooltip("Trigger parameter name in the activation animator.")]
     [SerializeField] private string _activationTrigger = "Activate";
 
+    [Tooltip("Animator on the Scull object. Plays 'scullMove' after the medallion puzzle is solved.")]
+    [SerializeField] private Animator _scullAnimator;
+
+    [Tooltip("Name of the scull animation state to play after switching to the overview camera.")]
+    [SerializeField] private string _scullMoveStateName = "scullMove";
+
     [Tooltip("How long to stay on the Overview camera during activation before calling SetSolved (seconds).")]
     [SerializeField, Min(0f)] private float _activationDuration = 3f;
+
+    [Header("Cinematic Fade")]
+    [Tooltip("Duration of the screen fade to/from black during the cinematic sequence.")]
+    [SerializeField, Min(0.1f)] private float _fadeDuration = 1f;
 
     [Header("Solved Visuals")]
     [Tooltip("Activated when the puzzle is solved.")]
@@ -185,7 +195,8 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
 
     /// <summary>
     /// Called by FinalDoorPuzzleUI when all 6 door holes are filled correctly.
-    /// Plays the activation sequence, then calls SetSolved.
+    /// Starts the cinematic sequence: fade → overview camera → scull animation →
+    /// fade → return to player.
     /// </summary>
     private void HandlePuzzleSolved()
     {
@@ -198,25 +209,57 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         var ui = GetUI();
         ui?.MarkSolved();
 
-        // Switch to overview camera to show the full door activation.
-        _controller.SwitchToOverview();
-
-        // Play activation animation if an animator is assigned.
-        if (_activationAnimator != null)
-            _activationAnimator.SetTrigger(_animActivateHash);
-
-        StartCoroutine(ActivationSequenceRoutine());
+        StartCoroutine(CinematicSequenceRoutine());
     }
 
     /// <summary>
-    /// Waits for the activation duration, then calls SetSolved.
-    /// When the skull phase is added later, this is where the transition
-    /// to Phase 2 will happen instead of SetSolved.
+    /// Cinematic sequence:
+    /// 1. Fade to black.
+    /// 2. Instant cut to FinalDoorCameraAll (overview).
+    /// 3. Fade in — player sees the door.
+    /// 4. Play scullMove animation.
+    /// 5. Wait for the animation to finish.
+    /// 6. Fade to black.
+    /// 7. Exit puzzle mode (returns camera to the player).
+    /// 8. Fade in — player regains control.
     /// </summary>
-    private IEnumerator ActivationSequenceRoutine()
+    private IEnumerator CinematicSequenceRoutine()
     {
-        yield return new WaitForSeconds(_activationDuration);
+        // ── Phase 1: Fade to black ──────────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
 
+        // ── Phase 2: Instant cut to overview camera (screen is black) ───────────
+        _controller.SwitchToOverviewInstant();
+
+        // Wait one frame so the brain processes the camera switch.
+        yield return null;
+
+        // ── Phase 3: Fade in — player sees the overview ─────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 4: Play the scullMove animation ───────────────────────────────
+        if (_activationAnimator != null)
+            _activationAnimator.SetTrigger(_animActivateHash);
+
+        if (_scullAnimator != null)
+            _scullAnimator.Play(_scullMoveStateName);
+
+        // ── Phase 5: Wait for the scullMove animation to finish ─────────────────
+        yield return WaitForAnimationFinish(_scullAnimator, _scullMoveStateName);
+
+        // ── Phase 6: Fade to black again ────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 7: Exit puzzle mode — camera returns to the player instantly ──
         _isActivating = false;
 
         if (_solvedObject != null)
@@ -224,7 +267,44 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
 
         PlaySFX(_solvedClip, _solvedVolume);
 
+        _controller?.ExitPuzzleModeInstant();
         _controller?.SetSolved();
+
+        // Wait one frame so the brain processes the camera return.
+        yield return null;
+
+        // ── Phase 8: Fade in — player regains control ───────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        SaveManager.Instance?.Save();
+    }
+
+    /// <summary>
+    /// Waits until the specified Animator has finished playing the given state.
+    /// Falls back to _activationDuration if the animator or state is invalid.
+    /// </summary>
+    private IEnumerator WaitForAnimationFinish(Animator animator, string stateName)
+    {
+        if (animator == null || string.IsNullOrEmpty(stateName))
+        {
+            yield return new WaitForSeconds(_activationDuration);
+            yield break;
+        }
+
+        // Wait one frame for the animation to start.
+        yield return null;
+
+        // Wait until the animator enters the target state.
+        while (!animator.GetCurrentAnimatorStateInfo(0).IsName(stateName))
+            yield return null;
+
+        // Wait until the state has fully played.
+        while (animator.GetCurrentAnimatorStateInfo(0).IsName(stateName) &&
+               animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f)
+            yield return null;
     }
 
     // ── IPuzzleDropHandler ────────────────────────────────────────────────────
@@ -258,8 +338,17 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
 
         if (load.placedItemIds != null && load.placedItemIds.Length > 0)
         {
-            var ui = GetUI();
-            ui?.RestoreState(load.placedItemIds, _allMedallions);
+            var lookupItems = ResolveLookupItems();
+            if (lookupItems == null || lookupItems.Length == 0)
+            {
+                Debug.LogWarning("[FinalDoorPuzzle] Cannot restore medallions: " +
+                                 "_allMedallions, _doorMedallionOrder and InventorySystem.AllItems are all empty.");
+            }
+            else
+            {
+                var ui = GetUI();
+                ui?.RestoreState(load.placedItemIds, lookupItems);
+            }
         }
 
         if (load.solved)
@@ -279,8 +368,30 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
                 _activationAnimator.Play("Activated", 0, 1f);
             }
 
+            // Restore scull animator to the end of scullMove.
+            if (_scullAnimator != null)
+                _scullAnimator.Play(_scullMoveStateName, 0, 1f);
+
             _controller?.SetSolved();
         }
+    }
+
+    /// <summary>
+    /// Resolves the item lookup array for save restoration.
+    /// Falls back from _allMedallions → _doorMedallionOrder → InventorySystem.AllItems.
+    /// </summary>
+    private ItemData[] ResolveLookupItems()
+    {
+        if (_allMedallions != null && _allMedallions.Length > 0)
+            return _allMedallions;
+
+        if (_doorMedallionOrder != null && _doorMedallionOrder.Length > 0)
+            return _doorMedallionOrder;
+
+        if (InventorySystem.Instance != null && InventorySystem.Instance.AllItems != null)
+            return InventorySystem.Instance.AllItems;
+
+        return Array.Empty<ItemData>();
     }
 
     // ── Hole Sound Subscriptions ──────────────────────────────────────────────

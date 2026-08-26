@@ -35,6 +35,12 @@ public class MedallionHole : MonoBehaviour
     [Tooltip("Optional material override for the spawned coin. Leave null to use prefab default.")]
     [SerializeField] private Material _coinMaterial;
 
+    [Header("Lighting")]
+    [Tooltip("URP rendering layer mask applied to the spawned coin so it receives light " +
+             "from the puzzle's light groups. Default includes 'CoridorFDoor' (bit 22) " +
+             "and 'flashLight' (bit 9).")]
+    [SerializeField] private uint _coinRenderingLayerMask = (1u << 22) | (1u << 9);
+
     [Header("Hover Highlight")]
     [Tooltip("HDR emission colour applied to the coin when the cursor hovers over it.")]
     [ColorUsage(false, true)]
@@ -90,6 +96,26 @@ public class MedallionHole : MonoBehaviour
 
     /// <summary>True when a medallion is sitting in this hole.</summary>
     public bool IsFilled => PlacedItem != null;
+
+    private Collider _holeCollider;
+    private bool _colliderInitialized;
+
+    // ── Collider Management ───────────────────────────────────────────────────
+
+    /// <summary>Enables or disables this hole's collider so it doesn't block
+    /// the puzzle's main interaction collider while the player is outside.</summary>
+    public void SetColliderEnabled(bool enabled)
+    {
+        if (!_colliderInitialized)
+        {
+            _holeCollider = GetComponent<Collider>();
+            _colliderInitialized = true;
+        }
+        if (_holeCollider != null)
+            _holeCollider.enabled = enabled;
+    }
+
+    // ── Private Fields ────────────────────────────────────────────────────────
 
     private GameObject _placedCoin;
     private GameObject _ghostCoin;
@@ -200,6 +226,7 @@ public class MedallionHole : MonoBehaviour
         StripInteractableComponents(_ghostCoin);
         _ghostCoin.transform.localScale = Vector3.one;
 
+        ApplyRenderingLayers(_ghostCoin);
         ApplyGhostAppearance(_ghostCoin);
         _ghostRenderer = _ghostCoin.GetComponentInChildren<Renderer>();
 
@@ -314,7 +341,19 @@ public class MedallionHole : MonoBehaviour
         {
             var col = GetComponent<Collider>();
             if (col != null)
-                basePos = col.bounds.center;
+            {
+                // bounds.center returns (0,0,0) when the collider is disabled,
+                // so use the local center property via TransformPoint instead.
+                if (col is SphereCollider sphere)
+                    basePos = transform.TransformPoint(sphere.center);
+                else if (col is BoxCollider box)
+                    basePos = transform.TransformPoint(box.center);
+                else if (col is CapsuleCollider cap)
+                    basePos = transform.TransformPoint(cap.center);
+                else if (col.enabled)
+                    basePos = col.bounds.center;
+                // last resort: transform.position (already assigned)
+            }
         }
 
         return basePos + transform.TransformDirection(_coinPositionOffset);
@@ -374,11 +413,23 @@ public class MedallionHole : MonoBehaviour
     }
 
     /// <summary>
+    /// Applies <see cref="_coinRenderingLayerMask"/> to every Renderer on the spawned coin
+    /// so it receives light from the puzzle's URP light groups.
+    /// </summary>
+    private void ApplyRenderingLayers(GameObject coin)
+    {
+        foreach (var rend in coin.GetComponentsInChildren<Renderer>(true))
+            rend.renderingLayerMask = _coinRenderingLayerMask;
+    }
+
+    /// <summary>
     /// Caches the renderer of a freshly instantiated coin and enables the emission keyword
     /// on its material instance so <see cref="Highlight"/> can drive emission via property block.
     /// </summary>
     private void CacheRenderer(GameObject coin)
     {
+        ApplyRenderingLayers(coin);
+
         _placedRenderer = coin.GetComponentInChildren<Renderer>();
         if (_placedRenderer == null) return;
 
