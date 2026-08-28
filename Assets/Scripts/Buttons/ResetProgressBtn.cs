@@ -12,9 +12,13 @@ public class ResetProgressBtn : BaseButton
         SaveManager.Instance?.DeleteSave();
         SaveManager.Instance?.ClearRegistry();
 
-        // Destroy persistent singletons so the reloaded scene creates fresh instances
+        // Destroy ALL persistent singletons so the reloaded scene creates fresh instances
         if (GameManager.Instance != null) Destroy(GameManager.Instance.gameObject);
         if (SaveManager.Instance != null) Destroy(SaveManager.Instance.gameObject);
+        if (AudioManager.Instance != null) Destroy(AudioManager.Instance.gameObject);
+        if (InputManager.Instance != null) Destroy(InputManager.Instance.gameObject);
+        if (ResolutionManager.Instance != null) Destroy(ResolutionManager.Instance.gameObject);
+        if (PopupMessageSystem.Instance != null) Destroy(PopupMessageSystem.Instance.gameObject);
 
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

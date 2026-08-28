@@ -52,6 +52,8 @@ public class InputManager : MonoBehaviour
     }
 
     private void OnDisable() {
+        if (_playerInputActions == null) return;
+
         _playerInputActions.Player.Move.performed -= OnMovePerformed;
         _playerInputActions.Player.Move.canceled -= OnMoveCanceled;
         _playerInputActions.Player.Look.performed -= OnLookPerformed;

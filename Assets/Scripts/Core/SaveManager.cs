@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -34,6 +36,17 @@ public class SaveManager : MonoBehaviour
     private const string FilePrefix = "slot_";
     private const string FileExtension = ".json";
 
+    /// <summary>Slot used by the debug Save / Load / Delete buttons in the pause menu.</summary>
+    public const int DebugSlot = 999;
+
+    // When set via RequestLoadFromSlot(), the next SaveManager.Start() loads from
+    // this slot instead of defaultSlot. Consumed on first read — survives scene reload
+    // because it's static, even though the SaveManager instance is destroyed and recreated.
+    private static int _pendingLoadSlot = -1;
+
+    /// <summary>Tells the next SaveManager instance to load from a specific slot on Start().</summary>
+    public static void RequestLoadFromSlot(int slot) => _pendingLoadSlot = slot;
+
     private readonly Dictionary<string, ISaveable> _saveables = new();
 
     private float      _autoSaveTimer;
@@ -45,6 +58,10 @@ public class SaveManager : MonoBehaviour
     // Set to true after the initial Load() in Start() completes.
     // Used to distinguish scene-load registration from runtime clones.
     private bool _initialLoadComplete;
+
+    // Background write infrastructure — file I/O offloaded to avoid main-thread stalls.
+    private readonly Queue<Action> _mainThreadCallbacks = new();
+    private int _isWriting; // 0 = idle, 1 = write in progress (Interlocked)
 
     /// <summary>Fired after every successful write. SaveIndicatorUI subscribes to show the on-screen label.</summary>
     public event Action OnSaved;
@@ -62,12 +79,18 @@ public class SaveManager : MonoBehaviour
 
     private void Start()
     {
-        Load(defaultSlot);
+        int slot = _pendingLoadSlot >= 0 ? _pendingLoadSlot : defaultSlot;
+        _pendingLoadSlot = -1;
+        Load(slot);
         _initialLoadComplete = true;
     }
 
     private void Update()
     {
+        // Drain background-thread callbacks (e.g. OnSaved event after async write).
+        while (_mainThreadCallbacks.Count > 0)
+            _mainThreadCallbacks.Dequeue()?.Invoke();
+
         float dt = Time.unscaledDeltaTime;
 
         // Debounced event-driven save
@@ -96,18 +119,18 @@ public class SaveManager : MonoBehaviour
 
     private void OnApplicationQuit()
     {
-        // Flush any pending debounced save so no data is lost on exit.
+        // Flush any pending debounced save synchronously so no data is lost on exit.
         if (_pendingSave)
-            FlushPendingSave();
+            FlushPendingSave(synchronous: true);
     }
 
-    private void FlushPendingSave()
+    private void FlushPendingSave(bool synchronous = false)
     {
         _pendingSave   = false;
         _autoSaveTimer = 0f;
         var snapshot     = _pendingSnapshot ?? BuildSnapshot();
         _pendingSnapshot = null;
-        WriteToFile(defaultSlot, snapshot);
+        WriteToFile(defaultSlot, snapshot, synchronous);
     }
 
     // ── ISaveable Registration ────────────────────────────────────────────────
@@ -194,6 +217,14 @@ public class SaveManager : MonoBehaviour
     /// <summary>Builds a fresh snapshot and writes it immediately to the specified slot.</summary>
     public void Save(int slot) => WriteToFile(slot, BuildSnapshot());
 
+    /// <summary>
+    /// Snapshots all ISaveable data and writes it to disk synchronously (main thread).
+    /// Use for debug UI buttons where the write must complete before the next action.
+    /// Pass a slot to write to a specific slot; omit to use the default slot.
+    /// </summary>
+    public void SaveImmediate(int slot = -1)
+        => WriteToFile(slot >= 0 ? slot : defaultSlot, BuildSnapshot(), synchronous: true);
+
     /// <summary>Collects GetSaveData() from every registered ISaveable into a new GameSaveData object.</summary>
     private GameSaveData BuildSnapshot()
     {
@@ -241,19 +272,58 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    /// <summary>Rotates backups and writes a GameSaveData object to disk.</summary>
-    private void WriteToFile(int slot, GameSaveData data)
+    /// <summary>
+    /// Serializes data on the main thread, then offloads backup rotation and file
+    /// writing to a background thread. OnSaved is queued back to the main thread
+    /// after the write completes. Skips if a previous write is still in flight.
+    /// Pass synchronous: true for the OnApplicationQuit path.
+    /// </summary>
+    private void WriteToFile(int slot, GameSaveData data, bool synchronous = false)
     {
-        string path = GetSavePath(slot);
-        RotateBackups(slot);
-        try
+        string json      = JsonUtility.ToJson(data, prettyPrint: false);
+        string savePath  = GetSavePath(slot);
+        string dir       = Path.GetDirectoryName(savePath)!;
+
+        // Pre-compute backup paths on the main thread (Application.persistentDataPath
+        // must not be read on a background thread).
+        var backupPaths = new string[backupCount];
+        for (int i = 0; i < backupCount; i++)
+            backupPaths[i] = GetBackupPath(slot, i + 1);
+
+        if (synchronous)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, JsonUtility.ToJson(data, prettyPrint: false));
-            Debug.Log($"[SaveManager] Saved slot {slot} → {path}");
+            PerformWrite(slot, savePath, dir, backupPaths, json);
             OnSaved?.Invoke();
+            return;
         }
-        catch (Exception e) { Debug.LogError($"[SaveManager] Write failed: {e.Message}"); }
+
+        // Skip if a previous background write hasn't finished yet.
+        if (Interlocked.CompareExchange(ref _isWriting, 1, 0) != 0)
+        {
+            Debug.LogWarning($"[SaveManager] Write skipped (previous write in progress) → slot {slot}");
+            return;
+        }
+
+        int slotCopy = slot;
+        Task.Run(() =>
+        {
+            try { PerformWrite(slotCopy, savePath, dir, backupPaths, json); }
+            catch (Exception e) { Debug.LogError($"[SaveManager] Write failed: {e.Message}"); }
+            finally
+            {
+                Interlocked.Exchange(ref _isWriting, 0);
+                _mainThreadCallbacks.Enqueue(() => OnSaved?.Invoke());
+            }
+        });
+    }
+
+    /// <summary>Performs the actual disk write — safe to call from any thread.</summary>
+    private static void PerformWrite(int slot, string savePath, string dir, string[] backupPaths, string json)
+    {
+        Directory.CreateDirectory(dir);
+        RotateBackups(savePath, backupPaths);
+        File.WriteAllText(savePath, json);
+        Debug.Log($"[SaveManager] Saved slot {slot} → {savePath}");
     }
 
     /// <summary>
@@ -344,13 +414,17 @@ public class SaveManager : MonoBehaviour
         catch { content = null; return false; }
     }
 
-    private void RotateBackups(int slot)
+    /// <summary>
+    /// Rotates backup files. Called from a background thread — all paths must be
+    /// pre-computed on the main thread.
+    /// </summary>
+    private static void RotateBackups(string savePath, string[] backupPaths)
     {
-        if (backupCount <= 0) return;
-        TryDelete(GetBackupPath(slot, backupCount));
-        for (int i = backupCount - 1; i >= 1; i--)
-            TryMove(GetBackupPath(slot, i), GetBackupPath(slot, i + 1));
-        TryMove(GetSavePath(slot), GetBackupPath(slot, 1));
+        if (backupPaths.Length == 0) return;
+        TryDelete(backupPaths[backupPaths.Length - 1]);
+        for (int i = backupPaths.Length - 2; i >= 0; i--)
+            TryMove(backupPaths[i], backupPaths[i + 1]);
+        TryMove(savePath, backupPaths[0]);
     }
 
     private string SaveDir => Path.Combine(Application.persistentDataPath, SaveFolder);
