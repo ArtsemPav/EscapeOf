@@ -50,8 +50,12 @@ public class GeneratorPuzzleController : MonoBehaviour,
     [Tooltip("Звук промаха (красная зона).")]
     [SerializeField] private AudioClip _failClip;
 
+    [Tooltip("Звук старта генератора. Проигрывается после завершения мини-игры, перед запуском зацикленного звука.")]
+    [SerializeField] private AudioClip _generatorStartClip;
+
     [SerializeField, Range(0f, 1f)] private float _successVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float _failVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float _generatorStartVolume = 1f;
 
     [Header("Completion Effects")]
     [Tooltip("Particle System, запускается при успешном завершении мини-игры (например дым работающего генератора).")]
@@ -60,7 +64,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
     [Tooltip("ObjectShake на генераторе — включается при завершении мини-игры (постоянное дрожание работающего двигателя).")]
     [SerializeField] private ObjectShake _generatorShake;
 
-    [Tooltip("LoopAudioController на генераторе. Запускается после проигрывания звука успеха (_successClip).")]
+    [Tooltip("LoopAudioController на генераторе. Запускается после звука старта генератора (_generatorStartClip).")]
     [SerializeField] private LoopAudioController _generatorLoopAudio;
 
     [Header("Hit Shake")]
@@ -284,6 +288,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
         {
             PlayCompletionVfx();
             EnableGeneratorShake();
+            _generatorLoopAudio?.StartLoop();
             _controller?.SetSolved();
         }
         else
@@ -449,25 +454,34 @@ public class GeneratorPuzzleController : MonoBehaviour,
         LightingSystem.Instance?.SetGeneratorReady(true);
         _controller?.SetSolved(); // выходит из режима пазла и сохраняет прогресс
 
-        // Запускаем зацикленный звук после окончания success clip
-        StartCoroutine(StartLoopAfterSuccessClip());
+        // Запускаем звуковую цепочку после завершения мини-игры
+        StartCoroutine(StartGeneratorAudioSequence());
     }
 
     /// <summary>
-    /// Ждёт окончания проигрывания _successClip, затем запускает зацикленный звук генератора.
+    /// Ждёт окончания проигрывания _successClip, затем проигрывает звук старта
+    /// генератора (_generatorStartClip), и только после его окончания запускает
+    /// зацикленный звук работающего двигателя.
     /// </summary>
-    private IEnumerator StartLoopAfterSuccessClip()
+    private IEnumerator StartGeneratorAudioSequence()
     {
         if (_generatorLoopAudio == null)
             yield break;
 
-        // _successClip уже проигрывается из HandleMinigameHit на последнем попадании.
-        // Ждём его длительности перед запуском лупа.
+        // 1. Ждём окончания _successClip (проигрывается из HandleMinigameHit на последнем попадании)
         if (_successClip != null)
             yield return new WaitForSecondsRealtime(_successClip.length);
         else
             yield return null;
 
+        // 2. Проигрываем звук старта генератора и ждём его завершения
+        if (_generatorStartClip != null)
+        {
+            AudioManager.Instance?.PlaySFXExclusive(_generatorStartClip, _generatorStartVolume);
+            yield return new WaitForSecondsRealtime(_generatorStartClip.length);
+        }
+
+        // 3. Запускаем зацикленный звук работающего генератора
         _generatorLoopAudio.StartLoop();
     }
 
