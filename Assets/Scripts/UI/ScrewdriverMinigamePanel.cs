@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -57,6 +58,16 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     [SerializeField] private Image _progressBarFill;
     [SerializeField] private TextMeshProUGUI _missCounterText;
 
+    [Header("Circle Position")]
+    [Tooltip("Если включено — CircleContainer появляется в случайном месте экрана при каждом новом чеке.")]
+    [SerializeField] private bool _randomizeCirclePosition = true;
+
+    [Tooltip("Отступ от краёв экрана (в пикселях канваса) для случайной позиции CircleContainer.")]
+    [SerializeField] private Vector2 _circleScreenMargin = new Vector2(150f, 150f);
+
+    [Tooltip("Длительность скрытия CircleContainer между чеками (в секундах).")]
+    [SerializeField, Min(0f)] private float _circleHideDuration = 0.15f;
+
     [Header("Colors")]
     [SerializeField] private Color _ringColor = new(0.16f, 0.16f, 0.16f, 1f);
     [SerializeField] private Color _grayZoneColor = new(0.42f, 0.42f, 0.42f, 1f);
@@ -83,6 +94,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     public bool IsRunning => _isRunning;
 
     private bool _isRunning;
+    private bool _isTransitioning;
     private float _arrowAngle;
     private float _sectorStart;
     private int _rotationDirection;
@@ -131,10 +143,12 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
 
         if (_progressBarFill != null)
         {
-            _progressBarFill.type = Image.Type.Filled;
-            _progressBarFill.fillMethod = Image.FillMethod.Horizontal;
-            _progressBarFill.fillOrigin = 0;
-            _progressBarFill.fillAmount = 0f;
+            var rt = _progressBarFill.rectTransform;
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0f, 0.5f);
+            rt.sizeDelta = Vector2.zero;
+            _progressBarFill.type = Image.Type.Simple;
             _progressBarFill.color = _progressFillColor;
         }
     }
@@ -144,7 +158,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         if (img == null) return;
         img.type = Image.Type.Filled;
         img.fillMethod = Image.FillMethod.Radial360;
-        img.fillOrigin = 0; // Top
+        img.fillOrigin = 2; // Top (Image.Origin360.Top)
         img.fillClockwise = true;
         img.fillAmount = fillAmount;
         img.color = color;
@@ -165,10 +179,41 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     public void StopMinigame()
     {
         _isRunning = false;
+        _isTransitioning = false;
+        StopAllCoroutines();
         HideSectorVisuals();
     }
 
     private void StartNewCheck()
+    {
+        if (_randomizeCirclePosition && _circleContainer != null)
+            StartCoroutine(TransitionToNewPosition());
+        else
+            SetupCheck();
+    }
+
+    /// <summary>Скрывает CircleContainer, переносит в случайное место и показывает снова.</summary>
+    private IEnumerator TransitionToNewPosition()
+    {
+        _isTransitioning = true;
+
+        if (_circleContainer != null)
+            _circleContainer.gameObject.SetActive(false);
+
+        if (_circleHideDuration > 0f)
+            yield return new WaitForSecondsRealtime(_circleHideDuration);
+
+        RandomizeCirclePosition();
+        SetupCheck();
+
+        if (_circleContainer != null)
+            _circleContainer.gameObject.SetActive(true);
+
+        _isTransitioning = false;
+    }
+
+    /// <summary>Генерирует новый сектор, направление и стартовую позицию стрелки.</summary>
+    private void SetupCheck()
     {
         _sectorStart = Random.Range(0f, FullCircle);
         _rotationDirection = Random.Range(0, 2) == 0 ? 1 : -1;
@@ -192,9 +237,35 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         UpdateArrowVisual();
     }
 
+    /// <summary>Случайно позиционирует CircleContainer в пределах экрана с отступом.</summary>
+    private void RandomizeCirclePosition()
+    {
+        if (_circleContainer == null) return;
+
+        var parentRect = _circleContainer.parent as RectTransform;
+        if (parentRect == null) return;
+
+        Rect bounds = parentRect.rect;
+        float halfWidth = bounds.width * 0.5f;
+        float halfHeight = bounds.height * 0.5f;
+
+        float elemHalfW = _circleContainer.rect.width * 0.5f;
+        float elemHalfH = _circleContainer.rect.height * 0.5f;
+
+        float minX = -halfWidth + elemHalfW + _circleScreenMargin.x;
+        float maxX = halfWidth - elemHalfW - _circleScreenMargin.x;
+        float minY = -halfHeight + elemHalfH + _circleScreenMargin.y;
+        float maxY = halfHeight - elemHalfH - _circleScreenMargin.y;
+
+        float x = maxX > minX ? Random.Range(minX, maxX) : 0f;
+        float y = maxY > minY ? Random.Range(minY, maxY) : 0f;
+
+        _circleContainer.anchoredPosition = new Vector2(x, y);
+    }
+
     private void Update()
     {
-        if (!_isRunning) return;
+        if (!_isRunning || _isTransitioning) return;
 
         float delta = _arrowSpeed * _rotationDirection * Time.unscaledDeltaTime;
         _totalRotation += Mathf.Abs(delta);
@@ -321,7 +392,10 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     private void UpdateProgressVisual()
     {
         if (_progressBarFill != null)
-            _progressBarFill.fillAmount = _progress / _progressGoal;
+        {
+            float ratio = Mathf.Clamp01(_progress / _progressGoal);
+            _progressBarFill.rectTransform.anchorMax = new Vector2(ratio, 1f);
+        }
     }
 
     private void UpdateMissVisual()
