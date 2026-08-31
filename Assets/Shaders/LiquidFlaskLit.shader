@@ -1,4 +1,4 @@
-Shader "Custom/LiquidFlask"
+Shader "Custom/LiquidFlaskLit"
 {
     Properties
     {
@@ -30,8 +30,8 @@ Shader "Custom/LiquidFlask"
         _DepthDarken    ("Depth Darken",        Range(0, 1))    = 0.5
 
         // Lighting floor — minimum brightness in darkness.
-        // 0.15 = liquid dimly visible in complete darkness (flasks).
-        // 0 = liquid fully black without light (sinks, baths).
+        // 0.15 = liquid dimly visible in complete darkness (flasks, inventory preview).
+        // 0 = liquid fully black without light (sinks, baths in dark rooms).
         _MinLightFloor  ("Min Light Floor",     Range(0, 1))    = 0.15
 
         _PivotWS   ("Pivot World Space", Vector) = (0,0,0,0)
@@ -43,9 +43,6 @@ Shader "Custom/LiquidFlask"
     {
         Tags
         {
-            // Queue 2900: safely inside transparent pass (URP opaque = 0-2500, transparent = 2501+).
-            // _CameraOpaqueTexture is correctly captured before this renders.
-            // Renders before glass mesh (typically Queue = 3000).
             "Queue"           = "Transparent-100"
             "RenderType"      = "Transparent"
             "RenderPipeline"  = "UniversalPipeline"
@@ -60,14 +57,17 @@ Shader "Custom/LiquidFlask"
 
             Cull    Off
             ZWrite  Off
-            // Final colour is composited manually with _CameraOpaqueTexture in HLSL.
             Blend   One Zero
 
             HLSLPROGRAM
             #pragma vertex   vert
             #pragma fragment frag
+            #pragma target 3.5
+
             #pragma multi_compile_fog
             #pragma multi_compile _ _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _LIGHT_LAYERS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
@@ -162,11 +162,6 @@ Shader "Custom/LiquidFlask"
                 clip(clipVal + bias);
 
                 // ── Depth-based darkening (Beer–Lambert, tilt-aware) ──────────
-                // maxDepthWS  — vertical (world-Y) extent of the liquid column.
-                // maxDistWS   — 3D length of the column (rotation-invariant).
-                // uprightness — ratio: 1 when flask is upright, 0 when fully sideways.
-                //   Smoothly disables the effect as the flask tilts, preventing the
-                //   sharp bright-line artefact that appears when maxDepthWS → 0.
                 float3 meshBotWS   = TransformObjectToWorld(float3(0, _LocalMeshMin, 0));
                 float  maxDepthWS  = surfacePivotWS.y - meshBotWS.y;
                 float  maxDistWS   = distance(surfacePivotWS, meshBotWS);
@@ -206,29 +201,70 @@ Shader "Custom/LiquidFlask"
                 // Emission is additive light — not subject to depth darkening.
                 finalColor += _EmissionColor.rgb * _EmissionPower;
 
-                // ── URP Lighting ──────────────────────────────────────────────
-                // Apply scene lighting so the liquid darkens in unlit rooms.
-                // Uses half-Lambert wrap lighting for softer shading and a minimum
-                // floor so the liquid is dim but not pitch-black in darkness.
-                // Emission above remains additive and visible in darkness.
+                // ── URP Lighting (Forward+ / Light Layers) ─────────────────────
+                // Full URP-compatible lighting loop:
+                //   • _CLUSTER_LIGHT_LOOP  — enables Forward+ cluster iteration
+                //   • _LIGHT_LAYERS        — filters lights by rendering layer mask
+                // Without these keywords the shader compiled a legacy variant
+                // where GetAdditionalLightsCount() returned 0 in Forward+ mode,
+                // leaving the liquid pitch-black in indoor rooms.
                 {
                     float3 normalWS = normalize(IN.normalWS);
-                    if (facing < 0) normalWS = -normalWS; // flip for back faces
+                    if (facing < 0) normalWS = -normalWS;
 
-                    // Main directional light — half-Lambert for softer shading
+                    // Minimal InputData for the LIGHT_LOOP_BEGIN cluster macro.
+                    InputData inputData = (InputData)0;
+                    inputData.positionWS              = IN.positionWS.xyz;
+                    inputData.positionCS              = IN.positionCS;
+                    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.positionCS);
+
+                    uint meshRenderingLayers = GetMeshRenderingLayer();
+                    half4 shadowMask = half4(1, 1, 1, 1);
+
+                    float3 directLighting = 0;
+
+                    // ── Main directional light ──
                     Light mainLight = GetMainLight();
-                    float NdotL = dot(normalWS, mainLight.direction) * 0.5 + 0.5;
-                    float3 directLighting = mainLight.color * NdotL;
-
-                    // Additional point/spot lights
-                #if defined(_ADDITIONAL_LIGHTS)
-                    uint additionalLightsCount = GetAdditionalLightsCount();
-                    for (uint i = 0u; i < additionalLightsCount; ++i)
+                #ifdef _LIGHT_LAYERS
+                    if (IsMatchingLightLayer(mainLight.layerMask, meshRenderingLayers))
+                #endif
                     {
-                        Light addLight = GetAdditionalLight(i, IN.positionWS.xyz);
-                        float addNdotL = dot(normalWS, addLight.direction) * 0.5 + 0.5;
-                        directLighting += addLight.color * addNdotL;
+                        float NdotL = dot(normalWS, mainLight.direction) * 0.5 + 0.5;
+                        directLighting = mainLight.color * NdotL;
                     }
+
+                    // ── Additional point/spot lights ──
+                #if defined(_ADDITIONAL_LIGHTS)
+                    uint pixelLightCount = GetAdditionalLightsCount();
+
+                    // Forward+ directional additional lights (stored first in buffer).
+                #if USE_CLUSTER_LIGHT_LOOP
+                    [loop] for (uint lightIndex = 0; lightIndex < min(URP_FP_DIRECTIONAL_LIGHTS_COUNT, MAX_VISIBLE_LIGHTS); lightIndex++)
+                    {
+                        CLUSTER_LIGHT_LOOP_SUBTRACTIVE_LIGHT_CHECK
+
+                        Light addLight = GetAdditionalLight(lightIndex, inputData.positionWS);
+                    #ifdef _LIGHT_LAYERS
+                        if (IsMatchingLightLayer(addLight.layerMask, meshRenderingLayers))
+                    #endif
+                        {
+                            float addNdotL = dot(normalWS, addLight.direction) * 0.5 + 0.5;
+                            directLighting += addLight.color * addLight.distanceAttenuation * addNdotL;
+                        }
+                    }
+                #endif
+
+                    // Per-pixel / cluster light loop.
+                    LIGHT_LOOP_BEGIN(pixelLightCount)
+                        Light addLight = GetAdditionalLight(lightIndex, inputData.positionWS);
+                    #ifdef _LIGHT_LAYERS
+                        if (IsMatchingLightLayer(addLight.layerMask, meshRenderingLayers))
+                    #endif
+                        {
+                            float addNdotL = dot(normalWS, addLight.direction) * 0.5 + 0.5;
+                            directLighting += addLight.color * addLight.distanceAttenuation * addNdotL;
+                        }
+                    LIGHT_LOOP_END
                 #endif
 
                     // Ambient from spherical harmonics
@@ -237,7 +273,6 @@ Shader "Custom/LiquidFlask"
                     float3 lighting = directLighting + ambient;
 
                     // Soft floor: liquid is dim in darkness, full in light.
-                    // _MinLightFloor controls minimum brightness (0 = fully black, 0.15 = dimly visible).
                     float lightIntensity = max(max(lighting.r, lighting.g), lighting.b);
                     float dimFactor = max(lightIntensity, _MinLightFloor);
                     finalColor *= dimFactor;
@@ -246,11 +281,8 @@ Shader "Custom/LiquidFlask"
                 // ── Enhanced Refraction / Distortion / Lens ─────────────────
                 float2 screenUV = IN.screenPos.xy / IN.screenPos.w;
 
-                // View-space normal XY → direction of screen-space refraction.
-                // Stable under object rotation (XY in view space = screen X/Y).
                 float3 normalVS = mul((float3x3)UNITY_MATRIX_V, normalize(IN.normalWS));
 
-                // Multi-octave noise for richer, more organic distortion.
                 float3 noisePos = IN.positionWS.xyz * _NoiseScale * 2.5;
                 float  distT    = _Time.y * _DistortionSpeed;
 
@@ -262,24 +294,17 @@ Shader "Custom/LiquidFlask"
                              + (Noise(noisePos * 2.1 + float3(7.1,  distT * 0.5,  4.3)) * 2.0 - 1.0) * 0.3
                              + (Noise(noisePos * 4.3 + float3(3.5,  distT * 0.7,  9.2)) * 2.0 - 1.0) * 0.2;
 
-                // Lens effect: deeper liquid column = stronger distortion (looking through more water).
                 float lensFactor = pow(depthRatio, _LensPower);
 
-                // Combined refraction offset:
-                //   normal-based edge distortion (refraction)
-                // + multi-octave noise distortion (centre ripple)
-                // + depth-amplified lens distortion
                 float2 refractOffset =  normalVS.xy                * _RefractionStrength
                                       + float2(noiseX, noiseY)     * _DistortionStrength
                                       + float2(noiseX, noiseY)     * _DistortionStrength * lensFactor * 0.5;
 
-                // Lens magnification: subtle zoom on background through deeper liquid.
                 float2 toCenter = screenUV - 0.5;
                 float2 lensUV   = screenUV - toCenter * lensFactor * _LensStrength;
 
                 float2 refractUV = clamp(lensUV + refractOffset, 0.001, 0.999);
 
-                // Chromatic aberration: R/G/B sampled with slight horizontal splits.
                 float  ca = _ChromaticAberration;
                 half r = SAMPLE_TEXTURE2D(_CameraOpaqueTexture,
                             sampler_CameraOpaqueTexture,
@@ -291,21 +316,12 @@ Shader "Custom/LiquidFlask"
                             clamp(refractUV + float2(-ca, 0), 0.001, 0.999)).b;
                 half3 bgColor = half3(r, g, b);
 
-                // Tint background with liquid colour, scaled by opacity so at opacity=0
-                // the background shows without any tinting.
                 half3 tintedBg = bgColor * lerp(half3(1, 1, 1),
                                                 _LiquidColor.rgb * 1.4,
                                                 _Opacity * 0.4);
 
-                // Blend: distorted-tinted background → liquid surface.
-                // At _Opacity=0 → only refracted background.
-                // At _Opacity=1 → only liquid surface colour.
                 half3 outColor = lerp(tintedBg, finalColor, _Opacity);
 
-                // Depth darkening applied to the full composite result (liquid + refracted bg).
-                // Physically: deeper liquid column absorbs more light — darkens everything,
-                // including the background visible through the transparent liquid.
-                // This prevents the background's 18% contribution from washing out the effect.
                 outColor *= depthFactor;
 
                 return half4(MixFog(outColor, IN.fogFactor), 1.0);
@@ -318,6 +334,7 @@ Shader "Custom/LiquidFlask"
         {
             Name "ShadowCaster"
             Tags { "LightMode" = "ShadowCaster" }
+
             ZWrite  On
             ZTest   LEqual
             Cull    Off

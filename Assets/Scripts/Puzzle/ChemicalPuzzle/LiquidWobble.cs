@@ -13,7 +13,7 @@ namespace ChemicalPuzzle
     [ExecuteAlways]
     public class LiquidWobble : MonoBehaviour
     {
-        private const string DefaultShaderName = "Custom/LiquidFlask";
+        private const string DefaultShaderName = "Custom/LiquidFlaskLit";
 
         [Header("Shader")]
         [Tooltip("The LiquidFlask shader asset. Assign to prevent shader stripping in builds. " +
@@ -65,14 +65,34 @@ namespace ChemicalPuzzle
         [Range(0f, 1f)]
         [SerializeField] private float _opacity = 0.82f;
         [Tooltip("Сила преломления фона сквозь жидкость. Требует Opaque Texture в URP Asset (уже включено).")]
-        [Range(0f, 0.08f)]
+        [Range(0f, 0.2f)]
         [SerializeField] private float _refractionStrength = 0.03f;
         [Tooltip("Хроматическая аберрация при преломлении — лёгкое радужное расщепление краёв.")]
         [Range(0f, 0.02f)]
         [SerializeField] private float _chromaticAberration = 0.004f;
+
+        [Header("Distortion & Lens")]
+        [Tooltip("Сила искажения фона мульти-октавным шумом (центр жидкости).")]
+        [Range(0f, 0.3f)]
+        [SerializeField] private float _distortionStrength = 0.08f;
+        [Tooltip("Скорость анимации искажения.")]
+        [Range(0f, 5f)]
+        [SerializeField] private float _distortionSpeed = 1f;
+        [Tooltip("Сила эффекта линзы — увеличение фона сквозь толщу жидкости.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _lensStrength = 0.15f;
+        [Tooltip("Степень усиления линзы с глубиной (1 = линейно, 2 = квадратично).")]
+        [Range(0f, 3f)]
+        [SerializeField] private float _lensPower = 1f;
         [Tooltip("Затемнение к низу колбы: 0 = равномерно, 1 = дно полностью чёрное.")]
         [Range(0f, 1f)]
         [SerializeField] private float _depthDarken = 0.5f;
+
+        [Header("Lighting")]
+        [Tooltip("Минимальная яркость в темноте. 0.15 = жидкость слабо видна в полной темноте (колбы). " +
+                 "0 = жидкость полностью чёрная без света (раковины, ванны).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _minLightFloor = 0.15f;
 
         private Coroutine _fillCoroutine;
 
@@ -93,7 +113,12 @@ namespace ChemicalPuzzle
         private static readonly int OpacityId             = Shader.PropertyToID("_Opacity");
         private static readonly int RefractionStrengthId  = Shader.PropertyToID("_RefractionStrength");
         private static readonly int ChromaticAberrationId = Shader.PropertyToID("_ChromaticAberration");
+        private static readonly int DistortionStrengthId  = Shader.PropertyToID("_DistortionStrength");
+        private static readonly int DistortionSpeedId     = Shader.PropertyToID("_DistortionSpeed");
+        private static readonly int LensStrengthId        = Shader.PropertyToID("_LensStrength");
+        private static readonly int LensPowerId           = Shader.PropertyToID("_LensPower");
         private static readonly int DepthDarkenId         = Shader.PropertyToID("_DepthDarken");
+        private static readonly int MinLightFloorId       = Shader.PropertyToID("_MinLightFloor");
 
         private void OnEnable()
         {
@@ -102,12 +127,8 @@ namespace ChemicalPuzzle
             _lastPos    = transform.position;
             _lastRot    = transform.rotation;
 
-            // Сбрасываем renderingLayerMask к Default (1).
-            // Меши бутылок могут иметь нестандартные Light Layers (например, 516),
-            // но для жидкости с шейдером LiquidFlask нужен Default, чтобы источники
-            // света комнаты корректно освещали жидкость через URP per-object light culling.
-            if (_renderer != null)
-                _renderer.renderingLayerMask = 1;
+            // Rendering layer mask is controlled directly on the MeshRenderer in the Inspector.
+            // Do NOT override it here — the renderer's mask must match the room's light layers.
 
             CacheLocalMeshBounds();
 
@@ -252,7 +273,12 @@ namespace ChemicalPuzzle
             _materialInstance.SetFloat(OpacityId,              _opacity);
             _materialInstance.SetFloat(RefractionStrengthId,   _refractionStrength);
             _materialInstance.SetFloat(ChromaticAberrationId,  _chromaticAberration);
+            _materialInstance.SetFloat(DistortionStrengthId,   _distortionStrength);
+            _materialInstance.SetFloat(DistortionSpeedId,      _distortionSpeed);
+            _materialInstance.SetFloat(LensStrengthId,         _lensStrength);
+            _materialInstance.SetFloat(LensPowerId,            _lensPower);
             _materialInstance.SetFloat(DepthDarkenId,          _depthDarken);
+            _materialInstance.SetFloat(MinLightFloorId,        _minLightFloor);
         }
 
         private void OnDisable()

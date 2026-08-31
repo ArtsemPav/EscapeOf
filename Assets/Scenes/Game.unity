@@ -5629,7 +5629,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a31b7b563ab66d64e9df0f1e3c73007d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveManager
-  autoSaveInterval: 600
+  autoSaveInterval: 120
   saveDebounceDelay: 2
   defaultSlot: 0
   backupCount: 2
@@ -5769,6 +5769,26 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+--- !u!1 &497038070 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4424735572240552563, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &497038075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497038070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14453790ad5894b4893a23972378bd0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObjectActivator
+  _activateEvent: {fileID: 11400000, guid: 64444ccc85cb63d4aad05f53cbf301bd, type: 2}
+  _startHidden: 1
+  _toggleColliders: 1
 --- !u!1 &502936853
 GameObject:
   m_ObjectHideFlags: 0
@@ -10105,6 +10125,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1121474040}
   m_CullTransparentMesh: 1
+--- !u!1 &1140017807 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6495648631140246850, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1140017810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140017807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca5e29b3844dea6408473ea76b41f0dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomPuzzleGate
+  _unlockEvent: {fileID: 11400000, guid: 64444ccc85cb63d4aad05f53cbf301bd, type: 2}
+  _placeholder: {fileID: 1777402941}
+  _startLocked: 1
+  _saveId: room_gate_coridor_fdoor
+--- !u!114 &1140017811
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1140017807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03f4d66714d5c834881ecb192e6e8cb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameEventListener
+  _event: {fileID: 11400000, guid: 64444ccc85cb63d4aad05f53cbf301bd, type: 2}
+  _response:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1140017810}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: Unlock
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 1
 --- !u!1 &1156353787
 GameObject:
   m_ObjectHideFlags: 0
@@ -13351,6 +13420,10 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 1.3
       objectReference: {fileID: 0}
+    - target: {fileID: 1212784059193919232, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2236372517798367002, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -13364,6 +13437,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 0}
     - target: {fileID: 2665402420552522678, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3430939420241355774, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 768
+      objectReference: {fileID: 0}
+    - target: {fileID: 3430939420241355774, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 0}
@@ -13530,6 +13611,26 @@ PrefabInstance:
     - target: {fileID: 7601530930447628981, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 7707038431190027379, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7707038431190027379, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7707038431190027379, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 2047119953}
+    - target: {fileID: 7707038431190027379, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7707038431190027379, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: RaiseEvent
       objectReference: {fileID: 0}
     - target: {fileID: 7727299105033830165, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: OnPuzzleModeExited.m_PersistentCalls.m_Calls.Array.data[0].m_Target
@@ -13829,6 +13930,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8275024712988720850, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 933695549368735162, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2047119953}
     - targetCorrespondingSourceObject: {fileID: 5867293927021031591, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
@@ -13844,9 +13948,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3545891024172296580, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 6495648631140246850, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1140017810}
+    - targetCorrespondingSourceObject: {fileID: 6495648631140246850, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1140017811}
     - targetCorrespondingSourceObject: {fileID: 8162275709011720712, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 0}
+    - targetCorrespondingSourceObject: {fileID: 4424735572240552563, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 497038075}
   m_SourcePrefab: {fileID: 100100000, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
 --- !u!114 &1777402939 stripped
 MonoBehaviour:
@@ -13870,6 +13983,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d23874784e588c498d2149ac8b383d1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HorrorInteractable
+--- !u!1 &1777402941 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8780641045123659196, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1798465258
 GameObject:
   m_ObjectHideFlags: 0
@@ -15140,6 +15258,24 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2038931435}
   m_CullTransparentMesh: 1
+--- !u!1 &2047119948 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 933695549368735162, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2047119953
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2047119948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 253fd741b8612f640beeca71888a3fd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameEventRaiser
+  _event: {fileID: 11400000, guid: 64444ccc85cb63d4aad05f53cbf301bd, type: 2}
 --- !u!1 &2067256572
 GameObject:
   m_ObjectHideFlags: 0

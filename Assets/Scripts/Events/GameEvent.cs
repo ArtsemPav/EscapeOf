@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -33,12 +34,18 @@ using UnityEngine;
 ///     └── GameEventListener на Door           → Open()
 ///     └── GameEventListener на AudioManager   → PlaySFX(powerOnClip)
 ///
+/// ПОДПИСКА ИЗ КОДА (без GameEventListener):
+///   _event.RegisterAction(MyHandler);
+///   _event.UnregisterAction(MyHandler);
+///   Удобно для самодостаточных компонентов вроде ObjectActivator.
+///
 /// ═══════════════════════════════════════════════════════════════════════
 /// </summary>
 [CreateAssetMenu(menuName = "Game Events/Game Event", fileName = "NewGameEvent")]
 public class GameEvent : ScriptableObject
 {
     private readonly List<GameEventListener> _listeners = new();
+    private readonly List<Action> _actionListeners = new();
 
     /// <summary>
     /// Поднимает ивент — уведомляет всех активных слушателей.
@@ -49,6 +56,9 @@ public class GameEvent : ScriptableObject
         // Итерируем с конца на случай если слушатель отписывается во время реакции.
         for (int i = _listeners.Count - 1; i >= 0; i--)
             _listeners[i].OnEventRaised();
+
+        for (int i = _actionListeners.Count - 1; i >= 0; i--)
+            _actionListeners[i]?.Invoke();
     }
 
     /// <summary>Регистрирует слушателя. Вызывается автоматически из GameEventListener.OnEnable.</summary>
@@ -60,4 +70,14 @@ public class GameEvent : ScriptableObject
 
     /// <summary>Снимает слушателя. Вызывается автоматически из GameEventListener.OnDisable.</summary>
     public void UnregisterListener(GameEventListener listener) => _listeners.Remove(listener);
+
+    /// <summary>Регистрирует Action-колбек. Для подписки из кода без GameEventListener.</summary>
+    public void RegisterAction(Action action)
+    {
+        if (action != null && !_actionListeners.Contains(action))
+            _actionListeners.Add(action);
+    }
+
+    /// <summary>Снимает Action-колбек.</summary>
+    public void UnregisterAction(Action action) => _actionListeners.Remove(action);
 }

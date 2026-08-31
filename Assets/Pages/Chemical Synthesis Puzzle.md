@@ -135,7 +135,7 @@ ChemicalSynthesisController      ← оркестратор, IPuzzleDropHandler,
 │   └── CentrifugeScreenController
 ├── BurnerController             ← ChemicalDeviceBase
 ├── MixerController              ← ChemicalDeviceBase
-│   └── LiquidWobble             ← shader-driven жидкость
+│   └── LiquidWobble             ← shader-driven жидкость (Custom/LiquidFlask, см. Liquid Shader System.md)
 └── AnalyzerController
     └── AnalyzerScreenController
 ```
