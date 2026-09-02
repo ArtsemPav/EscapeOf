@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using ChemicalPuzzle;
 using UnityEngine;
 
 /// <summary>
@@ -11,9 +10,9 @@ using UnityEngine;
 /// When fully drained, disables the collider so the player can interact with items below.
 /// Implements ISaveable: persists the drained state across sessions.
 ///
-/// Requires LiquidWobble on the same GameObject for fill-level control.
+/// Requires BathLiquidController on the same GameObject for fill-level control.
 /// </summary>
-[RequireComponent(typeof(LiquidWobble))]
+[RequireComponent(typeof(BathLiquidController))]
 public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
 {
     // ── Settings ──────────────────────────────────────────────────────────────
@@ -54,7 +53,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
 
     // ── Runtime state ──────────────────────────────────────────────────────────
 
-    private LiquidWobble _liquid;
+    private BathLiquidController _liquid;
     private Collider _collider;
     private AudioSource _drainSource;
     private bool _isDrained;
@@ -82,7 +81,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
         _isDrained  = true;
         _isDraining = false;
         if (_liquid != null)
-            _liquid.fillFraction = 0f;
+            _liquid.SetRuntimeFill(0f);
         if (_collider != null)
             _collider.enabled = false;
     }
@@ -107,7 +106,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
 
     private void Awake()
     {
-        _liquid   = GetComponent<LiquidWobble>();
+        _liquid   = GetComponent<BathLiquidController>();
         _collider = GetComponent<Collider>();
         SaveManager.Instance?.Register(this);
     }
@@ -115,7 +114,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
     private void Start()
     {
         if (!_isDrained)
-            _liquid.fillFraction = _initialFill;
+            _liquid.SetRuntimeFill(_initialFill);
     }
 
     private void OnDestroy()

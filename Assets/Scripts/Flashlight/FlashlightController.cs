@@ -26,6 +26,34 @@ public class FlashlightController : MonoBehaviour
              "If not set, sound only plays when the light actually toggles.")]
     [SerializeField] private InventoryCondition soundCondition;
 
+    [Header("Proximity Dimming")]
+    [Tooltip("Transform used as the ray origin (should be the camera, not the lagging flashlight). " +
+             "If not assigned, falls back to Camera.main.")]
+    [SerializeField] private Transform proximityRayOrigin;
+
+    [Tooltip("How far ahead to cast for proximity detection (metres). " +
+             "When a surface is closer than this, intensity is scaled down.")]
+    [SerializeField] [Min(0.3f)] private float proximityRange = 1.2f;
+
+    [Tooltip("Minimum intensity scale when the flashlight is point-blank against a surface. " +
+             "0.3 = 30% of full brightness at zero distance.")]
+    [SerializeField] [Range(0.01f, 1f)] private float proximityMinScale = 0.3f;
+
+    [Tooltip("Falloff curve power. 1 = linear, 2 = quadratic (stays dim longer, then ramps up).")]
+    [SerializeField] [Range(0.5f, 4f)] private float proximityFalloff = 2f;
+
+    [Tooltip("How quickly the proximity scale catches up to the target value. " +
+             "Higher = snappier, lower = smoother. Prevents flickering from brief ray hits.")]
+    [SerializeField] [Range(1f, 30f)] private float proximitySmoothSpeed = 12f;
+
+    [Tooltip("Half-angle of the probe fan in degrees. Multiple rays are cast within this cone " +
+             "and a majority must hit to trigger dimming — prevents false triggers from " +
+             "glancing hits on stairs, pillars, and side walls.")]
+    [SerializeField] [Range(0f, 30f)] private float probeFanHalfAngle = 10f;
+
+    [Tooltip("Layers checked by the proximity cast. Default = everything.")]
+    [SerializeField] private LayerMask proximityMask = ~0;
+
     /// <summary>Fired whenever the active mode changes. Passes the new mode.</summary>
     public event Action<FlashlightMode> OnModeChanged;
 
@@ -45,6 +73,8 @@ public class FlashlightController : MonoBehaviour
     private AudioSource _audioSource;
     private bool _isOn;
     private float _targetIntensity;
+    private float _proximityScale = 1f;
+    private float _proximityScaleVelocity;
     private int _modeIndex;
 
     private void Awake()
@@ -59,6 +89,9 @@ public class FlashlightController : MonoBehaviour
 
         _light = GetComponent<Light>();
         _light.intensity = 0f;
+
+        if (proximityRayOrigin == null && Camera.main != null)
+            proximityRayOrigin = Camera.main.transform;
 
         _audioSource = gameObject.AddComponent<AudioSource>();
         _audioSource.playOnAwake  = false;
@@ -93,10 +126,69 @@ public class FlashlightController : MonoBehaviour
         if (Keyboard.current.fKey.wasPressedThisFrame)
             TryToggle();
 
+        UpdateProximityScale();
+
         _light.intensity = Mathf.MoveTowards(
             _light.intensity,
-            _targetIntensity,
+            _targetIntensity * _proximityScale,
             config.transitionSpeed * Time.deltaTime
+        );
+    }
+
+    private const int ProbeCount = 5;
+    private const int ProbeMajority = 3;
+
+    /// <summary>
+    /// Casts a fan of thin rays from the camera and scales down the target intensity
+    /// only when a majority of probes hit a surface within proximityRange.
+    /// This prevents false triggers from glancing hits on stairs, pillars, and side walls.
+    /// Uses SmoothDamp to prevent flickering from brief hits.
+    /// </summary>
+    private void UpdateProximityScale()
+    {
+        if (!_isOn)
+        {
+            _proximityScale = 1f;
+            _proximityScaleVelocity = 0f;
+            return;
+        }
+
+        Vector3 origin = proximityRayOrigin != null ? proximityRayOrigin.position : transform.position;
+        Vector3 fwd    = proximityRayOrigin != null ? proximityRayOrigin.forward  : transform.forward;
+        Vector3 right  = proximityRayOrigin != null ? proximityRayOrigin.right    : transform.right;
+        Vector3 up     = proximityRayOrigin != null ? proximityRayOrigin.up       : transform.up;
+
+        int hits = 0;
+        float closestDist = proximityRange;
+
+        for (int i = 0; i < ProbeCount; i++)
+        {
+            Vector3 dir = fwd;
+            if (i == 1) dir = Quaternion.AngleAxis( probeFanHalfAngle, up) * fwd;
+            if (i == 2) dir = Quaternion.AngleAxis(-probeFanHalfAngle, up) * fwd;
+            if (i == 3) dir = Quaternion.AngleAxis( probeFanHalfAngle, right) * fwd;
+            if (i == 4) dir = Quaternion.AngleAxis(-probeFanHalfAngle, right) * fwd;
+
+            if (Physics.Raycast(origin, dir, out RaycastHit hit, proximityRange, proximityMask, QueryTriggerInteraction.Ignore))
+            {
+                hits++;
+                if (hit.distance < closestDist)
+                    closestDist = hit.distance;
+            }
+        }
+
+        float targetScale = 1f;
+        if (hits >= ProbeMajority)
+        {
+            float t = Mathf.Clamp01(closestDist / proximityRange);
+            targetScale = Mathf.Lerp(proximityMinScale, 1f, Mathf.Pow(t, proximityFalloff));
+        }
+
+        _proximityScale = Mathf.SmoothDamp(
+            _proximityScale,
+            targetScale,
+            ref _proximityScaleVelocity,
+            1f / proximitySmoothSpeed
         );
     }
 

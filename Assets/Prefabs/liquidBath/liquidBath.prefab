@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 8247999298805014855}
   - component: {fileID: 6166044580381808013}
   - component: {fileID: 2765027367729911983}
-  - component: {fileID: 6043487093887010744}
   - component: {fileID: 4045728863423505971}
+  - component: {fileID: 3759864566011776705}
   m_Layer: 0
   m_Name: liquidBath
   m_TagString: Untagged
@@ -66,10 +66,10 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 4294967295
+  m_RenderingLayerMask: 640
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: 43ebc1fa20de57645947e3274f781219, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -112,40 +112,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 4.857343, y: 1.558441, z: 3.8071787}
-  m_Center: {x: 0.00000047683713, y: 0, z: 0.0000009536743}
---- !u!114 &6043487093887010744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5661812601551516760}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61a49757b600b9147a1a2b03b20d8242, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ChemicalPuzzle.LiquidWobble
-  _shader: {fileID: 4800000, guid: a50fcd8c272c9cf44917594179cb3885, type: 3}
-  fillFraction: 0.8
-  correctionSpeed: 15
-  maxWobble: 0.03
-  wobbleSpeed: 4
-  recovery: 1.5
-  _liquidColor: {r: 0.38, g: 0.42, b: 0.35, a: 1}
-  _surfaceColor: {r: 0.45, g: 0.5, b: 0.4, a: 1}
-  _emissionColor: {r: 0, g: 0, b: 0, a: 1}
-  _emissionPower: 0
-  _autoEmissionMultiplier: 0
-  _opacity: 0.85
-  _refractionStrength: 0.05
-  _chromaticAberration: 0.006
-  _distortionStrength: 0.12
-  _distortionSpeed: 1.2
-  _lensStrength: 0.2
-  _lensPower: 1.5
-  _depthDarken: 0.5
-  _minLightFloor: 0
+  m_Size: {x: 0.047342725, y: 0.008016002, z: 0.038678687}
+  m_Center: {x: 0.00027213176, y: 0.012804693, z: -0.01239745}
 --- !u!114 &4045728863423505971
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -167,4 +135,38 @@ MonoBehaviour:
   _drainSoundMinDistance: 1
   _drainSoundMaxDistance: 10
   _interactText: "\u0421\u043B\u0438\u0442\u044C \u0432\u043E\u0434\u0443"
-  _saveId: a3f7b2c1-9d4e-4f6a-8b1c-2e3d4f5a6b7c
+  _saveId: liquidBath_room7
+--- !u!114 &3759864566011776705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5661812601551516760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 728a5bbfda3b54043a1948bd3c9934b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BathLiquidController
+  fillFraction: 0.8
+  _overrideVisualProps: 1
+  _liquidColor: {r: 0.38, g: 0.42, b: 0.35, a: 1}
+  _surfaceColor: {r: 0.45, g: 0.5, b: 0.4, a: 1}
+  _emissionColor: {r: 0, g: 0, b: 0, a: 1}
+  _emissionPower: 0
+  _turbidity: 0.6
+  _noiseScale: 5
+  _noiseSpeed: 0.5
+  _opacity: 0.85
+  _refractionStrength: 0.05
+  _chromaticAberration: 0.006
+  _distortionStrength: 0.12
+  _distortionSpeed: 1.2
+  _lensStrength: 0.2
+  _lensPower: 1.5
+  _depthDarken: 0.5
+  _blurStrength: 0.03
+  _capOpacity: 1
+  _capDistortion: 1
+  _minLightFloor: 0
+  _shader: {fileID: 4800000, guid: 9520eddb00b7ad44982cbe74de76e650, type: 3}

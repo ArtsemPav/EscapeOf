@@ -25,6 +25,10 @@ namespace ChemicalPuzzle
         [Range(0f, 1f)]
         public float fillFraction = 0f;
 
+        [Tooltip("If true, the script pushes all visual properties (color, opacity, blur, etc.) to the material every frame. " +
+                 "If false, only runtime properties (fill, wobble, pivot, mesh bounds) are pushed — visual settings are controlled directly in the material.")]
+        [SerializeField] private bool _overrideVisualProps = true;
+
         [Tooltip("Скорость плавного следования foam-линии за целевым мировым Y.")]
         [SerializeField] private float correctionSpeed = 15f;
 
@@ -60,6 +64,18 @@ namespace ChemicalPuzzle
                  "уровня заполнения сквозь стекло.")]
         [SerializeField] private float _autoEmissionMultiplier = 0f;
 
+        [Header("Turbidity & Noise")]
+        [Tooltip("Мутность жидкости: 0 = прозрачная, 1 = полностью мутная. " +
+                 "Влияет на размытие предметов под водой и поглощение цвета.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _turbidity = 0.6f;
+        [Tooltip("Масштаб шума для анимации поверхности жидкости.")]
+        [Range(0.1f, 10f)]
+        [SerializeField] private float _noiseScale = 5f;
+        [Tooltip("Скорость анимации шума поверхности.")]
+        [Range(0f, 5f)]
+        [SerializeField] private float _noiseSpeed = 0.5f;
+
         [Header("Transparency & Refraction")]
         [Tooltip("Непрозрачность жидкости: 1 = полностью непрозрачная, 0 = невидима.")]
         [Range(0f, 1f)]
@@ -88,6 +104,20 @@ namespace ChemicalPuzzle
         [Range(0f, 1f)]
         [SerializeField] private float _depthDarken = 0.5f;
 
+        [Header("Underwater Blur")]
+        [Tooltip("Сила размытия предметов под жидкостью. Больше = предмет менее различим.")]
+        [Range(0f, 0.05f)]
+        [SerializeField] private float _blurStrength = 0.03f;
+
+        [Header("Cap (surface above water)")]
+        [Tooltip("Непрозрачность «крышки» — поверхности выше уровня воды. " +
+                 "Больше = лучше спрятан предмет, меньше = сильнее видно размытые очертания.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float _capOpacity = 0.85f;
+        [Tooltip("Усиление искажения для крышки (зарезервировано, сейчас не используется).")]
+        [Range(1f, 5f)]
+        [SerializeField] private float _capDistortion = 1f;
+
         [Header("Lighting")]
         [Tooltip("Минимальная яркость в темноте. 0.15 = жидкость слабо видна в полной темноте (колбы). " +
                  "0 = жидкость полностью чёрная без света (раковины, ванны).")]
@@ -110,6 +140,9 @@ namespace ChemicalPuzzle
         private static readonly int SurfaceColorId        = Shader.PropertyToID("_SurfaceColor");
         private static readonly int EmissionColorId       = Shader.PropertyToID("_EmissionColor");
         private static readonly int EmissionPowerId       = Shader.PropertyToID("_EmissionPower");
+        private static readonly int TurbidityId           = Shader.PropertyToID("_Turbidity");
+        private static readonly int NoiseScaleId          = Shader.PropertyToID("_NoiseScale");
+        private static readonly int NoiseSpeedId          = Shader.PropertyToID("_NoiseSpeed");
         private static readonly int OpacityId             = Shader.PropertyToID("_Opacity");
         private static readonly int RefractionStrengthId  = Shader.PropertyToID("_RefractionStrength");
         private static readonly int ChromaticAberrationId = Shader.PropertyToID("_ChromaticAberration");
@@ -119,6 +152,9 @@ namespace ChemicalPuzzle
         private static readonly int LensPowerId           = Shader.PropertyToID("_LensPower");
         private static readonly int DepthDarkenId         = Shader.PropertyToID("_DepthDarken");
         private static readonly int MinLightFloorId       = Shader.PropertyToID("_MinLightFloor");
+        private static readonly int BlurStrengthId        = Shader.PropertyToID("_BlurStrength");
+        private static readonly int CapOpacityId          = Shader.PropertyToID("_CapOpacity");
+        private static readonly int CapDistortionId       = Shader.PropertyToID("_CapDistortion");
 
         private void OnEnable()
         {
@@ -250,26 +286,33 @@ namespace ChemicalPuzzle
         }
 
         /// <summary>
-        /// Pushes all serialized properties to the material instance.
-        /// Called from OnEnable (to avoid stale baked values on the first frame)
-        /// and from Update (to keep wobble / pivot in sync every frame).
+        /// Pushes properties to the material instance.
+        /// Runtime properties (fill, wobble, pivot, mesh bounds) are always pushed.
+        /// Visual properties (color, opacity, blur, etc.) are only pushed when
+        /// _overrideVisualProps is true — otherwise they stay in the material.
         /// </summary>
         private void ApplyMaterialProperties()
         {
             if (_materialInstance == null) return;
 
-            // Передаём свойства напрямую в material instance —
-            // SRP Batcher корректно обрабатывает per-material свойства.
+            // Runtime properties — always pushed.
             _materialInstance.SetFloat(FillAmountId,           fillFraction);
-            _materialInstance.SetColor(LiquidColorId,          _liquidColor);
-            _materialInstance.SetColor(SurfaceColorId,         _surfaceColor);
-            _materialInstance.SetColor(EmissionColorId,        _emissionColor);
-            _materialInstance.SetFloat(EmissionPowerId,        _emissionPower);
             _materialInstance.SetFloat(LocalMeshMinId,         _localMeshMin);
             _materialInstance.SetFloat(LocalMeshMaxId,         _localMeshMin + _localMeshHeight);
             _materialInstance.SetVector(PivotWSId,             transform.position);
             _materialInstance.SetFloat(WobbleXId,              _wobbleX);
             _materialInstance.SetFloat(WobbleZId,              _wobbleZ);
+
+            // Visual properties — only pushed when overriding is enabled.
+            if (!_overrideVisualProps) return;
+
+            _materialInstance.SetColor(LiquidColorId,          _liquidColor);
+            _materialInstance.SetColor(SurfaceColorId,         _surfaceColor);
+            _materialInstance.SetColor(EmissionColorId,        _emissionColor);
+            _materialInstance.SetFloat(EmissionPowerId,        _emissionPower);
+            _materialInstance.SetFloat(TurbidityId,            _turbidity);
+            _materialInstance.SetFloat(NoiseScaleId,           _noiseScale);
+            _materialInstance.SetFloat(NoiseSpeedId,           _noiseSpeed);
             _materialInstance.SetFloat(OpacityId,              _opacity);
             _materialInstance.SetFloat(RefractionStrengthId,   _refractionStrength);
             _materialInstance.SetFloat(ChromaticAberrationId,  _chromaticAberration);
@@ -279,6 +322,9 @@ namespace ChemicalPuzzle
             _materialInstance.SetFloat(LensPowerId,            _lensPower);
             _materialInstance.SetFloat(DepthDarkenId,          _depthDarken);
             _materialInstance.SetFloat(MinLightFloorId,        _minLightFloor);
+            _materialInstance.SetFloat(BlurStrengthId,         _blurStrength);
+            _materialInstance.SetFloat(CapOpacityId,           _capOpacity);
+            _materialInstance.SetFloat(CapDistortionId,        _capDistortion);
         }
 
         private void OnDisable()
