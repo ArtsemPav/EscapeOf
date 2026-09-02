@@ -8689,10 +8689,34 @@ MonoBehaviour:
   _textWhenOn: "\u0412\u0435\u0440\u043D\u0443\u0442\u044C \u0440\u044B\u0447\u0430\u0433"
   _onToggleOn:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 4274559480237739052}
+        m_TargetAssemblyTypeName: Escape.Core.DoorInteraction, Assembly-CSharp
+        m_MethodName: Open
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   _onToggleOff:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 4274559480237739052}
+        m_TargetAssemblyTypeName: Escape.Core.DoorInteraction, Assembly-CSharp
+        m_MethodName: Close
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1001 &5147884802300555168
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9098,6 +9122,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 186419cabe1f4854bb9d2cf40f4d9b18, type: 3}
+--- !u!114 &4274559480237739052 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8615795955348794482, guid: 186419cabe1f4854bb9d2cf40f4d9b18, type: 3}
+  m_PrefabInstance: {fileID: 5531332897351835742}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
 --- !u!4 &5790922390327546387 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2062156931753243213, guid: 186419cabe1f4854bb9d2cf40f4d9b18, type: 3}

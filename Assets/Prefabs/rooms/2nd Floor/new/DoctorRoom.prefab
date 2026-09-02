@@ -586,7 +586,6 @@ Transform:
   - {fileID: 4847304108811818425}
   - {fileID: 6364508991592575502}
   - {fileID: 5871302040790010813}
-  - {fileID: 1409553735544323065}
   m_Father: {fileID: 3369668027092377877}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4928616835554466774
@@ -3373,35 +3372,47 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 3344039340454467238}
+    m_TransformParent: {fileID: 4816031114839454635}
     m_Modifications:
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.3333332
+      objectReference: {fileID: 0}
+    - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.3333332
+      objectReference: {fileID: 0}
+    - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.33333325
+      objectReference: {fileID: 0}
+    - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.1957
+      value: 0.009608391
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.792
+      value: -0.121499956
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 4.762
+      value: 0.14933336
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.65491915
+      value: 0.000000014901159
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.65491927
+      value: -0.37704343
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.26660997
+      value: 0.00000008940696
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.26661
+      value: -0.9261956
       objectReference: {fileID: 0}
     - target: {fileID: 101929155895773784, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -3421,7 +3432,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4983872130235611009, guid: d0c5098e1f90d6044bfeb8ebf09f90b4, type: 3}
       propertyPath: m_Name
-      value: Coin1
+      value: PickableCoin1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -8059,7 +8070,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 8732352692289228592, guid: 479df84f7ec9e1d45ae2769393f3f865, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1409553735544323065}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 479df84f7ec9e1d45ae2769393f3f865, type: 3}
 --- !u!4 &4816031114839454635 stripped
@@ -13474,7 +13488,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
-  itemData: {fileID: 11400000, guid: 9a08a31d5962f0a43b00e176dd3eb70f, type: 2}
+  itemData: {fileID: 11400000, guid: f872c60c08853354a8f09e272de2a12b, type: 2}
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
