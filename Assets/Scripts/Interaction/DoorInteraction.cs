@@ -495,6 +495,33 @@ namespace Escape.Core {
             _unlockAjarFraction = Mathf.Clamp01(fraction);
         }
 
+        /// <summary>Unlocks and fully opens the door. Wire to lever OnToggleOn.</summary>
+        public void Open() {
+            _isLocked          = false;
+            _clickTarget       = 1f;
+            _isOpen            = true;
+            _isClickAnimating  = true;
+            _dragActive        = true;
+            _isDragging        = false;
+            _flinging          = false;
+            _isUnlockAnimating = false;
+            _velocity          = 0f;
+            SaveManager.Instance?.Save();
+        }
+
+        /// <summary>Fully closes the door. Wire to lever OnToggleOff.</summary>
+        public void Close() {
+            _clickTarget       = 0f;
+            _isOpen            = false;
+            _isClickAnimating  = true;
+            _dragActive        = true;
+            _isDragging        = false;
+            _flinging          = false;
+            _isUnlockAnimating = false;
+            _velocity          = 0f;
+            SaveManager.Instance?.Save();
+        }
+
         // ── Private helpers ──────────────────────────────────────────────────────
 
     /// <summary>Syncs the optional OcclusionPortal's open state with the door's open fraction.</summary>
