@@ -76,8 +76,8 @@ namespace Escape.Core {
         [SerializeField] private AudioClip _lockedClip;
         [Tooltip("Звук щелчка замка при вводе правильного кода. Дверь приоткрывается на _unlockAjarFraction.")]
         [SerializeField] private AudioClip _unlockClip;
-        [Tooltip("Насколько дверь приоткрывается после разблокировки (доля от _maxOpenAngle). 0.1 ≈ 9°.")]
-        [SerializeField] [Range(0f, 0.4f)] private float _unlockAjarFraction = 0.12f;
+        [Tooltip("Насколько дверь приоткрывается после разблокировки (доля от _maxOpenAngle). 0.1 ≈ 9°, 1.0 = полностью открыта.")]
+        [SerializeField] [Range(0f, 1f)] private float _unlockAjarFraction = 0.12f;
         [Tooltip("Скорость плавного приоткрытия после разблокировки (fraction/sec). Больше — быстрее.")]
         [SerializeField] private float _unlockAjarSpeed = 0.6f;
         [Tooltip("Громкость звуков движения двери.")]
@@ -485,6 +485,14 @@ namespace Escape.Core {
             _isDragging        = false;
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX(_unlockClip);
+        }
+
+        /// <summary>
+        /// Sets the fraction (0–1) of how far the door swings open after UnlockAndOpen.
+        /// Example: 0.25 = 25% of _maxOpenAngle. Can be called at runtime from UnityEvents.
+        /// </summary>
+        public void SetUnlockAjarFraction(float fraction) {
+            _unlockAjarFraction = Mathf.Clamp01(fraction);
         }
 
         // ── Private helpers ──────────────────────────────────────────────────────

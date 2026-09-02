@@ -69,7 +69,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 3481acd8b6232f04fa8892f1347a749c, type: 2}
+  - {fileID: 2100000, guid: 6f00c82b4f355464a83c03261a4f5e69, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -126,6 +126,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_doctor_main
   _isOpen: 0
   _isLocked: 0
   _openMode: 0
@@ -142,15 +143,14 @@ MonoBehaviour:
   _maxVelocity: 1.2
   _flingThreshold: 0.9
   _flingSpeed: 2
-  _openLoopClip: {fileID: 0}
-  _closeLoopClip: {fileID: 0}
-  _latchClip: {fileID: 0}
-  _lockedClip: {fileID: 0}
-  _unlockClip: {fileID: 0}
+  _openLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
+  _latchClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+  _lockedClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _unlockClip: {fileID: 8300000, guid: 6882df76d800fdf46a1093771301ff46, type: 3}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_doctor_main
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
