@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -6,7 +7,8 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Singleton. Displays a readable document with 3D preview, darkened background,
-/// and paginated text. Reuses the Inspection camera pattern from ItemInspector.
+/// and paginated text baked into the prefab as 3D TextMeshPro components.
+/// Reuses the Inspection camera pattern from ItemInspector.
 /// </summary>
 public class DocumentUI : MonoBehaviour
 {
@@ -21,12 +23,8 @@ public class DocumentUI : MonoBehaviour
     [SerializeField] private RawImage _documentPreview;
     [SerializeField] private Camera _inspectionCamera;
 
-    [Header("Text")]
-    [SerializeField] private TextMeshProUGUI _titleText;
-    [SerializeField] private TextMeshProUGUI _contentText;
-
-    [Tooltip("Родительский объект текстового блока (заголовок + контент). Скрывается до завершения анимации вылета 3D-объекта.")]
-    [SerializeField] private GameObject _textBlock;
+    [Tooltip("Имя родительского объекта страниц в префабе. Если пусто — ищутся все TMP на дочерних объектах.")]
+    [SerializeField] private string _pagesContainerName = "Pages";
 
     [Header("Navigation")]
     [SerializeField] private Button _prevPageButton;
@@ -79,6 +77,8 @@ public class DocumentUI : MonoBehaviour
     private GameObject _inspectionPivot;
     private GameObject _inspectionLight;
     private GameObject _inspectionLightRim;
+
+    private List<GameObject> _pages = new List<GameObject>();
 
     private bool _isOpen;
     private bool _isAnimating;
@@ -170,14 +170,6 @@ public class DocumentUI : MonoBehaviour
         _isOpen        = true;
         _justOpened    = true;
 
-        // Apply typography.
-        ApplyTypography(data);
-
-        // Prepare first page text but hide it until the 3D fly-in animation finishes.
-        ShowPage(0);
-        if (_textBlock != null)
-            _textBlock.SetActive(false);
-
         // Spawn 3D document and set up camera.
         if (data.documentPrefab != null)
         {
@@ -193,6 +185,9 @@ public class DocumentUI : MonoBehaviour
             _documentPreview.gameObject.SetActive(false);
         }
 
+        // Show first page (3D TMP baked in prefab).
+        ShowPage(0);
+
         // Activate panel and block player input.
         _panel.SetActive(true);
         UIManager.Instance?.OpenPanel(_panel);
@@ -205,11 +200,9 @@ public class DocumentUI : MonoBehaviour
         if (data.openClip != null)
             AudioManager.Instance?.PlaySFX(data.openClip);
 
-        // Start scale-in animation — text appears after the 3D object finishes scaling in.
+        // Start scale-in animation.
         if (data.documentPrefab != null && _inspectionPivot != null)
             StartCoroutine(ScaleInRoutine());
-        else if (_textBlock != null)
-            _textBlock.SetActive(true);
     }
 
     /// <summary>Closes the document panel with a reverse fly-out animation.</summary>
@@ -218,10 +211,6 @@ public class DocumentUI : MonoBehaviour
         if (!_isOpen || _isAnimating) return;
 
         _isOpen = false;
-
-        // Hide text before the 3D document scales out.
-        if (_textBlock != null)
-            _textBlock.SetActive(false);
 
         // Play close sound.
         if (_documentData != null && _documentData.closeClip != null)
@@ -235,37 +224,38 @@ public class DocumentUI : MonoBehaviour
 
     // ── Pages ────────────────────────────────────────────────────────────────
 
-    /// <summary>Shows the page at the given index.</summary>
+    /// <summary>Shows the page at the given index by toggling 3D TMP page objects.</summary>
     private void ShowPage(int index)
     {
-        if (_documentData == null || _documentData.pages == null || _documentData.pages.Count == 0)
+        if (_pages.Count == 0)
         {
-            _contentText.text = string.Empty;
             if (_pageIndicator != null)
                 _pageIndicator.text = string.Empty;
             UpdateNavButtons(0, 0);
             return;
         }
 
-        index = Mathf.Clamp(index, 0, _documentData.pages.Count - 1);
+        index = Mathf.Clamp(index, 0, _pages.Count - 1);
         _currentPage = index;
 
-        _contentText.text = _documentData.pages[index];
+        // Hide all pages, then show the target one.
+        for (int i = 0; i < _pages.Count; i++)
+            _pages[i].SetActive(i == index);
 
         if (_pageIndicator != null)
         {
-            int total = _documentData.pages.Count;
+            int total = _pages.Count;
             _pageIndicator.text = total > 1 ? $"{index + 1} / {total}" : string.Empty;
         }
 
-        UpdateNavButtons(index, _documentData.pages.Count);
+        UpdateNavButtons(index, _pages.Count);
     }
 
     /// <summary>Navigates to the next page if available.</summary>
     private void NextPage()
     {
-        if (_documentData == null || _documentData.pages == null) return;
-        if (_currentPage < _documentData.pages.Count - 1)
+        if (_pages.Count == 0) return;
+        if (_currentPage < _pages.Count - 1)
         {
             ShowPage(_currentPage + 1);
             PlayPageTurnSound();
@@ -298,29 +288,49 @@ public class DocumentUI : MonoBehaviour
             _nextPageButton.interactable = index < total - 1;
     }
 
-    // ── Typography ───────────────────────────────────────────────────────────
+    // ── Page Discovery ───────────────────────────────────────────────────────
 
-    /// <summary>Applies font, size, color, and alignment from DocumentData to TMP components.</summary>
-    private void ApplyTypography(DocumentData data)
+    /// <summary>
+    /// Collects child GameObjects of the Pages container in the spawned prefab clone.
+    /// Each child is one page (e.g. Page_0, Page_1) and may contain multiple
+    /// TextMeshPro (3D) components for title, content, images, etc.
+    /// Pages are sorted by GameObject name.
+    /// </summary>
+    private void FindPages(GameObject clone)
     {
-        if (_titleText != null)
+        _pages.Clear();
+
+        Transform container = null;
+        if (!string.IsNullOrEmpty(_pagesContainerName))
+            container = FindChildRecursive(clone.transform, _pagesContainerName);
+
+        if (container == null)
         {
-            _titleText.text = data.title;
-            if (data.titleFont != null)
-                _titleText.font = data.titleFont;
-            _titleText.fontSize = data.titleFontSize;
-            _titleText.color = data.titleColor;
-            _titleText.alignment = data.titleAlignment;
+            Debug.LogWarning($"[DocumentUI] Pages container '{_pagesContainerName}' not found in prefab '{clone.name}'.", this);
+            return;
         }
 
-        if (_contentText != null)
+        for (int i = 0; i < container.childCount; i++)
+            _pages.Add(container.GetChild(i).gameObject);
+
+        // Sort by name to ensure Page_0, Page_1, Page_2... order.
+        _pages.Sort((a, b) =>
+            string.Compare(a.name, b.name, System.StringComparison.Ordinal));
+    }
+
+    /// <summary>Recursively finds a child Transform by name.</summary>
+    private static Transform FindChildRecursive(Transform parent, string name)
+    {
+        for (int i = 0; i < parent.childCount; i++)
         {
-            if (data.font != null)
-                _contentText.font = data.font;
-            _contentText.fontSize = data.fontSize;
-            _contentText.color = data.fontColor;
-            _contentText.alignment = data.textAlignment;
+            var child = parent.GetChild(i);
+            if (child.name == name)
+                return child;
+            var found = FindChildRecursive(child, name);
+            if (found != null)
+                return found;
         }
+        return null;
     }
 
     // ── 3D Document Spawn ────────────────────────────────────────────────────
@@ -335,6 +345,9 @@ public class DocumentUI : MonoBehaviour
         _inspectionInstance = InstantiatePreview(data.documentPrefab);
         SetLayerRecursively(_inspectionInstance, _inspectionLayer);
         ResetRenderingLayerMask(_inspectionInstance);
+
+        // Find baked 3D TMP pages in the prefab.
+        FindPages(_inspectionInstance);
 
         // Calculate bounds for camera framing.
         var renderers = _inspectionInstance.GetComponentsInChildren<Renderer>();
@@ -445,10 +458,6 @@ public class DocumentUI : MonoBehaviour
 
         _inspectionPivot.transform.localScale = Vector3.one;
         _isAnimating = false;
-
-        // Reveal text after the 3D document has finished scaling in.
-        if (_textBlock != null)
-            _textBlock.SetActive(true);
     }
 
     /// <summary>Animates the 3D document scaling out from full size to 0, then closes.</summary>
@@ -515,6 +524,8 @@ public class DocumentUI : MonoBehaviour
 
         if (_inspectionCamera != null)
             _inspectionCamera.gameObject.SetActive(false);
+
+        _pages.Clear();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
