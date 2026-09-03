@@ -45,6 +45,9 @@ public class DocumentUI : MonoBehaviour
     [Tooltip("Кривая анимации переворота. По умолчанию EaseInOut.")]
     [SerializeField] private AnimationCurve _pageFlipCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
+    [Tooltip("Сдвиг next-страницы по локальной Y относительно current. Базовое значение 0.001.")]
+    [SerializeField] private float _pageStackOffset = 0.001f;
+
     [Header("Scale Animation")]
     [Tooltip("Длительность анимации появления 3D-объекта (секунды).")]
     [SerializeField, Min(0f)] private float _scaleInDuration = 0.5f;
@@ -88,10 +91,12 @@ public class DocumentUI : MonoBehaviour
 
     private List<GameObject> _pages = new List<GameObject>();
     private List<Quaternion> _pageInitialRotations = new List<Quaternion>();
+    private List<Vector3> _pageInitialPositions = new List<Vector3>();
 
     private bool _isOpen;
     private bool _isAnimating;
     private bool _justOpened;
+    private float _singlePageZAngle;
 
     private Vector3 _pivotTargetPosition;
     private Quaternion _pivotTargetRotation;
@@ -179,6 +184,7 @@ public class DocumentUI : MonoBehaviour
         _isOpen        = true;
         _justOpened    = true;
         _isNote        = data.isNote;
+        _singlePageZAngle = 0f;
 
         // Spawn 3D document and set up camera.
         if (data.documentPrefab != null)
@@ -248,7 +254,7 @@ public class DocumentUI : MonoBehaviour
 
     // ── Pages ────────────────────────────────────────────────────────────────
 
-    /// <summary>Shows the page at the given index by toggling 3D page objects.</summary>
+    /// <summary>Shows the page at the given index with previous/current/next pages active.</summary>
     private void ShowPage(int index)
     {
         if (_pages.Count == 0)
@@ -261,11 +267,33 @@ public class DocumentUI : MonoBehaviour
         index = Mathf.Clamp(index, 0, _pages.Count - 1);
         _currentPage = index;
 
-        // Hide all pages, then show the target one with its initial rotation.
+        // Reset all pages: inactive, base rotation and position.
         for (int i = 0; i < _pages.Count; i++)
         {
-            _pages[i].SetActive(i == index);
+            _pages[i].SetActive(false);
             _pages[i].transform.localRotation = _pageInitialRotations[i];
+            _pages[i].transform.localPosition = _pageInitialPositions[i];
+        }
+
+        // Activate previous at 180° (already-read page, flipped back) at base position.
+        if (index - 1 >= 0)
+        {
+            _pages[index - 1].SetActive(true);
+            _pages[index - 1].transform.localRotation = _pageInitialRotations[index - 1] * Quaternion.Euler(0f, 0f, 180f);
+            _pages[index - 1].transform.localPosition = _pageInitialPositions[index - 1];
+        }
+
+        // Activate current at 0° with Y offset (above the stack).
+        _pages[index].SetActive(true);
+        _pages[index].transform.localRotation = _pageInitialRotations[index];
+        _pages[index].transform.localPosition = _pageInitialPositions[index] + new Vector3(0f, _pageStackOffset, 0f);
+
+        // Activate next at 0° at base position.
+        if (index + 1 < _pages.Count)
+        {
+            _pages[index + 1].SetActive(true);
+            _pages[index + 1].transform.localRotation = _pageInitialRotations[index + 1];
+            _pages[index + 1].transform.localPosition = _pageInitialPositions[index + 1];
         }
 
         UpdatePageIndicator(index, _pages.Count);
@@ -359,6 +387,7 @@ public class DocumentUI : MonoBehaviour
             Transform child = container.GetChild(i);
             _pages.Add(child.gameObject);
             _pageInitialRotations.Add(child.localRotation);
+            _pageInitialPositions.Add(child.localPosition);
         }
 
         // Sort by name to ensure Page_0, Page_1, Page_2... order.
@@ -487,45 +516,82 @@ public class DocumentUI : MonoBehaviour
 
     /// <summary>
     /// Animates a page flip between two page indices.
-    /// Phase 1: old page rotates from 0° to 90° (in flip direction).
-    /// At midpoint: old page is hidden, new page is shown at mirrored 90°.
-    /// Phase 2: new page rotates from 90° (opposite direction) to 0°.
+    /// Three pages are active: previous (180°, base), current (0°, Y offset), next (0°, base).
+    /// Forward: current rotates 0 -> 180, old previous deactivated, new next activated.
+    /// Backward: previous rotates 180 -> 0, old next deactivated, new previous activated.
     /// </summary>
     private IEnumerator PageFlipRoutine(int fromIndex, int toIndex, bool forward)
     {
         _isAnimating = true;
 
-        GameObject oldPage = _pages[fromIndex];
-        GameObject newPage = _pages[toIndex];
-        Quaternion oldBase = _pageInitialRotations[fromIndex];
-        Quaternion newBase = _pageInitialRotations[toIndex];
+        GameObject flipPage = forward ? _pages[fromIndex] : _pages[toIndex];
+        Quaternion flipBase = forward ? _pageInitialRotations[fromIndex] : _pageInitialRotations[toIndex];
 
-        float half = _pageFlipDuration * 0.5f;
-        float dir = forward ? -1f : 1f;
+        Quaternion startRot = flipPage.transform.localRotation;
+        Quaternion endRot = flipBase * Quaternion.Euler(0f, 0f, forward ? 180f : 0f);
 
-        // Phase 1: flip old page from 0° to 180°.
+        // Animate the flip.
         float elapsed = 0f;
-        while (elapsed < half)
+        while (elapsed < _pageFlipDuration)
         {
             elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / half);
-            float eased = _pageFlipCurve.Evaluate(t * 0.5f) * 2f;
-            oldPage.transform.localRotation = oldBase * Quaternion.Euler(0f, 0f, 180f * dir * eased);
+            float t = Mathf.Clamp01(elapsed / _pageFlipDuration);
+            float eased = _pageFlipCurve.Evaluate(t);
+            flipPage.transform.localRotation = Quaternion.Slerp(startRot, endRot, eased);
             yield return null;
         }
 
-        // At midpoint: activate new page at initial rotation.
-        newPage.transform.localRotation = newBase;
-        newPage.SetActive(true);
+        flipPage.transform.localRotation = endRot;
 
-        newPage.transform.localRotation = newBase;
+        if (forward)
+        {
+            // Deactivate old previous.
+            if (fromIndex - 1 >= 0)
+                _pages[fromIndex - 1].SetActive(false);
+
+            // Move old current (now previous, flipped to 180) back to base position.
+            _pages[fromIndex].transform.localPosition = _pageInitialPositions[fromIndex];
+
+            // Move new current (was next) to Y offset position.
+            _pages[toIndex].transform.localPosition = _pageInitialPositions[toIndex] + new Vector3(0f, _pageStackOffset, 0f);
+
+            // Activate new next at 0° at base position (if exists).
+            if (toIndex + 1 < _pages.Count)
+            {
+                _pages[toIndex + 1].SetActive(true);
+                _pages[toIndex + 1].transform.localRotation = _pageInitialRotations[toIndex + 1];
+                _pages[toIndex + 1].transform.localPosition = _pageInitialPositions[toIndex + 1];
+            }
+        }
+        else
+        {
+            // Deactivate old next.
+            if (fromIndex + 1 < _pages.Count)
+                _pages[fromIndex + 1].SetActive(false);
+
+            // Move old current (now next) back to base position.
+            _pages[fromIndex].transform.localPosition = _pageInitialPositions[fromIndex];
+
+            // Move new current (was previous, animated 180 -> 0) to Y offset position.
+            _pages[toIndex].transform.localPosition = _pageInitialPositions[toIndex] + new Vector3(0f, _pageStackOffset, 0f);
+
+            // Activate new previous at 180° at base position (if exists).
+            if (toIndex - 1 >= 0)
+            {
+                _pages[toIndex - 1].SetActive(true);
+                _pages[toIndex - 1].transform.localRotation = _pageInitialRotations[toIndex - 1] * Quaternion.Euler(0f, 0f, 180f);
+                _pages[toIndex - 1].transform.localPosition = _pageInitialPositions[toIndex - 1];
+            }
+        }
+
         _isAnimating = false;
     }
 
     /// <summary>
     /// Flips a single page 180° on Z axis and leaves it flipped.
     /// Used when isNote = false and there is only one page.
-    /// Angle is clamped to [-180, 180] degrees.
+    /// Angle is clamped to [0, 180] degrees.
+    /// NextPage flips 0 -> 180, PrevPage flips 180 -> 0.
     /// </summary>
     private IEnumerator SinglePageFlipRoutine(bool forward)
     {
@@ -534,15 +600,10 @@ public class DocumentUI : MonoBehaviour
         GameObject page = _pages[0];
         Quaternion startRot = page.transform.localRotation;
 
-        // Extract current Z euler angle and normalize to [-180, 180].
-        float currentZ = startRot.eulerAngles.z;
-        if (currentZ > 180f) currentZ -= 360f;
+        float targetZ = forward ? 180f : 0f;
 
-        float delta = forward ? -180f : 180f;
-        float targetZ = Mathf.Clamp(currentZ + delta, -180f, 180f);
-
-        // Already at the limit — no animation needed.
-        if (Mathf.Approximately(targetZ, currentZ))
+        // Already at the target — no animation needed.
+        if (Mathf.Approximately(targetZ, _singlePageZAngle))
         {
             _isAnimating = false;
             yield break;
@@ -561,6 +622,7 @@ public class DocumentUI : MonoBehaviour
         }
 
         page.transform.localRotation = endRot;
+        _singlePageZAngle = targetZ;
         _isAnimating = false;
     }
 
@@ -657,6 +719,7 @@ public class DocumentUI : MonoBehaviour
 
         _pages.Clear();
         _pageInitialRotations.Clear();
+        _pageInitialPositions.Clear();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
