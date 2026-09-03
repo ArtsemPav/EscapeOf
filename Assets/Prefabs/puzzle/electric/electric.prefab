@@ -3562,6 +3562,9 @@ MonoBehaviour:
   _showInventoryBar: 1
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights: []
+  _requirePower: 0
+  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
+    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -3804,6 +3807,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: _doorElectric
   _isOpen: 0
   _isLocked: 0
   _openMode: 0
@@ -3829,7 +3833,6 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: _doorElectric
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -4608,7 +4611,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ElectricLever
   _angleOnDelta: -180
   _rotationSpeed: 5
-  _pullClip: {fileID: 0}
+  _pullClip: {fileID: 8300000, guid: 66a26f9a96759bd4a8da278f07d8496c, type: 3}
   _pullVolume: 0.8
   _interactText: "\u0414\u0435\u0440\u043D\u0443\u0442\u044C \u0440\u044B\u0447\u0430\u0433"
 --- !u!1 &5800935262308214002
