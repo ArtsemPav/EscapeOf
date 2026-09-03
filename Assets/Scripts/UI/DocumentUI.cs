@@ -38,6 +38,13 @@ public class DocumentUI : MonoBehaviour
     [Tooltip("Целевая непрозрачность затемнения. 1 = полностью чёрный, 0 = прозрачный.")]
     [SerializeField, Range(0f, 1f)] private float _darkenAlpha = 0.85f;
 
+    [Header("Page Flip")]
+    [Tooltip("Длительность анимации переворота страницы (секунды).")]
+    [SerializeField, Min(0f)] private float _pageFlipDuration = 0.4f;
+
+    [Tooltip("Кривая анимации переворота. По умолчанию EaseInOut.")]
+    [SerializeField] private AnimationCurve _pageFlipCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
     [Header("Scale Animation")]
     [Tooltip("Длительность анимации появления 3D-объекта (секунды).")]
     [SerializeField, Min(0f)] private float _scaleInDuration = 0.5f;
@@ -72,6 +79,7 @@ public class DocumentUI : MonoBehaviour
 
     private DocumentData _documentData;
     private int _currentPage;
+    private bool _isNote;
 
     private GameObject _inspectionInstance;
     private GameObject _inspectionPivot;
@@ -79,6 +87,7 @@ public class DocumentUI : MonoBehaviour
     private GameObject _inspectionLightRim;
 
     private List<GameObject> _pages = new List<GameObject>();
+    private List<Quaternion> _pageInitialRotations = new List<Quaternion>();
 
     private bool _isOpen;
     private bool _isAnimating;
@@ -169,6 +178,7 @@ public class DocumentUI : MonoBehaviour
         _currentPage   = 0;
         _isOpen        = true;
         _justOpened    = true;
+        _isNote        = data.isNote;
 
         // Spawn 3D document and set up camera.
         if (data.documentPrefab != null)
@@ -187,6 +197,20 @@ public class DocumentUI : MonoBehaviour
 
         // Show first page (3D TMP baked in prefab).
         ShowPage(0);
+
+        // Hide navigation UI for single-page notes.
+        if (_isNote)
+        {
+            if (_prevPageButton != null) _prevPageButton.gameObject.SetActive(false);
+            if (_nextPageButton != null) _nextPageButton.gameObject.SetActive(false);
+            if (_pageIndicator != null) _pageIndicator.gameObject.SetActive(false);
+        }
+        else
+        {
+            if (_prevPageButton != null) _prevPageButton.gameObject.SetActive(true);
+            if (_nextPageButton != null) _nextPageButton.gameObject.SetActive(true);
+            if (_pageIndicator != null) _pageIndicator.gameObject.SetActive(true);
+        }
 
         // Activate panel and block player input.
         _panel.SetActive(true);
@@ -224,13 +248,12 @@ public class DocumentUI : MonoBehaviour
 
     // ── Pages ────────────────────────────────────────────────────────────────
 
-    /// <summary>Shows the page at the given index by toggling 3D TMP page objects.</summary>
+    /// <summary>Shows the page at the given index by toggling 3D page objects.</summary>
     private void ShowPage(int index)
     {
         if (_pages.Count == 0)
         {
-            if (_pageIndicator != null)
-                _pageIndicator.text = string.Empty;
+            UpdatePageIndicator(0, 0);
             UpdateNavButtons(0, 0);
             return;
         }
@@ -238,38 +261,58 @@ public class DocumentUI : MonoBehaviour
         index = Mathf.Clamp(index, 0, _pages.Count - 1);
         _currentPage = index;
 
-        // Hide all pages, then show the target one.
+        // Hide all pages, then show the target one with its initial rotation.
         for (int i = 0; i < _pages.Count; i++)
-            _pages[i].SetActive(i == index);
-
-        if (_pageIndicator != null)
         {
-            int total = _pages.Count;
-            _pageIndicator.text = total > 1 ? $"{index + 1} / {total}" : string.Empty;
+            _pages[i].SetActive(i == index);
+            _pages[i].transform.localRotation = _pageInitialRotations[i];
         }
 
+        UpdatePageIndicator(index, _pages.Count);
         UpdateNavButtons(index, _pages.Count);
     }
 
-    /// <summary>Navigates to the next page if available.</summary>
-    private void NextPage()
+    /// <summary>Updates the page indicator text ("1 / N" or empty).</summary>
+    private void UpdatePageIndicator(int index, int total)
     {
-        if (_pages.Count == 0) return;
-        if (_currentPage < _pages.Count - 1)
-        {
-            ShowPage(_currentPage + 1);
-            PlayPageTurnSound();
-        }
+        if (_pageIndicator != null)
+            _pageIndicator.text = total > 1 ? $"{index + 1} / {total}" : string.Empty;
     }
 
-    /// <summary>Navigates to the previous page if available.</summary>
+    /// <summary>Navigates to the next page with a flip animation. Blocked for notes.</summary>
+    private void NextPage()
+    {
+        if (_isNote || _pages.Count == 0 || _isAnimating) return;
+        if (_pages.Count == 1)
+        {
+            PlayPageTurnSound();
+            StartCoroutine(SinglePageFlipRoutine(forward: true));
+            return;
+        }
+        if (_currentPage >= _pages.Count - 1) return;
+        PlayPageTurnSound();
+        StartCoroutine(PageFlipRoutine(_currentPage, _currentPage + 1, forward: true));
+        _currentPage++;
+        UpdatePageIndicator(_currentPage, _pages.Count);
+        UpdateNavButtons(_currentPage, _pages.Count);
+    }
+
+    /// <summary>Navigates to the previous page with a flip animation. Blocked for notes.</summary>
     private void PrevPage()
     {
-        if (_currentPage > 0)
+        if (_isNote || _pages.Count == 0 || _isAnimating) return;
+        if (_pages.Count == 1)
         {
-            ShowPage(_currentPage - 1);
             PlayPageTurnSound();
+            StartCoroutine(SinglePageFlipRoutine(forward: false));
+            return;
         }
+        if (_currentPage <= 0) return;
+        PlayPageTurnSound();
+        StartCoroutine(PageFlipRoutine(_currentPage, _currentPage - 1, forward: false));
+        _currentPage--;
+        UpdatePageIndicator(_currentPage, _pages.Count);
+        UpdateNavButtons(_currentPage, _pages.Count);
     }
 
     /// <summary>Plays the page turn sound from the current DocumentData if assigned.</summary>
@@ -282,10 +325,11 @@ public class DocumentUI : MonoBehaviour
     /// <summary>Updates navigation button interactable state.</summary>
     private void UpdateNavButtons(int index, int total)
     {
+        if (_isNote) return;
         if (_prevPageButton != null)
-            _prevPageButton.interactable = index > 0;
+            _prevPageButton.interactable = total <= 1 || index > 0;
         if (_nextPageButton != null)
-            _nextPageButton.interactable = index < total - 1;
+            _nextPageButton.interactable = total <= 1 || index < total - 1;
     }
 
     // ── Page Discovery ───────────────────────────────────────────────────────
@@ -311,7 +355,11 @@ public class DocumentUI : MonoBehaviour
         }
 
         for (int i = 0; i < container.childCount; i++)
-            _pages.Add(container.GetChild(i).gameObject);
+        {
+            Transform child = container.GetChild(i);
+            _pages.Add(child.gameObject);
+            _pageInitialRotations.Add(child.localRotation);
+        }
 
         // Sort by name to ensure Page_0, Page_1, Page_2... order.
         _pages.Sort((a, b) =>
@@ -435,7 +483,88 @@ public class DocumentUI : MonoBehaviour
                 DestroyImmediate(behaviour);
     }
 
-    // ── Animation ────────────────────────────────────────────────────────────
+    // ── Page Flip Animation ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Animates a page flip between two page indices.
+    /// Phase 1: old page rotates from 0° to 90° (in flip direction).
+    /// At midpoint: old page is hidden, new page is shown at mirrored 90°.
+    /// Phase 2: new page rotates from 90° (opposite direction) to 0°.
+    /// </summary>
+    private IEnumerator PageFlipRoutine(int fromIndex, int toIndex, bool forward)
+    {
+        _isAnimating = true;
+
+        GameObject oldPage = _pages[fromIndex];
+        GameObject newPage = _pages[toIndex];
+        Quaternion oldBase = _pageInitialRotations[fromIndex];
+        Quaternion newBase = _pageInitialRotations[toIndex];
+
+        float half = _pageFlipDuration * 0.5f;
+        float dir = forward ? -1f : 1f;
+
+        // Phase 1: flip old page from 0° to 180°.
+        float elapsed = 0f;
+        while (elapsed < half)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / half);
+            float eased = _pageFlipCurve.Evaluate(t * 0.5f) * 2f;
+            oldPage.transform.localRotation = oldBase * Quaternion.Euler(0f, 0f, 180f * dir * eased);
+            yield return null;
+        }
+
+        // At midpoint: activate new page at initial rotation.
+        newPage.transform.localRotation = newBase;
+        newPage.SetActive(true);
+
+        newPage.transform.localRotation = newBase;
+        _isAnimating = false;
+    }
+
+    /// <summary>
+    /// Flips a single page 180° on Z axis and leaves it flipped.
+    /// Used when isNote = false and there is only one page.
+    /// Angle is clamped to [-180, 180] degrees.
+    /// </summary>
+    private IEnumerator SinglePageFlipRoutine(bool forward)
+    {
+        _isAnimating = true;
+
+        GameObject page = _pages[0];
+        Quaternion startRot = page.transform.localRotation;
+
+        // Extract current Z euler angle and normalize to [-180, 180].
+        float currentZ = startRot.eulerAngles.z;
+        if (currentZ > 180f) currentZ -= 360f;
+
+        float delta = forward ? -180f : 180f;
+        float targetZ = Mathf.Clamp(currentZ + delta, -180f, 180f);
+
+        // Already at the limit — no animation needed.
+        if (Mathf.Approximately(targetZ, currentZ))
+        {
+            _isAnimating = false;
+            yield break;
+        }
+
+        Quaternion endRot = Quaternion.Euler(0f, 0f, targetZ);
+
+        float elapsed = 0f;
+        while (elapsed < _pageFlipDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / _pageFlipDuration);
+            float eased = _pageFlipCurve.Evaluate(t);
+            page.transform.localRotation = Quaternion.Slerp(startRot, endRot, eased);
+            yield return null;
+        }
+
+        page.transform.localRotation = endRot;
+        _isAnimating = false;
+    }
+
+    // ── Scale Animation ──────────────────────────────────────────────────────
 
     /// <summary>Animates the 3D document scaling in from 0 to full size.</summary>
     private IEnumerator ScaleInRoutine()
@@ -498,6 +627,7 @@ public class DocumentUI : MonoBehaviour
 
         _documentData = null;
         _currentPage  = 0;
+        _isNote       = false;
     }
 
     /// <summary>Destroys all spawned 3D inspection objects and deactivates the camera.</summary>
@@ -526,6 +656,7 @@ public class DocumentUI : MonoBehaviour
             _inspectionCamera.gameObject.SetActive(false);
 
         _pages.Clear();
+        _pageInitialRotations.Clear();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

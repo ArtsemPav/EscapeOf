@@ -8,6 +8,10 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewDocument", menuName = "Escape/Document Data")]
 public class DocumentData : ScriptableObject
 {
+    [Header("Identity")]
+    [Tooltip("Если включено — это короткая записка: только 1 страница, без стрелок навигации и анимации переворота.")]
+    public bool isNote;
+
     [Header("Visual")]
     [Tooltip("3D-префаб документа (книга, журнал, записка). Текст запечён внутри как дочерние TextMeshPro (3D) объекты.")]
     public GameObject documentPrefab;
