@@ -62,7 +62,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
       propertyPath: m_Name
-      value: Water
+      value: PickableWaterCoin
       objectReference: {fileID: 0}
     - target: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
       propertyPath: m_Layer
@@ -95,5 +95,55 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3229168030165949571}
+    - targetCorrespondingSourceObject: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7247927438992942457}
   m_SourcePrefab: {fileID: 100100000, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+--- !u!1 &5446817791503052988 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 907040876804932055, guid: dca458a5eb19ef243bac2fc0fea036e9, type: 3}
+  m_PrefabInstance: {fileID: 5116246627650548075}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &3229168030165949571
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5446817791503052988}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.14, y: 0.021, z: 0.12}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7247927438992942457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5446817791503052988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: 30282ec3c8cb39e4aabade5012b5bf56, type: 2}
+  _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _saveId: pickable_medallion_water

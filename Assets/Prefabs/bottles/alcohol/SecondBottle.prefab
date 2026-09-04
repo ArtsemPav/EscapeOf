@@ -161,6 +161,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: c84d863ad2aab804eb7da303b336e9d4, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
   inspectOnly: 1
   inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: 
@@ -267,7 +269,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61a49757b600b9147a1a2b03b20d8242, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChemicalPuzzle.LiquidWobble
+  _shader: {fileID: 4800000, guid: a50fcd8c272c9cf44917594179cb3885, type: 3}
   fillFraction: 0.5
+  _overrideVisualProps: 1
   correctionSpeed: 15
   maxWobble: 0.5
   wobbleSpeed: 1
@@ -277,10 +281,21 @@ MonoBehaviour:
   _emissionColor: {r: 0, g: 0, b: 0, a: 1}
   _emissionPower: 0
   _autoEmissionMultiplier: 0
+  _turbidity: 0.6
+  _noiseScale: 5
+  _noiseSpeed: 0.5
   _opacity: 0.82
   _refractionStrength: 0.03
   _chromaticAberration: 0.004
+  _distortionStrength: 0.08
+  _distortionSpeed: 1
+  _lensStrength: 0.15
+  _lensPower: 1
   _depthDarken: 0.5
+  _blurStrength: 0.03
+  _capOpacity: 0.85
+  _capDistortion: 1
+  _minLightFloor: 0.15
 --- !u!1 &8866870060644381560
 GameObject:
   m_ObjectHideFlags: 0

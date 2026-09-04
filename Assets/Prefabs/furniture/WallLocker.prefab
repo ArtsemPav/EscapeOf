@@ -125,20 +125,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: 
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: 
-  _lockedJiggleFraction: 0.05
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 4490333627378784121}
   _rotationAxis: 2
   _maxOpenAngle: -150
-  _dragSensitivity: 1
-  _friction: 5
-  _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _dragSensitivity: 1.5
+  _friction: 8
+  _maxVelocity: 0.8
   _flingThreshold: 0.5
   _flingSpeed: 2
   _openLoopClip: {fileID: 0}
@@ -149,7 +150,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: 
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &4896909297756595123
 GameObject:
   m_ObjectHideFlags: 0

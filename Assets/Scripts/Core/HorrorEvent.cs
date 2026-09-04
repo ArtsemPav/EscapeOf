@@ -25,6 +25,8 @@ using UnityEngine.Events;
 //   OnManual            — только ручной вызов: HorrorSystem.Instance.Trigger("id").
 //   OnPlayerEnterZone   — игрок входит в trigger-коллайдер на этом GameObject
 //                         (нужен BoxCollider с Is Trigger = true).
+//                         Если назначен Puzzle To Watch — зона игнорируется
+//                         пока эта загадка не решена (prerequisite).
 //   OnPuzzleSolved      — привязка к загадке. Укажи Puzzle To Watch (объект с
 //                         PuzzleModeController). Событие сработает когда загадка
 //                         решена. Если загадка уже решена (из сейва) — сработает
@@ -87,7 +89,8 @@ public enum HorrorTriggerType
     OnItemPickup,        // Player picks up a specific ItemData
     OnRoomEnter,         // Player enters a specific room (GameManager.OnRoomChanged index)
     OnManual,            // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
-    OnPlayerEnterZone,   // Player enters the trigger collider on this GameObject
+    OnPlayerEnterZone,   // Player enters the trigger collider on this GameObject.
+                         // If Puzzle To Watch is assigned, the zone is ignored until that puzzle is solved.
     OnPuzzleSolved,      // A referenced PuzzleModeController is solved
     OnPowerStateChanged, // LightingSystem master power matches desired state
     OnZoneSwitchChanged  // A specific light zone switch matches desired state
@@ -209,6 +212,9 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     // True when loaded state requires showing the target after Start() hides it
     private bool _pendingActivation;
 
+    // For OnPlayerEnterZone with Puzzle To Watch: false until the prerequisite puzzle is solved
+    private bool _prerequisiteMet = true;
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     /// <summary>Uses _eventId as the stable save key. Must be unique across all HorrorEvents.</summary>
@@ -285,6 +291,16 @@ public class HorrorEvent : MonoBehaviour, ISaveable
 
         switch (_triggerType)
         {
+            case HorrorTriggerType.OnPlayerEnterZone:
+                // If a prerequisite puzzle is assigned, arm the zone only after it's solved.
+                if (_puzzleToWatch != null)
+                {
+                    _prerequisiteMet = _puzzleToWatch.IsSolved;
+                    if (!_prerequisiteMet)
+                        _puzzleToWatch.OnSolved += OnPrerequisiteSolvedHandler;
+                }
+                break;
+
             case HorrorTriggerType.OnPuzzleSolved:
                 if (_puzzleToWatch == null)
                 {
@@ -332,7 +348,10 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     private void UnsubscribeFromTriggerSource()
     {
         if (_puzzleToWatch != null)
+        {
             _puzzleToWatch.OnSolved -= OnPuzzleSolvedHandler;
+            _puzzleToWatch.OnSolved -= OnPrerequisiteSolvedHandler;
+        }
 
         if (LightingSystem.Instance != null)
         {
@@ -342,6 +361,12 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     }
 
     // ── Trigger handlers ──────────────────────────────────────────────────────
+
+    /// <summary>Called when the prerequisite puzzle is solved (OnPlayerEnterZone + Puzzle To Watch).</summary>
+    private void OnPrerequisiteSolvedHandler()
+    {
+        _prerequisiteMet = true;
+    }
 
     private void OnPuzzleSolvedHandler()
     {
@@ -365,6 +390,7 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     private void OnTriggerEnter(Collider other)
     {
         if (_triggerType != HorrorTriggerType.OnPlayerEnterZone) return;
+        if (!_prerequisiteMet) return;
         if (!other.CompareTag(_playerTag)) return;
         Activate();
     }

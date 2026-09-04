@@ -1,17 +1,30 @@
 using UnityEngine;
 
 /// <summary>
+/// Animation states available in character.controller (Animator int parameter "State").
+/// </summary>
+public enum CharacterAnimationState
+{
+    LowCrawl    = 0, // Crawling on the ground
+    ActionPose  = 1, // Action pose A
+    ActionPose2 = 2, // Action pose B
+    Sitting     = 3, // Sitting pose
+    Run         = 4  // Running
+}
+
+/// <summary>
 /// Moves the character from its current position toward a destination
-/// using the Run animation state (Animator int parameter "State" = 4).
+/// playing the selected animation state.
+/// The Animator is kept disabled until StartRun() is called, so AnyState
+/// transitions in the controller cannot fire prematurely.
 /// Wire StartRun() to HorrorEvent._onActivated.
 /// </summary>
 [RequireComponent(typeof(Animator))]
 public class CharacterRunPast : MonoBehaviour
 {
     private const string StateParam = "State";
-    private const int    RunState   = 4;
 
-    [Tooltip("Transform the character runs toward. Place it past the door.")]
+    [Tooltip("Transform the character moves toward. Place it past the door.")]
     [SerializeField] private Transform _destination;
 
     [Tooltip("Movement speed in units per second.")]
@@ -20,12 +33,23 @@ public class CharacterRunPast : MonoBehaviour
     [Tooltip("Rotation lerp speed toward the destination.")]
     [SerializeField] private float _turnSpeed = 10f;
 
+    [Tooltip("Animation state to play when the character activates.")]
+    [SerializeField] private CharacterAnimationState _animationState = CharacterAnimationState.Run;
+
     private Animator _animator;
-    private bool     _running;
+    private bool     _moving;
 
-    private void Awake() => _animator = GetComponent<Animator>();
+    private void Awake()
+    {
+        _animator = GetComponent<Animator>();
+        // Set the parameter BEFORE disabling so it's ready when enabled later.
+        _animator.SetInteger(StateParam, (int)_animationState);
+        // Keep Animator off so AnyState transitions don't fire with the
+        // default parameter value before StartRun() is called.
+        _animator.enabled = false;
+    }
 
-    /// <summary>Starts the character running toward the destination. Wire to HorrorEvent._onActivated.</summary>
+    /// <summary>Activates the character, plays the selected animation, and starts moving toward the destination.</summary>
     public void StartRun()
     {
         if (_destination == null)
@@ -33,13 +57,17 @@ public class CharacterRunPast : MonoBehaviour
             Debug.LogWarning("[CharacterRunPast] No destination assigned.", this);
             return;
         }
-        _animator.SetInteger(StateParam, RunState);
-        _running = true;
+
+        // Parameter is already set in Awake. Enable Animator and force the state.
+        _animator.enabled = true;
+        _animator.Play(_animationState.ToString(), 0, 0f);
+
+        _moving = true;
     }
 
     private void Update()
     {
-        if (!_running || _destination == null) return;
+        if (!_moving || _destination == null) return;
 
         // Ignore Y so the character doesn't float or sink
         Vector3 flatTarget = new Vector3(_destination.position.x, transform.position.y, _destination.position.z);
@@ -47,7 +75,7 @@ public class CharacterRunPast : MonoBehaviour
 
         if (dir.sqrMagnitude < 0.01f)
         {
-            _running = false;
+            _moving = false;
             return;
         }
 

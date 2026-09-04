@@ -129,7 +129,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61a49757b600b9147a1a2b03b20d8242, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChemicalPuzzle.LiquidWobble
+  _shader: {fileID: 4800000, guid: a50fcd8c272c9cf44917594179cb3885, type: 3}
   fillFraction: 0.407
+  _overrideVisualProps: 1
   correctionSpeed: 15
   maxWobble: 0.03
   wobbleSpeed: 4
@@ -139,10 +141,21 @@ MonoBehaviour:
   _emissionColor: {r: 0, g: 0, b: 0, a: 1}
   _emissionPower: 0
   _autoEmissionMultiplier: 0
+  _turbidity: 0.6
+  _noiseScale: 5
+  _noiseSpeed: 0.5
   _opacity: 0.82
   _refractionStrength: 0.03
   _chromaticAberration: 0.004
+  _distortionStrength: 0.08
+  _distortionSpeed: 1
+  _lensStrength: 0.15
+  _lensPower: 1
   _depthDarken: 0.5
+  _blurStrength: 0.03
+  _capOpacity: 0.85
+  _capDistortion: 1
+  _minLightFloor: 0.15
 --- !u!4 &7429794628837469760 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 42c542ae868e20d499c792138a5e62f8, type: 3}

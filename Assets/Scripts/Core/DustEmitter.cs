@@ -27,10 +27,17 @@ public class DustEmitter : MonoBehaviour
     public float _sizeMax = 0.12f;
 
     [Header("Speed")]
-    [Tooltip("Minimum initial particle speed.")]
-    public float _speedMin = 0.01f;
-    [Tooltip("Maximum initial particle speed.")]
-    public float _speedMax = 0.05f;
+    [Tooltip("Minimum initial particle speed (fast launch).")]
+    public float _speedMin = 1.5f;
+    [Tooltip("Maximum initial particle speed (fast launch).")]
+    public float _speedMax = 3f;
+
+    [Header("Deceleration")]
+    [Tooltip("Drag applied each frame to slow particles down (0 = no drag, 1 = instant stop).")]
+    [Range(0f, 1f)]
+    public float _drag = 0.15f;
+    [Tooltip("Speed limit that particles decelerate toward. Set to 0 for a full stop.")]
+    public float _stopSpeed = 0f;
 
     [Header("Spawn Volume")]
     [Tooltip("Half-extents of the box volume in which particles spawn.")]
@@ -86,13 +93,21 @@ public class DustEmitter : MonoBehaviour
         shape.shapeType = ParticleSystemShapeType.Box;
         shape.scale = _boxSize;
 
-        // --- Velocity over lifetime: subtle upward drift ---
+        // --- Velocity over lifetime: subtle upward drift (kept minimal so drag can bring particles to a stop) ---
         var vel = _ps.velocityOverLifetime;
         vel.enabled = true;
         vel.space = ParticleSystemSimulationSpace.World;
-        vel.x = new ParticleSystem.MinMaxCurve(-0.02f, 0.02f);
-        vel.y = new ParticleSystem.MinMaxCurve(0.005f, 0.03f);
-        vel.z = new ParticleSystem.MinMaxCurve(-0.02f, 0.02f);
+        vel.x = new ParticleSystem.MinMaxCurve(-0.005f, 0.005f);
+        vel.y = new ParticleSystem.MinMaxCurve(0.002f, 0.01f);
+        vel.z = new ParticleSystem.MinMaxCurve(-0.005f, 0.005f);
+
+        // --- Limit velocity over lifetime: drag-based deceleration from launch speed to stop ---
+        var limitVel = _ps.limitVelocityOverLifetime;
+        limitVel.enabled = true;
+        limitVel.space = ParticleSystemSimulationSpace.World;
+        limitVel.limit = _stopSpeed;
+        limitVel.dampen = _drag;
+        limitVel.separateAxes = false;
 
         // --- Color over lifetime: fade in and out ---
         var colorOverLifetime = _ps.colorOverLifetime;

@@ -234,12 +234,17 @@ public class MedallionHole : MonoBehaviour
         _ghostFadeRoutine = StartCoroutine(GhostFadeRoutine(0f, _ghostAlpha, _ghostFadeDuration));
     }
 
-    /// <summary>Removes the ghost preview with a fade-out, then destroys it.</summary>
+    /// <summary>Immediately removes and destroys the ghost preview.</summary>
     public void HideGhost()
     {
-        if (_ghostCoin == null) return;
-        if (_ghostFadeRoutine != null) StopCoroutine(_ghostFadeRoutine);
-        _ghostFadeRoutine = StartCoroutine(GhostFadeOutRoutine());
+        if (_ghostFadeRoutine != null)
+        {
+            StopCoroutine(_ghostFadeRoutine);
+            _ghostFadeRoutine = null;
+        }
+        if (_ghostCoin != null) Destroy(_ghostCoin);
+        _ghostCoin = null;
+        _ghostRenderer = null;
     }
 
     private IEnumerator GhostFadeRoutine(float from, float to, float duration)
@@ -252,21 +257,6 @@ public class MedallionHole : MonoBehaviour
             yield return null;
         }
         SetGhostAlpha(to);
-        _ghostFadeRoutine = null;
-    }
-
-    private IEnumerator GhostFadeOutRoutine()
-    {
-        float elapsed = 0f;
-        while (elapsed < _ghostFadeDuration)
-        {
-            elapsed += Time.deltaTime;
-            SetGhostAlpha(Mathf.Lerp(_ghostAlpha, 0f, Mathf.Clamp01(elapsed / _ghostFadeDuration)));
-            yield return null;
-        }
-        if (_ghostCoin != null) Destroy(_ghostCoin);
-        _ghostCoin = null;
-        _ghostRenderer = null;
         _ghostFadeRoutine = null;
     }
 
@@ -413,13 +403,48 @@ public class MedallionHole : MonoBehaviour
     }
 
     /// <summary>
-    /// Applies <see cref="_coinRenderingLayerMask"/> to every Renderer on the spawned coin
-    /// so it receives light from the puzzle's URP light groups.
+    /// Applies the rendering-layer mask to every Renderer on the spawned coin so it
+    /// receives light from the same URP light groups as the surrounding geometry.
+    /// Auto-detects the mask from a nearby Renderer in the parent hierarchy (the box
+    /// mesh) so coins always match the room's lighting — falls back to
+    /// <see cref="_coinRenderingLayerMask"/> when no reference renderer is found.
     /// </summary>
     private void ApplyRenderingLayers(GameObject coin)
     {
+        uint mask = ResolveRenderingLayerMask();
         foreach (var rend in coin.GetComponentsInChildren<Renderer>(true))
-            rend.renderingLayerMask = _coinRenderingLayerMask;
+            rend.renderingLayerMask = mask;
+    }
+
+    /// <summary>
+    /// Returns the rendering-layer mask to use for spawned coins. Walks up the
+    /// hierarchy to find the enclosing <see cref="RoomController"/>, then ORs the
+    /// rendering-layer masks of every <see cref="Light"/> in that room together
+    /// with the serialized <see cref="_coinRenderingLayerMask"/> (which carries
+    /// the flashlight bit). This ensures coins are lit by the same light groups
+    /// as the room, regardless of which rendering layers the room uses.
+    /// </summary>
+    private uint ResolveRenderingLayerMask()
+    {
+        // Start with the inspector mask so the flashlight bit is always included.
+        uint mask = _coinRenderingLayerMask;
+
+        // Walk up to find the room that contains this hole.
+        var roomController = GetComponentInParent<RoomController>();
+        if (roomController != null)
+        {
+            var lights = roomController.GetComponentsInChildren<Light>(true);
+            foreach (var light in lights)
+            {
+                if (light == null) continue;
+                mask |= (uint)light.renderingLayerMask;
+            }
+        }
+
+        // Always include Default so the coin is visible in default lighting.
+        mask |= 1u;
+
+        return mask;
     }
 
     /// <summary>

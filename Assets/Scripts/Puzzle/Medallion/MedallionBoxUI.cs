@@ -39,10 +39,47 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
     // Hover state — tracks which filled hole the cursor is currently over
     private MedallionHole _hoveredHole;
 
+    // Ghost preview — tracks which empty hole currently shows a 3D ghost coin
+    private MedallionHole _ghostHole;
+
     // When true, medallions can no longer be retrieved from the holes.
     private bool _solved;
 
+    // Runtime mask built from the actual layers of _holes, OR-ed with the
+    // inspector _holeLayer. This prevents the raycast from silently failing
+    // when hole GameObjects are on a different layer than the inspector mask.
+    private LayerMask _effectiveHoleLayer;
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    private void Awake()
+    {
+        RebuildHoleLayerMask();
+    }
+
+    private void OnEnable()
+    {
+        // Rebuild in case hole layers were changed between activations.
+        RebuildHoleLayerMask();
+    }
+
+    /// <summary>
+    /// Computes _effectiveHoleLayer from the real layers of every assigned hole,
+    /// merged with the inspector _holeLayer so manual overrides are preserved.
+    /// </summary>
+    private void RebuildHoleLayerMask()
+    {
+        int mask = _holeLayer.value;
+        if (_holes != null)
+        {
+            foreach (var hole in _holes)
+            {
+                if (hole != null)
+                    mask |= (1 << hole.gameObject.layer);
+            }
+        }
+        _effectiveHoleLayer = mask;
+    }
 
     private void Update()
     {
@@ -51,17 +88,25 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         var mousePos = Mouse.current.position.ReadValue();
         bool overUI  = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
 
-        // Hover highlight — runs every frame
-        UpdateHoverHighlight(overUI ? null : mousePos);
+        // Ghost preview while dragging a medallion from the inventory bar.
+        if (PuzzleInventoryBar.IsDragging && !overUI)
+            UpdateGhostPreview(mousePos);
+        else
+            ClearGhost();
+
+        // Hover highlight (only when not dragging — ghost takes priority).
+        if (!PuzzleInventoryBar.IsDragging)
+            UpdateHoverHighlight(overUI ? null : mousePos);
 
         // Click on a filled hole → retrieve medallion back to inventory
-        if (Mouse.current.leftButton.wasPressedThisFrame && !overUI)
+        if (Mouse.current.leftButton.wasPressedThisFrame && !overUI && !PuzzleInventoryBar.IsDragging)
             TryRetrieveFromHole(mousePos);
     }
 
     private void OnDisable()
     {
         ClearHover();
+        ClearGhost();
     }
 
     // ── Public API ────────────────────────────────────────────────────────────
@@ -83,6 +128,7 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
     {
         _solved = true;
         ClearHover();
+        ClearGhost();
     }
 
     /// <summary>Returns the item currently placed in each hole (null if empty). Used by the save system.</summary>
@@ -125,6 +171,8 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
     public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
         replacement = null;
+        ClearGhost();
+
         if (item == null || Camera.main == null) return false;
 
         // Only medallions belonging to this puzzle are accepted
@@ -132,7 +180,7 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
             return false;
 
         var ray = Camera.main.ScreenPointToRay(screenPosition);
-        if (!Physics.Raycast(ray, out var hit, 50f, _holeLayer, QueryTriggerInteraction.Collide))
+        if (!Physics.Raycast(ray, out var hit, 50f, _effectiveHoleLayer, QueryTriggerInteraction.Collide))
             return false;
 
         var hole = hit.collider.GetComponent<MedallionHole>();
@@ -141,6 +189,57 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         hole.Fill(item, _coinPrefab, _dropHeight, _dropDuration);
         CheckVictory();
         return true;
+    }
+
+    // ── Ghost Preview ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Raycasts from the cursor position to find an empty hole. If found and the
+    /// dragged item is a valid medallion, shows a 3D ghost preview on that hole.
+    /// Tracks which hole the ghost is on and only updates when it changes.
+    /// </summary>
+    private void UpdateGhostPreview(Vector2 mousePos)
+    {
+        if (Camera.main == null) return;
+
+        var draggedItem = PuzzleInventoryBar.DraggedItem;
+        if (draggedItem == null || _medallionOrder == null ||
+            System.Array.IndexOf(_medallionOrder, draggedItem) < 0)
+        {
+            ClearGhost();
+            return;
+        }
+
+        var ray = Camera.main.ScreenPointToRay(mousePos);
+        if (!Physics.Raycast(ray, out var hit, 50f, _effectiveHoleLayer, QueryTriggerInteraction.Collide))
+        {
+            ClearGhost();
+            return;
+        }
+
+        var hole = hit.collider.GetComponent<MedallionHole>();
+        if (hole == null || hole.IsFilled)
+        {
+            ClearGhost();
+            return;
+        }
+
+        // Already showing ghost on this hole — nothing to do.
+        if (hole == _ghostHole) return;
+
+        ClearGhost();
+        hole.ShowGhost(draggedItem, _coinPrefab);
+        _ghostHole = hole;
+    }
+
+    /// <summary>Removes the ghost preview from the current hole.</summary>
+    private void ClearGhost()
+    {
+        if (_ghostHole != null)
+        {
+            _ghostHole.HideGhost();
+            _ghostHole = null;
+        }
     }
 
     // ── Hover highlight ────────────────────────────────────────────────────────
@@ -157,7 +256,7 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         if (screenPos.HasValue && Camera.main != null)
         {
             var ray = Camera.main.ScreenPointToRay(screenPos.Value);
-            if (Physics.Raycast(ray, out var hitInfo, 50f, _holeLayer, QueryTriggerInteraction.Collide))
+            if (Physics.Raycast(ray, out var hitInfo, 50f, _effectiveHoleLayer, QueryTriggerInteraction.Collide))
             {
                 var hole = hitInfo.collider.GetComponent<MedallionHole>();
                 if (hole != null && hole.IsFilled)
@@ -186,7 +285,7 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         if (Camera.main == null) return;
 
         var ray = Camera.main.ScreenPointToRay(screenPos);
-        if (!Physics.Raycast(ray, out var hit, 50f, _holeLayer, QueryTriggerInteraction.Collide))
+        if (!Physics.Raycast(ray, out var hit, 50f, _effectiveHoleLayer, QueryTriggerInteraction.Collide))
             return;
 
         var hole = hit.collider.GetComponent<MedallionHole>();
