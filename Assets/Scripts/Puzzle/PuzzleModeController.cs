@@ -189,6 +189,14 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         SetSupportLightsEnabled(false);
 
         SaveManager.Instance?.Register(this);
+
+        // If the puzzle was already solved on load, disable the interactable
+        // collider so it doesn't block raycasts to items revealed by the open
+        // animation (e.g. contents of the Chinese box).
+        if (_isSolved)
+        {
+            SetPuzzleInteractableColliderEnabled(false);
+        }
     }
 
     private void Start()
@@ -294,8 +302,10 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         // Disable child interactables when exiting puzzle mode.
         SetChildInteractablesEnabled(false);
 
-        // Re-enable main puzzle interactable collider.
-        SetPuzzleInteractableColliderEnabled(true);
+        // Re-enable main puzzle interactable collider — unless the puzzle is
+        // solved, in which case it must stay off so it doesn't block raycasts
+        // to items revealed by the open animation.
+        SetPuzzleInteractableColliderEnabled(!_isSolved);
 
         if (_puzzleCamera != null)
         {

@@ -30,6 +30,12 @@ public class RoomPuzzleGate : MonoBehaviour, ISaveable
     [Tooltip("Комната скрыта при старте, пока загадка не решена.")]
     [SerializeField] private bool _startLocked = true;
 
+    [Header("Occlusion")]
+    [Tooltip("Портал окклюжн-кулинга на дверном проёме. " +
+             "Открывается при разблокировке комнаты, чтобы рендерер видел " +
+             "геометрию за стеной. Если не задан — ищется автоматически в дочерних объектах.")]
+    [SerializeField] private OcclusionPortal _occlusionPortal;
+
     [Header("Save")]
     [Tooltip("Уникальный идентификатор сохранения. Never change after assigning.")]
     [SerializeField] private string _saveId = "room_gate_coridor_fdoor";
@@ -56,6 +62,10 @@ public class RoomPuzzleGate : MonoBehaviour, ISaveable
                 colliderList.Add(col);
         }
         _gateTriggerColliders = colliderList.ToArray();
+
+        // Автоматически находим портал, если не задан вручную.
+        if (_occlusionPortal == null)
+            _occlusionPortal = GetComponentInChildren<OcclusionPortal>(includeInactive: true);
 
         SaveManager.Instance?.Register(this);
     }
@@ -93,6 +103,8 @@ public class RoomPuzzleGate : MonoBehaviour, ISaveable
         {
             _roomController.SetGeometryActive(false);
             _roomController.Lock();
+            // Возвращаем окклюжн-кулинг — комната скрыта за стеной.
+            _roomController.SetOcclusionCulling(true);
         }
 
         // Отключаем триггеры, чтобы RoomVisibilityManager не показал комнату.
@@ -101,6 +113,10 @@ public class RoomPuzzleGate : MonoBehaviour, ISaveable
         // Показываем заглушку.
         if (_placeholder != null)
             _placeholder.SetActive(true);
+
+        // Закрываем окклюжн-портал — рендерер не должен видеть комнату за стеной.
+        if (_occlusionPortal != null)
+            _occlusionPortal.open = false;
     }
 
     private void ApplyUnlockedState()
@@ -112,11 +128,21 @@ public class RoomPuzzleGate : MonoBehaviour, ISaveable
         // Включаем триггеры — RoomVisibilityManager снова управляет видимостью.
         SetTriggersEnabled(true);
 
-        // Включаем интерактивные объекты.
+        // Включаем интерактивные объекты и геометрию.
         if (_roomController != null)
         {
             _roomController.Unlock();
+            // Немедленно включаем рендереры, чтобы комната была видна сразу
+            // после разблокировки, не дожидаясь следующего переключения триггера.
+            _roomController.SetGeometryActive(true);
+            // Отключаем окклюжн-кулинг для рендереров комнаты — baked occlusion
+            // данных не знают, что стена убрана, и будут отсекать геометрию.
+            _roomController.SetOcclusionCulling(false);
         }
+
+        // Открываем окклюжн-портал — рендерер видит геометрию комнаты через дверной проём.
+        if (_occlusionPortal != null)
+            _occlusionPortal.open = true;
     }
 
     private void SetTriggersEnabled(bool enabled)

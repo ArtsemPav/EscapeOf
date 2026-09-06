@@ -137,6 +137,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8964021924778095919}
   - component: {fileID: 4142985427427638619}
+  - component: {fileID: 2591943710886240227}
   m_Layer: 0
   m_Name: CoridorFDoor
   m_TagString: Untagged
@@ -197,6 +198,35 @@ MonoBehaviour:
     VisibleRooms:
     - {fileID: 0}
     - {fileID: 0}
+    - {fileID: 4142985427427638619}
+--- !u!114 &2591943710886240227
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1945629370020171122}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03f4d66714d5c834881ecb192e6e8cb3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameEventListener
+  _event: {fileID: 11400000, guid: 64444ccc85cb63d4aad05f53cbf301bd, type: 2}
+  _response:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: Unlock
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 1
 --- !u!1 &2039912091331992105
 GameObject:
   m_ObjectHideFlags: 0
@@ -5269,6 +5299,8 @@ MonoBehaviour:
   _sizeMax: 0.05
   _speedMin: 0.002
   _speedMax: 0.01
+  _drag: 0.15
+  _stopSpeed: 0
   _boxSize: {x: 8.199997, y: 6.0469165, z: 8.715219}
   _dustColor: {r: 0.95, g: 0.9, b: 0.8, a: 0.8}
   _noiseStrength: 0.04

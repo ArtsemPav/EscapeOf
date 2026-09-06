@@ -151,6 +151,22 @@ public class RoomController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Controls whether the room's renderers participate in occlusion culling.
+    /// Set to false when the room is behind a removed wall (puzzle gate) so baked
+    /// occlusion data does not cull geometry that should be visible through the doorway.
+    /// </summary>
+    public void SetOcclusionCulling(bool enabled)
+    {
+        if (_managedRenderers == null) return;
+
+        foreach (var renderer in _managedRenderers)
+        {
+            if (renderer != null)
+                renderer.allowOcclusionWhenDynamic = enabled;
+        }
+    }
+
     /// <summary>Enables interaction with all IInteractable objects in this room.</summary>
     public void Unlock()
     {

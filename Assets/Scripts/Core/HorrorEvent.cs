@@ -524,7 +524,9 @@ public class HorrorEvent : MonoBehaviour, ISaveable
 
     /// <summary>
     /// Скрывает Target и вызывает On Deactivated.
-    /// Вызывается автоматически (по взгляду / по таймеру) или вручную.
+    /// Звук на Sound Object НЕ останавливается — клип играет до конца.
+    /// Для остановки звука используй StopSoundObject() (вызывается автоматически
+    /// из HorrorInteractable когда игрок отвечает).
     /// </summary>
     public void Deactivate()
     {
@@ -533,10 +535,6 @@ public class HorrorEvent : MonoBehaviour, ISaveable
             _target.SetActive(false);
 
         _targetVisible = false;
-
-        // Останавливаем звук если был
-        if (_soundObject != null && _soundObject.TryGetComponent(out AudioSource audio))
-            audio.Stop();
 
         // Дополнительные действия при скрытии
         _onDeactivated?.Invoke();
