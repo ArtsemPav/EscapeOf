@@ -12,14 +12,12 @@ GameObject:
   - component: {fileID: 7533864596642782943}
   - component: {fileID: 4110323485083888919}
   - component: {fileID: 7382506697656558130}
-  - component: {fileID: 69932273185070268}
-  - component: {fileID: 7277841308101682397}
   m_Layer: 0
   m_Name: towel.005
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &753699296730562847
 Transform:
@@ -114,44 +112,3 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.18016708, y: 0.22819337, z: 0.05365022}
   m_Center: {x: -0.39778933, y: -0.0007037072, z: 0.026320329}
---- !u!54 &69932273185070268
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5799657887290132393}
-  serializedVersion: 5
-  m_Mass: 4
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 0
-  m_Constraints: 0
-  m_CollisionDetection: 0
---- !u!114 &7277841308101682397
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5799657887290132393}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
-  preventTipping: 0
