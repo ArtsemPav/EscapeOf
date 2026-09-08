@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Events;
 using Escape.Core;
@@ -193,6 +195,24 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     [Tooltip("GameObjects to activate when the puzzle is solved (e.g. lights, doors).")]
     [SerializeField] private GameObject[] _rewardObjects;
 
+    [Header("Solved Cinematic")]
+    [Tooltip("CinemachineCamera that frames the door for the solve cinematic. " +
+             "Must start inactive in the hierarchy.")]
+    [SerializeField] private CinemachineCamera _cinematicCamera;
+
+    [Tooltip("Door that opens during the solve cinematic. Can be different from _entryDoor.")]
+    [SerializeField] private DoorInteraction _cinematicDoor;
+
+    [Tooltip("How far the cinematic door swings open during the cinematic, in degrees. " +
+             "e.g. 20 = door nudges open ~20°. Set to 0 to use the door's full maxOpenAngle.")]
+    [SerializeField, Min(0f)] private float _cinematicDoorOpenAngle = 20f;
+
+    [Tooltip("Duration of the screen fade to/from black (seconds).")]
+    [SerializeField, Min(0f)] private float _fadeDuration = 1f;
+
+    [Tooltip("How long the cinematic camera stays active while the door opens (seconds).")]
+    [SerializeField, Min(0.5f)] private float _cinematicDuration = 4f;
+
     // ── Runtime state ─────────────────────────────────────────────────────────
 
     /// <summary>True once the puzzle has been solved.</summary>
@@ -227,6 +247,11 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     private bool  _solveLocked;
     private bool _fadeClipPlayed;
     private bool _wasDoorOpen;      // tracks door state for close-detection
+
+    private const int CinematicCameraPriority = 3000;
+
+    private CinemachineBrain _brain;
+    private float _originalBlendTime;
 
     /// <summary>Shader property name for steam distortion intensity.</summary>
     private static readonly int SteamIntensityId = Shader.PropertyToID("_SteamIntensity");
@@ -271,6 +296,17 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     {
         _levers.Clear();
         GetComponentsInChildren(includeInactive: false, _levers);
+
+        // Cache the Cinemachine brain for instant-cut blending during the cinematic.
+        _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
+        if (_brain == null)
+            _brain = FindFirstObjectByType<CinemachineBrain>();
+        if (_brain != null)
+            _originalBlendTime = _brain.DefaultBlend.Time;
+
+        // Cinematic camera starts inactive — only activated during the solve sequence.
+        if (_cinematicCamera != null)
+            _cinematicCamera.gameObject.SetActive(false);
 
         if (_arrow != null)
         {
@@ -817,6 +853,16 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
     // ── Public API ────────────────────────────────────────────────────────────
 
     /// <summary>
+    /// Instantly solves the puzzle from cheats. Bypasses activation and
+    /// pressure checks — calls Solve() which starts the door cinematic.
+    /// </summary>
+    public void AutoSolve()
+    {
+        if (IsSolved) return;
+        Solve();
+    }
+
+    /// <summary>
     /// Called by PressureLever on every toggle.
     /// Each toggle (ON or OFF) counts as one action against _maxActions.
     /// When the action budget is exhausted, the system triggers a reset
@@ -906,16 +952,105 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
         foreach (var obj in _rewardObjects)
             if (obj != null) obj.SetActive(true);
 
-        // Unlock the entry door so the player can leave.
-        if (_entryDoor != null && _entryDoor.IsLocked)
+        _onSolved.Invoke();
+        Debug.Log("[PressurePuzzle] Solved — starting door cinematic.");
+
+        StartCoroutine(SolvedCinematicRoutine());
+    }
+
+    /// <summary>
+    /// Cinematic sequence played on solve:
+    /// fade to black → switch to door camera → fade in → open door →
+    /// wait → fade to black → switch back to player camera → fade in.
+    /// The door is unlocked and animated open during the cinematic.
+    /// </summary>
+    private IEnumerator SolvedCinematicRoutine()
+    {
+        // Disable player input and hide the interaction HUD for the duration.
+        InputManager.Instance?.SetPlayerInputEnabled(false);
+        InteractionUI.Instance?.SetVisible(false);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        // ── Phase 1: Fade to black ──────────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 2: Instant switch to cinematic camera (screen is black) ────────
+        SetBlendDuration(0f);
+
+        if (_cinematicCamera != null)
         {
-            _entryDoor.Unlock();
-            Debug.Log("[PressurePuzzle] Entry door unlocked — player can leave.");
+            _cinematicCamera.Priority = CinematicCameraPriority;
+            _cinematicCamera.gameObject.SetActive(true);
         }
 
-        _onSolved.Invoke();
+        yield return null;
+
+        // ── Phase 3: Fade from black — player sees the door from cinematic cam ──
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 4: Unlock and nudge the cinematic door open ────────────────────
+        if (_cinematicDoor != null)
+        {
+            _cinematicDoor.Unlock();
+            float maxAngle = _cinematicDoor.MaxOpenAngle;
+            if (_cinematicDoorOpenAngle > 0f && maxAngle > 0f)
+                _cinematicDoor.SetUnlockAjarFraction(Mathf.Clamp01(_cinematicDoorOpenAngle / maxAngle));
+            _cinematicDoor.UnlockAndOpen();
+            Debug.Log($"[PressurePuzzle] Cinematic door opening ({_cinematicDoorOpenAngle}°).");
+        }
+
+        // Also unlock the entry door so the player can leave.
+        if (_entryDoor != null && _entryDoor.IsLocked)
+            _entryDoor.Unlock();
+
+        // ── Phase 5: Hold the shot while the door opens ──────────────────────────
+        yield return new WaitForSeconds(_cinematicDuration);
+
+        // ── Phase 6: Fade to black again ─────────────────────────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        // ── Phase 7: Instant switch back to the player camera (screen is black) ──
+        if (_cinematicCamera != null)
+        {
+            _cinematicCamera.Priority = 0;
+            _cinematicCamera.gameObject.SetActive(false);
+        }
+
+        yield return null;
+
+        // Restore the original Cinemachine blend for normal gameplay.
+        SetBlendDuration(_originalBlendTime);
+
+        // ── Phase 8: Fade from black — player regains control ────────────────────
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(_fadeDuration);
+        else
+            yield return new WaitForSeconds(_fadeDuration);
+
+        InputManager.Instance?.SetPlayerInputEnabled(true);
+        InteractionUI.Instance?.SetVisible(true);
+
         SaveManager.Instance?.Save();
-        Debug.Log("[PressurePuzzle] Solved!");
+        Debug.Log("[PressurePuzzle] Cinematic complete — control returned to player.");
+    }
+
+    /// <summary>Sets the DefaultBlend duration on the CinemachineBrain (0 = instant cut).</summary>
+    private void SetBlendDuration(float duration)
+    {
+        if (_brain == null) return;
+        var blend = _brain.DefaultBlend;
+        blend.Time = duration;
+        _brain.DefaultBlend = blend;
     }
 
     /// <summary>
