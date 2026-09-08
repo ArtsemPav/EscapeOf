@@ -476,6 +476,9 @@ namespace Escape.Core {
         /// <summary>True when the door is physically fully closed (openFraction ≈ 0).</summary>
         public bool IsFullyClosed => _openFraction <= 0.001f;
 
+        /// <summary>Maximum swing angle in degrees (absolute value).</summary>
+        public float MaxOpenAngle => Mathf.Abs(_maxOpenAngle);
+
         /// <summary>Unlocks and smoothly swings the door ajar. Wire to CodeLock.OnUnlocked.</summary>
         public void UnlockAndOpen() {
             _isLocked          = false;

@@ -183,6 +183,13 @@ public static class DevPuzzleCheats
             checkSolvedProperty: "IsSolved");
     }
 
+    /// <summary>Solves the Pressure Puzzle via AutoSolve().</summary>
+    public static CheatResult SolvePressurePuzzle()
+    {
+        return SolveByAutoSolve("PressurePuzzle", "Pressure Puzzle",
+            checkSolvedProperty: "IsSolved");
+    }
+
     /// <summary>Unlocks all Digital Lock Systems (procedural safes).</summary>
     public static CheatResult SolveProceduralSafes()
     {
@@ -250,6 +257,7 @@ public static class DevPuzzleCheats
             ("Generator", SolveGeneratorPuzzle),
             ("Fifteen", SolveFifteenPuzzle),
             ("Paint", SolvePaintPuzzle),
+            ("Pressure", SolvePressurePuzzle),
             ("ProcSafe", SolveProceduralSafes),
             ("DaVinci", SolveDaVinciPuzzle),
             ("Padlock", SolvePadlockPuzzle),

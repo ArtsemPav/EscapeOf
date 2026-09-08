@@ -442,6 +442,7 @@ public class DevPanelController : MonoBehaviour
             ("Solve Generator Puzzle",    DevPuzzleCheats.SolveGeneratorPuzzle),
             ("Solve Fifteen Puzzle",      DevPuzzleCheats.SolveFifteenPuzzle),
             ("Solve Paint Puzzle", DevPuzzleCheats.SolvePaintPuzzle),
+        ("Solve Pressure Puzzle", DevPuzzleCheats.SolvePressurePuzzle),
             ("Unlock Procedural Safes",   DevPuzzleCheats.SolveProceduralSafes),
             ("Unlock Da Vinci (Room 4)",   DevPuzzleCheats.SolveDaVinciPuzzle),
             ("Unlock Padlock (Room 2)",    DevPuzzleCheats.SolvePadlockPuzzle),
