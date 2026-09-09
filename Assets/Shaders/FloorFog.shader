@@ -10,6 +10,12 @@ Shader "Custom/FloorFog"
         _DarkOpacity    ("Dark Opacity", Range(0, 1)) = 0.0
         _LitOpacity     ("Lit Opacity", Range(0, 1)) = 0.5
         _Opacity        ("Global Opacity", Range(0, 1)) = 1.0
+
+        // --- World-space rectangular bounds ---
+        _BoundsEnabled  ("Use World Bounds", Float) = 0.0
+        _BoundsMin      ("Bounds Min (X,Z)", Vector) = (-1000, 0, -1000, 0)
+        _BoundsMax      ("Bounds Max (X,Z)", Vector) = (1000, 0, 1000, 0)
+        _BoundsFalloff  ("Bounds Falloff", Float) = 2.0
     }
     SubShader
     {
@@ -42,6 +48,12 @@ Shader "Custom/FloorFog"
                 float _DarkOpacity;
                 float _LitOpacity;
                 float _Opacity;
+
+                // --- World-space rectangular bounds ---
+                float  _BoundsEnabled;
+                float4 _BoundsMin;
+                float4 _BoundsMax;
+                float  _BoundsFalloff;
             CBUFFER_END
 
             // Flashlight properties — set by FogFlashlightReceiver script
@@ -164,6 +176,20 @@ Shader "Custom/FloorFog"
                 float distFromCenter = length(centeredUV) * 2.0;
                 float edgeFade = 1.0 - smoothstep(1.0 - _EdgeFade, 1.0, distFromCenter);
 
+                // World-space rectangular boundary fade
+                float boundsMask = 1.0;
+                if (_BoundsEnabled > 0.5)
+                {
+                    float distToMinX = positionWS.x - _BoundsMin.x;
+                    float distToMaxX = _BoundsMax.x - positionWS.x;
+                    float distToMinZ = positionWS.z - _BoundsMin.z;
+                    float distToMaxZ = _BoundsMax.z - positionWS.z;
+
+                    float fadeX = smoothstep(0.0, _BoundsFalloff, min(distToMinX, distToMaxX));
+                    float fadeZ = smoothstep(0.0, _BoundsFalloff, min(distToMinZ, distToMaxZ));
+                    boundsMask = fadeX * fadeZ;
+                }
+
                 // Manual flashlight illumination
                 half3 flashlight = ComputeFlashlight(positionWS);
                 float lightAmount = length(flashlight);
@@ -172,7 +198,7 @@ Shader "Custom/FloorFog"
                 // Dark: invisible. Lit: bright white tinted by flashlight color.
                 half3 finalColor = _FogColor.rgb * flashlight * 0.5;
                 float opacity = lerp(_DarkOpacity, _LitOpacity, lightNormalized);
-                float alpha = fog * edgeFade * opacity * _Opacity;
+                float alpha = fog * edgeFade * boundsMask * opacity * _Opacity;
 
                 return half4(finalColor, alpha);
             }

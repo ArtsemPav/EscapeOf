@@ -109,10 +109,21 @@ public class SaveManager : MonoBehaviour
             _autoSaveTimer += dt;
             if (_autoSaveTimer >= autoSaveInterval)
             {
-                _autoSaveTimer   = 0f;
-                _pendingSave     = false;
-                _pendingSnapshot = null;
-                WriteToFile(defaultSlot, BuildSnapshot());
+                _autoSaveTimer = 0f;
+                var snapshot = BuildSnapshot();
+                if (WriteToFile(defaultSlot, snapshot))
+                {
+                    _pendingSave     = false;
+                    _pendingSnapshot = null;
+                }
+                else
+                {
+                    // Write skipped (previous write in flight) — re-arm so it
+                    // retries next frame instead of silently losing the snapshot.
+                    _pendingSnapshot = snapshot;
+                    _pendingSave      = true;
+                    _pendingSaveTimer = 0f;
+                }
             }
         }
     }
@@ -126,11 +137,24 @@ public class SaveManager : MonoBehaviour
 
     private void FlushPendingSave(bool synchronous = false)
     {
-        _pendingSave   = false;
         _autoSaveTimer = 0f;
-        var snapshot     = _pendingSnapshot ?? BuildSnapshot();
-        _pendingSnapshot = null;
-        WriteToFile(defaultSlot, snapshot, synchronous);
+        var snapshot = _pendingSnapshot ?? BuildSnapshot();
+
+        if (WriteToFile(defaultSlot, snapshot, synchronous))
+        {
+            // Write succeeded (or was started in background) — safe to clear.
+            _pendingSave     = false;
+            _pendingSnapshot = null;
+        }
+        else
+        {
+            // Write was skipped because a previous background write is still in
+            // flight. Keep the snapshot pending so Update() retries next frame.
+            // Without this, the data would be silently lost.
+            _pendingSnapshot = snapshot;
+            _pendingSave      = true;
+            _pendingSaveTimer = 0f;
+        }
     }
 
     // ── ISaveable Registration ────────────────────────────────────────────────
@@ -277,8 +301,10 @@ public class SaveManager : MonoBehaviour
     /// writing to a background thread. OnSaved is queued back to the main thread
     /// after the write completes. Skips if a previous write is still in flight.
     /// Pass synchronous: true for the OnApplicationQuit path.
+    /// Returns true if the write was performed (or started in background),
+    /// false if it was skipped because a previous write was still in flight.
     /// </summary>
-    private void WriteToFile(int slot, GameSaveData data, bool synchronous = false)
+    private bool WriteToFile(int slot, GameSaveData data, bool synchronous = false)
     {
         string json      = JsonUtility.ToJson(data, prettyPrint: false);
         string savePath  = GetSavePath(slot);
@@ -292,16 +318,23 @@ public class SaveManager : MonoBehaviour
 
         if (synchronous)
         {
+            // Wait for any in-flight background write to finish before writing
+            // synchronously. Without this, the background write (with older data)
+            // could complete AFTER our synchronous write and overwrite the fresh
+            // file — silently losing the data we just tried to persist on quit.
+            while (Interlocked.CompareExchange(ref _isWriting, 0, 0) != 0)
+                Thread.Sleep(1);
+
             PerformWrite(slot, savePath, dir, backupPaths, json);
             OnSaved?.Invoke();
-            return;
+            return true;
         }
 
         // Skip if a previous background write hasn't finished yet.
         if (Interlocked.CompareExchange(ref _isWriting, 1, 0) != 0)
         {
             Debug.LogWarning($"[SaveManager] Write skipped (previous write in progress) → slot {slot}");
-            return;
+            return false;
         }
 
         int slotCopy = slot;
@@ -315,6 +348,7 @@ public class SaveManager : MonoBehaviour
                 _mainThreadCallbacks.Enqueue(() => OnSaved?.Invoke());
             }
         });
+        return true;
     }
 
     /// <summary>Performs the actual disk write — safe to call from any thread.</summary>
