@@ -8677,7 +8677,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8253978879230535833, guid: 49e84c83ffbb8e440854945438372872, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4927890344598810742}
   m_SourcePrefab: {fileID: 100100000, guid: 49e84c83ffbb8e440854945438372872, type: 3}
 --- !u!114 &600500893498851943 stripped
 MonoBehaviour:
@@ -8712,6 +8715,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 070ef81b1845ee84db86baf65fb1297a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MedallionHole
+--- !u!1 &5009061896042456810 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8253978879230535833, guid: 49e84c83ffbb8e440854945438372872, type: 3}
+  m_PrefabInstance: {fileID: 3967606737473818227}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4927890344598810742
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5009061896042456810}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 802b6d66b4b039347981c6d555512b03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SnakeCrawlAmbient
+  _snakeClip: {fileID: 8300000, guid: 0cb033662c9988e4cb5c650f7084d4a5, type: 3}
+  _volume: 0.8
+  _startDelay: 5
+  _fadeInDuration: 2
+  _fadeOutDuration: 1.5
+  _radius: 2.5
+  _heightOffset: -1.2
+  _revolutionDuration: 14
+  _wobbleAmount: 0.3
+  _minDistance: 0.4
+  _maxDistance: 10
 --- !u!114 &5168485082714173728 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8121644356102242131, guid: 49e84c83ffbb8e440854945438372872, type: 3}
