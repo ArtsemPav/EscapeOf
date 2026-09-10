@@ -90,11 +90,13 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     private MaterialPropertyBlock _rippleBlock;
     private int _rippleSlot;
 
+    private DuckSoundZone _soundZone;
+
     public string SaveId => _saveId;
     public bool UseLMBClick => true;
 
-    /// <summary>Returns true when the duck is visible and ready for interaction.</summary>
-    public bool CanInteract() => _isShown && !_isBusy && !_horrorTriggered;
+    /// <summary>Returns true when the duck is ready to be interacted with.</summary>
+    public bool CanInteract() => !_isBusy && !_horrorTriggered;
 
     public bool IsPickable() => false;
     public string GetInteractText() => _interactText;
@@ -124,6 +126,11 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         _body.useGravity = false;
         SetVisible(false);
         FindLiquidRenderer();
+        FindSoundZone();
+
+        // Register in Awake so SaveManager.Start() can deliver saved data
+        // before this script's Start() runs (same pattern as HorrorEvent).
+        SaveManager.Instance?.Register(this);
     }
 
     /// <summary>Finds the liquid renderer on a sibling object to push ripple data.</summary>
@@ -158,6 +165,20 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
             _rippleBlock = new MaterialPropertyBlock();
     }
 
+    /// <summary>Finds the DuckSoundZone on a sibling object to disable it after horror.</summary>
+    private void FindSoundZone()
+    {
+        if (transform.parent == null) return;
+        _soundZone = transform.parent.GetComponentInChildren<DuckSoundZone>();
+    }
+
+    /// <summary>Disables the lure sound zone after the horror event has passed.</summary>
+    private void DisableSoundZone()
+    {
+        if (_soundZone != null)
+            _soundZone.enabled = false;
+    }
+
     /// <summary>Triggers a circular ripple on the liquid surface at the duck's world position.</summary>
     private void TriggerRipple(float strength)
     {
@@ -187,11 +208,47 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 
     private void Start()
     {
-        SaveManager.Instance?.Register(this);
-
-        // If power is already on, show the duck immediately.
+        // If power is already on, show the duck immediately
+        // (unless the horror was already triggered — handled by LoadSaveData).
         if (LightingSystem.Instance != null && LightingSystem.Instance.IsPowered)
             OnPowerChanged(true);
+    }
+
+    private void Update()
+    {
+        // Safety net: if the horror event has already been triggered,
+        // ensure the duck stays hidden no matter what re-enabled it.
+        if (_horrorTriggered)
+        {
+            bool needsHide = false;
+            if (_renderers != null)
+            {
+                foreach (Renderer r in _renderers)
+                {
+                    if (r != null && r.enabled)
+                    {
+                        r.enabled = false;
+                        needsHide = true;
+                    }
+                }
+            }
+            if (_collider != null && _collider.enabled)
+            {
+                _collider.enabled = false;
+                needsHide = true;
+            }
+            if (needsHide)
+                _isShown = false;
+            return;
+        }
+
+        // Fallback: if power is on but the duck is not shown (missed event),
+        // force-show it so the player can interact.
+        if (!_isShown &&
+            LightingSystem.Instance != null && LightingSystem.Instance.IsPowered)
+        {
+            SetVisible(true);
+        }
     }
 
     private void OnDestroy()
@@ -222,6 +279,9 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         // Splash ripple when duck dives.
         TriggerRipple(_diveRippleStrength);
 
+        // On the final dive, hide the duck as soon as it goes underwater.
+        bool isFinalDive = _diveCount >= MaxDives;
+
         // Dive down with a slight nose-down tilt offset from base rotation.
         yield return AnimateLocalY(
             _surfaceLocalPos.y,
@@ -229,20 +289,26 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
             _diveDuration,
             25f);
 
+        if (isFinalDive)
+        {
+            // Duck is now underwater — disable renderer immediately.
+            _horrorTriggered = true;
+            SetVisible(false);
+            DisableSoundZone();
+            SaveManager.Instance?.Save();
+        }
+
         // Wait underwater — emit periodic ripples.
-        float waitTime = (_diveCount >= MaxDives) ? _finalUnderwaterDuration : _underwaterDuration;
+        float waitTime = isFinalDive ? _finalUnderwaterDuration : _underwaterDuration;
         yield return UnderwaterRippleRoutine(waitTime);
 
-        if (_diveCount >= MaxDives)
+        if (isFinalDive)
         {
-            // Horror event — duck stays hidden underwater.
-            _horrorTriggered = true;
-            SaveManager.Instance?.Save();
+            // Horror event — duck is already hidden, just trigger it.
 
             if (HorrorSystem.Instance != null)
                 HorrorSystem.Instance.Trigger(_horrorEventId);
 
-            SetVisible(false);
             yield break;
         }
 
@@ -362,8 +428,12 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 
         if (_horrorTriggered)
         {
-            // Horror already played — keep the duck hidden.
+            // Horror already played — hide the duck and disable lure sound.
             SetVisible(false);
+            DisableSoundZone();
+            // Deactivate the entire GameObject so nothing can re-enable
+            // the renderer or collider. Update() safety net won't be needed.
+            gameObject.SetActive(false);
         }
     }
 

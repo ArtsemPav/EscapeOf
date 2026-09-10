@@ -7,11 +7,12 @@ using UnityEngine;
 ///   - Player within hearing range AND duck not visible → sound fades in (lure).
 ///   - Duck visible (in frustum and unoccluded) → sound fades out (player found it).
 ///   - Player outside hearing range → sound stops.
+///   - Master power OFF → sound stops entirely.
+/// Implements IPowerConsumer to receive power state from LightingSystem.
 /// The AudioSource follows the duck's position so the sound stays spatially accurate.
-/// The BoxCollider is used only for editor visualization of the hearing boundary.
 /// </summary>
 [RequireComponent(typeof(Collider))]
-public class DuckSoundZone : MonoBehaviour
+public class DuckSoundZone : MonoBehaviour, IPowerConsumer
 {
     private const float FadeDuration = 1.5f;
     private const float CheckInterval = 0.2f;
@@ -41,16 +42,13 @@ public class DuckSoundZone : MonoBehaviour
     [Tooltip("Layer mask for occlusion raycast. Only these layers can block visibility.")]
     [SerializeField] private LayerMask _occlusionMask = ~0;
 
-    [Header("Activation")]
-    [Tooltip("Only play the lure sound while the duck renderer is enabled (power is on). When false, plays regardless.")]
-    [SerializeField] private bool _activeWhenDuckShown = true;
-
     private AudioSource _audioSource;
     private Renderer _duckRenderer;
     private Camera _playerCamera;
     private Coroutine _fadeCoroutine;
     private Coroutine _checkRoutine;
     private bool _soundActive;
+    private bool _isPowered;
 
     private void Awake()
     {
@@ -65,6 +63,7 @@ public class DuckSoundZone : MonoBehaviour
     private void OnEnable()
     {
         EnsureAudioSource();
+        LightingSystem.Instance?.RegisterConsumer(this);
         _checkRoutine = StartCoroutine(DistanceCheckLoop());
     }
 
@@ -72,6 +71,19 @@ public class DuckSoundZone : MonoBehaviour
     {
         StopSoundImmediate();
         StopCheckRoutine();
+        LightingSystem.Instance?.UnregisterConsumer(this);
+    }
+
+    /// <summary>
+    /// IPowerConsumer: called by LightingSystem when master power changes,
+    /// and once immediately on registration with the current state.
+    /// </summary>
+    public void OnPowerStateChanged(bool isPowered)
+    {
+        _isPowered = isPowered;
+
+        if (!isPowered)
+            FadeOutSound();
     }
 
     /// <summary>Creates and configures the AudioSource if it doesn't exist.</summary>
@@ -94,7 +106,7 @@ public class DuckSoundZone : MonoBehaviour
 
     /// <summary>
     /// Periodically checks distance and visibility. Plays sound when player
-    /// is within hearing range but cannot see the duck.
+    /// is within hearing range but cannot see the duck, and power is on.
     /// </summary>
     private IEnumerator DistanceCheckLoop()
     {
@@ -118,15 +130,19 @@ public class DuckSoundZone : MonoBehaviour
 
     /// <summary>
     /// Returns true if the lure sound should be playing:
-    /// player within hearing range, duck not visible, and duck is shown (if required).
+    /// power on, duck renderer enabled, player within hearing range, duck not visible.
     /// </summary>
     private bool ShouldPlaySound()
     {
+        // Master power must be on.
+        if (!_isPowered)
+            return false;
+
         if (_playerCamera == null || _soundTarget == null)
             return false;
 
-        // If the duck must be shown but its renderer is disabled, skip.
-        if (_activeWhenDuckShown && _duckRenderer != null && !_duckRenderer.enabled)
+        // Duck must be visible (renderer enabled) — power is on but duck hidden = no sound.
+        if (_duckRenderer != null && !_duckRenderer.enabled)
             return false;
 
         Vector3 playerPos = _playerCamera.transform.position;
@@ -148,14 +164,12 @@ public class DuckSoundZone : MonoBehaviour
         if (_duckRenderer == null || _playerCamera == null)
             return false;
 
-        // Frustum check — Unity's built-in per-renderer visibility test.
         if (!_duckRenderer.isVisible)
             return false;
 
         if (!_checkOcclusion)
             return true;
 
-        // Occlusion raycast from camera to duck.
         Vector3 camPos = _playerCamera.transform.position;
         Vector3 duckPos = _soundTarget.position;
         Vector3 dir = duckPos - camPos;
@@ -165,8 +179,6 @@ public class DuckSoundZone : MonoBehaviour
 
         if (Physics.Raycast(camPos, dir / dist, out RaycastHit hit, dist, _occlusionMask, QueryTriggerInteraction.Ignore))
         {
-            // If the ray hit something before reaching the duck, it's occluded.
-            // But if the hit object IS the duck itself, it's visible.
             var hitRenderer = hit.collider.GetComponentInParent<Renderer>();
             return hitRenderer == _duckRenderer;
         }
