@@ -524,12 +524,31 @@ public class HorrorEvent : MonoBehaviour, ISaveable
 
     /// <summary>
     /// Скрывает Target и вызывает On Deactivated.
-    /// Звук на Sound Object НЕ останавливается — клип играет до конца.
-    /// Для остановки звука используй StopSoundObject() (вызывается автоматически
-    /// из HorrorInteractable когда игрок отвечает).
+    /// Если Sound Object — это тот же объект что и Target, AudioSource
+    /// отключается вместе с GameObject. В этом случае скрываем только
+    /// рендереры, оставляем объект активным пока звук не доиграет,
+    /// затем деактивируем объект.
     /// </summary>
     public void Deactivate()
     {
+        // Если звук играет на том же объекте что и Target —
+        // скрываем только визуал, ждём пока звук доиграет, потом выключаем.
+        if (_soundObject != null && _target != null &&
+            _soundObject == _target &&
+            _soundObject.TryGetComponent(out AudioSource fadeAudio) && fadeAudio.isPlaying)
+        {
+            // Скрываем все рендереры на Target — утка исчезает визуально.
+            foreach (var rend in _target.GetComponentsInChildren<Renderer>())
+                rend.enabled = false;
+
+            _targetVisible = false;
+            _onDeactivated?.Invoke();
+
+            // Ждём пока клип доиграет, затем полностью деактивируем объект.
+            StartCoroutine(DeactivateAfterSound(fadeAudio));
+            return;
+        }
+
         // Скрываем Target
         if (_target != null)
             _target.SetActive(false);
@@ -538,6 +557,18 @@ public class HorrorEvent : MonoBehaviour, ISaveable
 
         // Дополнительные действия при скрытии
         _onDeactivated?.Invoke();
+    }
+
+    /// <summary>Ждёт окончания звука, затем деактивирует Target.</summary>
+    private IEnumerator DeactivateAfterSound(AudioSource source)
+    {
+        // Ждём пока звук играет.
+        while (source != null && source.isPlaying)
+            yield return null;
+
+        // Полностью выключаем объект.
+        if (_target != null)
+            _target.SetActive(false);
     }
 
     /// <summary>

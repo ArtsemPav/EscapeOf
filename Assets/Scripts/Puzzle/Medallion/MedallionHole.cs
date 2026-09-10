@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -131,7 +132,7 @@ public class MedallionHole : MonoBehaviour
     /// Uses <paramref name="item"/>.inspectionPrefab if assigned, otherwise falls back to <paramref name="fallbackPrefab"/>.
     /// Clears any active ghost preview before placing.
     /// </summary>
-    public void Fill(ItemData item, GameObject fallbackPrefab, float dropHeight, float dropDuration)
+    public void Fill(ItemData item, GameObject fallbackPrefab, float dropHeight, float dropDuration, System.Action onComplete = null)
     {
         if (IsFilled || item == null) return;
         HideGhost();
@@ -139,7 +140,7 @@ public class MedallionHole : MonoBehaviour
         if (prefab == null) return;
 
         PlacedItem = item;
-        StartCoroutine(InsertRoutine(prefab, dropHeight, dropDuration));
+        StartCoroutine(InsertRoutine(prefab, dropHeight, dropDuration, onComplete));
         OnFilled?.Invoke();
     }
 
@@ -304,6 +305,8 @@ public class MedallionHole : MonoBehaviour
             mat.SetFloat(ZWritePropId, 0f);
             mat.SetFloat(AlphaClipPropId, 0f);
             mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            mat.SetOverrideTag("RenderType", "Transparent");
+            mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
 
             if (mat.HasProperty(BaseColorPropId))
             {
@@ -474,7 +477,7 @@ public class MedallionHole : MonoBehaviour
     /// Insert animation: coin flies in from above the hole and settles
     /// into the final position with an ease-in curve. No rotation.
     /// </summary>
-    private IEnumerator InsertRoutine(GameObject prefab, float fallbackHeight, float fallbackDuration)
+    private IEnumerator InsertRoutine(GameObject prefab, float fallbackHeight, float fallbackDuration, System.Action onComplete = null)
     {
         Vector3 endPos   = GetCoinWorldPosition();
         float height     = _insertHeight > 0.01f ? _insertHeight : fallbackHeight;
@@ -508,10 +511,8 @@ public class MedallionHole : MonoBehaviour
         }
 
         coin.transform.position = endPos;
+        onComplete?.Invoke();
     }
-
-    /// <summary>
-    /// Retrieve animation: coin rises from the hole and fades out at the top,
     /// then is destroyed. Ease-out for position, fade-out in the last 40%.
     /// </summary>
     private IEnumerator RetrieveRoutine(GameObject coin, float fallbackHeight, float fallbackDuration)
@@ -536,6 +537,8 @@ public class MedallionHole : MonoBehaviour
                 mat.SetFloat(DstBlendPropId, (float)BlendMode.OneMinusSrcAlpha);
                 mat.SetFloat(ZWritePropId, 0f);
                 mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                mat.SetOverrideTag("RenderType", "Transparent");
+                mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
             }
             else
             {
