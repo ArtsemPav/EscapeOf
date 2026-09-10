@@ -95,6 +95,7 @@ namespace Escape.Core {
         // ── Runtime state ────────────────────────────────────────────────────────
 
         private float   _closedAngle;         // initial euler angle along the chosen axis
+        private Vector3 _closedEulerAngles;   // initial full euler angles — preserved to avoid gimbal lock drift
         private float   _openFraction;        // 0 = closed, 1 = fully open
         private float   _velocity;            // open-fraction per second
         private bool    _isDragging;
@@ -203,6 +204,11 @@ namespace Escape.Core {
             if (_pivot == null)
                 _pivot = transform.parent != null ? transform.parent : transform;
 
+            // Snapshot the full euler angles at initialization so ApplyAngle can
+            // always construct the rotation from scratch instead of reading back
+            // localEulerAngles every frame — which becomes unstable near gimbal
+            // lock angles (X = ±90°) and corrupts the non-rotating axes.
+            _closedEulerAngles = _pivot.localEulerAngles;
             _closedAngle = GetClosedAngle();
 
             // Apply loaded state if available, otherwise use serialized defaults
@@ -560,8 +566,11 @@ namespace Escape.Core {
 
         private void ApplyAngle() {
             if (_pivot == null) return;
-            Vector3 e = _pivot.localEulerAngles;
             float targetAngle = _closedAngle + _openFraction * _maxOpenAngle;
+            // Build from the stored closed euler angles to avoid gimbal-lock drift:
+            // reading localEulerAngles every frame can flip Y/Z near ±90° on the
+            // rotating axis, producing a diagonal or corrupted rotation.
+            Vector3 e = _closedEulerAngles;
             switch (_rotationAxis)
             {
                 case DoorRotationAxis.X: e.x = targetAngle; break;
@@ -575,7 +584,7 @@ namespace Escape.Core {
         /// <summary>Returns the initial euler angle of the pivot along the configured axis.</summary>
         private float GetClosedAngle()
         {
-            Vector3 angles = _pivot.localEulerAngles;
+            Vector3 angles = _closedEulerAngles;
             return _rotationAxis switch
             {
                 DoorRotationAxis.X => angles.x,

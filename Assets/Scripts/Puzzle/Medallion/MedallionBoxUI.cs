@@ -186,8 +186,7 @@ public class MedallionBoxUI : MonoBehaviour, IPuzzleDropHandler
         var hole = hit.collider.GetComponent<MedallionHole>();
         if (hole == null || hole.IsFilled) return false;
 
-        hole.Fill(item, _coinPrefab, _dropHeight, _dropDuration);
-        CheckVictory();
+        hole.Fill(item, _coinPrefab, _dropHeight, _dropDuration, CheckVictory);
         return true;
     }
 
