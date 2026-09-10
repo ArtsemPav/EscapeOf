@@ -13,7 +13,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 {
-    private const int MaxDives = 5;
+    private const int MaxDives = 3;
     private const int RippleSlotCount = 4;
 
     // Shader property IDs for ripple effect.
