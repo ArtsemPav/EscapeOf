@@ -1884,6 +1884,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3018493325908883247, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1901923359}
+    - targetCorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
 --- !u!4 &167866559 stripped
 Transform:
@@ -2328,12 +2331,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_bot_left
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 709607582}
@@ -2342,7 +2347,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: a111e6603bdd0564db0de000cd7910db, type: 3}
   _closeLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
   _latchClip: {fileID: 8300000, guid: 27b6608a752842a4f99541fbb96b15f5, type: 3}
@@ -2351,7 +2357,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_bot_left
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &191430518
 GameObject:
   m_ObjectHideFlags: 0
@@ -3447,12 +3456,18 @@ MonoBehaviour:
   _requiredRoomIndex: 1
   _playerTag: Player
   _activationDelay: 0
+  _puzzleToWatch: {fileID: 0}
+  _requiredPowerState: 1
+  _requiredZoneId: 
+  _requiredZoneState: 1
   _effectType: 2
   _target: {fileID: 548796845}
   _disappearDelay: 3.5
   _playerCamera: {fileID: 0}
   _lookAtThreshold: 0.7
   _lookAwayThreshold: 0
+  _soundObject: {fileID: 0}
+  _interactableObject: {fileID: 0}
   _onActivated:
     m_PersistentCalls:
       m_Calls:
@@ -3644,13 +3659,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_secondroom_main
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
   _requirementHint: "\u043D\u0443\u0436\u0435\u043D \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0439
     \u043B\u044E\u0447 \u0447\u0442\u043E\u0431\u044B \u043E\u0442\u043A\u0440\u044B\u0442\u044C
     \u044D\u0442\u0443 \u0434\u0432\u0435\u0440\u044C"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 304086401}
@@ -3659,7 +3676,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -3668,7 +3686,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.35
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_secondroom_main
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &319375208 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4097117447096698, guid: 9be1d078ff532934387d3132178ccfba, type: 3}
@@ -4923,10 +4944,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FlashlightController
   config: {fileID: 11400000, guid: 5643f1806a39e834da43451913f478ec, type: 2}
   toggleClip: {fileID: 8300000, guid: dc9ee122a92beed4b964023caf77e212, type: 3}
-  modeSwitchClip: {fileID: 0}
   toggleVolume: 0.8
-  modeSwitchVolume: 0.6
   soundCondition: {fileID: 11400000, guid: d8e80a2470c053d4db086f2fef2d4a74, type: 2}
+  proximityRayOrigin: {fileID: 0}
+  proximityRange: 1.2
+  proximityMinScale: 0.3
+  proximityFalloff: 2
+  proximitySmoothSpeed: 12
+  probeFanHalfAngle: 10
+  proximityMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!108 &441075176
 Light:
   m_ObjectHideFlags: 0
@@ -5235,6 +5263,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 565ba1a33c10e294da266aa2f9874a46, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_medallion_wood
 --- !u!1 &456899471
 GameObject:
@@ -6278,6 +6310,7 @@ MonoBehaviour:
   _destination: {fileID: 1086094954}
   _runSpeed: 4
   _turnSpeed: 10
+  _animationState: 4
 --- !u!1 &550367530
 GameObject:
   m_ObjectHideFlags: 0
@@ -7168,6 +7201,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_key
 --- !u!65 &583880950
 BoxCollider:
@@ -9035,6 +9072,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 30282ec3c8cb39e4aabade5012b5bf56, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_medallion_water
 --- !u!1001 &761979553
 PrefabInstance:
@@ -9550,12 +9591,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_desk
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 1521109086}
@@ -9564,7 +9607,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
   _closeLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
   _latchClip: {fileID: 8300000, guid: 5dfe0488f509574449df570724cca748, type: 3}
@@ -9573,7 +9617,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_desk
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &818677612
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11085,6 +11132,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 8019a527ff1b4f249926940f055914c9, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_SafeGuard
 --- !u!65 &933494518
 BoxCollider:
@@ -11625,6 +11676,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 0a2ea96bed06ea64ebd5b545e4ef9cb8, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_medallion_fire
 --- !u!1001 &1047816942
 PrefabInstance:
@@ -11754,8 +11809,15 @@ MonoBehaviour:
   _openDistance: 0.65
   _dragSensitivity: 1
   _invertAxis: 0
+  _snapOnRelease: 1
   _snapSpeed: 8
   _snapThreshold: 0.25
+  _isLocked: 0
+  _lockedHint: "\u0417\u0430\u043F\u0435\u0440\u0442\u043E"
+  _lockedJiggleAmount: 0.05
+  _lockedSnapBackSpeed: 10
+  _lockedClip: {fileID: 0}
+  _unlockClip: {fileID: 0}
   _openClip: {fileID: 8300000, guid: d036e5fdebf99c94594e146b4ffaa85c, type: 3}
   _openVolume: 0.8
   _interactText: "\u041F\u043E\u0442\u044F\u043D\u0443\u0442\u044C"
@@ -13167,11 +13229,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HiddenWallSign
   visibleInMode: 0
-  flashlight: {fileID: 441075175}
   edgeSoftness: 0.0112
   radialFalloff: 1.19
   maxVisibleDistance: 3
-  minDistAlpha: 0.037
   emissionColor: {r: 5.992157, g: 0, b: 5.44331, a: 1}
   emissionIntensity: 0.09
 --- !u!212 &1174362718
@@ -13913,6 +13973,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: ae0626fcceabc2943b0cde4859f673a8, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_flashlight
 --- !u!4 &1239333872 stripped
 Transform:
@@ -16769,12 +16833,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_top_left
   _isOpen: 0
   _isLocked: 1
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u044C
     \u0437\u0430\u043C\u043E\u043A"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 1331597390}
@@ -16783,7 +16849,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -16792,7 +16859,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_top_left
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1462157114
 GameObject:
   m_ObjectHideFlags: 0
@@ -17511,6 +17581,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 735fbdf92965f8b4f9277de387cde5ff, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_medallion_earth4
 --- !u!1 &1591224366 stripped
 GameObject:
@@ -18108,6 +18182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomController
   _localVolume: {fileID: 0}
+  _triggerZones: []
 --- !u!1001 &1666941388
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18668,12 +18743,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: _doorElectric
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u0420\u0430\u0441\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439
     \u0449\u0438\u0442\u043E\u043A"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 1702120865}
@@ -18682,7 +18759,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 0}
   _closeLoopClip: {fileID: 0}
   _latchClip: {fileID: 0}
@@ -18691,7 +18769,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: _doorElectric
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!65 &1702120869
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -19734,6 +19815,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: FirstRoom
+  _defaultSwitchState: 1
   _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 86122564}
@@ -20405,12 +20487,18 @@ MonoBehaviour:
   _requiredRoomIndex: 1
   _playerTag: Player
   _activationDelay: 0
+  _puzzleToWatch: {fileID: 0}
+  _requiredPowerState: 1
+  _requiredZoneId: 
+  _requiredZoneState: 1
   _effectType: 1
   _target: {fileID: 1932225085}
   _disappearDelay: 3
   _playerCamera: {fileID: 1342183885}
   _lookAtThreshold: 0.7
   _lookAwayThreshold: 0
+  _soundObject: {fileID: 0}
+  _interactableObject: {fileID: 0}
   _onActivated:
     m_PersistentCalls:
       m_Calls: []
@@ -20747,6 +20835,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 0f02e804407dbc14a8ddfbeb714ffd08, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_battery
 --- !u!4 &1921479735 stripped
 Transform:
@@ -20942,12 +21034,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_bot_right
   _isOpen: 0
   _isLocked: 0
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
     \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 213181106}
@@ -20956,7 +21050,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
   _closeLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
   _latchClip: {fileID: 8300000, guid: 5dfe0488f509574449df570724cca748, type: 3}
@@ -20965,7 +21060,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_bot_right
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1001 &1969700233
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22240,12 +22338,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_top_right
   _isOpen: 0
   _isLocked: 1
+  _openMode: 0
+  _openDuration: 1
   _requiredKey: {fileID: 0}
   _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u044C
     \u0437\u0430\u043C\u043E\u043A"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 1239333872}
@@ -22254,7 +22354,8 @@ MonoBehaviour:
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
+  _flingThreshold: 0.9
+  _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
   _closeLoopClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
   _latchClip: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
@@ -22263,7 +22364,10 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_top_right
+  _occlusionPortal: {fileID: 0}
+  _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2074379134
 GameObject:
   m_ObjectHideFlags: 0
@@ -22729,6 +22833,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickableItem
   itemData: {fileID: 11400000, guid: 735fbdf92965f8b4f9277de387cde5ff, type: 2}
+  _previewSound: {fileID: 0}
+  _previewSoundVolume: 1
+  inspectOnly: 0
+  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _saveId: pickable_medallion_earth
 --- !u!1001 &2085008822
 PrefabInstance:
@@ -24232,99 +24340,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bdf6964e5278059429bf9f5c6bec6b4c, type: 3}
---- !u!1001 &4473750182236539883
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 3035832217922939354, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_Name
-      value: MetamorfPuzzle
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.366
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.106
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -3.75
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4854690008228174404, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 5107309693605159939, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 1162303054047886770, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 1786796986558105632, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 8935803831003625290, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 2382044861857619642, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 8637369546275520711, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 6671645974560223555, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 1304657462271766303, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 5088378457593455703, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 315024121579897143, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 8845115241804960374, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-    - targetCorrespondingSourceObject: {fileID: 6385991741332016816, guid: af6f795d000418046ab62fbd0947582f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 0}
-  m_SourcePrefab: {fileID: 100100000, guid: af6f795d000418046ab62fbd0947582f, type: 3}
 --- !u!1001 &4851027045384894710
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24885,8 +24900,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f38903386682d574b833ba2419732ebe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FootstepController
-  footstepClips:
-  - {fileID: 8300000, guid: 8da9673d88657bd44a66faef40c4872e, type: 3}
+  defaultProfile: {fileID: 0}
   jumpClip: {fileID: 8300000, guid: fbc868c17dd643844b261c8b161bea18, type: 3}
   walkVolume: 0.5
   runVolume: 0.7
@@ -24894,6 +24908,7 @@ MonoBehaviour:
   jumpVolume: 0.6
   stepPhase: 1.5708
   stepWindow: 0.25
+  transitionDuration: 0.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -24935,4 +24950,3 @@ SceneRoots:
   - {fileID: 2179333236673146853}
   - {fileID: 801538915}
   - {fileID: 1988162061}
-  - {fileID: 4473750182236539883}
