@@ -62,6 +62,10 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     [Tooltip("Activated when the puzzle is solved.")]
     [SerializeField] private GameObject _solvedObject;
 
+    [Header("Phase 2 — Scull")]
+    [Tooltip("Auto-found via GetComponentInChildren if empty.")]
+    [SerializeField] private ScullPuzzlePhase _scullPhase;
+
     [Header("Sounds")]
     [SerializeField] private AudioClip _activationClip;
     [SerializeField] private AudioClip _solvedClip;
@@ -76,7 +80,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
 
     // ── State ─────────────────────────────────────────────────────────────────
 
-    private bool _solved;
+    private bool _phase1Completed;
     private bool _isActivating;
     private PuzzleSaveData? _pendingLoad;
 
@@ -102,7 +106,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         for (int i = 0; i < holeStates.Length; i++)
             ids[i] = holeStates[i]?.ItemId ?? string.Empty;
 
-        return JsonUtility.ToJson(new PuzzleSaveData { solved = _solved, placedItemIds = ids });
+        return JsonUtility.ToJson(new PuzzleSaveData { phase1Completed = _phase1Completed, placedItemIds = ids });
     }
 
     public void LoadSaveData(string json)
@@ -113,7 +117,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     [Serializable]
     private struct PuzzleSaveData
     {
-        public bool solved;
+        public bool phase1Completed;
         public string[] placedItemIds;
     }
 
@@ -122,6 +126,9 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     private void Awake()
     {
         _controller = _controller != null ? _controller : GetComponent<FinalDoorPuzzleController>();
+
+        if (_scullPhase == null)
+            _scullPhase = GetComponentInChildren<ScullPuzzlePhase>(includeInactive: true);
 
         _animActivateHash = Animator.StringToHash(_activationTrigger);
 
@@ -200,7 +207,7 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     /// </summary>
     private void HandlePuzzleSolved()
     {
-        _solved = true;
+        _phase1Completed = true;
         _isActivating = true;
 
         PlaySFX(_activationClip, _activationVolume);
@@ -265,10 +272,11 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         if (_solvedObject != null)
             _solvedObject.SetActive(true);
 
-        PlaySFX(_solvedClip, _solvedVolume);
-
         _controller?.ExitPuzzleModeInstant();
-        _controller?.SetSolved();
+        _controller?.MarkPhase1Completed();
+
+        // Activate Phase 2 — skull becomes interactable.
+        _scullPhase?.Activate();
 
         // Wait one frame so the brain processes the camera return.
         yield return null;
@@ -351,9 +359,9 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
             }
         }
 
-        if (load.solved)
+        if (load.phase1Completed)
         {
-            _solved = true;
+            _phase1Completed = true;
 
             var ui = GetUI();
             ui?.MarkSolved();
@@ -372,7 +380,12 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
             if (_scullAnimator != null)
                 _scullAnimator.Play(_scullMoveStateName, 0, 1f);
 
-            _controller?.SetSolved();
+            // Mark Phase 1 on the controller and activate Phase 2.
+            _controller?.MarkPhase1Completed();
+            _scullPhase?.Activate();
+
+            // If the controller is fully solved (Phase 2 also completed on last save),
+            // ScullPuzzlePhase restores its own state via its own ISaveable.
         }
     }
 

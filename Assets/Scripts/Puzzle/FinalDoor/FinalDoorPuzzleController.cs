@@ -78,6 +78,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
     private bool _isActive;
     private bool _isSolved;
+    private bool _phase1Completed;
     private bool _isSubscribed;
 
     private CinemachineCamera _activeCamera;
@@ -105,14 +106,18 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     /// <summary>True if the puzzle has been solved.</summary>
     public bool IsSolved => _isSolved;
 
+    /// <summary>True if Phase 1 (medallions) is completed but the puzzle isn't fully solved yet.</summary>
+    public bool IsPhase1Completed => _phase1Completed;
+
     /// <summary>The camera that is currently active, or null if not in puzzle mode.</summary>
     public CinemachineCamera ActiveCamera => _activeCamera;
 
     /// <summary>
     /// Enters puzzle mode and instantly cuts to the specified camera.
     /// Pass null to use the overview camera as default.
+    /// Pass dropHandler to override the auto-found IPuzzleDropHandler (used by Phase 2).
     /// </summary>
-    public void EnterPuzzleMode(CinemachineCamera entryCamera = null)
+    public void EnterPuzzleMode(CinemachineCamera entryCamera = null, IPuzzleDropHandler dropHandler = null)
     {
         if (_isActive || _isSolved) return;
 
@@ -153,7 +158,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
         if (_showInventoryBar)
         {
-            var handler = GetComponentInChildren<IPuzzleDropHandler>();
+            var handler = dropHandler ?? GetComponentInChildren<IPuzzleDropHandler>();
             PuzzleInventoryBar.Instance?.Show(handler);
         }
 
@@ -309,6 +314,17 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         FireSolvedEvents();
     }
 
+    /// <summary>Marks Phase 1 as completed — disables root and statue interactions.</summary>
+    public void MarkPhase1Completed()
+    {
+        _phase1Completed = true;
+
+        // Disable the root collider so it doesn't block the Scull's interaction
+        // collider during Phase 2.
+        if (_ownCollider != null)
+            _ownCollider.enabled = false;
+    }
+
     private void FireSolvedEvents()
     {
         OnPuzzleSolved?.Invoke();
@@ -322,7 +338,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
     // ── IInteractable (root fallback) ──────────────────────────────────────────
 
-    public bool CanInteract() => !_isActive && !_isSolved;
+    public bool CanInteract() => !_isActive && !_isSolved && !_phase1Completed;
 
     public void Interact()
     {

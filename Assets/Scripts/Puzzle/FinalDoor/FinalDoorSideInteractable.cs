@@ -40,7 +40,7 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
 
     public bool CanInteract()
     {
-        return _controller != null && !_controller.IsActive && !_controller.IsSolved;
+        return _controller != null && !_controller.IsActive && !_controller.IsSolved && !_controller.IsPhase1Completed;
     }
 
     public void Interact()
@@ -52,13 +52,17 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
 
     public string GetInteractText()
     {
-        return _controller != null && _controller.IsSolved ? string.Empty : _interactText;
+        if (_controller == null) return _interactText;
+        if (_controller.IsSolved || _controller.IsPhase1Completed) return string.Empty;
+        return _interactText;
     }
 
     public bool IsPickable() => false;
 
     public CrosshairMode GetCrosshairMode()
     {
-        return _controller != null && _controller.IsSolved ? CrosshairMode.Default : _crosshairMode;
+        if (_controller != null && (_controller.IsSolved || _controller.IsPhase1Completed))
+            return CrosshairMode.Default;
+        return _crosshairMode;
     }
 }
