@@ -27,6 +27,12 @@ public class FPSController : MonoBehaviour, ISaveable
 
     [Header("Look")]
     [SerializeField] private Transform cameraTransform;
+
+    /// <summary>
+    /// Camera transform driven by the look input. Exposed for scripted
+    /// cinematics that need to take the camera over (e.g. EndGameSequence).
+    /// </summary>
+    public Transform CameraTransform => cameraTransform;
     [SerializeField] private float mouseSensitivity = 0.2f;
     [SerializeField] private float pitchSmoothTime = 0.03f;
     [SerializeField] private float strafeTiltAngle = 2f;
@@ -82,6 +88,32 @@ public class FPSController : MonoBehaviour, ISaveable
     private float _pitchSmoothRef;
     private float _currentTilt;
     private float _tiltSmoothRef;
+
+    /// <summary>
+    /// When true, HandleLook does nothing — a cinematic owns the camera
+    /// rotation (body yaw + camera pitch) and drives it directly.
+    /// </summary>
+    private bool _cinematicControl;
+
+    /// <summary>
+    /// Hands the camera over to a scripted cinematic (rotation fully owned by
+    /// the caller) or returns it to normal input-driven control.
+    /// </summary>
+    public void SetCinematicControl(bool enabled)
+    {
+        _cinematicControl = enabled;
+        if (enabled)
+        {
+            // Sync internal smoothing state with the current camera rotation
+            // so restoring control later does not snap the view.
+            Vector3 euler = cameraTransform.localRotation.eulerAngles;
+            _smoothedPitch = euler.x > 180f ? euler.x - 360f : euler.x;
+            _targetPitch = _smoothedPitch;
+            _pitchSmoothRef = 0f;
+            _currentTilt = 0f;
+            _tiltSmoothRef = 0f;
+        }
+    }
 
     // Head bob
     private float _bobTimer;
@@ -216,6 +248,11 @@ public class FPSController : MonoBehaviour, ISaveable
 
     private void HandleLook()
     {
+        // Cinematics (e.g. EndGameSequence) take the camera over completely —
+        // do not fight their scripted rotation with input-driven values.
+        if (_cinematicControl)
+            return;
+
         Vector2 lookInput = InputManager.Instance != null ? InputManager.Instance.LookInput : Vector2.zero;
         float sensitivity = mouseSensitivity
             * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f)

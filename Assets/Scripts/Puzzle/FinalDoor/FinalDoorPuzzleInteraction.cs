@@ -232,6 +232,11 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
     /// </summary>
     private IEnumerator CinematicSequenceRoutine()
     {
+        // Hide the puzzle inventory bar and the inventory panel while the
+        // screen fades to black — the panels disappear unnoticed.
+        PuzzleInventoryBar.Instance?.Hide();
+        InventoryUI.Instance?.CloseInventory();
+
         // ── Phase 1: Fade to black ──────────────────────────────────────────────
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeIn(_fadeDuration);

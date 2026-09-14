@@ -94,4 +94,19 @@ public class InputManager : MonoBehaviour
             _playerInputActions.Player.Disable();
         }
     }
+
+    /// <summary>
+    /// Enables or disables the UI action map (Menu, Inventory). Used by
+    /// cinematics that must not be interrupted by UI input — after the
+    /// final puzzle is solved no UI toggles should respond.
+    /// </summary>
+    public void SetUIInputEnabled(bool enabled) {
+        if (_playerInputActions == null) return;
+
+        if (enabled) {
+            _playerInputActions.UI.Enable();
+        } else {
+            _playerInputActions.UI.Disable();
+        }
+    }
 }
