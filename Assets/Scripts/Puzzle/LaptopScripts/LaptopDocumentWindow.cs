@@ -16,8 +16,11 @@ namespace EscapeOf.Puzzle.Laptop
         [SerializeField] private TMP_Text _pageCounter;
         [SerializeField] private ScrollRect _scrollRect;
 
+        private const float SeparatorHeight = 8f;
+
         private LaptopDocumentFile _docFile;
         private List<Image> _instantiatedPages = new List<Image>();
+        private List<Image> _instantiatedSeparators = new List<Image>();
 
         protected override void Awake()
         {
@@ -36,12 +39,18 @@ namespace EscapeOf.Puzzle.Laptop
 
         private void UpdateDisplay()
         {
-            // Clear previous pages
+            // Clear previous pages and separators
             foreach (var page in _instantiatedPages)
             {
                 if (page != null) Destroy(page.gameObject);
             }
             _instantiatedPages.Clear();
+
+            foreach (var sep in _instantiatedSeparators)
+            {
+                if (sep != null) Destroy(sep.gameObject);
+            }
+            _instantiatedSeparators.Clear();
 
             if (_docFile == null || _docFile.pages == null || _docFile.pages.Length == 0)
             {
@@ -74,6 +83,8 @@ namespace EscapeOf.Puzzle.Laptop
                 }
                 
                 _instantiatedPages.Add(newPage);
+
+                CreateSeparator();
             }
 
             if (_pageCounter != null)
@@ -81,6 +92,21 @@ namespace EscapeOf.Puzzle.Laptop
 
             // Reset scroll to top
             _scrollRect.verticalNormalizedPosition = 1f;
+        }
+
+        /// <summary>Creates a black separator bar after a page.</summary>
+        private void CreateSeparator()
+        {
+            var separatorObj = new GameObject("Page_Separator");
+            separatorObj.transform.SetParent(_scrollRect.content, false);
+
+            var separatorImage = separatorObj.AddComponent<Image>();
+            separatorImage.color = Color.black;
+
+            var rt = separatorObj.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(0, SeparatorHeight);
+
+            _instantiatedSeparators.Add(separatorImage);
         }
     }
 }
