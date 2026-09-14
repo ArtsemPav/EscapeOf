@@ -34,6 +34,7 @@ public class InventoryUI : MonoBehaviour
 
         CreateSlots();
         InventorySystem.Instance.OnInventoryChanged += RefreshSlots;
+        InventorySystem.Instance.OnRunesChanged += RefreshSlots;
     }
 
     private void OnEnable()
@@ -52,7 +53,10 @@ public class InventoryUI : MonoBehaviour
         }
 
         if (InventorySystem.Instance != null)
+        {
             InventorySystem.Instance.OnInventoryChanged -= RefreshSlots;
+            InventorySystem.Instance.OnRunesChanged -= RefreshSlots;
+        }
     }
 
     /// <summary>Creates all slots once at start. Slots are reused, not recreated.</summary>

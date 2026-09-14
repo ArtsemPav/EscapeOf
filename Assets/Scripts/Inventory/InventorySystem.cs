@@ -14,6 +14,10 @@ public class InventorySystem : MonoBehaviour, ISaveable
     [Header("Inventory")]
     [SerializeField] private int maxSlots = 8;
 
+    [Header("Runes")]
+    [Tooltip("All rune ItemData assets. Runes are routed to the pouch instead of inventory slots.")]
+    [SerializeField] private ItemData[] _runeDefinitions;
+
     [Header("Crafting")]
     [HideInInspector]
     [SerializeField] private CraftingRecipe[] recipes;
@@ -42,6 +46,30 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
     public event Action OnInventoryChanged;
 
+    /// <summary>Fires whenever the collected rune set changes (add or remove).</summary>
+    public event Action OnRunesChanged;
+
+    // ── Runes ────────────────────────────────────────────────────────────────
+
+    private readonly System.Collections.Generic.HashSet<string> _collectedRuneIds =
+        new System.Collections.Generic.HashSet<string>();
+
+    public int TotalRuneCount => _runeDefinitions != null ? _runeDefinitions.Length : 0;
+    public int CollectedRuneCount => _collectedRuneIds.Count;
+    public int RemainingRuneCount => TotalRuneCount - CollectedRuneCount;
+
+    /// <summary>Returns true if the item is one of the registered rune definitions.</summary>
+    public bool IsRune(ItemData item)
+    {
+        if (item == null || _runeDefinitions == null) return false;
+        foreach (var rune in _runeDefinitions)
+            if (rune == item) return true;
+        return false;
+    }
+
+    /// <summary>Returns true if a rune with the given ItemId has been collected.</summary>
+    public bool HasRune(string itemId) => _collectedRuneIds.Contains(itemId);
+
     /// <summary>Fires whenever a crafting recipe is successfully matched and executed.</summary>
     public event Action OnCrafted;
 
@@ -55,19 +83,31 @@ public class InventorySystem : MonoBehaviour, ISaveable
         var slotIds = new string[_slots.Length];
         for (int i = 0; i < _slots.Length; i++)
             slotIds[i] = _slots[i] != null ? _slots[i].ItemId : null;
-        return JsonUtility.ToJson(new InventorySaveData { slotIds = slotIds });
+        return JsonUtility.ToJson(new InventorySaveData
+        {
+            slotIds = slotIds,
+            runeIds = new System.Collections.Generic.List<string>(_collectedRuneIds).ToArray()
+        });
     }
 
     /// <summary>Restores slot contents from saved item IDs using the _allItems database.</summary>
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<InventorySaveData>(json);
-        if (data.slotIds == null) return;
-
-        for (int i = 0; i < _slots.Length && i < data.slotIds.Length; i++)
-            _slots[i] = FindItemById(data.slotIds[i]);
-
+        if (data.slotIds != null)
+        {
+            for (int i = 0; i < _slots.Length && i < data.slotIds.Length; i++)
+                _slots[i] = FindItemById(data.slotIds[i]);
+        }
+        if (data.runeIds != null)
+        {
+            _collectedRuneIds.Clear();
+            foreach (var id in data.runeIds)
+                if (!string.IsNullOrEmpty(id))
+                    _collectedRuneIds.Add(id);
+        }
         CompactSlots();
+        OnRunesChanged?.Invoke();
         OnInventoryChanged?.Invoke();
     }
 
@@ -76,6 +116,8 @@ public class InventorySystem : MonoBehaviour, ISaveable
     {
         for (int i = 0; i < _slots.Length; i++)
             _slots[i] = null;
+        _collectedRuneIds.Clear();
+        OnRunesChanged?.Invoke();
         OnInventoryChanged?.Invoke();
     }
 
@@ -132,6 +174,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
     private struct InventorySaveData
     {
         public string[] slotIds;
+        public string[] runeIds;
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -178,6 +221,17 @@ public class InventorySystem : MonoBehaviour, ISaveable
     {
         if (item == null) return false;
 
+        if (IsRune(item))
+        {
+            if (_collectedRuneIds.Add(item.ItemId))
+            {
+                OnRunesChanged?.Invoke();
+                OnInventoryChanged?.Invoke();
+                SaveManager.Instance?.Save();
+            }
+            return true;
+        }
+
         for (int i = 0; i < _slots.Length; i++)
         {
             if (_slots[i] != null || _reservedSlots.Contains(i)) continue;
@@ -194,6 +248,18 @@ public class InventorySystem : MonoBehaviour, ISaveable
     /// <summary>Removes the item from its slot. Returns true on success.</summary>
     public bool RemoveItem(ItemData item)
     {
+        if (IsRune(item))
+        {
+            if (_collectedRuneIds.Remove(item.ItemId))
+            {
+                OnRunesChanged?.Invoke();
+                OnInventoryChanged?.Invoke();
+                SaveManager.Instance?.Save();
+                return true;
+            }
+            return false;
+        }
+
         for (int i = 0; i < _slots.Length; i++)
         {
             if (_slots[i] != item) continue;
@@ -271,6 +337,9 @@ public class InventorySystem : MonoBehaviour, ISaveable
     /// <summary>Returns true if the inventory contains the given item.</summary>
     public bool HasItem(ItemData item)
     {
+        if (IsRune(item))
+            return _collectedRuneIds.Contains(item.ItemId);
+
         foreach (var slot in _slots)
             if (slot == item) return true;
         return false;
