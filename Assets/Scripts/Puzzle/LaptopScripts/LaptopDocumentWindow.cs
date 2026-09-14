@@ -77,14 +77,10 @@ namespace EscapeOf.Puzzle.Laptop
             }
 
             if (_pageCounter != null)
-                _pageCounter.text = $"{_docFile.pages.Length} pages";
+                _pageCounter.text = $"{_instantiatedPages.Count} pages";
 
             // Reset scroll to top
             _scrollRect.verticalNormalizedPosition = 1f;
         }
-
-        // Methods kept for potential external calls, but buttons will be hidden in prefab
-        public void NextPage() { }
-        public void PrevPage() { }
     }
-    }
+}
