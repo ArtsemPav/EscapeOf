@@ -8,7 +8,7 @@ using Random = UnityEngine.Random;
 
 /// <summary>
 /// Мини-игра "Skill Check" в стиле Dead by Daylight.
-/// Стрелка вращается по кругу, игрок нажимает ЛКМ в момент,
+/// Стрелка вращается по кругу, игрок нажимает Space в момент,
 /// когда стрелка проходит над сектором попадания.
 /// Белая зона даёт больше прогресса, серая — меньше.
 /// Прогресс-бар заполняется при попаданиях.
@@ -56,6 +56,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     [SerializeField] private Image _whiteSector;
     [SerializeField] private RectTransform _arrow;
     [SerializeField] private Image _progressBarFill;
+    [SerializeField] private RectTransform _progressBarBg;
     [SerializeField] private TextMeshProUGUI _missCounterText;
 
     [Header("Circle Position")]
@@ -123,6 +124,8 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
             _arrow = _circleContainer.Find("Arrow") as RectTransform;
         if (_progressBarFill == null)
             _progressBarFill = transform.Find("ProgressBarBg/ProgressFill")?.GetComponent<Image>();
+        if (_progressBarBg == null)
+            _progressBarBg = transform.Find("ProgressBarBg") as RectTransform;
         if (_missCounterText == null)
             _missCounterText = transform.Find("MissCounter")?.GetComponent<TextMeshProUGUI>();
     }
@@ -237,7 +240,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         UpdateArrowVisual();
     }
 
-    /// <summary>Случайно позиционирует CircleContainer в пределах экрана с отступом.</summary>
+    /// <summary>Случайно позиционирует CircleContainer в пределах экрана с отступом, исключая зону прогресс-бара.</summary>
     private void RandomizeCirclePosition()
     {
         if (_circleContainer == null) return;
@@ -249,13 +252,45 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         float halfWidth = bounds.width * 0.5f;
         float halfHeight = bounds.height * 0.5f;
 
-        float elemHalfW = _circleContainer.rect.width * 0.5f;
-        float elemHalfH = _circleContainer.rect.height * 0.5f;
+        // Использовать реальный визуальный размер круга (RingBackground), а не CircleContainer
+        float circleRadius = _ringBackground != null ? _ringBackground.rectTransform.rect.width * 0.5f : 130f;
+        float elemHalfW = circleRadius;
+        float elemHalfH = circleRadius;
 
         float minX = -halfWidth + elemHalfW + _circleScreenMargin.x;
         float maxX = halfWidth - elemHalfW - _circleScreenMargin.x;
         float minY = -halfHeight + elemHalfH + _circleScreenMargin.y;
         float maxY = halfHeight - elemHalfH - _circleScreenMargin.y;
+
+        // Исключить Y-зону прогресс-бара, чтобы круг не перекрывал его
+        if (_progressBarBg != null)
+        {
+            float pbY = _progressBarBg.anchoredPosition.y;
+            float pbHalfH = _progressBarBg.rect.height * 0.5f;
+            float excludeMin = pbY - pbHalfH - elemHalfH;
+            float excludeMax = pbY + pbHalfH + elemHalfH;
+
+            if (excludeMin <= minY && excludeMax > minY)
+            {
+                // Зона исключения пересекает нижнюю границу — поднять minY
+                minY = excludeMax;
+            }
+            else if (excludeMax >= maxY && excludeMin < maxY)
+            {
+                // Зона исключения пересекает верхнюю границу — опустить maxY
+                maxY = excludeMin;
+            }
+            else if (excludeMin > minY && excludeMax < maxY)
+            {
+                // Зона исключения внутри диапазона — выбрать большую из двух доступных зон
+                float belowSize = excludeMin - minY;
+                float aboveSize = maxY - excludeMax;
+                if (belowSize >= aboveSize)
+                    maxY = excludeMin;
+                else
+                    minY = excludeMax;
+            }
+        }
 
         float x = maxX > minX ? Random.Range(minX, maxX) : 0f;
         float y = maxY > minY ? Random.Range(minY, maxY) : 0f;
@@ -280,7 +315,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
             return;
         }
 
-        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
         {
             EvaluateHit();
         }
