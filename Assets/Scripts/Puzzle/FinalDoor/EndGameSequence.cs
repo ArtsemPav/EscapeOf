@@ -117,6 +117,10 @@ public class EndGameSequence : MonoBehaviour
              "puzzle exit fade finish so the player sees the door).")]
     [SerializeField, Min(0f)] private float _startDelay = 2f;
 
+    [Tooltip("How many seconds before the walk ends the final fade starts. " +
+             "Higher values darken earlier over the last steps.")]
+    [SerializeField, Min(0.1f)] private float _earlyFadeLead = 5f;
+
     [Tooltip("Duration of the final fade to black.")]
     [SerializeField, Min(0.1f)] private float _fadeDuration = 2.5f;
 
@@ -582,9 +586,9 @@ public class EndGameSequence : MonoBehaviour
             if (remaining < 0f)
                 break; // walk finished or impossible
 
-            // One second of walking left at the (slow) final speed.
+            // EarlyFadeLead seconds of walking left at the (slow) final speed.
             float walkSpeed = _lookPoint != null ? _guiltWalkSpeed : _walkSpeed;
-            if (remaining <= walkSpeed * 1f && ScreenFader.Instance != null)
+            if (remaining <= walkSpeed * _earlyFadeLead && ScreenFader.Instance != null)
             {
                 // One second of walking left — start the fade now.
                 StartCoroutine(FadeOutRemainingRoutine());

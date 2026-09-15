@@ -12526,6 +12526,10 @@ PrefabInstance:
       propertyPath: Lens.FieldOfView
       value: 39
       objectReference: {fileID: 0}
+    - target: {fileID: 2993658923989067443, guid: fb280bd1ca2de034cb3be12f92066ca2, type: 3}
+      propertyPath: _scullAnimator
+      value: 
+      objectReference: {fileID: 642777447774495250}
     - target: {fileID: 3036606106350473695, guid: fb280bd1ca2de034cb3be12f92066ca2, type: 3}
       propertyPath: m_LocalPosition.x
       value: -6.27
@@ -12819,6 +12823,10 @@ PrefabInstance:
       value: 0.87
       objectReference: {fileID: 0}
     - target: {fileID: 8150637592079974187, guid: fb280bd1ca2de034cb3be12f92066ca2, type: 3}
+      propertyPath: _scullAnimator
+      value: 
+      objectReference: {fileID: 642777447774495250}
+    - target: {fileID: 8150637592079974187, guid: fb280bd1ca2de034cb3be12f92066ca2, type: 3}
       propertyPath: '_doorMedallionOrder.Array.data[0]'
       value: 
       objectReference: {fileID: 11400000, guid: c24ac5bc12c14914f9a761b2191aa749, type: 2}
@@ -12982,7 +12990,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EndGameSequence
   _controller: {fileID: 0}
-  _doorAnimator: {fileID: 0}
+  _doorAnimator: {fileID: 642777447774495250}
   _doorOpenStateName: doorOpen
   _doorOpenFallbackDuration: 4.5
   _walkTarget: {fileID: 0}
@@ -13008,9 +13016,15 @@ MonoBehaviour:
   _arrivalThreshold: 0.2
   _maxWalkDuration: 20
   _startDelay: 2
+  _earlyFadeLead: 5
   _fadeDuration: 2.5
   _creditsView: {fileID: 0}
   _debugLogging: 1
+--- !u!95 &642777447774495250 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 1096615492576419136, guid: fb280bd1ca2de034cb3be12f92066ca2, type: 3}
+  m_PrefabInstance: {fileID: 566450060214026066}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3312501422762978957 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3036606106350473695, guid: fb280bd1ca2de034cb3be12f92066ca2, type: 3}
