@@ -45,6 +45,8 @@ public class ItemTooltip : MonoBehaviour
 
         itemNameText.text    = item.itemName;
         descriptionText.text = item.description;
+        descriptionText.gameObject.SetActive(true);
+        itemNameText.alignment = TMPro.TextAlignmentOptions.TopLeft;
         panel.gameObject.SetActive(true);
 
         PositionNearSlot(slotRect);
@@ -61,6 +63,13 @@ public class ItemTooltip : MonoBehaviour
     {
         itemNameText.text    = title;
         descriptionText.text = description;
+
+        bool hasDescription = !string.IsNullOrEmpty(description);
+        descriptionText.gameObject.SetActive(hasDescription);
+        itemNameText.alignment = hasDescription
+            ? TMPro.TextAlignmentOptions.TopLeft
+            : TMPro.TextAlignmentOptions.Center;
+
         panel.gameObject.SetActive(true);
 
         // Force TMP to compute text geometry before layout rebuild,

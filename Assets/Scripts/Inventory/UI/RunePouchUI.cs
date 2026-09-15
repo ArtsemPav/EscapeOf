@@ -83,7 +83,7 @@ public class RunePouchUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         if (_allRunesCollected)
         {
             title = MasterTooltipTitle;
-            description = InventorySystem.Instance.CollectedRuneCount.ToString();
+            description = "";
         }
         else
         {
