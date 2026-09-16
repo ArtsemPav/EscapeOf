@@ -15,9 +15,18 @@ public class InputManager : MonoBehaviour
     public event Action OnInteractPerformed;
     public event Action OnJumpPerformed;
     public event Action<bool> OnSprintToggled;
-    public event Action<bool> OnCrouchToggled;
     public event Action OnMenuPerformed;
     public event Action OnInventoryPerformed;
+
+    // True while the Player action map is enabled. While false (inventory panel,
+    // puzzle, cinematic) crouch state must not change — see FPSController.
+    private bool _playerInputEnabled = true;
+    public bool IsPlayerInputEnabled => _playerInputEnabled;
+
+    /// <summary>True while the Crouch button is physically held. Polled by FPSController
+    /// instead of canceled events, because disabling the action map (panel opens)
+    /// fires a spurious Crouch.canceled even when the key is still down.</summary>
+    public bool CrouchIsHeld => _playerInputEnabled && _playerInputActions.Player.Crouch.IsPressed();
 
     private void Awake() {
         if (Instance == null) {
@@ -43,8 +52,6 @@ public class InputManager : MonoBehaviour
         _playerInputActions.Player.Jump.performed += OnJumpPerformedAction;
         _playerInputActions.Player.Sprint.performed += OnSprintPerformed;
         _playerInputActions.Player.Sprint.canceled += OnSprintCanceled;
-        _playerInputActions.Player.Crouch.performed += OnCrouchPerformed;
-        _playerInputActions.Player.Crouch.canceled += OnCrouchCanceled;
 
         // UI Actions
         _playerInputActions.UI.Menu.performed += OnMenuPerformedAction;
@@ -62,8 +69,6 @@ public class InputManager : MonoBehaviour
         _playerInputActions.Player.Jump.performed -= OnJumpPerformedAction;
         _playerInputActions.Player.Sprint.performed -= OnSprintPerformed;
         _playerInputActions.Player.Sprint.canceled -= OnSprintCanceled;
-        _playerInputActions.Player.Crouch.performed -= OnCrouchPerformed;
-        _playerInputActions.Player.Crouch.canceled -= OnCrouchCanceled;
 
         _playerInputActions.UI.Menu.performed -= OnMenuPerformedAction;
         _playerInputActions.UI.Inventory.performed -= OnInventoryPerformedAction;
@@ -80,15 +85,15 @@ public class InputManager : MonoBehaviour
     private void OnJumpPerformedAction(InputAction.CallbackContext ctx) => OnJumpPerformed?.Invoke();
     private void OnSprintPerformed(InputAction.CallbackContext ctx) => OnSprintToggled?.Invoke(true);
     private void OnSprintCanceled(InputAction.CallbackContext ctx) => OnSprintToggled?.Invoke(false);
-    private void OnCrouchPerformed(InputAction.CallbackContext ctx) => OnCrouchToggled?.Invoke(true);
-    private void OnCrouchCanceled(InputAction.CallbackContext ctx) => OnCrouchToggled?.Invoke(false);
     private void OnMenuPerformedAction(InputAction.CallbackContext ctx) => OnMenuPerformed?.Invoke();
     private void OnInventoryPerformedAction(InputAction.CallbackContext ctx) => OnInventoryPerformed?.Invoke();
 
     public void SetPlayerInputEnabled(bool enabled) {
         if (enabled) {
+            _playerInputEnabled = true;
             _playerInputActions.Player.Enable();
         } else {
+            _playerInputEnabled = false;
             MoveInput = Vector2.zero;
             LookInput = Vector2.zero;
             _playerInputActions.Player.Disable();

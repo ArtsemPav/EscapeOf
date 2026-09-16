@@ -202,7 +202,6 @@ public class FPSController : MonoBehaviour, ISaveable
             InputManager.Instance.OnInteractPerformed += OnInteract;
             InputManager.Instance.OnJumpPerformed += OnJump;
             InputManager.Instance.OnSprintToggled += OnSprint;
-            InputManager.Instance.OnCrouchToggled += OnCrouch;
             InputManager.Instance.OnMenuPerformed += OnMenuPressed;
         }
     }
@@ -214,7 +213,6 @@ public class FPSController : MonoBehaviour, ISaveable
             InputManager.Instance.OnInteractPerformed -= OnInteract;
             InputManager.Instance.OnJumpPerformed -= OnJump;
             InputManager.Instance.OnSprintToggled -= OnSprint;
-            InputManager.Instance.OnCrouchToggled -= OnCrouch;
             InputManager.Instance.OnMenuPerformed -= OnMenuPressed;
         }
         SaveManager.Instance?.Unregister(this);
@@ -232,6 +230,7 @@ public class FPSController : MonoBehaviour, ISaveable
         {
             HandleGravity();
             HandleMovement();
+            HandleCrouchInput();
             HandleCrouchTransition();
         }
         HandleLook();
@@ -481,29 +480,43 @@ public class FPSController : MonoBehaviour, ISaveable
         }
     }
 
-    private void OnCrouch(bool performed) {
-        if (performed) {
-            // Нажали на кнопку приседания - приседаем
-            _isCrouching = true;
-            _targetHeight = crouchingHeight;
-            _wantsToStand = false;
-        } else {
-            // Отпустили кнопку - хотим встать
-            _wantsToStand = true;
+    private void OnSprint(bool performed) => _isRunning = performed;
 
-            // Пытаемся встать сразу, если есть место
-            if (CanStandUp()) {
+    /// <summary>
+    /// Crouch is polled (not event-driven) so the crouch state survives input
+    /// being disabled by a panel/puzzle: disabling the Player action map fires a
+    /// spurious Crouch.canceled even while the key is still held, which used to
+    /// force the player to stand up. While input is disabled (UI open, puzzle,
+    /// cinematic) the crouch state is frozen; when input returns, the player
+    /// stands up only if the button is really released.
+    /// </summary>
+    private void HandleCrouchInput()
+    {
+        if (!InputManager.Instance.IsPlayerInputEnabled)
+            return; // UI/puzzle owns input — keep the current crouch state
+
+        if (InputManager.Instance.CrouchIsHeld)
+        {
+            if (!_isCrouching)
+            {
+                _isCrouching = true;
+                _targetHeight = crouchingHeight;
+                _wantsToStand = false;
+            }
+        }
+        else if (_isCrouching)
+        {
+            // Button released (or was released while a panel was open) — try to stand
+            if (CanStandUp())
+            {
                 _isCrouching = false;
                 _targetHeight = standingHeight;
                 _wantsToStand = false;
-            } else {
-                // Если нет места, остаемся в положении сидя
-                _isCrouching = true;
-                _targetHeight = crouchingHeight;
-
-                // Здесь можно добавить звуковой сигнал или визуальный индикатор,
-                // что встать невозможно
-                Debug.Log("Cannot stand up - obstacle above!");
+            }
+            else
+            {
+                // Stay crouched until there is room to stand up
+                _wantsToStand = true;
             }
         }
     }
@@ -513,8 +526,6 @@ public class FPSController : MonoBehaviour, ISaveable
         bool _canStandUp = !Physics.Raycast(transform.position + Vector3.up * crouchingHeight, Vector3.up, checkDistance);
         return _canStandUp;
     }
-
-    private void OnSprint(bool performed) => _isRunning = performed;
 
     /// <summary>
     /// Locks the player's XZ position for the given duration so animated objects
