@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.InputSystem;
@@ -33,6 +34,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     private const float MinCursorDistanceSqr  = 1f;
     private const float MinDragDeltaThreshold = 0.05f;
     private const float ComboResetStepMultiplier = 2f;
+    private const int   WrongStepRevolutions  = 2;
 
     // Max distance for the IsMouseOverDial raycast — the puzzle camera is close to the dial.
     private const float DialRaycastMaxDistance = 10f;
@@ -69,11 +71,12 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     [SerializeField] private AudioClip _correctStepSound;
     [SerializeField, Range(0f, 1f)] private float _correctStepVolume = 1f;
 
+    [Tooltip("Sound played when the dial is spinning back to 0 after a wrong step.")]
+    [SerializeField] private AudioClip _wrongStepSound;
+    [SerializeField, Range(0f, 1f)] private float _wrongStepVolume = 1f;
+
     [Tooltip("If assigned, audio feedback will only play when this item is APPLIED to the dial.")]
     [SerializeField] private ItemData _requiredItemForAudio;
-
-    [Tooltip("Collider that accepts item drops. If unassigned, falls back to the collider on this GameObject.")]
-    [SerializeField] private Collider _dropCollider;
 
 
 
@@ -93,7 +96,6 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     // ── State ──────────────────────────────────────────────────────────────────
 
     private Collider _colliderLock;
-    private Collider _dialCollider;
     private int  _currentStep;
     private bool _isUnlocked;
     private int  _stepsPerRevolution;
@@ -109,6 +111,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private Camera               _mainCamera;
     private bool                 _isRequiredItemApplied;
+    private bool                 _isResetting;
 
     // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -152,8 +155,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         _stepsPerRevolution = Mathf.RoundToInt(FullRevolutionDegrees / _stepAngle);
         _targetRotation     = transform.localRotation;
-        _dialCollider = GetComponent<Collider>();
-        _colliderLock = _dropCollider != null ? _dropCollider : _dialCollider;
+        _colliderLock = GetComponent<Collider>();
         _mainCamera         = Camera.main;
         if (_puzzleMode == null) {
             _puzzleMode = GetComponentInParent<PuzzleModeController>();
@@ -192,9 +194,10 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private void Update()
     {
-        ApplySmoothRotation();
+        if (!_isResetting)
+            ApplySmoothRotation();
 
-        if (_puzzleMode != null && _puzzleMode.IsActive && !_isUnlocked)
+        if (_puzzleMode != null && _puzzleMode.IsActive && !_isUnlocked && !_isResetting)
         {
             ProcessInput();
         }
@@ -377,9 +380,43 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         else if (Mathf.Abs(_dragRotationDelta) > _stepAngle * ComboResetStepMultiplier)
         {
             // Reset if significant movement in wrong way
-            _comboProgressIndex = 0;
-            Debug.Log($"[{nameof(LockDial)}] Wrong step. Resetting sequence.");
+            StartCoroutine(ResetDialRoutine());
         }
+    }
+
+    /// <summary>
+    /// Rotates the dial WrongStepRevolutions full turns, then snaps to step 0.
+    /// Blocks input and smooth-rotation while running.
+    /// </summary>
+    private IEnumerator ResetDialRoutine()
+    {
+        _isResetting        = true;
+        _comboProgressIndex = 0;
+        ResetDragState();
+
+        if (_wrongStepSound != null)
+            AudioManager.Instance?.PlaySFX(_wrongStepSound, _wrongStepVolume);
+
+        Quaternion startRotation = transform.localRotation;
+        Vector3    axis          = _rotationAxis.normalized;
+        float      totalDegrees  = WrongStepRevolutions * FullRevolutionDegrees;
+        float      duration      = totalDegrees / _rotationSpeed;
+        float      elapsed       = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float angle = Mathf.Min(elapsed / duration, 1f) * totalDegrees;
+            transform.localRotation = startRotation * Quaternion.AngleAxis(angle, axis);
+            yield return null;
+        }
+
+        _currentStep    = 0;
+        _targetRotation = CalculateStepRotation(0);
+        transform.localRotation = _targetRotation;
+        _isResetting    = false;
+
+        Debug.Log($"[{nameof(LockDial)}] Wrong step. Dial reset to 0 after {WrongStepRevolutions} revolutions.");
     }
 
     private void Unlock()
@@ -427,9 +464,6 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         _isRequiredItemApplied = true;
         Debug.Log($"[{nameof(LockDial)}] {_requiredItemForAudio.itemName} applied to safe. Advanced audio feedback enabled.");
 
-        // Disable the drop collider — the item has been applied, no more drops needed.
-        if (_colliderLock != null) _colliderLock.enabled = false;
-
         if (_puzzleMode != null && _puzzleMode.IsActive)
         {
             AudioManager.Instance?.MuteBackground();
@@ -457,8 +491,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         // Ensure the dial collider is enabled so IsMouseOverDial can detect it.
         // It may have been disabled by RoomController.Lock() or left disabled in the prefab.
-        if (_dialCollider != null) _dialCollider.enabled = true;
-        if (_colliderLock != null && _colliderLock != _dialCollider) _colliderLock.enabled = true;
+        if (_colliderLock != null) _colliderLock.enabled = true;
 
         if (_isRequiredItemApplied) {
             AudioManager.Instance?.MuteBackground();
@@ -470,10 +503,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private void OnPuzzleExited()
     {
-        // Disable the colliders so they don't block PuzzleInteract's collider
+        // Disable the dial collider so it doesn't block PuzzleInteract's collider
         // (they overlap on the door) when not in puzzle mode.
         if (_colliderLock != null) _colliderLock.enabled = false;
-        if (_dialCollider != null && _dialCollider != _colliderLock) _dialCollider.enabled = false;
 
         if (!HasRequiredItem()) return;
 
