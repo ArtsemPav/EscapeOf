@@ -361,26 +361,53 @@ public class SaveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Loads the default slot. Falls back to backup files if the main file is missing or corrupted.
+    /// Loads the default slot. Falls back to backup files if the main file is missing, unreadable, or corrupted.
     /// Returns true if any save data was found and applied.
     /// </summary>
     public bool Load() => Load(defaultSlot);
 
-    /// <summary>Loads the specified slot with automatic backup fallback.</summary>
+    /// <summary>
+    /// Loads the specified slot with automatic backup fallback.
+    /// Fallback triggers when the main file is missing, unreadable, OR fails to
+    /// parse (truncated JSON from an interrupted write) — a corrupt-but-readable
+    /// file must not silently reset progress when valid backups exist.
+    /// Returns true if any save data was found and applied.
+    /// </summary>
     public bool Load(int slot)
     {
-        if (!TryReadSaveFile(slot, out string json))
+        // Main file, then each backup in order — first one that reads AND parses wins.
+        if (TryLoadSlot(GetSavePath(slot), out _, isBackup: false))
+            return true;
+
+        for (int i = 1; i <= backupCount; i++)
+        {
+            if (TryLoadSlot(GetBackupPath(slot, i), out _, isBackup: true))
+            {
+                Debug.LogWarning($"[SaveManager] Main save corrupted or missing. Loaded backup {i} for slot {slot}.");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Attempts to read and parse a save file, then distribute data to ISaveables.</summary>
+    private bool TryLoadSlot(string path, out bool parsed, bool isBackup)
+    {
+        parsed = false;
+        if (!TryReadFile(path, out string json))
             return false;
 
         GameSaveData data;
         try { data = JsonUtility.FromJson<GameSaveData>(json); }
         catch (Exception e)
         {
-            Debug.LogError($"[SaveManager] Parse failed: {e.Message}");
-            return false;
+            Debug.LogError($"[SaveManager] Parse failed ({path}): {e.Message}");
+            return false; // caller falls through to the next backup
         }
 
         if (data == null) return false;
+        parsed = true;
 
         if (data.version != CurrentVersion)
             Debug.LogWarning($"[SaveManager] Save version mismatch: expected {CurrentVersion}, got {data.version}. Some data may not restore correctly.");
@@ -398,7 +425,7 @@ public class SaveManager : MonoBehaviour
             }
         }
 
-        Debug.Log($"[SaveManager] Loaded slot {slot} (timestamp: {data.timestamp})");
+        Debug.Log($"[SaveManager] Loaded {(isBackup ? "backup" : "save")} {path} (timestamp: {data.timestamp})");
         return true;
     }
 
@@ -422,24 +449,6 @@ public class SaveManager : MonoBehaviour
     public bool HasSave(int slot = 0) => File.Exists(GetSavePath(slot));
 
     // ── File helpers ──────────────────────────────────────────────────────────
-
-    /// <summary>Tries the main file then each backup in order until one is readable.</summary>
-    private bool TryReadSaveFile(int slot, out string json)
-    {
-        if (TryReadFile(GetSavePath(slot), out json)) return true;
-
-        for (int i = 1; i <= backupCount; i++)
-        {
-            if (TryReadFile(GetBackupPath(slot, i), out json))
-            {
-                Debug.LogWarning($"[SaveManager] Main save unreadable. Loaded backup {i} for slot {slot}.");
-                return true;
-            }
-        }
-
-        json = null;
-        return false;
-    }
 
     private static bool TryReadFile(string path, out string content)
     {
