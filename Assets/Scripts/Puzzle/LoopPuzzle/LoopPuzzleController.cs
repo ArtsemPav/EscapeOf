@@ -86,6 +86,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
     [Tooltip("Duration of the reward drawer opening animation during the cinematic (seconds).")]
     [SerializeField, Min(0.1f)] private float _drawerOpenDuration = 2f;
 
+    [Tooltip("Solved room light. Activated and faded in when the solved camera is shown, " +
+             "faded out and deactivated when the cinematic ends.")]
+    [SerializeField] private SolvedLightFade _solvedLight;
+
     private const int CinematicCameraPriority = 3000;
 
     private bool _isSolved;
@@ -144,6 +148,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
         if (_solvedCamera != null)
             _solvedCamera.gameObject.SetActive(false);
 
+        if (_solvedLight != null)
+            _solvedLight.gameObject.SetActive(false);
+
         _brain = Camera.main != null ? Camera.main.GetComponent<CinemachineBrain>() : null;
         if (_brain == null)
             _brain = FindFirstObjectByType<CinemachineBrain>();
@@ -187,6 +194,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             _solvedCamera.Priority = 0;
             _solvedCamera.gameObject.SetActive(false);
         }
+
+        if (_solvedLight != null)
+            _solvedLight.gameObject.SetActive(false);
 
         SetBlendDuration(_originalBlendTime);
         InputManager.Instance?.SetPlayerInputEnabled(true);
@@ -500,6 +510,11 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             _solvedCamera.gameObject.SetActive(true);
         }
 
+        // Activate the solved-room light while the screen is black —
+        // SolvedLightFade fades it in smoothly during Phase 3.
+        if (_solvedLight != null)
+            _solvedLight.gameObject.SetActive(true);
+
         // Wait one frame so the brain processes the instant cut.
         yield return null;
 
@@ -519,6 +534,11 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
         yield return new WaitForSeconds(_solvedCameraDuration);
 
         // ── Phase 6: Fade to black again ─────────────────────────────────────────
+        // Start fading the solved-room light out at the same time — it dims
+        // smoothly while the screen darkens instead of popping off.
+        if (_solvedLight != null)
+            _solvedLight.FadeOut();
+
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeIn(_fadeDuration);
         else
@@ -530,6 +550,11 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             _solvedCamera.Priority = 0;
             _solvedCamera.gameObject.SetActive(false);
         }
+
+        // Screen is fully black — deactivate the solved light before the player
+        // regains control so the GameObject is off until the next cinematic.
+        if (_solvedLight != null)
+            _solvedLight.gameObject.SetActive(false);
 
         // Wait one frame so the brain processes the instant cut.
         yield return null;

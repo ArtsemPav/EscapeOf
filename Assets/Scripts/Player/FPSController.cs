@@ -140,14 +140,16 @@ public class FPSController : MonoBehaviour, ISaveable
 
     private Vector3? _pendingPosition;
     private float    _pendingYaw;
+    private bool?    _pendingCrouch;
 
-    /// <summary>Serializes player world position and horizontal rotation.</summary>
+    /// <summary>Serializes player world position, horizontal rotation and crouch state.</summary>
     public string GetSaveData() => JsonUtility.ToJson(new PlayerSaveData
     {
-        x   = transform.position.x,
-        y   = transform.position.y,
-        z   = transform.position.z,
-        yaw = transform.eulerAngles.y,
+        x           = transform.position.x,
+        y           = transform.position.y,
+        z           = transform.position.z,
+        yaw         = transform.eulerAngles.y,
+        isCrouching = _isCrouching,
     });
 
     /// <summary>Stores pending position. Applied in Start() after CharacterController is ready.</summary>
@@ -155,7 +157,8 @@ public class FPSController : MonoBehaviour, ISaveable
     {
         var data = JsonUtility.FromJson<PlayerSaveData>(json);
         _pendingPosition = new Vector3(data.x, data.y, data.z);
-        _pendingYaw = data.yaw;
+        _pendingYaw      = data.yaw;
+        _pendingCrouch   = data.isCrouching;
     }
 
     /// <summary>Instantly moves the player to the given position and yaw without physics interaction.</summary>
@@ -173,6 +176,7 @@ public class FPSController : MonoBehaviour, ISaveable
     private struct PlayerSaveData
     {
         public float x, y, z, yaw;
+        public bool  isCrouching;
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -192,6 +196,25 @@ public class FPSController : MonoBehaviour, ISaveable
         {
             Teleport(_pendingPosition.Value, _pendingYaw);
             _pendingPosition = null;
+        }
+
+        // Restore crouch state BEFORE the first movement frame. Applied instantly
+        // (no smooth transition) so a capsule restored standing up inside a
+        // low tunnel cannot poke through the ceiling or get the player stuck.
+        if (_pendingCrouch.HasValue)
+        {
+            bool crouch = _pendingCrouch.Value;
+            _pendingCrouch = null;
+            if (crouch)
+            {
+                _isCrouching   = true;
+                _targetHeight  = crouchingHeight;
+                _wantsToStand  = false;
+                _characterController.height  = crouchingHeight;
+                _characterController.center  = new Vector3(0f, crouchingHeight * 0.5f, 0f);
+                _baseCameraLocalY            = crouchingHeight - cameraOffset;
+            }
+            // Standing is the default state — nothing to restore.
         }
     }
 

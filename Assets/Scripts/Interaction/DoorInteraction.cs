@@ -321,6 +321,9 @@ namespace Escape.Core {
                 return;
             }
 
+            // Unlock ajar animation in progress: let it finish, ignore new drags.
+            if (_isUnlockAnimating) return;
+
             // Locked door: play locked sound and prevent any movement.
             if (_isLocked && !_isOpen) {
                 AudioManager.Instance.PlaySFX(_lockedClip);
@@ -349,6 +352,8 @@ namespace Escape.Core {
         public void OnDrag(Vector2 mouseDelta) {
             // Click mode ignores continuous drag — the door animates on its own.
             if (_openMode == DoorOpenMode.Click) return;
+            // Unlock ajar animation in progress: ignore drag input until it finishes.
+            if (_isUnlockAnimating) return;
             // Locked door: drag is a no-op.
             if (_isLocked && !_isOpen) return;
 
@@ -494,6 +499,7 @@ namespace Escape.Core {
             _isDragging        = false;
             if (AudioManager.Instance != null)
                 AudioManager.Instance.PlaySFX(_unlockClip);
+            SaveManager.Instance?.Save();
         }
 
         /// <summary>

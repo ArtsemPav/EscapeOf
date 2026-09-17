@@ -12,7 +12,7 @@ using UnityEngine.InputSystem;
 /// Intensity transitions smoothly; range, angle, and color apply instantly on mode/state change.
 /// </summary>
 [RequireComponent(typeof(Light))]
-public class FlashlightController : MonoBehaviour
+public class FlashlightController : MonoBehaviour, ISaveable
 {
     /// <summary>Singleton instance. Set in Awake, cleared in OnDestroy.</summary>
     public static FlashlightController Instance { get; private set; }
@@ -77,6 +77,31 @@ public class FlashlightController : MonoBehaviour
     private float _proximityScaleVelocity;
     private int _modeIndex;
 
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    public string SaveId => "flashlight";
+
+    /// <summary>Serializes whether the flashlight is currently on.</summary>
+    public string GetSaveData() => JsonUtility.ToJson(new FlashlightSaveData { isOn = _isOn });
+
+    /// <summary>Stores pending state. Applied in Start() after Awake initialization.</summary>
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<FlashlightSaveData>(json);
+        _pendingIsOn = data.isOn;
+    }
+
+    [Serializable]
+    private struct FlashlightSaveData
+    {
+        public bool isOn;
+    }
+
+    private bool? _pendingIsOn;
+    // True while applying loaded state in Start() — suppresses the redundant
+    // Save() that SetState() would otherwise trigger right after loading.
+    private bool _restoringState;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -101,6 +126,8 @@ public class FlashlightController : MonoBehaviour
         _modeIndex = 0;
         if (config.modes != null && config.modes.Length > 0)
             CurrentMode = config.modes[0].mode;
+
+        SaveManager.Instance?.Register(this);
     }
 
     private void Start()
@@ -109,6 +136,23 @@ public class FlashlightController : MonoBehaviour
         {
             InventorySystem.Instance.OnInventoryChanged += OnInventoryChanged;
             DetectAndApplyMode();
+        }
+
+        // Apply loaded on/off state. This is a snapshot restore, not a gameplay
+        // toggle — no sound, and no re-save (state was already persisted).
+        if (_pendingIsOn.HasValue)
+        {
+            bool on = _pendingIsOn.Value;
+            _pendingIsOn = null;
+            // Only restore ON if the operating condition is still met
+            // (e.g. the charged battery was consumed before saving — the
+            // flashlight must never force itself on without power).
+            if (on && config != null && config.operatingCondition.IsMet())
+            {
+                _restoringState = true;
+                SetState(true);
+                _restoringState = false;
+            }
         }
     }
 
@@ -119,6 +163,8 @@ public class FlashlightController : MonoBehaviour
 
         if (InventorySystem.Instance != null)
             InventorySystem.Instance.OnInventoryChanged -= OnInventoryChanged;
+
+        SaveManager.Instance?.Unregister(this);
     }
 
     private void Update()
@@ -266,6 +312,7 @@ public class FlashlightController : MonoBehaviour
 
     private void SetState(bool on)
     {
+        bool wasOn = _isOn;
         _isOn = on;
 
         if (!on)
@@ -283,6 +330,9 @@ public class FlashlightController : MonoBehaviour
                 _light.color      = modeConfig.onState.color;
             }
         }
+
+        if (wasOn != on && !_restoringState)
+            SaveManager.Instance?.Save();
 
         OnModeChanged?.Invoke(CurrentMode);
     }
