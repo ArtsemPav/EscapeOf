@@ -1,5 +1,58 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &714006597100786372
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4384589845396548519}
+  - component: {fileID: 1209427697741421754}
+  m_Layer: 10
+  m_Name: DropTarget
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4384589845396548519
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 714006597100786372}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0.004835613, y: -0.0014219787, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2269009649599135909}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1209427697741421754
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 714006597100786372}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.01, y: 0.004, z: 0.01}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &3002447721795382468
 GameObject:
   m_ObjectHideFlags: 0
@@ -198,6 +251,7 @@ MonoBehaviour:
   _correctStepSound: {fileID: 8300000, guid: 0258203339fdf8c4eb8366e6c0704961, type: 3}
   _correctStepVolume: 1
   _requiredItemForAudio: {fileID: 11400000, guid: 48707e517ff49044697d873b8740eda1, type: 2}
+  _dropCollider: {fileID: 1209427697741421754}
   _puzzleBackgroundLayer: {fileID: 8300000, guid: 7994bf67935cccb449ef8725153555a6, type: 3}
   _puzzleBackgroundLayerVolume: 0.8
   _onUnlocked:
@@ -669,6 +723,7 @@ Transform:
   - {fileID: 3237136902907198378}
   - {fileID: 8518958583516803724}
   - {fileID: 3177638285967469863}
+  - {fileID: 4384589845396548519}
   m_Father: {fileID: 500705088446703722}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &857551541520553579

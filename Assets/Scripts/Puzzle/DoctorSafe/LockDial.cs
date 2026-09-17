@@ -72,6 +72,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     [Tooltip("If assigned, audio feedback will only play when this item is APPLIED to the dial.")]
     [SerializeField] private ItemData _requiredItemForAudio;
 
+    [Tooltip("Collider that accepts item drops. If unassigned, falls back to the collider on this GameObject.")]
+    [SerializeField] private Collider _dropCollider;
+
 
 
     [Tooltip("Looping clip played as an additional background layer while the puzzle is active (requires Required Item For Audio to be applied).")]
@@ -90,6 +93,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     // ── State ──────────────────────────────────────────────────────────────────
 
     private Collider _colliderLock;
+    private Collider _dialCollider;
     private int  _currentStep;
     private bool _isUnlocked;
     private int  _stepsPerRevolution;
@@ -148,7 +152,8 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         _stepsPerRevolution = Mathf.RoundToInt(FullRevolutionDegrees / _stepAngle);
         _targetRotation     = transform.localRotation;
-        _colliderLock = GetComponent<Collider>();
+        _dialCollider = GetComponent<Collider>();
+        _colliderLock = _dropCollider != null ? _dropCollider : _dialCollider;
         _mainCamera         = Camera.main;
         if (_puzzleMode == null) {
             _puzzleMode = GetComponentInParent<PuzzleModeController>();
@@ -422,6 +427,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         _isRequiredItemApplied = true;
         Debug.Log($"[{nameof(LockDial)}] {_requiredItemForAudio.itemName} applied to safe. Advanced audio feedback enabled.");
 
+        // Disable the drop collider — the item has been applied, no more drops needed.
+        if (_colliderLock != null) _colliderLock.enabled = false;
+
         if (_puzzleMode != null && _puzzleMode.IsActive)
         {
             AudioManager.Instance?.MuteBackground();
@@ -449,7 +457,8 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         // Ensure the dial collider is enabled so IsMouseOverDial can detect it.
         // It may have been disabled by RoomController.Lock() or left disabled in the prefab.
-        if (_colliderLock != null) _colliderLock.enabled = true;
+        if (_dialCollider != null) _dialCollider.enabled = true;
+        if (_colliderLock != null && _colliderLock != _dialCollider) _colliderLock.enabled = true;
 
         if (_isRequiredItemApplied) {
             AudioManager.Instance?.MuteBackground();
@@ -461,9 +470,10 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     private void OnPuzzleExited()
     {
-        // Disable the dial collider so it doesn't block PuzzleInteract's collider
+        // Disable the colliders so they don't block PuzzleInteract's collider
         // (they overlap on the door) when not in puzzle mode.
         if (_colliderLock != null) _colliderLock.enabled = false;
+        if (_dialCollider != null && _dialCollider != _colliderLock) _dialCollider.enabled = false;
 
         if (!HasRequiredItem()) return;
 
