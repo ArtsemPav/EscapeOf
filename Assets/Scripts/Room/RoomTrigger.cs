@@ -97,7 +97,7 @@ public class RoomTrigger : MonoBehaviour
     /// Returns the rooms this trigger keeps visible: the configured list if present,
     /// otherwise the fallback parent room.
     /// </summary>
-    private RoomController[] ResolveRooms()
+    public RoomController[] ResolveRooms()
     {
         if (_activeRooms != null && _activeRooms.Length > 0)
             return _activeRooms;
@@ -105,4 +105,42 @@ public class RoomTrigger : MonoBehaviour
             return new[] { _room };
         return Array.Empty<RoomController>();
     }
+
+    /// <summary>
+    /// Physics-free containment test: true when the world point lies inside this trigger's
+    /// collider volume. Used by RoomVisibilityManager to rebuild occupied triggers after a
+    /// save-load teleport, since a player restored inside a trigger never generates
+    /// OnTriggerEnter.
+    /// </summary>
+    public bool ContainsPoint(Vector3 worldPoint)
+    {
+        if (_collider == null)
+            _collider = GetComponent<Collider>();
+        if (_collider == null || !_collider.enabled) return false;
+
+        return _collider.ClosestPoint(worldPoint) == worldPoint;
+    }
+
+    /// <summary>
+    /// Squared distance from the world point to this trigger's collider (0 when inside).
+    /// Reports exact containment via <paramref name="inside"/>. Used by the spawn
+    /// reconcile fallback to find the nearest trigger when the spawn point falls just
+    /// outside every trigger volume.
+    /// </summary>
+    public float SqrDistanceTo(Vector3 worldPoint, out bool inside)
+    {
+        if (_collider == null)
+            _collider = GetComponent<Collider>();
+        if (_collider == null || !_collider.enabled)
+        {
+            inside = false;
+            return float.MaxValue;
+        }
+
+        Vector3 closest = _collider.ClosestPoint(worldPoint);
+        inside = closest == worldPoint;
+        return (closest - worldPoint).sqrMagnitude;
+    }
+
+    private Collider _collider;
 }

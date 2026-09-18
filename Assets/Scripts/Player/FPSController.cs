@@ -196,6 +196,11 @@ public class FPSController : MonoBehaviour, ISaveable
         {
             Teleport(_pendingPosition.Value, _pendingYaw);
             _pendingPosition = null;
+
+            // Rebuild room visibility from the restored spawn point. Unity does not fire
+            // OnTriggerEnter when the player is placed directly inside a trigger volume,
+            // so without this the respawn room stays culled (geometry disabled).
+            RoomVisibilityManager.Instance?.ReconcileAfterSpawn(transform.position);
         }
 
         // Restore crouch state BEFORE the first movement frame. Applied instantly

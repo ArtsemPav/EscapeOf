@@ -47,7 +47,6 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<PickableSaveData>(json);
-        Debug.Log($"[PickableItem] LoadSaveData '{_saveId}': collected={data.collected}");
         if (data.collected)
         {
             // Set _collected before Destroy so OnDestroy keeps this object registered.

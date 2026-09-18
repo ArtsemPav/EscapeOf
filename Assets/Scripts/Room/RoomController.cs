@@ -46,6 +46,8 @@ public class RoomController : MonoBehaviour
     private Collider[] _interactableColliders;
     private string[] _zoneIds;
     private Renderer[] _managedRenderers;
+    private Bounds _geometryBounds;
+    private float _geometryVolume = -1f;
 
     private void Awake()
     {
@@ -132,7 +134,24 @@ public class RoomController : MonoBehaviour
         }
 
         _managedRenderers = managed.ToArray();
+
+        // Cached once for point-in-room tests (spawn reconcile): encapsulate the world
+        // bounds of every managed renderer. Valid even while renderers are disabled.
+        _geometryBounds = new Bounds(transform.position, Vector3.zero);
+        foreach (var renderer in managed)
+            _geometryBounds.Encapsulate(renderer.bounds);
+        _geometryVolume = _geometryBounds.size.x * _geometryBounds.size.y * _geometryBounds.size.z;
     }
+
+    /// <summary>
+    /// True when the world point lies within this room's cached geometry bounds. Used as a
+    /// fallback when the spawn point is covered by no RoomTrigger (e.g. deep inside a room
+    /// away from its doorway trigger) so the room the player stands in is never culled.
+    /// </summary>
+    public bool ContainsPoint(Vector3 worldPoint) => _geometryBounds.Contains(worldPoint);
+
+    /// <summary>Volume of the cached geometry bounds; used to pick the tightest room when several overlap.</summary>
+    public float GeometryVolume => _geometryVolume;
 
     /// <summary>
     /// Performance gate for this room's geometry. Toggles only the renderers that were

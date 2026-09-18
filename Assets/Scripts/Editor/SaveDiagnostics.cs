@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -45,5 +46,33 @@ public static class SaveDiagnostics
         if (!File.Exists(path))
             throw new FileNotFoundException($"Save file not found: {path}");
         return File.ReadAllText(path);
+    }
+
+    [BeziAction(
+        "Return the tail of the Unity Editor log file, optionally filtered by a substring.",
+        IsReadOnly = true
+    )]
+    public static string ReadEditorLog(string filter, int maxLines)
+    {
+        string logPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData)
+                         + "/Unity/Editor/Editor.log";
+        if (!File.Exists(logPath))
+            throw new FileNotFoundException($"Editor log not found: {logPath}");
+
+        var lines = new List<string>();
+        using (var stream = new FileStream(logPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        using (var reader = new StreamReader(stream))
+        {
+            while (!reader.EndOfStream)
+            {
+                string line = reader.ReadLine();
+                if (string.IsNullOrEmpty(filter) || line.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
+                    lines.Add(line);
+            }
+        }
+
+        if (lines.Count <= maxLines)
+            return string.Join("\n", lines);
+        return "…(" + (lines.Count - maxLines) + " earlier lines omitted)\n" + string.Join("\n", lines.Skip(lines.Count - maxLines));
     }
 }

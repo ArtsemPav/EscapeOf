@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,6 +22,16 @@ public class RoomVisibilityManager : MonoBehaviour
     [SerializeField] private bool _debugLogging;
 
     private RoomController[] _allRooms;
+    private FPSController _player;
+    private readonly List<RoomTrigger> _allTriggers = new();
+
+    /// <summary>Set once the spawn position has been reconciled, so Start() never
+    /// overwrites the reconciled active set with _startingRooms (order-independent).</summary>
+    private bool _spawnReconciled;
+
+    // Spawn reconcile deferred to Update, so every Start() (including RoomPuzzleGate
+    // enabling its trigger colliders) has run by the time it executes.
+    private Vector3? _pendingSpawnReconcile;
 
     // Triggers the player is currently inside, mapped to the rooms each one keeps visible.
     private readonly Dictionary<RoomTrigger, IReadOnlyList<RoomController>> _occupiedTriggers = new();
@@ -35,11 +46,13 @@ public class RoomVisibilityManager : MonoBehaviour
             Destroy(this);
             return;
         }
+
         Instance = this;
         _allRooms = FindObjectsByType<RoomController>(FindObjectsSortMode.None);
+        _player = FindFirstObjectByType<FPSController>();
+        _allTriggers.AddRange(FindObjectsByType<RoomTrigger>(FindObjectsInactive.Include, FindObjectsSortMode.None));
 
         // Cache every managed zone id once so suppression can be applied as a clean set.
-        _allZones.Clear();
         foreach (var room in _allRooms)
         {
             if (room?.ZoneIds == null) continue;
@@ -55,8 +68,85 @@ public class RoomVisibilityManager : MonoBehaviour
 
     private void Start()
     {
+        // Skip when the player already reconciled from a save — applying _startingRooms
+        // here would cull the room the player respawned in (its trigger never fired
+        // because the player was teleported INTO it, so no OnTriggerEnter).
+        if (_spawnReconciled) return;
+
         if (_startingRooms != null && _startingRooms.Length > 0)
             SetActiveRoomsDirect(_startingRooms, "Start");
+    }
+
+    private void Update()
+    {
+        // Deferred spawn reconcile: by the first Update every Start() has run, so gated
+        // triggers are already re-enabled by their RoomPuzzleGate and ClosestPoint can
+        // match them. Reconciling earlier (from FPSController.Start) runs while the gate
+        // colliders are still disabled and misses every trigger.
+        if (!_pendingSpawnReconcile.HasValue) return;
+
+        Vector3 position = _pendingSpawnReconcile.Value;
+        _pendingSpawnReconcile = null;
+        ReconcileAfterSpawnInternal(position);
+    }
+
+    /// <summary>
+    /// Queues a visibility rebuild from the player's spawn/teleport position. Applied on
+    /// the next Update so it runs after all Start() calls — trigger colliders enabled by
+    /// RoomPuzzleGate must be live for the trigger match to succeed.
+    /// </summary>
+    public void ReconcileAfterSpawn(Vector3 playerPosition)
+    {
+        _spawnReconciled = true;
+        _pendingSpawnReconcile = playerPosition;
+    }
+
+    /// <summary>
+    /// Rebuilds room visibility from the player's spawn/teleport position without relying
+    /// on physics events. Unity fires OnTriggerEnter only on overlap CHANGES — a player
+    /// restored directly inside a trigger volume generates no event, and Start()-order
+    /// races can leave the spawned room culled.
+    /// </summary>
+    private void ReconcileAfterSpawnInternal(Vector3 playerPosition)
+    {
+        if (_allRooms == null || _allRooms.Length == 0) return;
+
+        _occupiedTriggers.Clear();
+
+        foreach (var trigger in _allTriggers)
+        {
+            if (trigger == null || !trigger.ContainsPoint(playerPosition)) continue;
+            _occupiedTriggers[trigger] = trigger.ResolveRooms();
+        }
+
+        if (_occupiedTriggers.Count > 0)
+        {
+            RecomputeActiveRooms("SpawnReconcile");
+            return;
+        }
+
+        // Fallback: the spawn point is covered by no enabled trigger (often because it is
+        // outside the volumes on one axis — e.g. below floor-level triggers when the
+        // player saved inside a basement vent). Show every room whose geometry bounds
+        // contain the point (nested rooms overlap; under-showing breaks sightlines,
+        // over-showing only costs a bit of culling) plus the rooms of the nearest
+        // trigger for good measure.
+        _activeRooms.Clear();
+        foreach (var room in _allRooms)
+        {
+            if (room != null && room.ContainsPoint(playerPosition))
+                _activeRooms.Add(room);
+        }
+
+        RoomTrigger nearest = GetNearestTrigger(playerPosition);
+        if (nearest != null)
+        {
+            _occupiedTriggers[nearest] = nearest.ResolveRooms();
+            foreach (var room in nearest.ResolveRooms())
+                if (room != null) _activeRooms.Add(room);
+        }
+
+        ApplyActiveRooms("SpawnReconcileFallback");
     }
 
     /// <summary>
@@ -85,8 +175,30 @@ public class RoomVisibilityManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Rebuilds the active room set as the union of every currently occupied trigger's list.
+    /// Returns the enabled trigger closest to the given point (exact containment reported
+    /// via <paramref name="inside"/>), or null when the list is empty.
     /// </summary>
+    private RoomTrigger GetNearestTrigger(Vector3 position)
+    {
+        RoomTrigger nearest = null;
+        float nearestSqr = float.MaxValue;
+
+        foreach (var trigger in _allTriggers)
+        {
+            if (trigger == null) continue;
+            float sqr = trigger.SqrDistanceTo(position, out bool inside);
+            if (inside) continue; // containment is handled by the caller
+            if (sqr < nearestSqr)
+            {
+                nearestSqr = sqr;
+                nearest = trigger;
+            }
+        }
+
+        return nearest;
+    }
+
+    /// <summary>Rebuilds the active room set as the union of every currently occupied trigger's list.</summary>
     private void RecomputeActiveRooms(string sourceName)
     {
         _activeRooms.Clear();
@@ -121,15 +233,22 @@ public class RoomVisibilityManager : MonoBehaviour
     /// </summary>
     private void ApplyActiveRooms(string sourceName)
     {
+        // Safety net: the room the player physically stands in is never culled, no matter
+        // what the occupied-trigger union says (teleport races, vent shafts below the
+        // trigger volumes, missing trigger coverage).
+        RoomController currentRoom = FindCurrentRoom();
+
         // Geometry: toggle each room's renderers independently.
         foreach (var candidate in _allRooms)
         {
-            if (candidate != null)
-                candidate.SetGeometryActive(_activeRooms.Contains(candidate));
+            if (candidate == null) continue;
+            bool isActive = _activeRooms.Contains(candidate) || candidate == currentRoom;
+            candidate.SetGeometryActive(isActive);
         }
 
         // Lights: a zone is lit if ANY active room owns it.
         _activeZones.Clear();
+        if (currentRoom != null) _activeRooms.Add(currentRoom);
         foreach (var active in _activeRooms)
         {
             if (active?.ZoneIds == null) continue;
@@ -143,12 +262,43 @@ public class RoomVisibilityManager : MonoBehaviour
                 LightingSystem.Instance.SetZoneRenderSuppressed(zoneId, !_activeZones.Contains(zoneId));
         }
 
-        if (_debugLogging)
+        LogState(sourceName);
+    }
+
+    /// <summary>
+    /// Returns the tightest room whose geometry bounds contain the player position,
+    /// or null when the player is nowhere (e.g. between rooms) or the player is missing.
+    /// </summary>
+    private RoomController FindCurrentRoom()
+    {
+        if (_player == null) return null;
+
+        RoomController current = null;
+        float bestVolume = float.MaxValue;
+        Vector3 position = _player.transform.position;
+
+        foreach (var room in _allRooms)
         {
-            var visible = new List<string>();
-            foreach (var r in _activeRooms)
-                if (r != null) visible.Add(r.name);
-            Debug.Log($"[RoomVisibility] Source: '{sourceName}'. Occupied triggers: {_occupiedTriggers.Count}. Visible: {string.Join(", ", visible)}");
+            if (room == null || !room.ContainsPoint(position)) continue;
+            if (current == null || room.GeometryVolume < bestVolume)
+            {
+                bestVolume = room.GeometryVolume;
+                current = room;
+            }
         }
+
+        return current;
+    }
+
+    private void LogState(string sourceName)
+    {
+        if (!_debugLogging) return;
+
+        var visible = new List<string>();
+        foreach (var room in _activeRooms)
+            if (room != null) visible.Add(room.name);
+
+        Debug.Log($"[RoomVisibility] Source: '{sourceName}'. Occupied triggers: {_occupiedTriggers.Count}. " +
+                  $"Visible: {(visible.Count > 0 ? string.Join(", ", visible) : "none")}");
     }
 }

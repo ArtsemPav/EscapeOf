@@ -316,7 +316,11 @@ public class DevPanelController : MonoBehaviour
         AddLayoutElement(status, minHeight: _statusHeight, flexibleWidth: 1f);
         status.AddComponent<Image>().color = _statusColor;
 
-        _statusText = CreateText(status, "", _statusFontSize, new Color(0.7f, 0.7f, 0.7f, 1f));
+        // Text must live on a CHILD object: a GameObject can host only one Graphic,
+        // and the status bar already carries an Image.
+        GameObject textObj = CreateUIObject("StatusText", status.transform);
+        Stretch(textObj);
+        _statusText = CreateText(textObj, "", _statusFontSize, new Color(0.7f, 0.7f, 0.7f, 1f));
         _statusText.alignment = TextAlignmentOptions.MidlineLeft;
         RectTransform rt = _statusText.GetComponent<RectTransform>();
         rt.offsetMin = new Vector2(8, 0);
