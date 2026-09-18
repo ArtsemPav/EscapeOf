@@ -38,9 +38,6 @@ namespace Escape.Core {
 
         [Header("Lock Settings")]
         [SerializeField] private ItemData _requiredKey;
-        [Tooltip("Shown below the action hint when the door is locked and the player doesn't have the key.")]
-        [SerializeField] private string _requirementHint = "";
-
         [Header("UI Hints")]
         [SerializeField] private string _openText = "Открыть дверь";
         [SerializeField] private string _closeText = "Закрыть дверь";
@@ -447,8 +444,6 @@ namespace Escape.Core {
                     // Snapshot must be taken AFTER both RemoveItem and UnlockAndOpen so the
                     // save captures the correct state: key gone + door unlocked simultaneously.
                     SaveManager.Instance?.Save();
-                } else {
-                    PopupMessageSystem.Instance.Show(_requirementHint, PopupMessageType.Warning, 4f);
                 }
             }
         }
@@ -464,11 +459,7 @@ namespace Escape.Core {
             return hasKey ? CrosshairMode.Unlocked : CrosshairMode.Locked;
         }
 
-        public string GetBlockedHint() {
-            if (_isLocked && !_isOpen && (_requiredKey == null || !InventorySystem.Instance.HasItem(_requiredKey)))
-                return _requirementHint;
-            return string.Empty;
-        }
+        public string GetBlockedHint() => string.Empty;
 
         // ── Public API ───────────────────────────────────────────────────────────
 

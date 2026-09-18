@@ -10,11 +10,6 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
     [SerializeField] private string _interactText = "Осмотреть";
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
-    [Header("UI Feedback")]
-    [SerializeField] private bool _useExitPopup = true;
-    [SerializeField] private string _exitPopupText = "Выход: Esc";
-    [SerializeField] private PopupMessageType _exitPopupType = PopupMessageType.Warning;
-
     [Header("References")]
     [SerializeField] private PuzzleModeController _controller;
 
@@ -42,15 +37,6 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
         if (CanInteract())
         {
             _controller.EnterPuzzleMode();
-            ShowEntryHint();
-        }
-    }
-
-    private void ShowEntryHint()
-    {
-        if (_useExitPopup && !string.IsNullOrEmpty(_exitPopupText))
-        {
-            PopupMessageSystem.Instance?.Show(_exitPopupText, _exitPopupType);
         }
     }
 
