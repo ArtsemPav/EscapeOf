@@ -12,6 +12,10 @@ public class ResetProgressBtn : BaseButton
         SaveManager.Instance?.DeleteSave();
         SaveManager.Instance?.ClearRegistry();
 
+        // Reset the persisted active slot so the next session loads from the
+        // default slot, not from the debug slot a previous session resumed from.
+        SaveManager.ResetActiveSlot();
+
         // Destroy ALL persistent singletons so the reloaded scene creates fresh instances
         if (GameManager.Instance != null) Destroy(GameManager.Instance.gameObject);
         if (SaveManager.Instance != null) Destroy(SaveManager.Instance.gameObject);
