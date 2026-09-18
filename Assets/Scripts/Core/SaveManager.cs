@@ -39,6 +39,23 @@ public class SaveManager : MonoBehaviour
     /// <summary>Slot used by the debug Save / Load / Delete buttons in the pause menu.</summary>
     public const int DebugSlot = 999;
 
+    // The slot the current session loaded from (set in Start). All event saves,
+    // debounced flushes and auto-saves write to this slot, so a session resumed
+    // from a non-default slot keeps persisting to the same slot.
+    private int _activeSlot;
+
+    private const string SlotPrefKey = "save_manager_last_slot";
+
+    /// <summary>
+    /// Clears the persisted last-used slot so the next session loads from the
+    /// default slot. Called when progress is fully reset.
+    /// </summary>
+    public static void ResetActiveSlot()
+    {
+        PlayerPrefs.DeleteKey(SlotPrefKey);
+        _pendingLoadSlot = -1;
+    }
+
     // When set via RequestLoadFromSlot(), the next SaveManager.Start() loads from
     // this slot instead of defaultSlot. Consumed on first read — survives scene reload
     // because it's static, even though the SaveManager instance is destroyed and recreated.
@@ -79,10 +96,27 @@ public class SaveManager : MonoBehaviour
 
     private void Start()
     {
-        int slot = _pendingLoadSlot >= 0 ? _pendingLoadSlot : defaultSlot;
+        // Priority: explicit one-shot request (debug Load Save button) >
+        // persisted last-used slot > default. The persisted slot makes a full
+        // app restart resume from the same slot the previous session played in.
+        int slot = _pendingLoadSlot >= 0
+            ? _pendingLoadSlot
+            : PlayerPrefs.GetInt(SlotPrefKey, defaultSlot);
         _pendingLoadSlot = -1;
-        Load(slot);
+
+        // The slot we loaded from becomes the session's active slot: all
+        // subsequent event saves, debounced saves and auto-saves write there.
+        // This keeps the debug-slot workflow consistent — if the session was
+        // resumed from slot 999, continuing progress must not silently drift
+        // back into slot 0 (or overwrite it with stale state).
+        _activeSlot = slot;        Load(slot);
         _initialLoadComplete = true;
+
+        // Persist which slot the session resumed from so a full app restart
+        // (not just a scene reload) continues from the same slot. Without this,
+        // progress saved into slot 999 by a debug-resumed session would be
+        // invisible after the game is closed and launched again.
+        PlayerPrefs.SetInt(SlotPrefKey, slot);
     }
 
     private void Update()
@@ -111,7 +145,7 @@ public class SaveManager : MonoBehaviour
             {
                 _autoSaveTimer = 0f;
                 var snapshot = BuildSnapshot();
-                if (WriteToFile(defaultSlot, snapshot))
+                if (WriteToFile(_activeSlot, snapshot))
                 {
                     _pendingSave     = false;
                     _pendingSnapshot = null;
@@ -140,7 +174,7 @@ public class SaveManager : MonoBehaviour
         _autoSaveTimer = 0f;
         var snapshot = _pendingSnapshot ?? BuildSnapshot();
 
-        if (WriteToFile(defaultSlot, snapshot, synchronous))
+        if (WriteToFile(_activeSlot, snapshot, synchronous))
         {
             // Write succeeded (or was started in background) — safe to clear.
             _pendingSave     = false;
@@ -247,7 +281,7 @@ public class SaveManager : MonoBehaviour
     /// Pass a slot to write to a specific slot; omit to use the default slot.
     /// </summary>
     public void SaveImmediate(int slot = -1)
-        => WriteToFile(slot >= 0 ? slot : defaultSlot, BuildSnapshot(), synchronous: true);
+        => WriteToFile(slot >= 0 ? slot : _activeSlot, BuildSnapshot(), synchronous: true);
 
     /// <summary>Collects GetSaveData() from every registered ISaveable into a new GameSaveData object.</summary>
     private GameSaveData BuildSnapshot()
