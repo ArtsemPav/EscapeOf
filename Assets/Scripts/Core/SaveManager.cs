@@ -74,7 +74,15 @@ public class SaveManager : MonoBehaviour
 
     // Set to true after the initial Load() in Start() completes.
     // Used to distinguish scene-load registration from runtime clones.
-    private bool _initialLoadComplete;
+    private bool _initialLoadComplete;   // "load data has been distributed" (Register guard)
+
+    // Set on the first Update — after every Start() has run. Scene initialization
+    // (light-switch sync, power consumers, scripted scares) can call Save() before
+    // the load-time teleport and state restores have been applied; such a save would
+    // snapshot the freshly instantiated scene (default player position, flashlight
+    // off) over the just-loaded data. Saves requested before settling are deferred:
+    // the debounced flush snapshots the settled state instead.
+    private bool _initialSettled;
 
     // Background write infrastructure — file I/O offloaded to avoid main-thread stalls.
     private readonly Queue<Action> _mainThreadCallbacks = new();
@@ -109,7 +117,8 @@ public class SaveManager : MonoBehaviour
         // This keeps the debug-slot workflow consistent — if the session was
         // resumed from slot 999, continuing progress must not silently drift
         // back into slot 0 (or overwrite it with stale state).
-        _activeSlot = slot;        Load(slot);
+        _activeSlot = slot;
+        Load(slot);
         _initialLoadComplete = true;
 
         // Persist which slot the session resumed from so a full app restart
@@ -121,6 +130,11 @@ public class SaveManager : MonoBehaviour
 
     private void Update()
     {
+        // First frame after Start: every Start() in the scene has now run, so all
+        // loaded state (teleport, flashlight, doors) is applied. Deferred startup
+        // saves may flush from this point on.
+        if (!_initialSettled) _initialSettled = true;
+
         // Drain background-thread callbacks (e.g. OnSaved event after async write).
         while (_mainThreadCallbacks.Count > 0)
             _mainThreadCallbacks.Dequeue()?.Invoke();
@@ -239,8 +253,12 @@ public class SaveManager : MonoBehaviour
         // Only remove if the entry in the dictionary is THIS saveable instance.
         // If a duplicate (e.g. an inspection-preview clone) was blocked from registering,
         // its OnDestroy must not evict the legitimate world-object registration.
+        // Uses ReferenceEquals so Unity's overloaded == (which treats destroyed objects
+        // as null and can make different live instances compare equal through stale
+        // references) can never let one live object's OnDestroy evict another's
+        // registration under the same SaveId.
         if (_saveables.TryGetValue(saveable.SaveId, out var registered) &&
-            registered as UnityEngine.Object == saveable as UnityEngine.Object)
+            ReferenceEquals(registered, saveable))
         {
             _saveables.Remove(saveable.SaveId);
         }
@@ -256,6 +274,19 @@ public class SaveManager : MonoBehaviour
     /// </summary>
     public void Save()
     {
+        // Scene initialization (light-switch sync, power consumers, scripted events)
+        // can fire Save() before every Start() has applied the loaded state — the
+        // player teleport, flashlight restore, etc. A snapshot taken at that moment
+        // captures raw scene defaults (spawn position, flashlight off) and would
+        // overwrite the just-loaded progress. Defer instead: when the debounce
+        // timer fires, the snapshot is taken from the settled state.
+        if (!_initialSettled)
+        {
+            _pendingSave      = true;
+            _pendingSaveTimer = saveDebounceDelay;
+            return;
+        }
+
         if (_pendingSnapshot == null)
         {
             // First call in this debounce window — take a fresh snapshot.
@@ -272,13 +303,11 @@ public class SaveManager : MonoBehaviour
         _pendingSaveTimer = saveDebounceDelay;
     }
 
-    /// <summary>Builds a fresh snapshot and writes it immediately to the specified slot.</summary>
-    public void Save(int slot) => WriteToFile(slot, BuildSnapshot());
-
     /// <summary>
-    /// Snapshots all ISaveable data and writes it to disk synchronously (main thread).
-    /// Use for debug UI buttons where the write must complete before the next action.
-    /// Pass a slot to write to a specific slot; omit to use the default slot.
+    /// Snapshots all ISaveable data and writes it immediately to the specified slot.
+    /// Writes synchronously on the main thread — use for debug UI buttons where the
+    /// write must complete before the next action. Omit the slot to write to the
+    /// session's active slot.
     /// </summary>
     public void SaveImmediate(int slot = -1)
         => WriteToFile(slot >= 0 ? slot : _activeSlot, BuildSnapshot(), synchronous: true);
@@ -393,12 +422,6 @@ public class SaveManager : MonoBehaviour
         File.WriteAllText(savePath, json);
         Debug.Log($"[SaveManager] Saved slot {slot} → {savePath}");
     }
-
-    /// <summary>
-    /// Loads the default slot. Falls back to backup files if the main file is missing, unreadable, or corrupted.
-    /// Returns true if any save data was found and applied.
-    /// </summary>
-    public bool Load() => Load(defaultSlot);
 
     /// <summary>
     /// Loads the specified slot with automatic backup fallback.

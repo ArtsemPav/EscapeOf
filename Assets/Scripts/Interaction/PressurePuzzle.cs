@@ -352,16 +352,6 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             lever.SnapVisual();
 
         float maxAngle = _maxTotal * _solveAngle / _solutionTotal;
-        Debug.Log($"[PressurePuzzle] {_levers.Count} levers. MaxTotal={_maxTotal}. " +
-                  $"Solution total={_solutionTotal} → {_solveAngle}°. " +
-                  $"Danger at {_dangerAngle}°. Max angle={maxAngle:F1}°. " +
-                  $"Valid solutions: {_validSolutionMasks.Count}.");
-
-        Debug.Log($"[PressurePuzzle] Activation refs — " +
-                  $"_entryDoor: {(_entryDoor != null ? _entryDoor.gameObject.name : "NULL")}, " +
-                  $"_roomTrigger: {(_roomTrigger != null ? _roomTrigger.gameObject.name : "NULL")}, " +
-                  $"_steamSupplied: {_steamSupplied}, " +
-                  $"door fully closed: {(_entryDoor != null ? _entryDoor.IsFullyClosed.ToString() : "N/A")}");
 
         // Hide distortion meshes from the very start — they should only appear
         // when steam ramps up during gameplay.
@@ -403,9 +393,6 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
 
         for (int i = 0; i < n; i++)
             _levers[i].AssignValues(0f, magnitudes[i]);
-
-        Debug.Log($"[PressurePuzzle] Lever magnitudes: [{string.Join(", ", magnitudes)}] " +
-                  $"({smallCount} small, {largeCount} large)");
     }
 
     // ── Solution picking ──────────────────────────────────────────────────────
@@ -456,11 +443,7 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             FindAllValidSolutions();
 
             if (MinFlipsToAnySolution(0) >= _minFlipsFromSolution)
-            {
-                Debug.Log($"[PressurePuzzle] Solution: {onCount}/{n} ON, " +
-                          $"total={total}, mask={Convert.ToString(mask, 2).PadLeft(n, '0')}");
                 return;
-            }
         }
 
         _solutionTotal = _maxTotal * 0.55f;
@@ -497,10 +480,6 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             if (Mathf.Abs(angle - _solveAngle) <= _solveAngleTolerance)
                 _validSolutionMasks.Add(mask);
         }
-
-        Debug.Log($"[PressurePuzzle] {_validSolutionMasks.Count} valid solution(s) " +
-                  $"within ±{_solveAngleTolerance}° of {_solveAngle}° " +
-                  $"(ON count {minOn}–{maxOn}).");
     }
 
     /// <summary>
