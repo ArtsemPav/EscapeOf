@@ -461,6 +461,8 @@ public class DevPanelController : MonoBehaviour
     {
         CreateGameButton(parent, "Reset Position", ResetPlayerPosition);
 
+        CreateGameButton(parent, "Give All Runes (24)", GiveAllRunes);
+
         CreateGameButton(parent, "Clear Inventory", () =>
         {
             InventorySystem.Instance?.ClearAll();
@@ -507,6 +509,36 @@ public class DevPanelController : MonoBehaviour
         Log(added
             ? $"Added '{item.itemName}' to inventory."
             : "Inventory is full — item not added.");
+    }
+
+    /// <summary>Gives all 24 rune items to the pouch for testing icon changes.</summary>
+    private void GiveAllRunes()
+    {
+        InventorySystem inventory = InventorySystem.Instance;
+        if (inventory == null)
+        {
+            Log("InventorySystem not found.");
+            return;
+        }
+
+        ItemData[] items = inventory.AllItems;
+        if (items == null || items.Length == 0)
+        {
+            Log("No items registered — cannot find runes.");
+            return;
+        }
+
+        int given = 0;
+        foreach (ItemData item in items)
+        {
+            if (item == null || !inventory.IsRune(item)) continue;
+            if (inventory.AddItem(item))
+                given++;
+        }
+
+        Log(given > 0
+            ? $"Given {given} runes to the pouch ({inventory.CollectedRuneCount}/{inventory.TotalRuneCount} collected)."
+            : "No new runes given — all may already be collected.");
     }
 
     private void ExecuteCheat(Func<DevPuzzleCheats.CheatResult> cheat)
