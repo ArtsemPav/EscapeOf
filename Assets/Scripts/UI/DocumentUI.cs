@@ -70,6 +70,13 @@ public class DocumentUI : MonoBehaviour
     [Tooltip("Глобальная начальная эйлерова ротация 3D-модели. Используется, когда в DocumentData useCustomPreviewRotation = false.")]
     [SerializeField] private Vector3 _initialRotation = new Vector3(15f, -35f, 0f);
 
+    [Header("Fixed Bounds")]
+    [Tooltip("Фиксированный размер bounds для позиционирования книги в превью. Не зависит от содержимого страниц — все книги отображаются одинаково.")]
+    [SerializeField] private Vector3 _fixedBoundsSize = new Vector3(0.44f, 0.025f, 0.31f);
+
+    [Tooltip("Смещение центра bounds относительно корня префаба. Определяет позицию пивота и камеры.")]
+    [SerializeField] private Vector3 _fixedBoundsCenterOffset = new Vector3(0f, 0.006f, 0f);
+
     // ── Constants ────────────────────────────────────────────────────────────
 
     private static readonly Vector3 InspectionOrigin = new Vector3(0f, -1000f, 0f);
@@ -128,7 +135,15 @@ public class DocumentUI : MonoBehaviour
         }
 
         if (_documentPreview != null)
+        {
             _documentPreview.texture = _renderTexture;
+
+            var fitter = _documentPreview.GetComponent<AspectRatioFitter>();
+            if (fitter == null)
+                fitter = _documentPreview.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+            fitter.aspectRatio = (float)_renderTexture.width / _renderTexture.height;
+        }
 
         // Wire up navigation buttons.
         if (_prevPageButton != null)
@@ -426,19 +441,11 @@ public class DocumentUI : MonoBehaviour
         // Find baked 3D TMP pages in the prefab.
         FindPages(_inspectionInstance);
 
-        // Calculate bounds for camera framing.
-        var renderers = _inspectionInstance.GetComponentsInChildren<Renderer>();
-        Bounds bounds;
-        if (renderers.Length > 0)
-        {
-            bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++)
-                bounds.Encapsulate(renderers[i].bounds);
-        }
-        else
-        {
-            bounds = new Bounds(InspectionOrigin, Vector3.zero);
-        }
+        // Use fixed bounds for consistent camera framing across all documents,
+        // regardless of how many text or sprite renderers each page contains.
+        Bounds bounds = new Bounds(
+            InspectionOrigin + _fixedBoundsCenterOffset,
+            _fixedBoundsSize);
 
         Vector3 itemCenter = bounds.center;
         float maxSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);

@@ -65,15 +65,18 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     [Tooltip("If true, combination target values will be randomized on start.")]
     [SerializeField] private bool _randomizeOnStart = true;
 
+    [Tooltip("Inclusive minimum value for randomized combination targets.")]
+    [SerializeField] private int _randomMinValue = 0;
+
+    [Tooltip("Inclusive maximum value for randomized combination targets.")]
+    [SerializeField] private int _randomMaxValue = 99;
+
     [Header("Audio")]
     [SerializeField] private AudioClip _tickSound;
     [SerializeField, Range(0f, 1f)] private float _tickVolume = 1f;
     [SerializeField] private AudioClip _correctStepSound;
     [SerializeField, Range(0f, 1f)] private float _correctStepVolume = 1f;
 
-    [Tooltip("Sound played when the dial is spinning back to 0 after a wrong step.")]
-    [SerializeField] private AudioClip _wrongStepSound;
-    [SerializeField, Range(0f, 1f)] private float _wrongStepVolume = 1f;
 
     [Tooltip("If assigned, audio feedback will only play when this item is APPLIED to the dial.")]
     [SerializeField] private ItemData _requiredItemForAudio;
@@ -394,19 +397,25 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         _comboProgressIndex = 0;
         ResetDragState();
 
-        if (_wrongStepSound != null)
-            AudioManager.Instance?.PlaySFX(_wrongStepSound, _wrongStepVolume);
-
         Quaternion startRotation = transform.localRotation;
         Vector3    axis          = _rotationAxis.normalized;
         float      totalDegrees  = WrongStepRevolutions * FullRevolutionDegrees;
         float      duration      = totalDegrees / _rotationSpeed;
         float      elapsed       = 0f;
+        float      nextTickAngle = _stepAngle;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float angle = Mathf.Min(elapsed / duration, 1f) * totalDegrees;
+
+            while (angle >= nextTickAngle)
+            {
+                if (_tickSound != null && AudioManager.Instance != null)
+                    AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
+                nextTickAngle += _stepAngle;
+            }
+
             transform.localRotation = startRotation * Quaternion.AngleAxis(angle, axis);
             yield return null;
         }
@@ -568,7 +577,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
         for (int i = 0; i < _combination.Length; i++)
         {
-            _combination[i].TargetValue = UnityEngine.Random.Range(0, _stepsPerRevolution);
+            _combination[i].TargetValue = UnityEngine.Random.Range(_randomMinValue, _randomMaxValue + 1);
             _combination[i].RequiredDirection = currentDir;
             currentDir = (currentDir == RotationDirection.Clockwise) 
                 ? RotationDirection.CounterClockwise 
