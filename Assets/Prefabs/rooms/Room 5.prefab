@@ -138,7 +138,7 @@ MonoBehaviour:
   visibleInMode: 1
   edgeSoftness: 0.0035
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 8
   emissionColor: {r: 1.9992802, g: 0.11615046, b: 0, a: 1}
   emissionIntensity: 1
 --- !u!1 &1000443159110299840
@@ -289,7 +289,7 @@ MonoBehaviour:
   visibleInMode: 1
   edgeSoftness: 0.0035
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 8
   emissionColor: {r: 1.9992802, g: 0.11615046, b: 0, a: 1}
   emissionIntensity: 1
 --- !u!1 &2406386306176915203
@@ -820,7 +820,7 @@ MonoBehaviour:
   visibleInMode: 1
   edgeSoftness: 0.0035
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 8
   emissionColor: {r: 1.9992802, g: 0.11615046, b: 0, a: 1}
   emissionIntensity: 1
 --- !u!1 &4489955748193571913
@@ -1067,7 +1067,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 12
   m_Type: 0
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.89411765, b: 0.80784315, a: 1}
   m_Intensity: 18
   m_Range: 4.5
   m_SpotAngle: 112.227066
@@ -1278,7 +1278,7 @@ MonoBehaviour:
   visibleInMode: 1
   edgeSoftness: 0.0035
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 8
   emissionColor: {r: 1.9992802, g: 0.11615046, b: 0, a: 1}
   emissionIntensity: 1
 --- !u!1 &5266199886453050279
@@ -1943,7 +1943,7 @@ MonoBehaviour:
   visibleInMode: 1
   edgeSoftness: 0.0035
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 8
   emissionColor: {r: 1.9992802, g: 0.11615046, b: 0, a: 1}
   emissionIntensity: 1
 --- !u!1 &8278042629962381025
@@ -2229,7 +2229,7 @@ MonoBehaviour:
   visibleInMode: 1
   edgeSoftness: 0.0035
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 8
   emissionColor: {r: 1.9992802, g: 0.11615046, b: 0, a: 1}
   emissionIntensity: 1
 --- !u!1001 &10569004248053527
@@ -6359,15 +6359,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Range
-      value: 4.8
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_Color.b
+      value: 0.8066038
+      objectReference: {fileID: 0}
+    - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_Color.g
+      value: 0.8954615
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Intensity
-      value: 20
+      value: 21
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_SpotAngle
-      value: 175
+      value: 150
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Lightmapping
@@ -6375,7 +6383,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_InnerSpotAngle
-      value: 75
+      value: 70
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Shadows.m_Type
@@ -7070,7 +7078,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room5
-  _defaultSwitchState: 0
+  _defaultSwitchState: 1
   _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 7988198743192262383}

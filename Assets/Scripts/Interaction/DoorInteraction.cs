@@ -528,6 +528,20 @@ namespace Escape.Core {
             SaveManager.Instance?.Save();
         }
 
+        /// <summary>Fully closes the door and locks it. Wire to a UnityEvent when the door should shut and become locked.</summary>
+        public void CloseAndLock() {
+            _isLocked          = true;
+            _clickTarget       = 0f;
+            _isOpen            = false;
+            _isClickAnimating  = true;
+            _dragActive        = true;
+            _isDragging        = false;
+            _flinging          = false;
+            _isUnlockAnimating = false;
+            _velocity          = 0f;
+            SaveManager.Instance?.Save();
+        }
+
         // ── Private helpers ──────────────────────────────────────────────────────
 
     /// <summary>Syncs the optional OcclusionPortal's open state with the door's open fraction.</summary>

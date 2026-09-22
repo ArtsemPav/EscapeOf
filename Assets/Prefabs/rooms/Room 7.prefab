@@ -535,6 +535,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 7282695097411353167}
   - {fileID: 3641370800770071781}
   - {fileID: 6766107446149534088}
   - {fileID: 7144888106483994967}
@@ -5890,6 +5891,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d99332458fb155b42b08bb5d1f6cb837, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EmergencyLamp
+  _activeWhenPowered: 0
   _emergencyLight: {fileID: 7298029829854087825}
   _lampGlassRenderer: {fileID: 0}
 --- !u!1 &4865503030509116477
@@ -11590,9 +11592,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0437\u0430\u043C\u043E\u043A"
   _crosshairMode: 5
-  _useExitPopup: 0
-  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
-  _exitPopupType: 2
   _controller: {fileID: 24883247885830918}
 --- !u!114 &3111838578225301672
 MonoBehaviour:
@@ -11961,6 +11960,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d99332458fb155b42b08bb5d1f6cb837, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EmergencyLamp
+  _activeWhenPowered: 0
   _emergencyLight: {fileID: 4919360315424017180}
   _lampGlassRenderer: {fileID: 0}
 --- !u!1 &8478463533416632667
@@ -11991,8 +11991,7 @@ Transform:
   m_LocalPosition: {x: -2.9750004, y: 0, z: 5.3830004}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7282695097411353167}
+  m_Children: []
   m_Father: {fileID: 3783777046583996997}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8518966191615556097
@@ -20801,7 +20800,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 475212197509207710}
+    m_TransformParent: {fileID: 3783777046583996997}
     m_Modifications:
     - target: {fileID: 718169386884753730, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LODs.Array.data[0].screenRelativeHeight
@@ -20845,19 +20844,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalScale.x
-      value: 359.5308
+      value: 359.53076
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalScale.y
-      value: 359.5308
+      value: 359.53076
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalScale.z
-      value: 359.5308
+      value: 359.53076
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -4.564
+      value: -7.539002
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -20865,7 +20864,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.064
+      value: 5.319
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -20877,11 +20876,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

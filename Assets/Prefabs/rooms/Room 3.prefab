@@ -5594,9 +5594,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HiddenWallSign
   visibleInMode: 1
-  edgeSoftness: 0.0035
+  edgeSoftness: 0.0051
   radialFalloff: 2.48
-  maxVisibleDistance: 3.5
+  maxVisibleDistance: 6
   emissionColor: {r: 1.4975001, g: 0, b: 1.3600001, a: 1}
   emissionIntensity: 1
 --- !u!1 &7724596303627458607
@@ -14027,7 +14027,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room3
-  _defaultSwitchState: 0
+  _defaultSwitchState: 1
   _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 5874061587031554892}
@@ -14286,6 +14286,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.244
       objectReference: {fileID: 0}
@@ -14307,15 +14319,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Range
-      value: 4.8
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_Color.b
+      value: 0.8066038
+      objectReference: {fileID: 0}
+    - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      propertyPath: m_Color.g
+      value: 0.8954615
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Intensity
-      value: 15.9
+      value: 21
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_SpotAngle
-      value: 161.7963
+      value: 150
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Lightmapping
@@ -14323,7 +14343,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_InnerSpotAngle
-      value: 49.723946
+      value: 70
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Shadows.m_Type
