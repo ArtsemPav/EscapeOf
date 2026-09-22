@@ -315,7 +315,10 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
             return;
         }
 
-        if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
+        bool keyboardPressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
+        bool mousePressed = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+
+        if (keyboardPressed || mousePressed)
         {
             EvaluateHit();
         }
@@ -323,13 +326,13 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
 
     private void EvaluateHit()
     {
-        float whiteStart = (_sectorStart + (_sectorSize - _whiteZoneSize) * 0.5f) % FullCircle;
+        float whiteStart = _sectorStart;
         float whiteEnd = (whiteStart + _whiteZoneSize) % FullCircle;
         float sectorEnd = (_sectorStart + _sectorSize) % FullCircle;
 
         if (AngleInRange(_arrowAngle, whiteStart, whiteEnd))
         {
-            RegisterHit(_whiteZoneProgress);
+            RegisterHit(_whiteZoneProgress, isWhiteZone: true);
         }
         else if (AngleInRange(_arrowAngle, _sectorStart, sectorEnd))
         {
@@ -341,11 +344,16 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         }
     }
 
-    private void RegisterHit(float progressGain)
+    private void RegisterHit(float progressGain, bool isWhiteZone = false)
     {
         _progress = Mathf.Min(_progressGoal, _progress + progressGain);
         UpdateProgressVisual();
         OnHit?.Invoke();
+
+        if (isWhiteZone && _progressBarFill != null)
+        {
+            StartCoroutine(FlashProgressBarColor());
+        }
 
         if (_progress >= _progressGoal)
         {
@@ -357,6 +365,16 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         {
             StartNewCheck();
         }
+    }
+
+    /// <summary>Кратковременно окрашивает прогресс-бар в цвет белой зоны, затем возвращает исходный цвет.</summary>
+    private IEnumerator FlashProgressBarColor()
+    {
+        Color original = _progressFillColor;
+        _progressBarFill.color = _whiteZoneColor;
+        yield return new WaitForSecondsRealtime(0.15f);
+        if (_progressBarFill != null)
+            _progressBarFill.color = original;
     }
 
     private void RegisterMiss()
@@ -406,15 +424,14 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     {
         if (_graySector != null)
         {
-            _graySector.fillAmount = _sectorSize / FullCircle;
-            _graySector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -_sectorStart);
+            _graySector.fillAmount = (_sectorSize - _whiteZoneSize) / FullCircle;
+            _graySector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -(_sectorStart + _whiteZoneSize));
         }
 
         if (_whiteSector != null)
         {
-            float whiteStart = (_sectorStart + (_sectorSize - _whiteZoneSize) * 0.5f) % FullCircle;
             _whiteSector.fillAmount = _whiteZoneSize / FullCircle;
-            _whiteSector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -whiteStart);
+            _whiteSector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -_sectorStart);
         }
     }
 
