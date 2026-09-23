@@ -28,8 +28,16 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
     [Tooltip("Renderer on the LampGlass mesh. Auto-found in children if not assigned.")]
     [SerializeField] private Renderer _lampGlassRenderer;
 
+    [Header("Door Lock Indicator")]
+    [Tooltip("Light color when the monitored door is locked.")]
+    [SerializeField] private Color _lockedColor = Color.red;
+
+    [Tooltip("Light color when the monitored door is unlocked.")]
+    [SerializeField] private Color _unlockedColor = Color.green;
+
     private Material _sharedMaterial;
     private Color _originalEmissionColor;
+    private Color _currentIndicatorColor;
 
     private void Awake()
     {
@@ -47,6 +55,7 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
         {
             _sharedMaterial = _lampGlassRenderer.sharedMaterial;
             _originalEmissionColor = _sharedMaterial.GetColor("_EmissionColor");
+            _currentIndicatorColor = _originalEmissionColor;
 
             // Lamps with _activeWhenPowered = true need their own material instance
             // to avoid conflicting with emergency lamps on the shared material.
@@ -55,6 +64,7 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
                 _sharedMaterial = Instantiate(_sharedMaterial);
                 _lampGlassRenderer.sharedMaterial = _sharedMaterial;
                 _originalEmissionColor = _sharedMaterial.GetColor("_EmissionColor");
+                _currentIndicatorColor = _originalEmissionColor;
             }
         }
 
@@ -83,7 +93,7 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
             if (shouldBeActive)
             {
                 _sharedMaterial.EnableKeyword("_EMISSION");
-                _sharedMaterial.SetColor("_EmissionColor", _originalEmissionColor);
+                _sharedMaterial.SetColor("_EmissionColor", _currentIndicatorColor);
             }
             else
             {
@@ -92,4 +102,28 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
             }
         }
     }
-}
+
+        /// <summary>Sets the lamp to the locked color (red). Wire to DoorInteraction.OnLocked.</summary>
+        public void SetLocked()
+        {
+            _currentIndicatorColor = _lockedColor;
+            ApplyIndicatorColor();
+        }
+
+        /// <summary>Sets the lamp to the unlocked color (green). Wire to DoorInteraction.OnUnlocked.</summary>
+        public void SetUnlocked()
+        {
+            _currentIndicatorColor = _unlockedColor;
+            ApplyIndicatorColor();
+        }
+
+        private void ApplyIndicatorColor()
+        {
+            if (_emergencyLight != null)
+                _emergencyLight.color = _currentIndicatorColor;
+
+            if (_sharedMaterial != null && _sharedMaterial.HasProperty("_EmissionColor"))
+                _sharedMaterial.SetColor("_EmissionColor", _currentIndicatorColor);
+        }
+    }
+

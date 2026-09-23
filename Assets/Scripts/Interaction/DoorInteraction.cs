@@ -89,6 +89,12 @@ namespace Escape.Core {
         [Tooltip("Fired when the door reaches the fully closed position (openFraction → 0).")]
         [SerializeField] private UnityEvent _onDoorClosed;
 
+        [Tooltip("Fired when the door becomes locked.")]
+        [SerializeField] private UnityEvent _onLocked;
+
+        [Tooltip("Fired when the door becomes unlocked.")]
+        [SerializeField] private UnityEvent _onUnlocked;
+
         // ── Runtime state ────────────────────────────────────────────────────────
 
         private float   _closedAngle;         // initial euler angle along the chosen axis
@@ -215,6 +221,8 @@ namespace Escape.Core {
                 _isLocked     = _pendingIsLocked;
                 _openFraction = _pendingOpenFraction;
                 _hasPendingLoad = false;
+
+                RaiseLockStateEvent();
 
                 // Door was unlocked by CodeLock but openFraction may be near 0.
                 // Trigger the visual unlock swing so it doesn't just sit closed.
@@ -464,10 +472,18 @@ namespace Escape.Core {
         // ── Public API ───────────────────────────────────────────────────────────
 
         /// <summary>Unlocks the door programmatically without opening it.</summary>
-        public void Unlock() => _isLocked = false;
+        public void Unlock()
+        {
+            _isLocked = false;
+            RaiseLockStateEvent();
+        }
 
         /// <summary>Locks the door programmatically. Does not change open state.</summary>
-        public void Lock() => _isLocked = true;
+        public void Lock()
+        {
+            _isLocked = true;
+            RaiseLockStateEvent();
+        }
 
         /// <summary>True when the door is open.</summary>
         public bool IsOpen => _isOpen;
@@ -484,6 +500,7 @@ namespace Escape.Core {
         /// <summary>Unlocks and smoothly swings the door ajar. Wire to CodeLock.OnUnlocked.</summary>
         public void UnlockAndOpen() {
             _isLocked          = false;
+            RaiseLockStateEvent();
             _isUnlockAnimating = true;
             _unlockAjarTarget  = _unlockAjarFraction;
             _dragActive        = true;
@@ -504,6 +521,7 @@ namespace Escape.Core {
         /// <summary>Unlocks and fully opens the door. Wire to lever OnToggleOn.</summary>
         public void Open() {
             _isLocked          = false;
+            RaiseLockStateEvent();
             _clickTarget       = 1f;
             _isOpen            = true;
             _isClickAnimating  = true;
@@ -531,6 +549,7 @@ namespace Escape.Core {
         /// <summary>Fully closes the door and locks it. Wire to a UnityEvent when the door should shut and become locked.</summary>
         public void CloseAndLock() {
             _isLocked          = true;
+            RaiseLockStateEvent();
             _clickTarget       = 0f;
             _isOpen            = false;
             _isClickAnimating  = true;
@@ -550,6 +569,15 @@ namespace Escape.Core {
         if (_occlusionPortal != null)
             _occlusionPortal.open = _openFraction > 0f;
     }
+
+        /// <summary>Raises the lock/unlock event matching the current _isLocked state.</summary>
+        private void RaiseLockStateEvent()
+        {
+            if (_isLocked)
+                _onLocked?.Invoke();
+            else
+                _onUnlocked?.Invoke();
+        }
 
         /// <summary>
         /// Click mode: starts a smooth open/close animation toward the opposite state.
