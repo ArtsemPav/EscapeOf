@@ -1917,9 +1917,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _crosshairMode: 5
-  _useExitPopup: 0
-  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Es\u0441"
-  _exitPopupType: 0
   _controller: {fileID: 6061419509187459734}
 --- !u!1 &7976252448095802022
 GameObject:
@@ -3779,9 +3776,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _crosshairMode: 5
-  _useExitPopup: 0
-  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Es\u0441"
-  _exitPopupType: 0
   _controller: {fileID: 6061419509187459734}
 --- !u!114 &6797980635647128409
 MonoBehaviour:
@@ -4244,13 +4238,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: LabRoomSafe_Door
   _isOpen: 0
   _isLocked: 1
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u0432\u0435\u0441\u0442\u0438
-    \u043A\u043E\u0434"
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 1557321626471919660}
@@ -4269,9 +4262,14 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: LabRoomSafe_Door
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!4 &7280781242823001941 stripped
