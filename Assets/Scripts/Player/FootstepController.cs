@@ -17,12 +17,14 @@ public class FootstepController : MonoBehaviour
 
     [Header("Jump")]
     [SerializeField] private AudioClip jumpClip;
+    [SerializeField] private AudioClip landClip;
 
     [Header("Volume")]
     [SerializeField] [Range(0f, 1f)] private float walkVolume   = 0.5f;
     [SerializeField] [Range(0f, 1f)] private float runVolume    = 0.7f;
     [SerializeField] [Range(0f, 1f)] private float crouchVolume = 0.25f;
     [SerializeField] [Range(0f, 1f)] private float jumpVolume   = 0.6f;
+    [SerializeField] [Range(0f, 1f)] private float landVolume   = 0.8f;
 
     [Header("Sync")]
     [Tooltip("bobTimer value at which a step fires. 3π/4 ≈ 2.356 = bottom of the bob (foot lands). Adjust to fine-tune sync with the visual bob.")]
@@ -63,6 +65,7 @@ public class FootstepController : MonoBehaviour
     private void Awake()
     {
         _fps = GetComponent<FPSController>();
+        _fps.OnLanded += OnLanded;
 
         _audioPool = new AudioSource[PoolSize];
         for (int i = 0; i < PoolSize; i++)
@@ -86,6 +89,8 @@ public class FootstepController : MonoBehaviour
 
     private void OnDisable()
     {
+        if (_fps != null)
+            _fps.OnLanded -= OnLanded;
         if (InputManager.Instance != null)
             InputManager.Instance.OnJumpPerformed -= OnJump;
         _subscribed = false;
@@ -104,6 +109,18 @@ public class FootstepController : MonoBehaviour
         // so no redundant IsGrounded check needed here.
         if (jumpClip != null)
             PlayClip(jumpClip, jumpVolume, 0f);
+    }
+
+    /// <summary>Plays the landing clip, volume scaled by impact speed.</summary>
+    private void OnLanded(float fallSpeed)
+    {
+        if (landClip == null) return;
+
+        // Volume scales with impact speed: quiet for small falls,
+        // loud for hard landings. Clamped to the jump volume ceiling.
+        const float ReferenceFallSpeed = 10f; // ~full jump fall speed
+        float volume = Mathf.Min(landVolume, jumpVolume * (fallSpeed / ReferenceFallSpeed));
+        PlayClip(landClip, volume, 0f);
     }
 
     private void Update()

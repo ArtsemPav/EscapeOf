@@ -18,6 +18,10 @@ public class FPSController : MonoBehaviour, ISaveable
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float gravity = -12f;
     [SerializeField] private float initialFallVelocity = -2f;
+    [Tooltip("Minimal airborne time (seconds) for a landing to register. Filters out " +
+             "micro-leave-ground events (stairs, slopes, small bumps) and the " +
+             "isGrounded flicker while sliding along walls.")]
+    [SerializeField] private float minAirTimeForLanding = 0.15f;
 
     [Header("Crouching")]
     [SerializeField] private float standingHeight = 2f;
@@ -68,6 +72,10 @@ public class FPSController : MonoBehaviour, ISaveable
     // Предотвращает повторный прыжок пока CharacterController.isGrounded
     // ошибочно возвращает true при скольжении по стене.
     private bool _isJumping;
+
+    // Tracks how long the character has been airborne, so the landing
+    // event fires only after a real fall — not on isGrounded flicker.
+    private float _airTime;
 
     // Movement inertia
     private Vector3 _horizontalVelocity;
@@ -130,6 +138,14 @@ public class FPSController : MonoBehaviour, ISaveable
     public float HorizontalSpeed => _horizontalVelocity.magnitude;
     /// <summary>Whether the player is in a crouched state.</summary>
     public bool  IsCrouching     => _isCrouching;
+
+    /// <summary>
+    /// Fired the frame the player transitions from airborne to grounded.
+    /// fallSpeed is the downward speed at impact (positive, m/s) —
+    /// usable for scaling landing volume. Only fires after a real fall
+    /// (airborne longer than minAirTimeForLanding).
+    /// </summary>
+    public event Action<float> OnLanded;
 
     //Croach
     private bool _wantsToStand;
@@ -334,7 +350,13 @@ public class FPSController : MonoBehaviour, ISaveable
 
         if (isMoving)
         {
-            float speedFactor = _horizontalVelocity.magnitude / walkSpeed;
+            // Crouch keeps the same cadence as walking (normalized by crouchSpeed),
+            // running stays faster (normalized by walkSpeed, so the higher run
+            // speed drives more steps per second). Volume differences per state
+            // come from FootstepController (walk/run/crouch volume).
+            float cadenceSpeed = _isCrouching ? crouchSpeed : walkSpeed;
+            cadenceSpeed *= _speedMultiplier;
+            float speedFactor = cadenceSpeed > 0.01f ? _horizontalVelocity.magnitude / cadenceSpeed : 0f;
             _bobTimer += Time.deltaTime * bobFrequency * speedFactor;
 
             // Y frequency is doubled so one full vertical bob matches one footstep (period = π).
@@ -494,9 +516,20 @@ public class FPSController : MonoBehaviour, ISaveable
 
         if (_isGrounded && _verticalVelocity < 0)
         {
+            // Fire landing event if the character was airborne long enough
+            // (a real fall/jump, not a flicker while sliding on a wall).
+            if (_airTime >= minAirTimeForLanding)
+                OnLanded?.Invoke(-_verticalVelocity);
+
+            _airTime = 0f;
             _verticalVelocity = initialFallVelocity;
             _isJumping = false; // персонаж реально приземлился — разрешаем следующий прыжок
         }
+        else if (!_isGrounded)
+        {
+            _airTime += Time.deltaTime;
+        }
+
         _verticalVelocity += gravity * Time.deltaTime;
     }
 
