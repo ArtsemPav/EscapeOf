@@ -250,6 +250,7 @@ GameObject:
   - component: {fileID: 6034231393499477376}
   - component: {fileID: 7733946556234478676}
   - component: {fileID: 7495144746631445676}
+  - component: {fileID: 1091254407454973661}
   m_Layer: 6
   m_Name: GeneratorPuzzle
   m_TagString: Untagged
@@ -429,6 +430,25 @@ MonoBehaviour:
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
   _crosshairMode: 5
   _controller: {fileID: 6257439265781006804}
+--- !u!114 &1091254407454973661
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3266221484804747217}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9158a6f4d645534599ca5c2fe7ec659, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimpleInteractable
+  _idleHintText: "\u0412\u0437\u0430\u0438\u043C\u043E\u0434\u0435\u0439\u0441\u0442\u0432\u043E\u0432\u0430\u0442\u044C"
+  _activeHintText: "\u041D\u0430\u0436\u0430\u0442\u044C"
+  _idleCrosshair: 1
+  _activeCrosshair: 4
+  _onInteract:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &3378186962139931543
 GameObject:
   m_ObjectHideFlags: 0
@@ -7525,7 +7545,7 @@ MonoBehaviour:
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
   _saveId: pickable_UVLence
 --- !u!4 &3066234573760488320 stripped
 Transform:
@@ -7594,7 +7614,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -11.065004
+      value: -11.065
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -7602,7 +7622,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 6.785001
+      value: 9.955
       objectReference: {fileID: 0}
     - target: {fileID: 4506012634271411712, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       propertyPath: m_LocalRotation.w
@@ -16797,7 +16817,7 @@ MonoBehaviour:
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u0412\u0437\u044F\u0442\u044C"
+  _crosshairMode: 1
   _saveId: View_Rune17
 --- !u!1001 &7234080313195971319
 PrefabInstance:

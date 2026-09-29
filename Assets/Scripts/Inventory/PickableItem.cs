@@ -20,9 +20,7 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     [Header("Inspect-Only")]
     [Tooltip("Если включено — предмет можно только осмотреть в 3D-превью. Он не попадает в инвентарь и не удаляется из сцены.")]
     [SerializeField] private bool inspectOnly;
-
-    [Tooltip("Промпт взаимодействия для осматриваемых предметов.")]
-    [SerializeField] private string inspectPrefix = "Осмотреть";
+    [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
     [Header("Save")]
     [Tooltip("Stable unique ID used by the save system. Right-click this component → Generate Save ID to auto-fill.")]
@@ -201,19 +199,13 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     }
 
     /// <summary>Returns the interaction prompt shown to the player.</summary>
-    public string GetInteractText()
-    {
-        if (inspectOnly)
-        {
-            return itemData != null ? $"{inspectPrefix} {itemData.itemName}" : inspectPrefix;
-        }
-
-        string prefix = UIManager.Instance?.Config?.pickUpPrefix ?? "Взять";
-        return itemData != null ? $"{prefix} {itemData.itemName}" : prefix;
-    }
+    public string GetInteractText() => itemData != null ? itemData.itemName : string.Empty;
 
     public bool IsPickable() => true;
     public bool UseLMBClick => true;
+
+    /// <summary>Returns the crosshair mode to show when looking at this object.</summary>
+    public CrosshairMode GetCrosshairMode() => _crosshairMode;
 
     /// <summary>Generates a stable GUID for the save system. Run once per object in the Inspector context menu.</summary>
     [ContextMenu("Generate Save ID")]
