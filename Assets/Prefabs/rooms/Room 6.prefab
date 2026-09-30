@@ -806,6 +806,12 @@ MonoBehaviour:
   _onDoorClosed:
     m_PersistentCalls:
       m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7681866469503471862
 GameObject:
   m_ObjectHideFlags: 0
@@ -2266,6 +2272,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7584698991237387773}
     m_Modifications:
+    - target: {fileID: 457096741388373779, guid: a55d5ae2d0d381a4c8555fe913146728, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 544
+      objectReference: {fileID: 0}
     - target: {fileID: 324696248351905048, guid: 9a9094e820cd52d4d9d87510625752f0, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 544
@@ -2329,10 +2339,6 @@ PrefabInstance:
     - target: {fileID: 7794984299364735196, guid: 9a9094e820cd52d4d9d87510625752f0, type: 3}
       propertyPath: m_Name
       value: HalfWallWindow
-      objectReference: {fileID: 0}
-    - target: {fileID: 457096741388373779, guid: a55d5ae2d0d381a4c8555fe913146728, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 544
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2885,7 +2891,7 @@ MonoBehaviour:
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
   _saveId: pickable_medallion_wood
 --- !u!4 &5608402578969675971 stripped
 Transform:
@@ -3105,7 +3111,7 @@ MonoBehaviour:
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u0412\u0437\u044F\u0442\u044C"
+  _crosshairMode: 1
   _saveId: View_Rune19
 --- !u!1001 &1680979018944510004
 PrefabInstance:
@@ -3344,7 +3350,7 @@ MonoBehaviour:
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
   _saveId: pickable_KeyWard6
 --- !u!1001 &1851654384926526711
 PrefabInstance:
@@ -3943,7 +3949,7 @@ MonoBehaviour:
   _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u0412\u0437\u044F\u0442\u044C"
+  _crosshairMode: 1
   _saveId: View_Rune8
 --- !u!4 &2119696873407576031 stripped
 Transform:
@@ -6747,7 +6753,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4149919645713594515, guid: f043edb7aecd8324bab6bd21c04ab2d4, type: 3}
       propertyPath: _saveId
-      value: door_room5_cupboard
+      value: cupboard_door_room6
       objectReference: {fileID: 0}
     - target: {fileID: 4149919645713594515, guid: f043edb7aecd8324bab6bd21c04ab2d4, type: 3}
       propertyPath: m_Enabled

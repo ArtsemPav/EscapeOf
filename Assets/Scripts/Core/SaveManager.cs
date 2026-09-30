@@ -212,7 +212,8 @@ public class SaveManager : MonoBehaviour
     {
         if (string.IsNullOrEmpty(saveable.SaveId))
         {
-            Debug.LogWarning("SaveManager: ISaveable registered with an empty SaveId — skipping.", this);
+            // Second argument makes the log clickable — clicking it pings the offender in the Hierarchy.
+            Debug.LogWarning($"[SaveManager] '{saveable.GetType().Name}' on object '{((UnityEngine.Object)saveable)?.name}' has an empty SaveId — skipped registration.", saveable as UnityEngine.Object);
             return;
         }
 
@@ -228,7 +229,8 @@ public class SaveManager : MonoBehaviour
 
             if (existingUnityObj != null && existingUnityObj != newUnityObj)
             {
-                Debug.LogWarning($"[SaveManager] Register: '{saveable.SaveId}' already held by '{existingUnityObj.name}' — ignoring duplicate registration from '{newUnityObj?.name}'.", this);
+                // Second argument makes the log clickable — clicking it pings the duplicate in the Hierarchy.
+                Debug.LogWarning($"[SaveManager] Register: '{saveable.SaveId}' already held by '{existingUnityObj.name}' — ignoring duplicate registration from '{newUnityObj?.name}'.", saveable as UnityEngine.Object);
                 return;
             }
 
@@ -237,7 +239,7 @@ public class SaveManager : MonoBehaviour
             // Do NOT let runtime clones (puzzle coin visuals, inspection previews) overwrite it.
             if (existingUnityObj == null && _initialLoadComplete)
             {
-                Debug.Log($"[SaveManager] Register: '{saveable.SaveId}' retained destroyed entry — blocking runtime clone from '{newUnityObj?.name}'.");
+                Debug.Log($"[SaveManager] Register: '{saveable.SaveId}' retained destroyed entry — blocking runtime clone from '{newUnityObj?.name}'.", saveable as UnityEngine.Object);
                 return;
             }
         }
