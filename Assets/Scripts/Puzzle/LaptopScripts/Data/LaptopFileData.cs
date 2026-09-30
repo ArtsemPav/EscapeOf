@@ -11,7 +11,8 @@ namespace EscapeOf.Puzzle.Laptop
         [Tooltip("Icon shown on the desktop.")]
         public Sprite fileIcon;
 
-        [Tooltip("Stable unique identifier used by the save system. Assign once via context menu, never change after.")]
+        [Tooltip("Stable unique identifier used by the save system. Use the button in the Inspector to assign once, never change after.")]
+        [FileId]
         public string fileId = "";
 
 #if UNITY_EDITOR
