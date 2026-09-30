@@ -269,7 +269,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         // Block FPS input and prevent GameManager from opening the pause menu on Esc.
         UIManager.Instance?.PushModalState();
 
-        // Show cursor for puzzle interaction.
+        // Unlock the mouse and show the puzzle cursor — the player clicks the puzzle's
+        // physical buttons (PuzzleInteractable layer) with the mouse, like in other puzzles.
         SetCursorState(true);
         if (UI.PuzzleCursor.Instance != null)
         {
@@ -328,7 +329,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         // Restore FPS input and decrement the modal panel counter.
         UIManager.Instance?.PopModalState();
 
-        // Restore FPS cursor state.
+        // Restore FPS cursor state and hide the puzzle cursor.
         SetCursorState(false);
         if (UI.PuzzleCursor.Instance != null)
         {

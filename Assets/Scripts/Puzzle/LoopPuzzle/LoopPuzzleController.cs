@@ -44,6 +44,10 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
     [SerializeField] private DrawerDrag                _rewardDrawer;
     [SerializeField] private PaintingRoomLightSwitch   _roomLightSwitch;
 
+    [Tooltip("Puzzle mode controller on the ControlPanel. Exits puzzle mode when the " +
+             "solved cinematic finishes. Auto-found in children if left empty.")]
+    [SerializeField] private PuzzleModeController _puzzleMode;
+
     [Header("Power — General Electricity")]
     [Tooltip("TV camera controller. Disabled (blackout) when general power is off.")]
     [SerializeField] private PeepholeTVCamera _tvCamera;
@@ -144,6 +148,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
     private void Awake()
     {
         SaveManager.Instance?.Register(this);
+
+        if (_puzzleMode == null)
+            _puzzleMode = GetComponentInChildren<PuzzleModeController>(true);
 
         if (_solvedCamera != null)
             _solvedCamera.gameObject.SetActive(false);
@@ -550,6 +557,12 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             _solvedCamera.Priority = 0;
             _solvedCamera.gameObject.SetActive(false);
         }
+
+        // Exit puzzle mode while the screen is still black — this deactivates the
+        // puzzle camera instantly and restores the player, so the fade-in of Phase 8
+        // already shows the first-person view. SetSolved also marks the puzzle as
+        // solved (keeping the panel collider off) and persists the state.
+        _puzzleMode?.SetSolved();
 
         // Screen is fully black — deactivate the solved light before the player
         // regains control so the GameObject is off until the next cinematic.
