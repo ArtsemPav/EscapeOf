@@ -29,7 +29,10 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
     public bool CanInteract()
     {
         if (_controller == null) return false;
-        return !_controller.IsActive && !_controller.IsSolved;
+        if (_controller.IsActive) return false;
+        // Solved puzzles are usually closed — unless re-entry is allowed
+        // (e.g. the paint puzzle TV with hints for the next puzzle).
+        return _controller.AllowEnterWhenSolved || !_controller.IsSolved;
     }
 
     public void Interact()
@@ -42,7 +45,8 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
 
     public string GetInteractText()
     {
-        if (_controller != null && _controller.IsSolved) return string.Empty;
+        if (_controller == null) return _interactText;
+        if (_controller.IsSolved && !_controller.AllowEnterWhenSolved) return string.Empty;
         return _interactText;
     }
 
@@ -50,7 +54,8 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
 
     public CrosshairMode GetCrosshairMode()
     {
-        if (_controller != null && _controller.IsSolved) return CrosshairMode.Default;
+        if (_controller == null) return _crosshairMode;
+        if (_controller.IsSolved && !_controller.AllowEnterWhenSolved) return CrosshairMode.Default;
         return _crosshairMode;
     }
 }

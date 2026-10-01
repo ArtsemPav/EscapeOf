@@ -152,6 +152,39 @@ public class AudioManager : MonoBehaviour {
         source.Stop();
     }
 
+    // ── Dynamic music source API (used by MusicDirector) ──────────────────────
+
+    /// <summary>
+    /// Creates a dedicated looping AudioSource under the manager for a
+    /// dynamically requested music track and starts playback at volume 0.
+    /// Used by MusicDirector for crossfading between arbitrary tracks.
+    /// </summary>
+    public AudioSource PlayNewMusicSource(AudioClip clip, bool loop) {
+        GameObject obj = new GameObject("DynamicMusic_SFX");
+        obj.transform.SetParent(transform);
+
+        AudioSource source = obj.AddComponent<AudioSource>();
+        source.clip = clip;
+        source.loop = loop;
+        source.spatialBlend = 0f;
+        source.volume = 0f;
+        source.playOnAwake = false;
+        source.Play();
+
+        return source;
+    }
+
+    /// <summary>
+    /// Stops a dynamic music source created by PlayNewMusicSource without
+    /// destroying it — MusicDirector keeps sources pooled and paused so the
+    /// track can resume from the position where it faded out.
+    /// </summary>
+    public void ReleaseMusicSource(AudioSource source) {
+        if (source == null) return;
+        source.Pause();
+    }
+
+
     // ── Background layer API ───────────────────────────────────────────────────
 
     /// <summary>
