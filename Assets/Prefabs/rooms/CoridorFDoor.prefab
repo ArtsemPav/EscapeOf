@@ -1114,7 +1114,7 @@ MonoBehaviour:
   - objects:
     - {fileID: 709851834436171274}
     - {fileID: 2098367251906293506}
-  _groupInterval: 1
+  _groupInterval: 0.5
 --- !u!1 &3067327534513640865
 GameObject:
   m_ObjectHideFlags: 0
@@ -17245,8 +17245,16 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4178621887146899569}
   m_SourcePrefab: {fileID: 100100000, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+--- !u!23 &2035737782022338948 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4453746290643721945, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+  m_PrefabInstance: {fileID: 2418017511686547293}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3315298160878349514 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1120490314724330391, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
@@ -17257,6 +17265,24 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 2418017511686547293}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &4178621887146899569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5444602461451787948}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df7816bfea221f4bad776988bc74699, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmissionRampOnEnable
+  _targetRenderer: {fileID: 2035737782022338948}
+  _emissionColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  _targetIntensity: 3
+  _rampDuration: 0.5
+  _flickerStrength: 0.3
+  _flickerSpeed: 3
 --- !u!1001 &2460201696657668636
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -21465,16 +21491,42 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8876283414831047688}
   m_SourcePrefab: {fileID: 100100000, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
 --- !u!1 &3106733930896083270 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 4691850341165822135}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &8876283414831047688
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3106733930896083270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df7816bfea221f4bad776988bc74699, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmissionRampOnEnable
+  _targetRenderer: {fileID: 8994303775857684078}
+  _emissionColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  _targetIntensity: 3
+  _rampDuration: 0.5
+  _flickerStrength: 0.3
+  _flickerSpeed: 3
 --- !u!4 &5661030263305747232 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1120490314724330391, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+  m_PrefabInstance: {fileID: 4691850341165822135}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8994303775857684078 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4453746290643721945, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 4691850341165822135}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4696994599577340589
@@ -22845,16 +22897,42 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2695991351367689444}
   m_SourcePrefab: {fileID: 100100000, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
 --- !u!1 &2547659790822412636 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 5285677983276279981}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2695991351367689444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2547659790822412636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df7816bfea221f4bad776988bc74699, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmissionRampOnEnable
+  _targetRenderer: {fileID: 8400447753737565812}
+  _emissionColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  _targetIntensity: 3
+  _rampDuration: 0.5
+  _flickerStrength: 0.3
+  _flickerSpeed: 3
 --- !u!4 &5104346529160880954 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1120490314724330391, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+  m_PrefabInstance: {fileID: 5285677983276279981}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &8400447753737565812 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4453746290643721945, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 5285677983276279981}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &5291248280711839109
@@ -25823,11 +25901,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 786823404551832631}
   m_SourcePrefab: {fileID: 100100000, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
 --- !u!1 &709851834436171274 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+  m_PrefabInstance: {fileID: 7194638331499974651}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &786823404551832631
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 709851834436171274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df7816bfea221f4bad776988bc74699, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmissionRampOnEnable
+  _targetRenderer: {fileID: 6779782030826623266}
+  _emissionColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  _targetIntensity: 3
+  _rampDuration: 0.5
+  _flickerStrength: 0.3
+  _flickerSpeed: 3
+--- !u!23 &6779782030826623266 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4453746290643721945, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 7194638331499974651}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &7806063549920298092 stripped
@@ -29076,11 +29180,37 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2234120073951691234}
   m_SourcePrefab: {fileID: 100100000, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
 --- !u!1 &2098367251906293506 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+  m_PrefabInstance: {fileID: 8583718983862245107}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2234120073951691234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2098367251906293506}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df7816bfea221f4bad776988bc74699, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmissionRampOnEnable
+  _targetRenderer: {fileID: 5391262063893579818}
+  _emissionColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  _targetIntensity: 3
+  _rampDuration: 0.5
+  _flickerStrength: 0.3
+  _flickerSpeed: 3
+--- !u!23 &5391262063893579818 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4453746290643721945, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 8583718983862245107}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8688489243129552228 stripped
@@ -30017,18 +30147,40 @@ PrefabInstance:
       propertyPath: m_Name
       value: torch (3)
       objectReference: {fileID: 0}
-    - target: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6983948741884612700}
   m_SourcePrefab: {fileID: 100100000, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
 --- !u!1 &1651051632382821628 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7638556910631598577, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
+  m_PrefabInstance: {fileID: 9000494142132649229}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6983948741884612700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1651051632382821628}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0df7816bfea221f4bad776988bc74699, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EmissionRampOnEnable
+  _targetRenderer: {fileID: 4694667380029432788}
+  _emissionColor: {r: 1, g: 0.55, b: 0.15, a: 1}
+  _targetIntensity: 3
+  _rampDuration: 0.5
+  _flickerStrength: 0.3
+  _flickerSpeed: 3
+--- !u!23 &4694667380029432788 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 4453746290643721945, guid: 8f280cc4793a22742aa444a0091b0bc3, type: 3}
   m_PrefabInstance: {fileID: 9000494142132649229}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8315023414085826202 stripped
