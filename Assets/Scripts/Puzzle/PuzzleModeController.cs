@@ -29,6 +29,16 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     [Tooltip("If true, the PuzzleInventoryBar will be shown when entering puzzle mode.")]
     [SerializeField] private bool _showInventoryBar = false;
 
+    [Header("Solved State")]
+    [Tooltip("If true, the puzzle can still be entered after it has been solved. Use for puzzles " +
+             "that keep a useful interactive element after solving (e.g. the paint puzzle TV whose " +
+             "camera switch contains hints for the next puzzle). Puzzle buttons stay locked — only " +
+             "unlocked elements like the TV switch remain clickable.")]
+    [SerializeField] private bool _allowEnterWhenSolved = false;
+
+    /// <summary>True if the puzzle may be re-entered after being solved.</summary>
+    public bool AllowEnterWhenSolved => _allowEnterWhenSolved;
+
     [Header("Flashlight")]
     [Tooltip("If true, the flashlight is forced off while in puzzle mode and cannot be toggled. " +
              "Original state is restored on exit.")]
@@ -190,12 +200,13 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         SaveManager.Instance?.Register(this);
 
-        // If the puzzle was already solved on load, disable the interactable
+        // If the puzzle was already solved on load: disable the interactable
         // collider so it doesn't block raycasts to items revealed by the open
-        // animation (e.g. contents of the Chinese box).
+        // animation (e.g. contents of the Chinese box) — unless the puzzle allows
+        // re-entry after solving (then the collider must stay active).
         if (_isSolved)
         {
-            SetPuzzleInteractableColliderEnabled(false);
+            SetPuzzleInteractableColliderEnabled(!_allowEnterWhenSolved);
         }
     }
 
@@ -237,7 +248,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     /// </summary>
     public void EnterPuzzleMode()
     {
-        if (_isActive || _isSolved) return;
+        if (_isActive) return;
+        if (_isSolved && !_allowEnterWhenSolved) return;
 
         if (_requirePower && LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
         {
@@ -304,9 +316,9 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         SetChildInteractablesEnabled(false);
 
         // Re-enable main puzzle interactable collider — unless the puzzle is
-        // solved, in which case it must stay off so it doesn't block raycasts
-        // to items revealed by the open animation.
-        SetPuzzleInteractableColliderEnabled(!_isSolved);
+        // solved and re-entry is not allowed, in which case it must stay off so
+        // it doesn't block raycasts to items revealed by the open animation.
+        SetPuzzleInteractableColliderEnabled(_allowEnterWhenSolved || !_isSolved);
 
         if (_puzzleCamera != null)
         {
