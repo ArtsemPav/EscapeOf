@@ -34,6 +34,12 @@ public class UVPentagramSequence : MonoBehaviour
     /// <summary>The currently playing music source (or last one). Exposed for effect components.</summary>
     public static AudioSource InstanceMusicSource { get; private set; }
 
+    /// <summary>True from the moment the particles + light pillars activate (climax chaos).</summary>
+    public static bool ClimaxStarted { get; private set; }
+
+    /// <summary>The cat's animation node — effect components track its movement.</summary>
+    public static Transform InstanceCatTransform { get; private set; }
+
     private enum Phase { Idle, Watching, Shrinking, Playing, Finished }
 
     [Header("References")]
@@ -285,6 +291,10 @@ public class UVPentagramSequence : MonoBehaviour
             else Debug.LogWarning($"[{name}] Child '{childName}' not found — won't start at climax.", this);
         }
 
+        // Expose the cat's animation node for movement-tracking effect components
+        Transform catAnimNode = FindChildRecursive(_catHorrorInstance.transform, CatAnimationNode);
+        InstanceCatTransform = catAnimNode != null ? catAnimNode : _catHorrorInstance.transform;
+
         Animator rootAnimator = _catHorrorInstance != null ? _catHorrorInstance.GetComponent<Animator>() : null;
         if (rootAnimator != null)
         {
@@ -313,6 +323,7 @@ public class UVPentagramSequence : MonoBehaviour
     {
         _phase = Phase.Playing;
         MusicPlaying = true;
+        ClimaxStarted = false;
         _beatIndex = 0;
         _nextTimelineIndex = 0;
         _nextBeatTime = 0.0;
@@ -376,6 +387,7 @@ public class UVPentagramSequence : MonoBehaviour
         if (!_particlesStarted && trackTime >= _particlesStartTime)
         {
             _particlesStarted = true;
+            ClimaxStarted = true;
             foreach (GameObject root in _particleRoots)
                 root.SetActive(true);
             Debug.Log($"[UVPentagramSequence] Particles + light pillars activated at {trackTime:F1}s.", this);
@@ -406,6 +418,8 @@ public class UVPentagramSequence : MonoBehaviour
     {
         _phase = Phase.Finished;
         MusicPlaying = false;
+        ClimaxStarted = false;
+        InstanceCatTransform = null;
 
         // Bring the game's background music back
         if (AudioManager.Instance != null)
