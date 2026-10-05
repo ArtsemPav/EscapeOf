@@ -25,6 +25,11 @@ public class MusicDirector : MonoBehaviour {
     private Coroutine _fadeCoroutine;
     private float _lastSwitchTime;
     private AudioSource _activeSource;
+    private Coroutine _eventPauseCoroutine;
+    private bool _mutedForEvent;
+
+    /// <summary>True while the director is silenced for a horror event.</summary>
+    public static bool MutedForEvent => Instance != null && Instance._mutedForEvent;
 
     private readonly HashSet<MusicTrack> _playedOnceTracks = new HashSet<MusicTrack>();
     private readonly Dictionary<MusicTrack, AudioSource> _sourcePool = new Dictionary<MusicTrack, AudioSource>();
@@ -69,6 +74,7 @@ public class MusicDirector : MonoBehaviour {
     }
 
     private void RequestTrackInternal(MusicTrack track, bool playOnce) {
+        if (_mutedForEvent) return; // horror event owns the music — requests are queued out
         if (_activeTrack == track) return;
         if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) return;
 
@@ -80,6 +86,46 @@ public class MusicDirector : MonoBehaviour {
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
         _fadeCoroutine = StartCoroutine(FadeRoutine(track));
+    }
+
+    /// <summary>
+    /// Instantly silences EVERY director source (the whole pooled set, not just
+    /// the active one — covers mid-crossfade states) and blocks new track
+    /// requests until RestoreAfterEvent. Used by the horror event to own the
+    /// soundscape for the duration of a track.
+    /// </summary>
+    public static void MuteForEvent() {
+        if (Instance == null || Instance._mutedForEvent) return;
+        Instance._mutedForEvent = true;
+
+        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        if (Instance._eventPauseCoroutine != null) Instance.StopCoroutine(Instance._eventPauseCoroutine);
+
+        // Mute and pause every pooled source — whatever is playing, it dies now
+        foreach (KeyValuePair<MusicTrack, AudioSource> kvp in Instance._sourcePool) {
+            if (kvp.Value == null) continue;
+            kvp.Value.volume = 0f;
+            kvp.Value.Pause();
+        }
+        if (Instance._activeSource != null) {
+            Instance._activeSource.volume = 0f;
+            Instance._activeSource.Pause();
+        }
+    }
+
+    /// <summary>
+    /// Returns the director to normal operation: resumes the track it was
+    /// playing before MuteForEvent (from the same position).
+    /// </summary>
+    public static void RestoreAfterEvent() {
+        if (Instance == null || !Instance._mutedForEvent) return;
+        Instance._mutedForEvent = false;
+
+        // Refade the track that was active before the event; FadeRoutine
+        // un-pauses the pooled source and brings its volume back up.
+        MusicTrack track = Instance._activeTrack;
+        if (track != null)
+            Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track));
     }
 
     private void ClearTrackInternal(MusicTrack track) {
