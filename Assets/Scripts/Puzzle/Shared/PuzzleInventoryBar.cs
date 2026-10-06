@@ -22,6 +22,9 @@ public class PuzzleInventoryBar : MonoBehaviour
 {
     public static PuzzleInventoryBar Instance { get; private set; }
 
+    /// <summary>True while the bar is currently shown for an active puzzle.</summary>
+    public bool IsOpen => _isOpen;
+
     private const float DefaultGhostAlpha = 0.85f;
 
     [Header("References")]

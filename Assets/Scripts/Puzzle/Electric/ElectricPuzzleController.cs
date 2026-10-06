@@ -62,7 +62,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [SerializeField] private GameObject _solvedObject;
 
     [Header("Generator")]
-    [Tooltip("Hint shown when the player tries to insert the fuse before the generator is running.")]
+    [Tooltip("Hint shown when the player pulls the lever with correct wires before the generator is running.")]
     [SerializeField] private string _noGeneratorHint = "Сначала нужно запустить генератор.";
 
     [Header("Lamp")]
@@ -638,6 +638,14 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
                  ?? hit.collider.GetComponentInParent<ElectricLever>();
         if (lever == null) return false;
 
+        // The panel is dead until the generator runs — nothing happens on pull.
+        if (LightingSystem.Instance != null && !LightingSystem.Instance.IsGeneratorReady)
+        {
+            PopupMessageSystem.Instance?.Show(_noGeneratorHint, PopupMessageType.Hint);
+            lever.Interact();
+            return true;
+        }
+
         if (!_wiresCorrect)
         {
             PlaySFX(_wrongPullClip, _wrongPullVolume);
@@ -847,7 +855,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     /// </summary>
     private void HandleLeverPulled()
     {
-        if (_wiresCorrect)
+        if (_isSolved && _wiresCorrect)
         {
             if (_solvedObject != null) _solvedObject.SetActive(true);
             SaveManager.Instance?.Save();
@@ -1066,13 +1074,6 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (item == null) return false;
         if (_acceptedItems == null || Array.IndexOf(_acceptedItems, item) < 0) return false;
         if (_fuseInserted) return false;
-
-        // Block fuse insertion until the generator is running.
-        if (LightingSystem.Instance != null && !LightingSystem.Instance.IsGeneratorReady)
-        {
-            PopupMessageSystem.Instance?.Show(_noGeneratorHint, PopupMessageType.Hint);
-            return false;
-        }
 
         if (_fuseAnchorCollider == null || Camera.main == null) return false;
 

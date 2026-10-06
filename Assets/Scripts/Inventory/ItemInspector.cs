@@ -15,6 +15,13 @@ public class ItemInspector : MonoBehaviour
     /// <summary>True while any inspection or preview panel is open.</summary>
     public bool IsInspecting => _isInspecting;
 
+    /// <summary>
+    /// True when the panel currently holds a deferred result that exists nowhere else —
+    /// a crafted item or device output whose pickup callback returns it to the inventory.
+    /// While true, closing the panel must confirm (not cancel), and the puzzle must not exit.
+    /// </summary>
+    public bool HoldsDeferredResult => _isInspecting && _onPickup != null && _worldObject == null;
+
     [Header("Camera")]
     [SerializeField] private Camera inspectionCamera;
 
@@ -224,7 +231,15 @@ private bool _ignoreInputThisFrame;
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            EndInspection();
+            // A deferred result (crafting or device output) exists only inside this panel —
+            // its onPickup callback is the only thing that returns it to the inventory.
+            // Closing without invoking it would destroy the item, so treat Esc as a
+            // confirm for that case. World pickups keep the old cancel behavior
+            // (the world object simply stays in place).
+            if (_onPickup != null && _worldObject == null)
+                ConfirmPickup();
+            else
+                EndInspection();
             return;
         }
     }
@@ -448,14 +463,19 @@ private bool _ignoreInputThisFrame;
         probe.backgroundColor = new Color(0.35f, 0.35f, 0.4f, 1f); // Светло-серый/голубой фон для бликов
 
         itemNameText.text = item.itemName;
-        itemNameText.gameObject.SetActive(!_isPreviewMode);
 
-        // В режиме превью из инвентаря описание не показываем —
+        // В режиме превью из инвентаря название не показываем —
         // игрок уже видел его в тултипе слота.
+        // Также скрываем название, когда открыт бар инвентаря загадки —
+        // иначе оно перекрывается панелью и выглядит обрезанным.
+        bool hideTexts = _isPreviewMode ||
+                         (PuzzleInventoryBar.Instance != null && PuzzleInventoryBar.Instance.IsOpen);
+        itemNameText.gameObject.SetActive(!hideTexts);
+
         if (descriptionText != null)
         {
-            descriptionText.text    = _isPreviewMode ? string.Empty : item.description;
-            descriptionText.gameObject.SetActive(!_isPreviewMode);
+            descriptionText.text    = hideTexts ? string.Empty : item.description;
+            descriptionText.gameObject.SetActive(!hideTexts);
         }
 
         // Переприсваиваем текстуру на случай если ссылка была сброшена

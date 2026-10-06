@@ -66,6 +66,15 @@ public class HorrorSystem : MonoBehaviour
                 evt.Activate();
     }
 
+    /// <summary>Returns true if at least one event with this ID has already fired (including events restored from a save).</summary>
+    public bool HasFired(string eventId)
+    {
+        foreach (var evt in _events)
+            if (evt.EventId == eventId && evt.HasFired)
+                return true;
+        return false;
+    }
+
     private void OnInventoryChanged()
     {
         if (InventorySystem.Instance == null) return;

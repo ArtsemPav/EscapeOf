@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.Controls;
 
 public class InputManager : MonoBehaviour
 {
@@ -25,8 +26,28 @@ public class InputManager : MonoBehaviour
 
     /// <summary>True while the Crouch button is physically held. Polled by FPSController
     /// instead of canceled events, because disabling the action map (panel opens)
-    /// fires a spurious Crouch.canceled even when the key is still down.</summary>
-    public bool CrouchIsHeld => _playerInputEnabled && _playerInputActions.Player.Crouch.IsPressed();
+    /// fires a spurious Crouch.canceled even when the key is still down.
+    /// Falls back to polling the bound controls directly: the action state resets
+    /// when the Player map is disabled and re-enabled while the key is still held
+    /// (e.g. picking up an item opens a panel), and Input System only re-evaluates
+    /// on the next state change — so IsPressed() would falsely read as released.</summary>
+    public bool CrouchIsHeld
+    {
+        get
+        {
+            if (!_playerInputEnabled || _playerInputActions == null) return false;
+
+            var crouchAction = _playerInputActions.Player.Crouch;
+            if (crouchAction.IsPressed()) return true;
+
+            // Physical control state is independent of action map enable/disable.
+            var bindings = crouchAction.controls;
+            for (int i = 0; i < bindings.Count; i++)
+                if (bindings[i] is ButtonControl button && button.isPressed)
+                    return true;
+            return false;
+        }
+    }
 
     private void Awake() {
         if (Instance == null) {

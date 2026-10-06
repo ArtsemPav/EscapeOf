@@ -427,6 +427,17 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     {
         if (!_isActive) return;
 
+        // A deferred result (crafting or device output) shown in the inspection panel
+        // exists only there — its pickup callback is what returns it to the inventory.
+        // Block puzzle exit while such an item is on screen, otherwise Esc would
+        // destroy the item (the inspector alone no longer loses it, but the puzzle
+        // would close over the panel and desync the inventory bar).
+        if (ItemInspector.Instance != null && ItemInspector.Instance.IsInspecting &&
+            ItemInspector.Instance.HoldsDeferredResult)
+        {
+            return;
+        }
+
         // Check if any puzzle component blocks exiting (e.g. devices still processing).
         // This prevents the player from leaving while flasks are locked in devices.
         var exitGuards = GetComponentsInChildren<IPuzzleExitGuard>(true);

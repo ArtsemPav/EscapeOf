@@ -3560,6 +3560,7 @@ MonoBehaviour:
   _puzzleCamera: {fileID: 5602348601490503328}
   _blendDuration: 0.75
   _showInventoryBar: 1
+  _allowEnterWhenSolved: 0
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights: []
   _requirePower: 0
@@ -3588,9 +3589,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0449\u0438\u0442\u043E\u043A"
   _crosshairMode: 1
-  _useExitPopup: 0
-  _exitPopupText: "\u0412\u044B\u0445\u043E\u0434: Esc"
-  _exitPopupType: 0
   _controller: {fileID: 2312606357073352547}
 --- !u!1 &4725573293326998187
 GameObject:
@@ -3813,8 +3811,6 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: "\u0420\u0430\u0441\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0439
-    \u0449\u0438\u0442\u043E\u043A"
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 5461697093714355910}
@@ -3835,6 +3831,12 @@ MonoBehaviour:
   _motionVolume: 0.7
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &4864388249475188978
