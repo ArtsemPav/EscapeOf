@@ -71,10 +71,15 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
     [Tooltip("Подсказка при нажатии кнопки без установленной бабины.")]
     [SerializeField] private string _hintNoItem = "Установите бабину в проектор.";
 
+    [Header("Stop Button")]
+    [Tooltip("Кнопка выключения проектора (Cylinder с ButtonPressAnimation).")]
+    [SerializeField] private ButtonPressAnimation _stopButton;
+
     // ── State ───────────────────────────────────────────────────────────────
 
     private bool _isPlaced;
     private bool _isSolved;
+    private bool _isProjectorRunning;
     private GameObject _ghostPreview;
     private Material _runtimeGhostMaterial;
     private bool _ghostVisible;
@@ -120,6 +125,9 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
 
         if (_startButton != null)
             _startButton.OnPressed += HandleStartButtonPressed;
+
+        if (_stopButton != null)
+            _stopButton.OnPressed += HandleStopButtonPressed;
     }
 
     private void OnDisable()
@@ -132,6 +140,9 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
 
         if (_startButton != null)
             _startButton.OnPressed -= HandleStartButtonPressed;
+
+        if (_stopButton != null)
+            _stopButton.OnPressed -= HandleStopButtonPressed;
     }
 
     private void Start()
@@ -251,7 +262,18 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
 
     private void HandleStartButtonPressed()
     {
-        if (_isSolved) return;
+        if (_isSolved)
+        {
+            // Повторный запуск после Stop
+            if (!_isProjectorRunning)
+            {
+                _isProjectorRunning = true;
+                _slideshow?.StartProjector();
+                AllowReelSpinning(true);
+            }
+            return;
+        }
+
         if (_controller == null || !_controller.IsActive) return;
 
         if (!_isPlaced)
@@ -268,6 +290,21 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
     }
 
     /// <summary>
+    /// Вызывается при нажатии кнопки Stop. Выключает слайдшоу, звук, луч
+    /// и останавливает вращение бабин. Питание при этом проектор не будит —
+    /// перезапуск только кнопкой Start.
+    /// </summary>
+    private void HandleStopButtonPressed()
+    {
+        if (!_isSolved || !_isProjectorRunning) return;
+        if (_controller == null || !_controller.IsActive) return;
+
+        _isProjectorRunning = false;
+        _slideshow?.StopProjector();
+        AllowReelSpinning(false);
+    }
+
+    /// <summary>
     /// Включает проектор: слайдшоу + звук + луч стартуют от текущего питания.
     /// DecalSlideshow и ReelSpinner сами реагируют на смену питания через IPowerConsumer.
     /// </summary>
@@ -275,6 +312,7 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
     {
         if (_slideshow == null) return;
 
+        _isProjectorRunning = true;
         _slideshow.ReelInstalled = true;
         AllowReelSpinning(true);
 

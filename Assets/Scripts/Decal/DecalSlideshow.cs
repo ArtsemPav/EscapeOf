@@ -139,6 +139,9 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
         }
     }
 
+    /// <summary>Проектор остановлен кнопкой Stop — включение питания его не запускает.</summary>
+    public bool ProjectorStopped { get; private set; }
+
     /// <summary>
     /// Called by LightingSystem when master power changes (and once on registration).
     /// Controls the slideshow, projector audio, and light ray based on power state.
@@ -146,6 +149,28 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
     /// power alone must not show slides or the light ray.
     /// </summary>
     public void OnPowerStateChanged(bool isPowered)
+    {
+        if (ProjectorStopped)
+            return; // выключен кнопкой Stop — перезапуск только через StartProjector
+
+        ApplyPowerState(isPowered);
+    }
+
+    /// <summary>Полностью выключает проектор: слайдшоу, декал, звук, луч.</summary>
+    public void StopProjector()
+    {
+        ProjectorStopped = true;
+        ApplyPowerState(false);
+    }
+
+    /// <summary>Запускает проектор заново после Stop — если питание включено.</summary>
+    public void StartProjector()
+    {
+        ProjectorStopped = false;
+        ApplyPowerState(LightingSystem.Instance == null || LightingSystem.Instance.IsPowered);
+    }
+
+    private void ApplyPowerState(bool isPowered)
     {
         if (isPowered && !ReelInstalled)
             return;
