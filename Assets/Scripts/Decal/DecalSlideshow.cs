@@ -114,6 +114,12 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
     /// <summary>Whether the slideshow is currently advancing automatically.</summary>
     public bool IsPlaying => _isPlaying;
 
+    /// <summary>
+    /// Установлена ли бабина в проектор. Управляется извне (FilmReelInstaller).
+    /// Пока false — слайдшоу и звук проектора не запускаются от питания.
+    /// </summary>
+    public bool ReelInstalled { get; set; }
+
     private void Awake()
     {
         _decalProjector = GetComponent<DecalProjector>();
@@ -136,9 +142,14 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
     /// <summary>
     /// Called by LightingSystem when master power changes (and once on registration).
     /// Controls the slideshow, projector audio, and light ray based on power state.
+    /// Without the reel installed (ReelInstalled = false) the projector stays off —
+    /// power alone must not show slides or the light ray.
     /// </summary>
     public void OnPowerStateChanged(bool isPowered)
     {
+        if (isPowered && !ReelInstalled)
+            return;
+
         if (isPowered)
         {
             if (_playOnAwake && SlideCount > 1)
