@@ -463,18 +463,19 @@ private bool _ignoreInputThisFrame;
         probe.backgroundColor = new Color(0.35f, 0.35f, 0.4f, 1f); // Светло-серый/голубой фон для бликов
 
         itemNameText.text = item.itemName;
-        itemNameText.gameObject.SetActive(!_isPreviewMode);
 
-        // В режиме превью из инвентаря описание не показываем —
+        // В режиме превью из инвентаря название не показываем —
         // игрок уже видел его в тултипе слота.
-        // Также скрываем описание, когда открыт бар инвентаря загадки —
+        // Также скрываем название, когда открыт бар инвентаря загадки —
         // иначе оно перекрывается панелью и выглядит обрезанным.
-        bool hideDescription = _isPreviewMode ||
-                               (PuzzleInventoryBar.Instance != null && PuzzleInventoryBar.Instance.IsOpen);
+        bool hideTexts = _isPreviewMode ||
+                         (PuzzleInventoryBar.Instance != null && PuzzleInventoryBar.Instance.IsOpen);
+        itemNameText.gameObject.SetActive(!hideTexts);
+
         if (descriptionText != null)
         {
-            descriptionText.text    = hideDescription ? string.Empty : item.description;
-            descriptionText.gameObject.SetActive(!hideDescription);
+            descriptionText.text    = hideTexts ? string.Empty : item.description;
+            descriptionText.gameObject.SetActive(!hideTexts);
         }
 
         // Переприсваиваем текстуру на случай если ссылка была сброшена
