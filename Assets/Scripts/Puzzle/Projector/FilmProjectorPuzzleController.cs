@@ -316,8 +316,8 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
         _slideshow.ReelInstalled = true;
         AllowReelSpinning(true);
 
-        // Повторно применяем текущее состояние питания, чтобы слайдшоу/звук
-        // запустились сразу, если свет уже включён.
+        // Всё (слайдшоу, звук, луч) включается только при питании —
+        // применяем текущее состояние питания.
         _slideshow.OnPowerStateChanged(
             LightingSystem.Instance == null || LightingSystem.Instance.IsPowered);
     }

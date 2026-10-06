@@ -126,6 +126,9 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
         EnsureMaterial();
         BuildTextureArray();
         LightingSystem.Instance?.RegisterConsumer(this);
+        // Луч проектора управляется кнопкой Start —
+        // до нажатия кнопки луч всегда выключен, независимо от питания.
+        DisableRay();
     }
 
     private void OnDestroy()
@@ -144,54 +147,29 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
 
     /// <summary>
     /// Called by LightingSystem when master power changes (and once on registration).
-    /// Controls the slideshow, projector audio, and light ray based on power state.
-    /// Without the reel installed (ReelInstalled = false) the projector stays off —
-    /// power alone must not show slides or the light ray.
+    /// Всё включается только при питании. Without the reel installed
+    /// (ReelInstalled = false) the projector stays off — power alone must not
+    /// show slides or the light ray.
     /// </summary>
     public void OnPowerStateChanged(bool isPowered)
     {
         if (ProjectorStopped)
             return; // выключен кнопкой Stop — перезапуск только через StartProjector
 
-        ApplyPowerState(isPowered);
-    }
-
-    /// <summary>Полностью выключает проектор: слайдшоу, декал, звук, луч.</summary>
-    public void StopProjector()
-    {
-        ProjectorStopped = true;
-        ApplyPowerState(false);
-    }
-
-    /// <summary>Запускает проектор заново после Stop — если питание включено.</summary>
-    public void StartProjector()
-    {
-        ProjectorStopped = false;
-        ApplyPowerState(LightingSystem.Instance == null || LightingSystem.Instance.IsPowered);
-    }
-
-    private void ApplyPowerState(bool isPowered)
-    {
-        if (isPowered && !ReelInstalled)
-            return;
-
         if (isPowered)
         {
-            if (_playOnAwake && SlideCount > 1)
-                Play();
-
-            if (_decalProjector != null)
-                _decalProjector.enabled = true;
-
-            if (_audioController != null)
-                _audioController.StartLoop();
-
-            if (_lightFlicker != null)
+            if (ReelInstalled)
             {
-                _lightFlicker.enabled = true;
-                MeshRenderer rayRenderer = _lightFlicker.GetComponent<MeshRenderer>();
-                if (rayRenderer != null)
-                    rayRenderer.enabled = true;
+                if (_playOnAwake && SlideCount > 1)
+                    Play();
+
+                if (_decalProjector != null)
+                    _decalProjector.enabled = true;
+
+                if (_audioController != null)
+                    _audioController.StartLoop();
+
+                EnableRay();
             }
         }
         else
@@ -204,13 +182,66 @@ public class DecalSlideshow : MonoBehaviour, IPowerConsumer
             if (_audioController != null)
                 _audioController.StopLoop();
 
-            if (_lightFlicker != null)
-            {
-                MeshRenderer rayRenderer = _lightFlicker.GetComponent<MeshRenderer>();
-                if (rayRenderer != null)
-                    rayRenderer.enabled = false;
-                _lightFlicker.enabled = false;
-            }
+            DisableRay();
+        }
+    }
+
+    /// <summary>Полностью выключает проектор: слайдшоу, декал, звук, луч.</summary>
+    public void StopProjector()
+    {
+        ProjectorStopped = true;
+        DisableRay();
+
+        Pause();
+        if (_decalProjector != null)
+            _decalProjector.enabled = false;
+        if (_audioController != null)
+            _audioController.StopLoop();
+    }
+
+    /// <summary>Запускает проектор заново после Stop — при питании включается всё.</summary>
+    public void StartProjector()
+    {
+        ProjectorStopped = false;
+
+        if (ReelInstalled)
+        {
+            if (_playOnAwake && SlideCount > 1)
+                Play();
+
+            if (_decalProjector != null)
+                _decalProjector.enabled = true;
+
+            if (_audioController != null)
+                _audioController.StartLoop();
+
+            EnableRay();
+        }
+    }
+
+    private void DisableRay()
+    {
+        if (_lightFlicker != null)
+        {
+            MeshRenderer rayRenderer = _lightFlicker.GetComponent<MeshRenderer>();
+            if (rayRenderer != null)
+                rayRenderer.enabled = false;
+            _lightFlicker.enabled = false;
+        }
+    }
+
+    /// <summary>Включает луч проектора. Работает только при установленной бабине.</summary>
+    public void EnableRay()
+    {
+        if (!ReelInstalled)
+            return;
+
+        if (_lightFlicker != null)
+        {
+            _lightFlicker.enabled = true;
+            MeshRenderer rayRenderer = _lightFlicker.GetComponent<MeshRenderer>();
+            if (rayRenderer != null)
+                rayRenderer.enabled = true;
         }
     }
 
