@@ -50,6 +50,7 @@ public class PhysicsGrabber : MonoBehaviour
     private float _originalLinearDrag;
     private RigidbodyConstraints _originalConstraints;
     private float _massSpeedMultiplier = 1f;
+    private float _effectiveHoldDistance;
 
     private void Awake()
     {
@@ -88,7 +89,7 @@ public class PhysicsGrabber : MonoBehaviour
                 // Dynamically reduce speed based on how far the object lags behind the hold point.
                 // When gap <= acceptableGap → base mass multiplier.
                 // When gap >= maxGap → player is fully stopped so the object can catch up.
-                Vector3 holdPoint = cameraTransform.position + cameraTransform.forward * holdDistance;
+                Vector3 holdPoint = GetHoldPoint();
                 float gap = Vector3.Distance(_grabbedDraggable.Body.position, holdPoint);
                 float gapFactor = 1f - Mathf.Clamp01((gap - acceptableGap) / (maxGap - acceptableGap));
                 _fpsController?.SetSpeedMultiplier(_massSpeedMultiplier * gapFactor);
@@ -110,7 +111,7 @@ public class PhysicsGrabber : MonoBehaviour
         if (_grabbedDraggable == null) return;
 
         Rigidbody rb = _grabbedDraggable.Body;
-        Vector3 holdPoint = cameraTransform.position + cameraTransform.forward * holdDistance;
+        Vector3 holdPoint = GetHoldPoint();
 
         // Spring-damper: F = k*(target - pos) - d*velocity
         // ForceMode.Force divides by mass → heavier objects accelerate slower
@@ -131,6 +132,16 @@ public class PhysicsGrabber : MonoBehaviour
         );
     }
 
+    /// <summary>The hold point in front of the camera — uses the grabbed object's
+    /// personal hold distance when it defines one, otherwise the global one.</summary>
+    private Vector3 GetHoldPoint()
+    {
+        float distance = holdDistance;
+        if (_grabbedDraggable != null && _grabbedDraggable.HasCustomHoldDistance)
+            distance = Mathf.Min(_grabbedDraggable.HoldDistance, holdDistance);
+        return cameraTransform.position + cameraTransform.forward * distance;
+    }
+
     /// <summary>Casts a sphere from the camera and highlights the nearest PhysicsDraggable.
     /// An additional line-of-sight raycast ensures walls between the camera and the
     /// object block detection, preventing grabs through geometry.</summary>
@@ -141,6 +152,19 @@ public class PhysicsGrabber : MonoBehaviour
         if (Physics.SphereCast(ray, detectionRadius, out RaycastHit hit, grabDistance, draggableLayer)
             && hit.collider.TryGetComponent(out PhysicsDraggable draggable))
         {
+            // Per-object grab distance limit: if the object defines its own max
+            // distance and the hit is beyond it, treat it as out of reach.
+            // The limit only ever shortens the global grabDistance.
+            if (draggable.HasCustomDragDistance && hit.distance > draggable.MaxDragDistance)
+            {
+                if (_hoveredDraggable != null)
+                {
+                    _hoveredDraggable = null;
+                    InteractionUI.Instance?.SetHint(false);
+                }
+                return;
+            }
+
             // Line-of-sight check: cast a thin ray against all solid layers (except
             // Ignore Raycast and Draggable) up to the draggable. If anything is hit,
             // a wall is between the camera and the object — skip detection.

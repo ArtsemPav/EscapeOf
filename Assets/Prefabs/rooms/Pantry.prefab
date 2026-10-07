@@ -3105,6 +3105,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+--- !u!108 &1961617653741899352 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+  m_PrefabInstance: {fileID: 1926350851105561980}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1987614144441847057
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7506,6 +7511,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.y
       value: -207.075
       objectReference: {fileID: 0}
+    - target: {fileID: 2936625321087736267, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3007723605083376060, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -7656,7 +7665,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6692912182911157305, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7180035404971287628, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_Intensity
@@ -7768,23 +7777,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: edgeSoftness
-      value: 0.0256
+      value: 0.0499
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: radialFalloff
-      value: 2.96
+      value: 3.55
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: emissionColor.b
-      value: 2.8792796
+      value: 0.67805064
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: emissionColor.g
-      value: 0.17860387
+      value: 0.53964657
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: emissionColor.r
-      value: 8.834966
+      value: 0.9838275
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: emissionIntensity
@@ -7792,7 +7801,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9016164446735570582, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: maxVisibleDistance
-      value: 4
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 9020339380194282918, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_IsActive
@@ -7803,27 +7812,70 @@ PrefabInstance:
       value: 262144
       objectReference: {fileID: 0}
     - target: {fileID: 9160054888148342544, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
+      propertyPath: m_Color.a
+      value: 0.1764706
+      objectReference: {fileID: 0}
+    - target: {fileID: 9160054888148342544, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_Color.b
-      value: 0.8058389
+      value: 0.9347392
       objectReference: {fileID: 0}
     - target: {fileID: 9160054888148342544, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_Color.g
-      value: 0.12803233
+      value: 0.71024245
       objectReference: {fileID: 0}
     - target: {fileID: 9160054888148342544, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
       propertyPath: m_Color.r
-      value: 1
+      value: 0.99999994
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2091032845953163027, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5911308853838248658}
   m_SourcePrefab: {fileID: 100100000, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
 --- !u!4 &1545755555927510120 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6229267018075542707, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
   m_PrefabInstance: {fileID: 4828260278176471259}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6775026201013520328 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2091032845953163027, guid: 3bf813447550a4c40a3987e536a0972c, type: 3}
+  m_PrefabInstance: {fileID: 4828260278176471259}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5911308853838248658
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6775026201013520328}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 615ff3c37cdefff4dbc138db84dff288, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MusicColorLight
+  _colors:
+  - {r: 1, g: 0.1, b: 0.6, a: 1}
+  - {r: 0.1, g: 0.7, b: 1, a: 1}
+  - {r: 0.4, g: 1, b: 0.2, a: 1}
+  - {r: 1, g: 0.5, b: 0.1, a: 1}
+  - {r: 0.55, g: 0.2, b: 1, a: 1}
+  _randomOrder: 0
+  _beatsPerColor: 4
+  _colorLerpSpeed: 8
+  _musicSource: {fileID: 0}
+  _spectrumSamples: 64
+  _minIntensityBoost: 0.5
+  _maxIntensityBoost: 4
+  _loudnessLerpSpeed: 10
+  _startAtClimax: 1
+  _extraLightsToDrive:
+  - {fileID: 1961617653741899352}
+  _syncColorToCatMovement: 1
+  _catMoveDistance: 0.15
 --- !u!1001 &4835578691239656698
 PrefabInstance:
   m_ObjectHideFlags: 0

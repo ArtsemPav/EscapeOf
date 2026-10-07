@@ -40,26 +40,19 @@ public class UVPentagramSequence : MonoBehaviour
     /// <summary>The cat's animation node — effect components track its movement.</summary>
     public static Transform InstanceCatTransform { get; private set; }
 
-    private enum Phase { Idle, Watching, Shrinking, Playing, Finished }
+    private enum Phase { Idle, Waiting, Shrinking, Playing, Finished }
 
     [Header("References")]
     [Tooltip("CatHorror instance placed in the scene at the pentagram location. " +
              "Must contain children: Pentagram, CatAnimation, Particles, Lights, Audio.")]
     [SerializeField] private GameObject _catHorrorInstance;
 
-    [Tooltip("Player camera for look detection. Auto-assigned to Camera.main if left empty.")]
+    [Tooltip("The cat can object. Hidden together with the pentagram shrink so the " +
+             "player cannot re-trigger the sequence.")]
+    [SerializeField] private GameObject _catCanObject;
+
+    [Tooltip("Player camera. Auto-assigned to Camera.main if left empty.")]
     [SerializeField] private Camera _playerCamera;
-
-    [Tooltip("Flashlight controller. Auto-found in the scene if left empty. Look counting only " +
-             "runs while the flashlight is ON and in UV mode — same visibility as the pentagram.")]
-    [SerializeField] private FlashlightController _flashlight;
-
-    [Header("Look Detection")]
-    [Tooltip("Dot product above which the player counts as looking at the pentagram. 0.7 ≈ 45°.")]
-    [SerializeField] private float _lookAtThreshold = 0.7f;
-
-    [Tooltip("Seconds of continuous looking required to start the sequence.")]
-    [SerializeField] private float _lookSecondsRequired = 3f;
 
     [Header("Pentagram Shrink")]
     [SerializeField] private float _shrinkDuration = 0.35f;
@@ -153,11 +146,8 @@ public class UVPentagramSequence : MonoBehaviour
             return;
         }
 
-        if (_phase == Phase.Watching)
-        {
+        if (_phase == Phase.Waiting)
             SpinPentagram();
-            AccumulateLookTime();
-        }
         else if (_phase == Phase.Playing)
             UpdateMusicTimeline();
     }
@@ -167,7 +157,17 @@ public class UVPentagramSequence : MonoBehaviour
     /// <summary>Runs the full sequence skipping the look-wait. Debug hotkey or manual call.</summary>
     public void DebugPlay()
     {
-        if (_phase != Phase.Watching && _phase != Phase.Idle) return;
+        if (_phase != Phase.Waiting && _phase != Phase.Idle) return;
+        StartCoroutine(ShrinkAndPlay());
+    }
+
+    /// <summary>
+    /// Starts the sequence from the cat can trigger: skips the waiting phase
+    /// and goes straight to the pentagram shrink.
+    /// </summary>
+    public void BeginFromCanTrigger()
+    {
+        if (_phase != Phase.Waiting && _phase != Phase.Idle) return;
         StartCoroutine(ShrinkAndPlay());
     }
 
@@ -205,7 +205,7 @@ public class UVPentagramSequence : MonoBehaviour
         Animator rootAnimator = _catHorrorInstance.GetComponent<Animator>();
         if (rootAnimator != null) rootAnimator.enabled = false;
 
-        _phase = Phase.Watching;
+        _phase = Phase.Waiting;
     }
 
     private void SpinPentagram()
@@ -215,44 +215,6 @@ public class UVPentagramSequence : MonoBehaviour
         _pentagram.Rotate(0f, 0f, direction * _spinSpeed * Time.deltaTime, Space.Self);
     }
 
-    private void AccumulateLookTime()
-    {
-        if (_pentagram == null || _playerCamera == null) return;
-
-        // Only count looking when the pentagram can actually be seen:
-        // the UV flashlight must be ON and in UV mode (HiddenWallSign logic).
-        if (_flashlight == null)
-            _flashlight = FindFirstObjectByType<FlashlightController>();
-        if (_flashlight == null || !_flashlight.IsOn || _flashlight.CurrentMode != FlashlightMode.UV)
-        {
-            _lookTimer = 0f;
-            return;
-        }
-
-        Vector3 toTarget = (_pentagram.position - _playerCamera.transform.position).normalized;
-        float dot = Vector3.Dot(_playerCamera.transform.forward, toTarget);
-
-        // Debug telemetry — once per second, to verify look detection in Play Mode
-        _debugLogTimer += Time.deltaTime;
-        if (_debugLogTimer >= 1f)
-        {
-            _debugLogTimer = 0f;
-            Debug.Log($"[UVPentagramSequence] dot={dot:F2} (need >= {_lookAtThreshold:F2}), lookTimer={_lookTimer:F1}s (need {_lookSecondsRequired:F1}s), pentagramPos={_pentagram.position}, camPos={_playerCamera.transform.position}", this);
-        }
-
-        if (dot >= _lookAtThreshold)
-        {
-            _lookTimer += Time.deltaTime;
-            if (_lookTimer >= _lookSecondsRequired)
-                StartCoroutine(ShrinkAndPlay());
-        }
-        else
-        {
-            // Optional: decay instead of instant reset feels more forgiving
-            _lookTimer = Mathf.Max(0f, _lookTimer - Time.deltaTime * 2f);
-        }
-    }
-
     // ── Shrink → play ─────────────────────────────────────────────────────────
 
     private IEnumerator ShrinkAndPlay()
@@ -260,19 +222,42 @@ public class UVPentagramSequence : MonoBehaviour
         if (_phase == Phase.Shrinking || _phase == Phase.Playing) yield break;
         _phase = Phase.Shrinking;
 
-        // Pentagram shrinks rapidly and disappears
+        // Pentagram shrinks rapidly; the can is sucked into its center
         if (_pentagram != null)
         {
+            // Freeze the can's physics so gravity doesn't fight the suck-in
+            Vector3? canStartPos = null;
+            Vector3 canStartScale = Vector3.one;
+            Rigidbody canBody = _catCanObject != null ? _catCanObject.GetComponent<Rigidbody>() : null;
+            if (canBody != null) canBody.isKinematic = true;
+
+            if (_catCanObject != null && Vector3.Distance(_catCanObject.transform.position, _pentagram.position) > 0.01f)
+            {
+                canStartPos = _catCanObject.transform.position;
+                canStartScale = _catCanObject.transform.localScale;
+            }
+
             float t = 0f;
             while (t < _shrinkDuration)
             {
                 t += Time.deltaTime;
                 float k = Mathf.Clamp01(t / _shrinkDuration);
                 _pentagram.localScale = _pentagramBaseScale * _shrinkCurve.Evaluate(k);
+
+                // Pull the can into the pentagram's center and shrink it too
+                if (canStartPos.HasValue)
+                {
+                    _catCanObject.transform.position = Vector3.Lerp(canStartPos.Value, _pentagram.position, _shrinkCurve.Evaluate(k));
+                    _catCanObject.transform.localScale = Vector3.Lerp(canStartScale, canStartScale * 0.2f, k);
+                }
                 yield return null;
             }
             _pentagram.gameObject.SetActive(false);
         }
+
+        // The can vanishes with the pentagram — no second trigger
+        if (_catCanObject != null)
+            _catCanObject.SetActive(false);
 
         // Cat comes alive; particles and pillars are excluded — they start on the timeline
         foreach (string childName in HiddenUntilMusic)

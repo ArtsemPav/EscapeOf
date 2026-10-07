@@ -14,6 +14,15 @@ public class PhysicsDraggable : MonoBehaviour
     [Tooltip("When enabled, the object cannot be tipped over while dragging. X and Z rotation axes are frozen.")]
     [SerializeField] private bool preventTipping = false;
 
+    [Tooltip("Max distance from the player at which this object can be grabbed. " +
+             "0 = use the controller's global interact distance. Only shortens the global value — " +
+             "a value larger than the global distance has no effect.")]
+    [SerializeField] private float _maxDragDistance = 0f;
+
+    [Tooltip("Distance in front of the camera where this object is HELD while dragging. " +
+             "Smaller = the object hangs closer to the player. 0 = use the grabber's global hold distance.")]
+    [SerializeField] private float _holdDistance = 0f;
+
     /// <summary>Cached Rigidbody reference.</summary>
     public Rigidbody Body { get; private set; }
 
@@ -22,6 +31,18 @@ public class PhysicsDraggable : MonoBehaviour
 
     /// <summary>Whether rotation on X and Z axes should be frozen while dragging.</summary>
     public bool PreventTipping => preventTipping;
+
+    /// <summary>True when this object defines its own max grab distance.</summary>
+    public bool HasCustomDragDistance => _maxDragDistance > 0f;
+
+    /// <summary>Custom max grab distance (only meaningful when HasCustomDragDistance).</summary>
+    public float MaxDragDistance => _maxDragDistance;
+
+    /// <summary>True when this object defines its own hold distance while dragged.</summary>
+    public bool HasCustomHoldDistance => _holdDistance > 0f;
+
+    /// <summary>Custom hold distance while dragged (only meaningful when HasCustomHoldDistance).</summary>
+    public float HoldDistance => _holdDistance;
 
     private void Awake()
     {
