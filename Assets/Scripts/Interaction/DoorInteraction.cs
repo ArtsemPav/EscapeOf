@@ -518,6 +518,15 @@ namespace Escape.Core {
             _unlockAjarFraction = Mathf.Clamp01(fraction);
         }
 
+        /// <summary>
+        /// Sets the speed (fraction of max angle per second) of the smooth ajar swing
+        /// after UnlockAndOpen. Lower = slower, more cinematic. Can be called at runtime
+        /// from UnityEvents or puzzle cinematics.
+        /// </summary>
+        public void SetUnlockAjarSpeed(float speed) {
+            _unlockAjarSpeed = Mathf.Max(0.01f, speed);
+        }
+
         /// <summary>Unlocks and fully opens the door. Wire to lever OnToggleOn.</summary>
         public void Open() {
             _isLocked          = false;

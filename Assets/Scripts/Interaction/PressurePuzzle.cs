@@ -207,6 +207,10 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
              "e.g. 20 = door nudges open ~20°. Set to 0 to use the door's full maxOpenAngle.")]
     [SerializeField, Min(0f)] private float _cinematicDoorOpenAngle = 20f;
 
+    [Tooltip("How long the cinematic door takes to swing open, in seconds. " +
+             "Lower = faster. The swing speed is derived from angle and duration.")]
+    [SerializeField, Min(0.1f)] private float _cinematicDoorOpenDuration = 3f;
+
     [Tooltip("Duration of the screen fade to/from black (seconds).")]
     [SerializeField, Min(0f)] private float _fadeDuration = 1f;
 
@@ -981,8 +985,14 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             float maxAngle = _cinematicDoor.MaxOpenAngle;
             if (_cinematicDoorOpenAngle > 0f && maxAngle > 0f)
                 _cinematicDoor.SetUnlockAjarFraction(Mathf.Clamp01(_cinematicDoorOpenAngle / maxAngle));
+            // Speed = fraction of max angle per second, derived from angle + duration.
+            // For 20° over 3s at maxAngle 90° → fraction 0.222 / 3s ≈ 0.074 per second.
+            float fraction = (_cinematicDoorOpenAngle > 0f && maxAngle > 0f)
+                ? Mathf.Clamp01(_cinematicDoorOpenAngle / maxAngle)
+                : 1f;
+            _cinematicDoor.SetUnlockAjarSpeed(fraction / _cinematicDoorOpenDuration);
             _cinematicDoor.UnlockAndOpen();
-            Debug.Log($"[PressurePuzzle] Cinematic door opening ({_cinematicDoorOpenAngle}°).");
+            Debug.Log($"[PressurePuzzle] Cinematic door opening ({_cinematicDoorOpenAngle}° over {_cinematicDoorOpenDuration}s).");
         }
 
         // Also unlock the entry door so the player can leave.
