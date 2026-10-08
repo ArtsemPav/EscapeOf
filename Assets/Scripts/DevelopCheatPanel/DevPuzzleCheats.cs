@@ -190,6 +190,42 @@ public static class DevPuzzleCheats
             checkSolvedProperty: "IsSolved");
     }
 
+    /// <summary>Solves the Screwdriver Repair Puzzle (Room 7): stops the minigame, plays the Repaired state and fires SetSolved.</summary>
+    public static CheatResult SolveScrewdriverPuzzle()
+    {
+        Type type = FindType("ScrewdriverRepairController");
+        if (type == null) return Failed("ScrewdriverRepairController type not found");
+        UnityEngine.Object instance = FindFirst(type);
+        if (instance == null) return Failed("ScrewdriverRepairController not found in scene");
+
+        bool isSolved = GetField<bool>(instance, "_isSolved");
+        if (isSolved) return Solved("Screwdriver Puzzle is already solved");
+
+        // ── Stop the minigame and hide its panel ─────────────────────────────
+        var minigame = GetField<object>(instance, "_minigame");
+        minigame?.GetType().GetMethod("StopMinigame", PublicFlags)?.Invoke(minigame, null);
+
+        var minigamePanel = GetField<UnityEngine.Object>(instance, "_minigamePanel") as GameObject;
+        if (minigamePanel != null) minigamePanel.SetActive(false);
+
+        // ── Play the final Repaired state on the target animator ─────────────
+        type.GetMethod("RestoreSolvedState", InstanceFlags)?.Invoke(instance, null);
+
+        // ── Set solved flags ──────────────────────────────────────────────────
+        SetField(instance, "_isSolved", true);
+        SetField(instance, "_isProcessing", false);
+        SetField(instance, "_isCompleting", false);
+
+        SaveManager.Instance?.Save();
+
+        // ── Fire solved event via PuzzleModeController ────────────────────────
+        object puzzleMode = GetField<object>(instance, "_puzzleMode");
+        if (puzzleMode != null)
+            return FireOrDefer(puzzleMode, "Screwdriver Puzzle");
+
+        return Solved("Screwdriver Puzzle solved (no event controller)");
+    }
+
     /// <summary>Unlocks all Digital Lock Systems (procedural safes).</summary>
     public static CheatResult SolveProceduralSafes()
     {
@@ -258,6 +294,7 @@ public static class DevPuzzleCheats
             ("Fifteen", SolveFifteenPuzzle),
             ("Paint", SolvePaintPuzzle),
             ("Pressure", SolvePressurePuzzle),
+            ("Screwdriver", SolveScrewdriverPuzzle),
             ("ProcSafe", SolveProceduralSafes),
             ("DaVinci", SolveDaVinciPuzzle),
             ("Padlock", SolvePadlockPuzzle),
