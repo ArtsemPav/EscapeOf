@@ -6,9 +6,13 @@ using UnityEngine;
 /// Эффект землетрясения: мелкое частое дрожание камеры через Perlin-шум Cinemachine
 /// и лёгкий быстрый пульс FOV для дезориентации. Запускается методом <see cref="Play"/>
 /// (например, из UnityEvent хоррор-события). По завершении возвращает камеру в исходное состояние.
+/// Реализует <see cref="ISaveable"/>: отыгрывает эффект только один раз —
+/// состояние «уже проигран» сохраняется, и после перезагрузки игры землетрясение не повторяется.
 /// </summary>
-public class EarthquakeFOVPulse : MonoBehaviour
+public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
 {
+    private const string SaveIdValue = "chemical_puzzle_earthquake";
+
     [Header("Shake (Perlin noise)")]
     [Tooltip("Множитель амплитуды шума во время землетрясения. Итоговая амплитуда = амплитуды профиля × это значение.")]
     [SerializeField, Min(0f)] private float _shakeAmplitude = 1f;
@@ -38,10 +42,51 @@ public class EarthquakeFOVPulse : MonoBehaviour
     private Camera _mainCamera;
     private float _baseFov;
     private Coroutine _effectRoutine;
+    private bool _hasFired;
+
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    /// <summary>Стабильный идентификатор для сейв-системы.</summary>
+    public string SaveId => SaveIdValue;
+
+    /// <summary>Сохраняет только факт проигрывания эффекта.</summary>
+    public string GetSaveData()
+    {
+        return JsonUtility.ToJson(new SaveData { hasFired = _hasFired });
+    }
+
+    /// <summary>Восстанавливает состояние «эффект уже отыгран» — при загрузке сейва землетрясение не повторится.</summary>
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<SaveData>(json);
+        _hasFired = data.hasFired;
+    }
+
+    [System.Serializable]
+    private struct SaveData
+    {
+        public bool hasFired;
+    }
 
     private void Awake()
     {
         CacheCamera();
+        SaveManager.Instance?.Register(this);
+    }
+
+    private void Start()
+    {
+        // Если загадка уже решена в этом сохранении, а флаг «эффект отыгран» ещё не сохранялся
+        // (например, сейв сделан до добавления этого компонента) — считаем эффект отыгранным,
+        // чтобы землетрясение не повторилось при загрузке уже пройденной игры.
+        var puzzleMode = GetComponentInParent<PuzzleModeController>();
+        if (!_hasFired && puzzleMode != null && puzzleMode.IsSolved)
+            _hasFired = true;
+    }
+
+    private void OnDestroy()
+    {
+        SaveManager.Instance?.Unregister(this);
     }
 
     private void OnDisable()
@@ -51,8 +96,26 @@ public class EarthquakeFOVPulse : MonoBehaviour
 
     /// <summary>
     /// Запустить землетрясение с параметрами из Inspector.
+    /// Повторные вызовы после того, как эффект уже отыгран и состояние сохранено, игнорируются.
     /// </summary>
     public void Play()
+    {
+        if (_hasFired)
+            return;
+
+        _hasFired = true;
+        PlayInternal();
+    }
+
+    /// <summary>
+    /// Принудительно запустить эффект, игнорируя защиту «один раз» (для отладки).
+    /// </summary>
+    public void PlayForced()
+    {
+        PlayInternal();
+    }
+
+    private void PlayInternal()
     {
         CacheCamera();
 
@@ -69,7 +132,7 @@ public class EarthquakeFOVPulse : MonoBehaviour
     }
 
     /// <summary>
-    /// Запустить землетрясение с пользовательской длительностью.
+    /// Запустить землетрясение с пользовательской длительностью (без сброса защиты «один раз»).
     /// </summary>
     /// <param name="duration">Длительность эффекта (секунды).</param>
     public void Play(float duration)
