@@ -2,8 +2,8 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Singleton that holds the player's items in fixed-position slots and handles crafting.
-/// Slot positions are preserved during drag-and-drop reordering.
+/// Singleton that holds the player's items in slots and handles crafting.
+/// New items go to slot 0, shifting the rest right; removals compact slots left.
 /// Does not depend on any UI — fires events for UI to react.
 /// Implements ISaveable: registers with SaveManager to persist inventory across sessions.
 /// </summary>
@@ -28,13 +28,6 @@ public class InventorySystem : MonoBehaviour, ISaveable
     [SerializeField] private ItemData[] _allItems;
 
     private ItemData[] _slots;
-
-    // Indices of slots that are cleared but waiting for a device result to return.
-    // AddItem skips these slots so they cannot be claimed by another operation
-    // while a device (Burner, Centrifuge, Analyzer) is still processing the item.
-    // PlaceItemAt always clears the reservation when it writes to a slot.
-    private readonly System.Collections.Generic.HashSet<int> _reservedSlots =
-        new System.Collections.Generic.HashSet<int>();
 
     public int MaxSlots => maxSlots;
 
@@ -139,7 +132,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
-    /// Places <paramref name="item"/> into the first empty, non-reserved slot.
+    /// Places <paramref name="item"/> into the first empty slot.
     /// Does NOT fire events or save — the caller is responsible for that.
     /// Returns true on success, false if no slot is available.
     /// </summary>
@@ -148,7 +141,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
         if (item == null) return false;
         for (int i = 0; i < _slots.Length; i++)
         {
-            if (_slots[i] != null || _reservedSlots.Contains(i)) continue;
+            if (_slots[i] != null) continue;
             _slots[i] = item;
             return true;
         }
@@ -213,9 +206,8 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
-    /// Adds item to the first empty, non-reserved slot.
+    /// Adds item to the first slot (index 0), shifting all existing items one slot right.
     /// Returns true on success, false if the inventory is full (item is NOT consumed).
-    /// Reserved slots are skipped — they are waiting for a device result via PlaceItemAt.
     /// </summary>
     public bool AddItem(ItemData item)
     {
@@ -232,17 +224,26 @@ public class InventorySystem : MonoBehaviour, ISaveable
             return true;
         }
 
-        for (int i = 0; i < _slots.Length; i++)
+        ShiftSlotsRight();
+
+        if (_slots[0] != null)
         {
-            if (_slots[i] != null || _reservedSlots.Contains(i)) continue;
-            _slots[i] = item;
-            OnInventoryChanged?.Invoke();
-            SaveManager.Instance?.Save();
-            return true;
+            Debug.LogWarning("Inventory is full — cannot add item.", this);
+            return false;
         }
 
-        Debug.LogWarning("Inventory is full — cannot add item.", this);
-        return false;
+        _slots[0] = item;
+        OnInventoryChanged?.Invoke();
+        SaveManager.Instance?.Save();
+        return true;
+    }
+
+    /// <summary>Shifts all items one slot to the right; the rightmost item is dropped.</summary>
+    private void ShiftSlotsRight()
+    {
+        for (int i = _slots.Length - 1; i > 0; i--)
+            _slots[i] = _slots[i - 1];
+        _slots[0] = null;
     }
 
     /// <summary>Removes the item from its slot. Returns true on success.</summary>
@@ -273,11 +274,8 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
-    /// Clears the item at a specific slot index WITHOUT compacting.
-    /// The slot becomes visually empty while keeping every other slot in place.
-    /// When <paramref name="reserve"/> is true, the slot is also marked as reserved so
-    /// <see cref="AddItem"/> cannot claim it while a device is processing the item.
-    /// Call <see cref="PlaceItemAt"/> to write the result back and release the reservation.
+    /// Clears the item at a specific slot index and compacts the inventory
+    /// so no empty gaps are left between items.
     /// Returns true when the slot contained an item.
     /// </summary>
     public bool ClearSlot(int slotIndex, bool reserve = false)
@@ -285,7 +283,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
         if (slotIndex < 0 || slotIndex >= _slots.Length) return false;
         if (_slots[slotIndex] == null) return false;
         _slots[slotIndex] = null;
-        if (reserve) _reservedSlots.Add(slotIndex);
+        CompactSlots();
         OnInventoryChanged?.Invoke();
         SaveManager.Instance?.Save();
         return true;
@@ -295,16 +293,10 @@ public class InventorySystem : MonoBehaviour, ISaveable
     /// Places <paramref name="item"/> at the given <paramref name="slotIndex"/> when that slot
     /// is currently empty. Falls back to <see cref="AddItem"/> when the slot is occupied or
     /// the index is out of range.
-    /// Always clears any reservation on <paramref name="slotIndex"/> first, so the slot
-    /// becomes available to <see cref="AddItem"/> if the fallback path is taken.
-    /// Does NOT compact — use after <see cref="ClearSlot"/> to restore the same position.
     /// </summary>
     public bool PlaceItemAt(int slotIndex, ItemData item)
     {
         if (item == null) return false;
-
-        // Always release the reservation — whether we succeed or fall back.
-        _reservedSlots.Remove(slotIndex);
 
         if (slotIndex >= 0 && slotIndex < _slots.Length && _slots[slotIndex] == null)
         {
@@ -313,7 +305,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             SaveManager.Instance?.Save();
             return true;
         }
-        return AddItem(item); // fallback: first available empty slot
+        return AddItem(item); // fallback: slot 0, existing items shift right
     }
 
     /// <summary>
@@ -348,15 +340,12 @@ public class InventorySystem : MonoBehaviour, ISaveable
     /// <summary>
     /// Swaps items between two slot indices.
     /// Works with empty slots — effectively moves an item to an empty slot.
-    /// Does NOT swap when either slot is reserved — reserved slots are waiting
-    /// for a device result and must not be claimed by a manual swap.
-    /// Returns true when the swap was performed, false when it was blocked.
+    /// Returns true when the swap was performed, false when the swap was blocked.
     /// </summary>
     public bool SwapSlots(int slotA, int slotB)
     {
         if (slotA < 0 || slotB < 0 || slotA >= _slots.Length || slotB >= _slots.Length) return false;
         if (slotA == slotB) return false;
-        if (_reservedSlots.Contains(slotA) || _reservedSlots.Contains(slotB)) return false;
 
         (_slots[slotA], _slots[slotB]) = (_slots[slotB], _slots[slotA]);
         OnInventoryChanged?.Invoke();
@@ -436,23 +425,11 @@ public class InventorySystem : MonoBehaviour, ISaveable
     }
 
     /// <summary>
-    /// Releases a slot reservation without placing any item into it.
-    /// Call this when a puzzle permanently consumes an item and will never return a result
-    /// to the reserved slot (e.g. the medallion box).
-    /// </summary>
-    public void ReleaseReservation(int slotIndex)
-    {
-        _reservedSlots.Remove(slotIndex);
-    }
-
-    /// <summary>
-    /// Releases all slot reservations at once.
-    /// Use when a puzzle that permanently consumes items needs to return them to inventory
-    /// without worrying about which specific slots were reserved.
+    /// Releases all slot reservations. Kept as a no-op for backward compatibility —
+    /// the reservation mechanism was removed: ClearSlot now always compacts.
     /// </summary>
     public void ReleaseAllReservations()
     {
-        _reservedSlots.Clear();
     }
 
     /// <summary>

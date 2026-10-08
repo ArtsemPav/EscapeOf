@@ -1095,7 +1095,7 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                     if (item != _amptyColba && _amptyColba != null)
                     {
                         // Return the empty flask to the same slot the dragged item came from.
-                        // PlaceItemAt will release the reservation that ClearSlot set.
+                        // PlaceItemAt writes into that slot when it is still empty.
                         _pendingResults.Enqueue(new PendingResult { item = _amptyColba, originSlot = originSlot });
                         TryShowNextResult();
                     }
@@ -1272,11 +1272,8 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
                 // 2. Discard any remaining queued results — the puzzle is solved.
                 _pendingResults.Clear();
 
-                // 3. Release all slot reservations left by device drops whose results
-                //    were discarded above, then compact so AddItem finds the leftmost
-                //    free slot. Without this, reserved slots are skipped by AddItem and
+                // 3. Compact so AddItem finds the first slot. Without this,
                 //    new items appear at wrong positions.
-                InventorySystem.Instance?.ReleaseAllReservations();
                 InventorySystem.Instance?.Compact();
 
                 // 4. Mark the puzzle solved and persist only after the inventory is clean.

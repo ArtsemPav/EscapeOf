@@ -184,11 +184,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         UnsubscribeFromInventory();
         ItemTooltip.Instance?.Hide();
 
-        // Release any stale slot reservations left by device drops whose results
-        // were never returned (e.g. puzzle solved while devices were still processing
-        // or results were discarded during cleanup). Without this, AddItem skips the
-        // reserved slots and new items appear at wrong positions after the puzzle exits.
-        InventorySystem.Instance?.ReleaseAllReservations();
+        // Compact the inventory so items pack left with no gaps when the bar closes.
         InventorySystem.Instance?.Compact();
 
         SetBarVisible(false);
@@ -278,9 +274,8 @@ public class PuzzleInventoryBar : MonoBehaviour
             if (replacement != null)
                 InventorySystem.Instance?.ReplaceItem(_dragItem, replacement);
             else
-                // Reserve the cleared slot so AddItem cannot claim it while the device
-                // is processing. The result is returned to exactly this slot via PlaceItemAt.
-                InventorySystem.Instance?.ClearSlot(sourceSlotIndex, reserve: true);
+                // Clear the slot and compact so items pack left with no gaps.
+                InventorySystem.Instance?.ClearSlot(sourceSlotIndex);
             // RefreshSlots will be called by OnInventoryChanged event
         }
         // ── 2. Device didn't take it — execute pending slot swap/craft ────────
@@ -345,7 +340,6 @@ public class PuzzleInventoryBar : MonoBehaviour
 
         // No recipe match → swap slot positions.
         // Works even when the target slot is empty — effectively moves the item.
-        // Reserved slots (waiting for a device result) are rejected by SwapSlots.
         if (!InventorySystem.Instance.SwapSlots(source.SlotIndex, target.SlotIndex))
             PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
     }
@@ -450,6 +444,16 @@ public class PuzzleInventoryBar : MonoBehaviour
 
         int slotCount = Mathf.Min(inv.MaxSlots, _slotPool.Length);
 
+        int prevFilledCount = _filledSlotCount;
+        int nowFilledCount = 0;
+        for (int i = 0; i < slotCount; i++)
+            if (inv.GetItemAt(i) != null) nowFilledCount++;
+
+        // When a new item arrives, jump back to the start of the bar so the freshly
+        // added item (always placed at slot 0) is immediately visible without scrolling.
+        if (nowFilledCount > prevFilledCount)
+            _scrollIndex = 0;
+
         for (int i = 0; i < slotCount; i++)
         {
             _slotPool[i].gameObject.SetActive(true);
@@ -462,9 +466,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         }
 
         _activeSlotCount = slotCount;
-        _filledSlotCount = 0;
-        for (int i = 0; i < slotCount; i++)
-            if (inv.GetItemAt(i) != null) _filledSlotCount++;
+        _filledSlotCount = nowFilledCount;
 
         // Hide pool slots that exceed the inventory size (shouldn't happen in normal use).
         for (int i = slotCount; i < _slotPool.Length; i++)
