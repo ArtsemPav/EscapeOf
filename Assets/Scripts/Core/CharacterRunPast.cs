@@ -1,15 +1,15 @@
 using UnityEngine;
 
 /// <summary>
-/// Animation states available in character.controller (Animator int parameter "State").
+/// Animation states available in maid controllers (Animator int parameter "State").
 /// </summary>
 public enum CharacterAnimationState
 {
-    LowCrawl    = 0, // Crawling on the ground
-    ActionPose  = 1, // Action pose A
-    ActionPose2 = 2, // Action pose B
-    Sitting     = 3, // Sitting pose
-    Run         = 4  // Running
+    Crawl        = 0, // Classic crawl
+    ActionPose   = 1, // Action pose A
+    ActionPose2  = 2, // Action pose B
+    Sitting      = 3, // Sitting pose
+    ZombieCrawl  = 4  // Zombie crawl
 }
 
 /// <summary>
@@ -34,7 +34,7 @@ public class CharacterRunPast : MonoBehaviour
     [SerializeField] private float _turnSpeed = 10f;
 
     [Tooltip("Animation state to play when the character activates.")]
-    [SerializeField] private CharacterAnimationState _animationState = CharacterAnimationState.Run;
+    [SerializeField] private CharacterAnimationState _animationState = CharacterAnimationState.ZombieCrawl;
 
     private Animator _animator;
     private bool     _moving;

@@ -9,21 +9,24 @@ using UnityEngine.InputSystem;
 /// UV pentagram horror sequence.
 ///
 /// Phases:
-///   1. Spawn   — CatHorror prefab is instantiated at this object's position.
-///                Cat, particles and lights start hidden; only the pentagram
-///                (HiddenWallSign, UV mode) is visible through the UV flashlight.
-///   2. Watch   — accumulates look time while the player stares at the pentagram.
-///   3. Shrink  — pentagram quickly scales down and hides.
-///   4. Play    — cat, particles and lights activate, music starts.
+///   1. Waiting — the CatHorror scene instance shows only the pentagram
+///                (HiddenWallSign, UV mode). It slowly spins as a hook.
+///                The player must bring the cat can into CanTrigger
+///                (CanTriggerZone) — after Trigger Delay seconds the
+///                sequence begins.
+///   2. Shrink  — pentagram quickly scales down (the can is sucked in too).
+///   3. Play    — cat, particles and lights activate, music starts.
 ///                Beat events (OnBeat) fire at BPM; timeline UnityEvents fire
 ///                at their configured track time for escalating weirdness.
 ///   5. Finish  — when the track ends everything is restored and the instance
 ///                is removed (pentagram and cat are gone for good).
 ///
-/// Debug: press the debug key in Play Mode to run the whole sequence instantly
-/// (skips the look-wait). Useful while the cat animation is being tuned.
+/// Persists HasFired via ISaveable (SaveId "uv_pentagram_sequence") — once the
+/// event has played in a save it will never replay after loading.
+///
+/// Debug: press the debug key in Play Mode to run the whole sequence instantly.
 /// </summary>
-public class UVPentagramSequence : MonoBehaviour
+public class UVPentagramSequence : MonoBehaviour, ISaveable
 {
     /// <summary>Fired on every music beat while the sequence is playing.</summary>
     public static event Action<int> OnBeat;
@@ -121,7 +124,6 @@ public class UVPentagramSequence : MonoBehaviour
     private readonly List<GameObject> _particleRoots = new();
     private AudioSource _audio;
     private Vector3 _pentagramBaseScale;
-    private float _lookTimer;
     private int _nextTimelineIndex;
     private double _nextBeatTime;
     private int _beatIndex;
@@ -129,12 +131,49 @@ public class UVPentagramSequence : MonoBehaviour
     private bool _effectsCutoffDone;
     private float _debugLogTimer;
 
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    [Header("Save")]
+    [Tooltip("Stable save key. Never change after the game ships — saved state is matched by this id.")]
+    [SerializeField] private string _saveId = "uv_pentagram_sequence";
+
+    /// <summary>True once the sequence has played — persisted, never replays after load.</summary>
+    public bool HasFired { get; private set; }
+
+    private bool _restoreFired;
+
+    public string SaveId => _saveId;
+
+    public string GetSaveData() => JsonUtility.ToJson(new SaveData { hasFired = HasFired });
+
+    public void LoadSaveData(string json)
+    {
+        var data = JsonUtility.FromJson<SaveData>(json);
+        if (!data.hasFired) return;
+        HasFired = true;
+        _restoreFired = true;
+    }
+
+    [Serializable]
+    private struct SaveData
+    {
+        public bool hasFired;
+    }
+
+    private void Awake()
+    {
+        // Register before SaveManager.Start() distributes loaded data
+        SaveManager.Instance?.Register(this);
+    }
+
+    private void OnDestroy()
+    {
+        SaveManager.Instance?.Unregister(this);
+    }
+
     private void Start()
     {
-        if (_playerCamera == null)
-            _playerCamera = Camera.main;
-
-        Debug.Log($"[UVPentagramSequence] Start. Camera={(_playerCamera != null ? _playerCamera.name : "NULL")}", this);
+        Debug.Log($"[UVPentagramSequence] Start. HasFired={HasFired}", this);
         SpawnInstance();
     }
 
@@ -175,6 +214,17 @@ public class UVPentagramSequence : MonoBehaviour
 
     private void SpawnInstance()
     {
+        // The event already played in this save — keep everything hidden forever
+        if (_restoreFired)
+        {
+            HasFired = true;
+            if (_catHorrorInstance != null) _catHorrorInstance.SetActive(false);
+            if (_catCanObject != null) _catCanObject.SetActive(false);
+            _phase = Phase.Finished;
+            Debug.Log("[UVPentagramSequence] Event already fired in this save — visuals stay hidden.", this);
+            return;
+        }
+
         if (_catHorrorInstance == null)
         {
             Debug.LogWarning($"[{name}] CatHorror scene instance is not assigned.", this);
@@ -221,6 +271,10 @@ public class UVPentagramSequence : MonoBehaviour
     {
         if (_phase == Phase.Shrinking || _phase == Phase.Playing) yield break;
         _phase = Phase.Shrinking;
+
+        // Mark as fired and persist — the event never replays in this save
+        HasFired = true;
+        SaveManager.Instance?.Save();
 
         // Pentagram shrinks rapidly; the can is sucked into its center
         if (_pentagram != null)

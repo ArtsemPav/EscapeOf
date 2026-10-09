@@ -16,14 +16,22 @@ public class CanTriggerZone : MonoBehaviour
     [Tooltip("Seconds between the can entering the zone and the event starting.")]
     [SerializeField, Min(0f)] private float _triggerDelay = 1f;
 
+    [Tooltip("Ignore trigger events for this many seconds after scene load — protects against " +
+             "the can spawning/being saved inside the zone and auto-firing the event.")]
+    [SerializeField, Min(0f)] private float _startGracePeriod = 2f;
+
     [Tooltip("The horror sequence to start.")]
     [SerializeField] private UVPentagramSequence _sequence;
 
     private bool _hasFired;
+    private float _elapsed;
+
+    private void Update() => _elapsed += Time.deltaTime;
 
     private void OnTriggerEnter(Collider other)
     {
         if (_hasFired) return;
+        if (_elapsed < _startGracePeriod) return;
         if (_canRigidbody == null || _sequence == null) return;
 
         // The can may enter with any of its child colliders — check the rigidbody
