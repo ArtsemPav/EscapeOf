@@ -121,6 +121,54 @@ public class DevPanelController : MonoBehaviour
         Log($"Player teleported to {_cachedSpawnPosition}.");
     }
 
+    /// <summary>Teleports the player to the PointFDoor marker found in the scene (including inactive rooms).</summary>
+    private void TeleportToPointFDoor()
+    {
+        FPSController player = UIManager.Instance?.PlayerController;
+        if (player == null)
+        {
+            Log("Player not found — cannot teleport.");
+            return;
+        }
+
+        const string MarkerName = "PointFDoor";
+        Transform marker = FindTransformInScene(MarkerName);
+        if (marker == null)
+        {
+            Log($"Object '{MarkerName}' not found in scene.");
+            return;
+        }
+
+        player.Teleport(marker.position, marker.eulerAngles.y);
+        Log($"Player teleported to {MarkerName} at {marker.position}.");
+    }
+
+    /// <summary>Searches all root objects, including inactive ones, for a transform with the given name.</summary>
+    private static Transform FindTransformInScene(string objectName)
+    {
+        // GameObject.Find skips inactive objects, so scan root objects manually.
+        foreach (GameObject root in UnityEngine.Object.FindObjectsByType<GameObject>(
+                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (root.transform.parent != null) continue;
+            Transform found = FindInChildren(root.transform, objectName);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /// <summary>Recursively searches the hierarchy for a child with the given name.</summary>
+    private static Transform FindInChildren(Transform parent, string objectName)
+    {
+        if (parent.name == objectName) return parent;
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform found = FindInChildren(parent.GetChild(i), objectName);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
     private void Update()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -465,6 +513,8 @@ public class DevPanelController : MonoBehaviour
     private void PopulateGameActions(Transform parent)
     {
         CreateGameButton(parent, "Reset Position", ResetPlayerPosition);
+
+        CreateGameButton(parent, "Teleport to PointFDoor", TeleportToPointFDoor);
 
         CreateGameButton(parent, "Give All Runes (24)", GiveAllRunes);
 
