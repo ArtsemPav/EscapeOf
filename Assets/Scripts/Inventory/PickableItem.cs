@@ -28,6 +28,9 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
 
     private bool _collected;
 
+    /// <summary>Raised when the item is picked up (before the object is destroyed).</summary>
+    public event Action OnPickedUp;
+
     // ── Shimmer ───────────────────────────────────────────────────────────────
 
     private ParticleSystem _shimmerPS;
@@ -158,6 +161,7 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     public void NotifyPickedUp()
     {
         _collected = true;
+        OnPickedUp?.Invoke();
         SaveManager.Instance?.Save();
     }
 
