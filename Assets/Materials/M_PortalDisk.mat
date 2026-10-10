@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: PortalHaze
-  m_Shader: {fileID: 4800000, guid: 3653a21eb98b1104681596449a8805d5, type: 3}
+  m_Name: M_PortalDisk
+  m_Shader: {fileID: 4800000, guid: 8639662336e8d8c42b8f5ccf18f52bdf, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,17 +25,19 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BottomFade: 0.12
-    - _DistortScale: 4
-    - _DistortStrength: 0.12
-    - _FunnelHeight: 7
-    - _HazeDensity: 1.6
+    - _ArcIntensity: 1.4
+    - _Doppler: 0.55
+    - _Falloff: 1.8
+    - _Flatten: 0.17
+    - _Horizon: 0.065
+    - _InnerRadius: 0.1
+    - _Intensity: 2
     - _Opacity: 1
-    - _ScrollSpeed: 0.5
-    - _SwirlSpeed: 0.06
-    - _TintStrength: 0.85
-    - _TopFade: 0.25
+    - _OuterRadius: 0.6
+    - _Spin: 0.7
+    - _Turbulence: 0.9
     m_Colors:
-    - _HazeColor: {r: 0.1, g: 0.04, b: 0.02, a: 1}
+    - _ColorInner: {r: 3.2, g: 2.6, b: 1.9, a: 1}
+    - _ColorOuter: {r: 1.6, g: 0.5, b: 0.1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

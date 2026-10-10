@@ -1286,6 +1286,55 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     }
 
     /// <summary>
+    /// Debug/cheat entry point: completes the puzzle exactly as if the player had analysed
+    /// the winning flask — success sound, winning flask delivered to the inventory,
+    /// intermediate items purged, <see cref="PuzzleModeController.SetSolved"/> fired
+    /// (camera exit, earthquake, game events) and the game saved.
+    /// Does nothing when the puzzle is already solved.
+    /// </summary>
+    /// <returns>True if the puzzle was solved by this call; false if it was already solved or the winning item is missing.</returns>
+    public bool AutoSolve()
+    {
+        if (_isSolved || (_puzzleMode != null && _puzzleMode.IsSolved)) return false;
+
+        ItemData winFlask = FindWinFlask();
+        if (winFlask == null)
+        {
+            Debug.LogWarning($"[{nameof(ChemicalSynthesisController)}] AutoSolve: winning flask ItemData not found.", this);
+            return false;
+        }
+
+        // Same sequence as OnAnalyzerSuccess → OnAnalyzerFlaskReturned pickup callback.
+        OnAnalyzerSuccess();
+        _pendingInventoryCleanup = false;
+
+        ClearPuzzleItemsFromInventory();
+        _pendingResults.Clear();
+        InventorySystem.Instance?.AddItem(winFlask);
+        InventorySystem.Instance?.Compact();
+
+        _puzzleMode?.SetSolved();
+        SaveManager.Instance?.Save();
+        return true;
+    }
+
+    /// <summary>Finds the winning flask ItemData by the analyzer's win ItemId among the puzzle's known items.</summary>
+    private ItemData FindWinFlask()
+    {
+        string winId = _analyzer != null ? _analyzer.WinItemId : "SerumColba";
+
+        if (_acceptedItems != null)
+            foreach (ItemData item in _acceptedItems)
+                if (item != null && item.ItemId == winId) return item;
+
+        if (_equivalenceMap != null)
+            foreach (IdentificationEntry entry in _equivalenceMap)
+                if (entry.identified != null && entry.identified.ItemId == winId) return entry.identified;
+
+        return null;
+    }
+
+    /// <summary>
     /// Removes every entry in <see cref="_puzzleItems"/> from the player's inventory.
     /// Called once after the winning flask is delivered, so the player keeps only the
     /// reward flask and loses all intermediate ingredients, by-products, and empties.

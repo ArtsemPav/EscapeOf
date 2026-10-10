@@ -110,6 +110,9 @@ public class AnalyzerController : MonoBehaviour
 
     private IChemicalPuzzleContext _context;
 
+    /// <summary>ItemId of the flask that solves the puzzle when identified.</summary>
+    public string WinItemId => _winItemId;
+
     /// <summary>Injects the shared puzzle context. Called by ChemicalSynthesisController in Awake.</summary>
     public void Initialize(IChemicalPuzzleContext context) => _context = context;
 

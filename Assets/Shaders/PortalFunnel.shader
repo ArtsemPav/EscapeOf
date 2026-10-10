@@ -41,7 +41,13 @@ Shader "Custom/PortalFunnel"
         _EdgeFade        ("Edge Fade (V)",       Range(0, 0.5)) = 0.04
         _StartFade       ("Start Fade (U=0)",    Range(0, 0.5)) = 0.02
 
+        [Header(Chromatic Fringe)]
+        [HDR] _FringeColor ("Fringe Halo Color",  Color) = (1.6, 0.25, 1.1, 1)
+        _FringeStrength  ("Fringe Strength",     Range(0, 4)) = 1.4
+        _CoreWhite       ("Hot White Core",      Range(0, 4)) = 1.2
+
         [Header(Global)]
+        _Reveal          ("Reveal (throat to rim)", Range(0, 1)) = 1.0
         _Opacity         ("Global Opacity",      Range(0, 1)) = 1.0
         _TimeOffset      ("Time Offset",         Float)  = 0.0
     }
@@ -96,6 +102,10 @@ Shader "Custom/PortalFunnel"
                 float  _DepthFadeWidth;
                 float  _EdgeFade;
                 float  _StartFade;
+                half4  _FringeColor;
+                float  _FringeStrength;
+                float  _CoreWhite;
+                float  _Reveal;
                 float  _Opacity;
                 float  _TimeOffset;
             CBUFFER_END
@@ -248,9 +258,18 @@ Shader "Custom/PortalFunnel"
                 // Color gradient: outer (u=0, wide) to inner (u=1, narrow)
                 half3 baseColor = lerp(_ColorOuter.rgb, _ColorInner.rgb, smoothstep(0.0, 1.0, u));
 
-                // Combine line emission + fresnel rim
+                // Chromatic fringe: a wider magenta halo around each swirl streak
+                // and a narrow white-hot center, built from the same noise (no extra fbm cost)
+                float streakWide = smoothstep(1.0 - _LineWidth * 1.9, 1.0, nA);
+                float streakHot  = smoothstep(1.0 - _LineWidth * 0.45, 1.0, nA);
+                float halo = saturate(streakWide - streakA);
+                half3 fringe = _FringeColor.rgb * halo * _FringeStrength
+                             + half3(1, 1, 1) * streakHot * _CoreWhite;
+
+                // Combine line emission + fresnel rim + fringe
                 half3 emission = baseColor * lines * _LineIntensity
-                               + _RimColor.rgb * fresnel;
+                               + _RimColor.rgb * fresnel
+                               + fringe;
 
                 // Depth fade — fade out toward the narrow end
                 float depthFade = 1.0 - smoothstep(_DepthFadeStart, _DepthFadeStart + _DepthFadeWidth, u);
@@ -261,7 +280,14 @@ Shader "Custom/PortalFunnel"
                 // Edge fade across ribbon width
                 float edgeFade = smoothstep(0.0, _EdgeFade, v) * (1.0 - smoothstep(1.0 - _EdgeFade, 1.0, v));
 
-                float fade = depthFade * startFade * edgeFade * _Opacity;
+                // Reveal: the funnel unfolds from the throat (u=1) out to the rim (u=0)
+                float revealEdge = lerp(1.05, -0.15, _Reveal);
+                float revealMask = smoothstep(revealEdge, revealEdge + 0.15, u);
+                // Leading edge of the reveal glows hot
+                float revealFront = exp(-pow((u - revealEdge - 0.075) / 0.06, 2.0)) * (1.0 - _Reveal) * (_Reveal > 0.001 ? 1.0 : 0.0);
+                emission += half3(2.2, 1.6, 3.0) * revealFront * lines;
+
+                float fade = depthFade * startFade * edgeFade * _Opacity * revealMask;
                 half3 finalColor = emission * fade;
 
                 return half4(finalColor, 1.0);

@@ -63,6 +63,7 @@ public class CharacterRunPast : MonoBehaviour
         _animator.Play(_animationState.ToString(), 0, 0f);
 
         _moving = true;
+        Debug.Log($"[CharacterRunPast] StartRun: pos={transform.position} dest={_destination.position}", this);
     }
 
     private void Update()

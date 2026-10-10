@@ -12,6 +12,7 @@ public class PortalFunnelController : MonoBehaviour
     private const string ScrollSpeedProp = "_ScrollSpeed";
     private const string OpacityProp = "_Opacity";
     private const string TimeOffsetProp = "_TimeOffset";
+    private const string RevealProp = "_Reveal";
 
     private const float FadeDuration = 3f;
 
@@ -54,6 +55,10 @@ public class PortalFunnelController : MonoBehaviour
     [SerializeField] private Light _portalLight;
     [SerializeField] private float _activeLightIntensity = 2f;
 
+    [Header("Finale")]
+    [Tooltip("Optional finale effects (cinematic activation, pulsing core, lens). Found automatically on the same object.")]
+    [SerializeField] private PortalFinaleEffects _finale;
+
     private const float RadiusJitter = 0.08f; // random radius variation per particle
 
     private MaterialPropertyBlock _mpb;
@@ -67,13 +72,27 @@ public class PortalFunnelController : MonoBehaviour
     private float _targetOpacity;
     private float _targetScrollSpeed;
     private bool _isActive;
+    private float _reveal = 1f;
+    private float _baseLightIntensity;
 
     public bool IsActive => _isActive;
+
+    /// <summary>Current funnel opacity (0..1), used to keep spawned waves in sync.</summary>
+    public float CurrentOpacity => _currentOpacity;
+
+    /// <summary>Current throat-to-rim reveal amount (0 = hidden, 1 = fully unfolded).</summary>
+    public float Reveal => _reveal;
 
     private void Awake()
     {
         _renderer = GetComponent<MeshRenderer>();
         _mpb = new MaterialPropertyBlock();
+
+        if (_finale == null)
+            _finale = GetComponent<PortalFinaleEffects>();
+
+        // With a finale sequence the funnel starts hidden and unfolds during the activation
+        _reveal = _finale != null ? 0f : 1f;
 
         if (_particleColor == null)
             BuildDefaultGradient();
@@ -119,6 +138,20 @@ public class PortalFunnelController : MonoBehaviour
         _isActive = true;
         _targetOpacity = 1f;
         _targetScrollSpeed = _activeScrollSpeed;
+
+        if (_finale != null)
+            _finale.PlayActivation(this);
+        else
+            _reveal = 1f;
+    }
+
+    /// <summary>
+    /// Sets how far the funnel has unfolded from the throat toward the rim (0..1).
+    /// Driven by PortalFinaleEffects during the activation sequence.
+    /// </summary>
+    public void SetReveal(float reveal)
+    {
+        _reveal = Mathf.Clamp01(reveal);
     }
 
     /// <summary>
@@ -129,6 +162,9 @@ public class PortalFunnelController : MonoBehaviour
         _isActive = false;
         _targetOpacity = 0f;
         _targetScrollSpeed = _idleScrollSpeed;
+
+        if (_finale != null)
+            _finale.Stop();
     }
 
     private void Update()
@@ -144,9 +180,11 @@ public class PortalFunnelController : MonoBehaviour
 
         if (_portalLight != null)
         {
+            // Smooth base ramp, then multiply by the finale's heartbeat/flicker (not smoothed)
             float targetLight = _isActive ? _activeLightIntensity : 0f;
-            _portalLight.intensity = Mathf.Lerp(_portalLight.intensity, targetLight,
-                Time.deltaTime / FadeDuration);
+            _baseLightIntensity = Mathf.Lerp(_baseLightIntensity, targetLight, Time.deltaTime / FadeDuration);
+            float multiplier = _finale != null ? _finale.LightMultiplier : 1f;
+            _portalLight.intensity = _baseLightIntensity * multiplier;
         }
     }
 
@@ -165,6 +203,7 @@ public class PortalFunnelController : MonoBehaviour
         _mpb.SetFloat(ScrollSpeedProp, _currentScrollSpeed);
         _mpb.SetFloat(OpacityProp, _currentOpacity);
         _mpb.SetFloat(TimeOffsetProp, _timeOffset);
+        _mpb.SetFloat(RevealProp, _reveal);
         _renderer.SetPropertyBlock(_mpb);
     }
 

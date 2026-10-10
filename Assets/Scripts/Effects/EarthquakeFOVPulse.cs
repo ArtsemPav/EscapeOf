@@ -37,6 +37,11 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
     [Tooltip("Длительность плавного затухания эффекта в секундах.")]
     [SerializeField, Min(0f)] private float _fadeOut = 1.5f;
 
+    [Header("Audio")]
+    [Tooltip("Звук землетрясения. Проигрывается вместе с эффектом и только один раз (с той же защитой, что и тряска). " +
+             "Если не задан, ищется AudioSource на этом же объекте.")]
+    [SerializeField] private AudioSource _earthquakeAudio;
+
     private CinemachineCamera _playerCinemachineCamera;
     private CinemachineBasicMultiChannelPerlin _noise;
     private Camera _mainCamera;
@@ -71,6 +76,10 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
     private void Awake()
     {
         CacheCamera();
+
+        if (_earthquakeAudio == null)
+            _earthquakeAudio = GetComponent<AudioSource>();
+
         SaveManager.Instance?.Register(this);
     }
 
@@ -104,6 +113,10 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
             return;
 
         _hasFired = true;
+
+        if (_earthquakeAudio != null)
+            _earthquakeAudio.Play();
+
         PlayInternal();
     }
 

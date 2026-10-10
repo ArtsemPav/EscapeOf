@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: PortalHaze
-  m_Shader: {fileID: 4800000, guid: 3653a21eb98b1104681596449a8805d5, type: 3}
+  m_Name: M_PortalCore
+  m_Shader: {fileID: 4800000, guid: 4b97430fe9df2994daffc29708762bda, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -25,17 +25,20 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BottomFade: 0.12
-    - _DistortScale: 4
-    - _DistortStrength: 0.12
-    - _FunnelHeight: 7
-    - _HazeDensity: 1.6
+    - _GlowIntensity: 1
+    - _GlowSoftness: 0.03
+    - _HoleRadius: 0
     - _Opacity: 1
-    - _ScrollSpeed: 0.5
-    - _SwirlSpeed: 0.06
-    - _TintStrength: 0.85
-    - _TopFade: 0.25
+    - _RayFalloff: 2.5
+    - _RayFrequency: 3
+    - _RayIntensity: 1
+    - _RaySpin: 0.15
+    - _RingIntensity: 0
+    - _RingRadius: 0.2
+    - _RingWidth: 0.03
     m_Colors:
-    - _HazeColor: {r: 0.1, g: 0.04, b: 0.02, a: 1}
+    - _CoreColor: {r: 3, g: 2.3, b: 1.5, a: 1}
+    - _RayColor: {r: 1, g: 0.42, b: 0.12, a: 1}
+    - _RingColor: {r: 3.6, g: 2.7, b: 1.7, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

@@ -190,6 +190,25 @@ public static class DevPuzzleCheats
             checkSolvedProperty: "IsSolved");
     }
 
+    /// <summary>
+    /// Solves the Chemical Synthesis Puzzle exactly like a player win: winning flask in inventory,
+    /// intermediate flasks purged, SetSolved (earthquake, events) and save.
+    /// </summary>
+    public static CheatResult SolveChemicalPuzzle()
+    {
+        var controller = UnityEngine.Object.FindFirstObjectByType<ChemicalSynthesisController>();
+        if (controller == null) return Failed("ChemicalSynthesisController not found in scene");
+
+        Action solveAction = () => controller.AutoSolve();
+
+        if (Time.timeScale == 0f)
+            return Pending("Chemical Puzzle marked as solved. Event fires on unpause.", solveAction);
+
+        return controller.AutoSolve()
+            ? Solved("Chemical Puzzle solved!")
+            : Solved("Chemical Puzzle is already solved");
+    }
+
     /// <summary>Solves the Screwdriver Repair Puzzle (Room 7): stops the minigame, plays the Repaired state and fires SetSolved.</summary>
     public static CheatResult SolveScrewdriverPuzzle()
     {
@@ -295,6 +314,7 @@ public static class DevPuzzleCheats
             ("Paint", SolvePaintPuzzle),
             ("Pressure", SolvePressurePuzzle),
             ("Screwdriver", SolveScrewdriverPuzzle),
+            ("Chemical", SolveChemicalPuzzle),
             ("ProcSafe", SolveProceduralSafes),
             ("DaVinci", SolveDaVinciPuzzle),
             ("Padlock", SolvePadlockPuzzle),

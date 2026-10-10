@@ -390,7 +390,8 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     private void OnTriggerEnter(Collider other)
     {
         if (_triggerType != HorrorTriggerType.OnPlayerEnterZone) return;
-        if (!_prerequisiteMet) return;
+        Debug.Log($"[HorrorEvent] Zone '{_eventId}' OnTriggerEnter: {other.name} (tag={other.tag}), zonePos={transform.position}", this);
+        if (!_prerequisiteMet) { Debug.Log($"[HorrorEvent] Zone '{_eventId}' blocked: prerequisite not met", this); return; }
         if (!other.CompareTag(_playerTag)) return;
         Activate();
     }

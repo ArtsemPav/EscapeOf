@@ -51,8 +51,12 @@ public class PortalFunnelSpawner : MonoBehaviour
         public float Timer;
     }
 
+    private PortalFunnelController _controller;
+
     private void Start()
     {
+        _controller = GetComponent<PortalFunnelController>();
+
         // Shrink the persistent core so the fading waves stand out
         var generator = GetComponent<PortalFunnelMeshGenerator>();
         if (generator != null && _coreLayerCount > 0)
@@ -97,6 +101,10 @@ public class PortalFunnelSpawner : MonoBehaviour
             var localPos = wave.Root.transform.localPosition;
             localPos.y = Mathf.Clamp01(t) * _driftDistance;
             wave.Root.transform.localPosition = localPos;
+
+            // Follow the funnel's activation so waves never appear before the portal opens
+            if (_controller != null)
+                alpha *= _controller.CurrentOpacity * Mathf.SmoothStep(0f, 1f, _controller.Reveal);
 
             SetWaveOpacity(wave, alpha);
         }
