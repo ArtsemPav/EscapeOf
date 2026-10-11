@@ -23,6 +23,7 @@ public class HiddenWallSign : MonoBehaviour
     private static readonly int MaxVisibleDistId    = Shader.PropertyToID("_MaxVisibleDist");
     private static readonly int EmissionColorId     = Shader.PropertyToID("_EmissionColor");
     private static readonly int EmissionIntensityId = Shader.PropertyToID("_EmissionIntensity");
+    private static readonly int FloodAmountId       = Shader.PropertyToID("_FloodAmount");
 
     [Tooltip("The flashlight mode that makes this sign visible.")]
     [SerializeField] private FlashlightMode visibleInMode = FlashlightMode.UV;
@@ -54,6 +55,19 @@ public class HiddenWallSign : MonoBehaviour
     private bool _isVisible;
     private bool _subscribed;
     private bool _shaderFound;
+    private float _forcedAmount;
+
+    /// <summary>
+    /// Makes the sign visible without the flashlight (0 = off, 1 = fully visible).
+    /// While active the cone / radial / distance masks are ignored, so the whole sign
+    /// glows as if lit by a room-wide UV source (e.g. UV lamp flashes in a cutscene).
+    /// The normal flashlight behaviour keeps working when the amount is 0.
+    /// </summary>
+    public void SetForcedVisible(float amount)
+    {
+        _forcedAmount = Mathf.Clamp01(amount);
+        UpdateVisibility();
+    }
 
     private void Awake()
     {
@@ -110,28 +124,37 @@ public class HiddenWallSign : MonoBehaviour
 
     private void UpdateVisibility()
     {
-        var controller = FlashlightController.Instance;
-        if (controller == null) return;
+        if (_renderer == null) return; // SetForcedVisible called before Awake
 
-        _isVisible = _shaderFound && controller.IsOn && controller.CurrentMode == visibleInMode;
+        var controller = FlashlightController.Instance;
+        bool byFlashlight = controller != null && controller.IsOn && controller.CurrentMode == visibleInMode;
+
+        _isVisible = _shaderFound && (byFlashlight || _forcedAmount > 0f);
         _renderer.enabled = _isVisible;
     }
 
     private void LateUpdate()
     {
-        if (!_isVisible || _flashlightLight == null)
+        if (!_isVisible)
             return;
 
         var controller = FlashlightController.Instance;
-        if (controller == null) return;
-
-        Transform lt = controller.transform;
-        float halfAngleRad = _flashlightLight.spotAngle * 0.5f * Mathf.Deg2Rad;
+        bool haveFlashlight = controller != null && _flashlightLight != null;
+        if (!haveFlashlight && _forcedAmount <= 0f)
+            return;
 
         _renderer.GetPropertyBlock(_propertyBlock);
-        _propertyBlock.SetVector(FlashlightPosId, lt.position);
-        _propertyBlock.SetVector(FlashlightDirId, lt.forward);
-        _propertyBlock.SetFloat(SpotAngleCosId, Mathf.Cos(halfAngleRad));
+
+        if (haveFlashlight)
+        {
+            Transform lt = controller.transform;
+            float halfAngleRad = _flashlightLight.spotAngle * 0.5f * Mathf.Deg2Rad;
+            _propertyBlock.SetVector(FlashlightPosId, lt.position);
+            _propertyBlock.SetVector(FlashlightDirId, lt.forward);
+            _propertyBlock.SetFloat(SpotAngleCosId, Mathf.Cos(halfAngleRad));
+        }
+
+        _propertyBlock.SetFloat(FloodAmountId, _forcedAmount);
         _propertyBlock.SetFloat(EdgeSoftnessId, edgeSoftness);
         _propertyBlock.SetFloat(RadialFalloffId, radialFalloff);
         _propertyBlock.SetFloat(MaxVisibleDistId, maxVisibleDistance);

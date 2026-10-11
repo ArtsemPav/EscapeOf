@@ -13,6 +13,8 @@ Shader "Custom/HiddenWallSign"
         _MaxVisibleDist   ("Max Visible Distance",      Float)  = 2.0
         [HDR] _EmissionColor ("Emission Color",         Color)  = (0,0.5,2,1)
         _EmissionIntensity   ("Emission Intensity",     Float)  = 2.0
+        // 0 = flashlight cone only, 1 = whole sprite visible (room-wide UV flash)
+        _FloodAmount         ("Flood Amount",           Range(0,1)) = 0
     }
 
     SubShader
@@ -53,6 +55,7 @@ Shader "Custom/HiddenWallSign"
                 float  _MaxVisibleDist;
                 float4 _EmissionColor;
                 float  _EmissionIntensity;
+                float  _FloodAmount;
             CBUFFER_END
 
             struct Attributes
@@ -103,14 +106,17 @@ Shader "Custom/HiddenWallSign"
                 // radialT = 0 at cone edge, 1 at center
                 float radialT    = saturate((cosAngle - _SpotAngleCos) / (1.0 - _SpotAngleCos + 1e-5));
                 float radialFade = pow(radialT, _RadialFalloff);
+                radialFade = lerp(radialFade, 1.0, _FloodAmount);
 
                 // ── Distance fade ─────────────────────────────────────────────────
                 // Full brightness up to MaxDist*0.5, smooth fade to 0 at MaxDist.
                 // With default MaxDist=2: full at ≤1 m, gone at ≥2 m.
                 float distFade = 1.0 - smoothstep(_MaxVisibleDist * 0.5, _MaxVisibleDist, dist);
+                distFade = lerp(distFade, 1.0, _FloodAmount);
 
                 // Combined visibility mask (alpha only)
                 float mask = coneMask * radialFade * distFade;
+                mask = lerp(mask, 1.0, _FloodAmount);
 
                 // ── Emission: HDR color makes Bloom pick up the glow ─────────────
                 // texColor.a drives where the glyph is; RGB is replaced by emission.
