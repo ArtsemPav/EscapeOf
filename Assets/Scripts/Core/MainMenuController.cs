@@ -21,6 +21,19 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Fake loading screen shown before switching to the gameplay scene.")]
     [SerializeField] private FakeLoadingScreen _loadingScreen;
 
+    [Header("Menu Items")]
+    [Tooltip("Load Game button, hidden while no save file exists.")]
+    [SerializeField] private GameObject _loadGameButton;
+
+    /// <summary>Hides the Load Game button when there is nothing to load.</summary>
+    private void Start()
+    {
+        if (_loadGameButton != null)
+        {
+            _loadGameButton.SetActive(SaveManager.SlotHasSave(DefaultSaveSlot));
+        }
+    }
+
     /// <summary>Starts a new game: clears the default save slot, shows the fake loading screen, then loads the gameplay scene.</summary>
     public void OnNewGame()
     {
