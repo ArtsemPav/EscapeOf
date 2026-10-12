@@ -32,12 +32,13 @@ public class CanTriggerZone : MonoBehaviour
     {
         if (_hasFired) return;
         if (_elapsed < _startGracePeriod) return;
-        if (_canRigidbody == null || _sequence == null) return;
+        if (_canRigidbody == null || _sequence == null || _sequence.HasFired) return;
 
         // The can may enter with any of its child colliders — check the rigidbody
         if (other.attachedRigidbody != _canRigidbody) return;
 
         _hasFired = true;
+        Debug.Log($"[CanTriggerZone] Can accepted: {_canRigidbody.name}; CanPosition={_canRigidbody.position}; ZonePosition={transform.position}; Delay={_triggerDelay:F2}s", this);
         StartCoroutine(StartSequenceAfterDelay());
     }
 

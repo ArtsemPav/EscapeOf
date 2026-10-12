@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Audio;
 
 public class AudioManager : MonoBehaviour {
     public static AudioManager Instance { get; private set; }
@@ -17,6 +18,29 @@ public class AudioManager : MonoBehaviour {
     [Header("Настройки")]
     [SerializeField] private float _backMusicVolume = 0.4f;
     [SerializeField] private float _fadeDuration = 1.5f; // Время затухания
+
+    [Tooltip("SFX AudioMixer with the exposed SFXVolume parameter. Optional — falls back to the SFX source's mixer group.")]
+    [SerializeField] private AudioMixer _sfxMixer;
+    [Tooltip("Name of the exposed volume parameter on the SFX AudioMixer.")]
+    [SerializeField] private string _sfxVolumeParameter = "SFXVolume";
+    [Tooltip("Mixer group all dynamically created sound-effect sources are routed to.")]
+    [SerializeField] private AudioMixerGroup _sfxGroup;
+
+    private string SfxVolumeParameter => _sfxVolumeParameter;
+
+    /// <summary>Routes a dynamically created source to the SFX mixer group so the SFX volume setting applies to it.</summary>
+    private void RouteToSfxGroup(AudioSource source) {
+        if (source != null && _sfxGroup != null)
+            source.outputAudioMixerGroup = _sfxGroup;
+    }
+
+    public const string MusicVolumePrefKey = "Settings_MusicVolume";
+
+    /// <summary>Пользовательская громкость музыки (0–1), сохраняется в PlayerPrefs.</summary>
+    public static float MusicVolume => PlayerPrefs.GetFloat(MusicVolumePrefKey, 1f);
+
+    /// <summary>Громкость музыки с учётом пользовательской настройки.</summary>
+    private float BackMusicVolume => _backMusicVolume * MusicVolume;
 
     // ── Background mute state ──────────────────────────────────────────────────
 
@@ -39,10 +63,18 @@ public class AudioManager : MonoBehaviour {
         if (Instance == null) {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            ApplySavedSfxVolume();
         } else {
             Destroy(gameObject);
             return;
         }
+    }
+
+    /// <summary>Applies the saved SFX volume (PlayerPrefs) to the SFX AudioMixer.</summary>
+    public void ApplySavedSfxVolume() {
+        AudioMixer mixer = _sfxMixer != null ? _sfxMixer : (AudioMixer)(_sfxSource != null && _sfxSource.outputAudioMixerGroup != null ? _sfxSource.outputAudioMixerGroup.audioMixer : null);
+        if (mixer != null)
+            mixer.SetFloat(SfxVolumeParameter, SystemSettings.ToDecibels(SystemSettings.SfxVolume));
     }
 
     private void Start() {
@@ -124,6 +156,7 @@ public class AudioManager : MonoBehaviour {
         source.maxDistance = maxDistance;
         source.loop = true;
         source.playOnAwake = false;
+        RouteToSfxGroup(source);
         source.Play();
 
         _trackedLoops.Add(new TrackedLoop { source = source, originalVolume = volume });
@@ -205,6 +238,7 @@ public class AudioManager : MonoBehaviour {
         _backgroundLayerSource.spatialBlend = 0f; // 2D
         _backgroundLayerSource.volume      = 0f;
         _backgroundLayerSource.playOnAwake = false;
+        RouteToSfxGroup(_backgroundLayerSource);
         _backgroundLayerSource.Play();
 
         _backgroundLayerTargetVolume = volume;
@@ -257,11 +291,13 @@ public class AudioManager : MonoBehaviour {
     /// Fades only the game/menu music sources to a target multiplier (0 = silent, 1 = full).
     /// Does NOT affect tracked 3D loops or SFX — used by ElevatorController to duck
     /// the music while the player is inside the elevator.
+    /// Also ducks the MusicDirector track, which owns the in-game music.
     /// </summary>
     public void FadeMusicVolume(float targetMultiplier, float fadeDuration = -1f)
     {
         float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
         StartCoroutine(FadeMusicOnly(targetMultiplier, duration));
+        MusicDirector.DuckActiveTrack(targetMultiplier, duration);
     }
 
     private IEnumerator FadeMusicOnly(float targetMultiplier, float duration)
@@ -269,8 +305,8 @@ public class AudioManager : MonoBehaviour {
         float startMenuVol = _menuMusicSource != null ? _menuMusicSource.volume : 0f;
         float startGameVol = _gameMusicSource != null ? _gameMusicSource.volume : 0f;
 
-        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? _backMusicVolume : 0f;
-        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? _backMusicVolume : 0f;
+        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? BackMusicVolume : 0f;
+        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? BackMusicVolume : 0f;
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -322,8 +358,8 @@ public class AudioManager : MonoBehaviour {
         float startGameVol = _gameMusicSource != null ? _gameMusicSource.volume : 0f;
 
         // Determine targets based on active source and multiplier
-        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? _backMusicVolume : 0f;
-        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? _backMusicVolume : 0f;
+        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? BackMusicVolume : 0f;
+        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? BackMusicVolume : 0f;
 
         // Snapshot 3D loop starting volumes
         _trackedLoops.RemoveAll(l => l.source == null);
@@ -377,7 +413,7 @@ public class AudioManager : MonoBehaviour {
             float normalizedTime = t / _fadeDuration;
 
             if (targetSource != null)
-                targetSource.volume = Mathf.Lerp(startTargetVol, _backMusicVolume, normalizedTime);
+                targetSource.volume = Mathf.Lerp(startTargetVol, BackMusicVolume, normalizedTime);
 
             if (currentSource != null)
                 currentSource.volume = Mathf.Lerp(startCurrentVol, 0.0f, normalizedTime);
@@ -385,7 +421,7 @@ public class AudioManager : MonoBehaviour {
             yield return null;
         }
 
-        if (targetSource != null) targetSource.volume = _backMusicVolume;
+        if (targetSource != null) targetSource.volume = BackMusicVolume;
         if (currentSource != null) currentSource.volume = 0.0f;
 
         if (currentSource == _menuMusicSource) {

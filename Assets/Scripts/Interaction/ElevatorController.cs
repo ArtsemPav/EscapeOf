@@ -186,8 +186,7 @@ namespace Escape.Interaction
 
         /// <summary>
         /// Creates the ambient AudioSource as a child of the cab.
-        /// Not registered in AudioManager._trackedLoops so it is NOT affected
-        /// by MuteBackground — it fades independently alongside the music duck.
+        /// Registered in AudioManager so it fades with MuteBackground / UnmuteBackground.
         /// </summary>
         private void CreateAmbientSource()
         {
@@ -362,10 +361,11 @@ namespace Escape.Interaction
             cabPos.y = toY;
             _elevatorCab.localPosition = cabPos;
 
-            // Stop and unregister movement loop
+            // Stop, unregister and destroy movement loop
             if (_moveLoopSource != null)
             {
                 AudioManager.Instance?.UnregisterLoopSource(_moveLoopSource);
+                Destroy(_moveLoopSource.gameObject);
                 _moveLoopSource = null;
             }
 

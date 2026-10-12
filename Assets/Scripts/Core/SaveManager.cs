@@ -531,6 +531,27 @@ public class SaveManager : MonoBehaviour
 
     private string SaveDir => Path.Combine(Application.persistentDataPath, SaveFolder);
     private string GetSavePath(int slot)        => Path.Combine(SaveDir, $"{FilePrefix}{slot}{FileExtension}");
+
+    /// <summary>
+    /// Returns true if a save file exists in the given slot. Safe to call from
+    /// scenes without a SaveManager instance (e.g. the main menu scene).
+    /// </summary>
+    public static bool SlotHasSave(int slot)
+        => File.Exists(Path.Combine(Application.persistentDataPath, SaveFolder, $"{FilePrefix}{slot}{FileExtension}"));
+
+    /// <summary>
+    /// Clears the pending load slot and deletes the given slot's save with its
+    /// backups, so the next session starts fresh.
+    /// </summary>
+    public static void StartNewGame(int slot)
+    {
+        ResetActiveSlot();
+        string dir = Path.Combine(Application.persistentDataPath, SaveFolder);
+        TryDelete(Path.Combine(dir, $"{FilePrefix}{slot}{FileExtension}"));
+        for (int i = 1; i <= 4; i++)
+            TryDelete(Path.Combine(dir, $"{FilePrefix}{slot}_bk{i}{FileExtension}"));
+        Debug.Log($"[SaveManager] StartNewGame: cleared slot {slot}.");
+    }
     private string GetBackupPath(int slot, int n) => Path.Combine(SaveDir, $"{FilePrefix}{slot}_bk{n}{FileExtension}");
 
     private static void TryDelete(string path)

@@ -83,7 +83,7 @@ public class GameManager : MonoBehaviour, ISaveable
     private void Start() {
         InitializeRooms();
         UpdateCursorState();
-        SetPause(true);
+        SetPause(false); // start directly in gameplay — no pause menu on scene load
         if (InputManager.Instance != null) {
             InputManager.Instance.OnMenuPerformed += OnToggleMenu;
         }

@@ -88,6 +88,11 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Pause between ring cycles (seconds). 0 = restart immediately.")]
     [SerializeField] private float _ringPause = 0f;
 
+    [Tooltip("Total ringing time before the object stops on its own (seconds).\n" +
+             "60 = the object rings (with pauses) for one minute, then goes silent forever.\n" +
+             "0 = rings until the player interacts.")]
+    [SerializeField] private float _maxRingTime = 0f;
+
     [Header("Interaction")]
     [Tooltip("Hint text shown when the player looks at this object while armed.")]
     [SerializeField] private string _interactHint = "Взаимодействовать";
@@ -123,6 +128,7 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     private bool _wasTriggered;
     private AudioSource _audio;
     private float _ringTimer;
+    private float _maxRingTimer;
 
     // True when loaded save requires re-arming in Start()
     private bool _pendingArm;
@@ -146,6 +152,7 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 
         _isArmed = true;
         _ringTimer = _ringDuration;
+        _maxRingTimer = _maxRingTime;
         _onArmed?.Invoke();
 
         if (_armedClip != null && _audio != null)
@@ -171,7 +178,21 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 
     private void Update()
     {
-        if (!_isArmed || _ringDuration <= 0f) return;
+        if (!_isArmed || _wasTriggered) return;
+
+        // Stop ringing for good after the total ring time is spent
+        if (_maxRingTime > 0f)
+        {
+            _maxRingTimer -= Time.deltaTime;
+
+            if (_maxRingTimer <= 0f)
+            {
+                Disarm();
+                return;
+            }
+        }
+
+        if (_ringDuration <= 0f) return;
 
         _ringTimer -= Time.deltaTime;
 
@@ -193,7 +214,7 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
             yield return new WaitForSeconds(_ringPause);
 
         // Re-start the ring cycle (only if still armed and not yet triggered)
-        if (_isArmed && !_wasTriggered)
+        if (_isArmed && !_wasTriggered && _maxRingTimer > 0f)
         {
             _ringTimer = _ringDuration;
 
@@ -282,13 +303,10 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     {
         yield return new WaitForSeconds(_postTriggerDelay);
 
-        if (_postTriggerClip != null)
-        {
-            if (AudioManager.Instance != null)
-                AudioManager.Instance.PlaySFX(_postTriggerClip);
-            else if (_audio != null)
-                _audio.PlayOneShot(_postTriggerClip);
-        }
+        // Play on the object's own 3D AudioSource so the sound stays
+        // localized to the object and does not follow the player
+        if (_postTriggerClip != null && _audio != null)
+            _audio.PlayOneShot(_postTriggerClip);
     }
 
     private void Awake()

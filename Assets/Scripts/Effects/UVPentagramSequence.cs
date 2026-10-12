@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+#if UNITY_EDITOR
 using UnityEngine.InputSystem;
+#endif
 
 /// <summary>
 /// UV pentagram horror sequence.
@@ -24,7 +26,7 @@ using UnityEngine.InputSystem;
 /// Persists HasFired via ISaveable (SaveId "uv_pentagram_sequence") — once the
 /// event has played in a save it will never replay after loading.
 ///
-/// Debug: press the debug key in Play Mode to run the whole sequence instantly.
+/// Debug: optional shortcut in Editor Play Mode only; disabled by default and excluded from builds.
 /// </summary>
 public class UVPentagramSequence : MonoBehaviour, ISaveable
 {
@@ -92,9 +94,14 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
     [Tooltip("Fired when the track finishes. Restore room colors/lighting here if the timeline changed them.")]
     [SerializeField] private UnityEvent _onMusicFinished;
 
-    [Header("Debug")]
-    [Tooltip("Play Mode hotkey that instantly runs the full sequence (skips look-wait).")]
+#if UNITY_EDITOR
+    [Header("Editor Debug Only")]
+    [Tooltip("Opt-in test shortcut for Editor Play Mode only. Never available in a player build; blocked while UI is open.")]
+    [SerializeField] private bool _enableEditorDebugHotkey = false;
+
+    [Tooltip("Editor-only shortcut that bypasses the can trigger when explicitly enabled.")]
     [SerializeField] private Key _debugKey = Key.O;
+#endif
 
     [Serializable]
     public class TimelineEntry
@@ -105,6 +112,11 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
         [Tooltip("Actions to invoke at this track time (lights, colors, vfx, sounds...).")]
         public UnityEvent onTime;
     }
+
+    private const string CanTriggerStartSource = "CanTrigger";
+#if UNITY_EDITOR
+    private const string EditorDebugStartSource = "EditorDebug";
+#endif
 
     // Child names inside the CatHorror scene instance
     private const string PentagramNode = "Pentagram";
@@ -179,34 +191,54 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current[_debugKey].wasPressedThisFrame)
-        {
-            DebugPlay();
-            return;
-        }
-
         if (_phase == Phase.Waiting)
             SpinPentagram();
         else if (_phase == Phase.Playing)
             UpdateMusicTimeline();
     }
 
+#if UNITY_EDITOR
+    private void LateUpdate()
+    {
+        // UI panels process their toggle keys in Update; check only afterwards.
+        if (!_enableEditorDebugHotkey || _debugKey == Key.None) return;
+        if (Keyboard.current != null && Keyboard.current[_debugKey].wasPressedThisFrame)
+            DebugPlay();
+    }
+#endif
+
     // ── Public API ────────────────────────────────────────────────────────────
 
-    /// <summary>Runs the full sequence skipping the look-wait. Debug hotkey or manual call.</summary>
+    /// <summary>
+    /// Optional Editor Play Mode test only. Does nothing in any player build,
+    /// including Development Builds, even when invoked through a UnityEvent.
+    /// </summary>
     public void DebugPlay()
     {
-        if (_phase != Phase.Waiting && _phase != Phase.Idle) return;
-        StartCoroutine(ShrinkAndPlay());
+#if UNITY_EDITOR
+        if (!Application.isPlaying || !_enableEditorDebugHotkey) return;
+        if (Time.timeScale <= 0f || Cursor.lockState != CursorLockMode.Locked) return;
+        if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen) return;
+        TryBeginSequence(EditorDebugStartSource);
+#endif
     }
 
-    /// <summary>
-    /// Starts the sequence from the cat can trigger: skips the waiting phase
-    /// and goes straight to the pentagram shrink.
-    /// </summary>
+    /// <summary>Starts the pentagram shrink after CanTriggerZone accepts the can and completes its delay.</summary>
     public void BeginFromCanTrigger()
     {
-        if (_phase != Phase.Waiting && _phase != Phase.Idle) return;
+        TryBeginSequence(CanTriggerStartSource);
+    }
+
+    private void TryBeginSequence(string startSource)
+    {
+        if (!isActiveAndEnabled || HasFired || _phase != Phase.Waiting) return;
+        if (_catHorrorInstance == null || _audio == null || _audio.clip == null)
+        {
+            Debug.LogWarning($"[UVPentagramSequence] Start rejected: missing event instance or audio clip. Source={startSource}", this);
+            return;
+        }
+
+        Debug.Log($"[UVPentagramSequence] Start accepted. Source={startSource}; Scene={gameObject.scene.name}; SaveId={SaveId}", this);
         StartCoroutine(ShrinkAndPlay());
     }
 
@@ -269,7 +301,7 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
 
     private IEnumerator ShrinkAndPlay()
     {
-        if (_phase == Phase.Shrinking || _phase == Phase.Playing) yield break;
+        if (HasFired || _phase != Phase.Waiting) yield break;
         _phase = Phase.Shrinking;
 
         // Mark as fired and persist — the event never replays in this save

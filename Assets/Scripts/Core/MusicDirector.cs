@@ -33,6 +33,8 @@ public class MusicDirector : MonoBehaviour {
 
     private readonly HashSet<MusicTrack> _playedOnceTracks = new HashSet<MusicTrack>();
     private readonly Dictionary<MusicTrack, AudioSource> _sourcePool = new Dictionary<MusicTrack, AudioSource>();
+    private Coroutine _duckCoroutine;
+    private float _preDuckVolume = -1f; // volume the active source played at before the last duck
 
     /// <summary>
     /// The track that is currently playing (or pending fade-in).
@@ -85,6 +87,7 @@ public class MusicDirector : MonoBehaviour {
         _lastSwitchTime = Time.unscaledTime;
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        _duckCoroutine = null; // track switch cancels any active duck
         _fadeCoroutine = StartCoroutine(FadeRoutine(track));
     }
 
@@ -128,6 +131,56 @@ public class MusicDirector : MonoBehaviour {
             Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track));
     }
 
+    /// <summary>
+    /// Fades the active director track to a target volume multiplier and back.
+    /// Used to duck the music while the player is inside the elevator.
+    /// If no track is active this is a no-op. A track switch while ducked
+    /// cancels the duck — the new track plays at full volume.
+    /// </summary>
+    public static void DuckActiveTrack(float targetMultiplier, float fadeDuration) {
+        if (Instance == null) return;
+        Instance.DuckActiveTrackInternal(targetMultiplier, fadeDuration);
+    }
+
+    private void DuckActiveTrackInternal(float targetMultiplier, float fadeDuration) {
+        if (_duckCoroutine != null) StopCoroutine(_duckCoroutine);
+
+        AudioSource source = _activeSource;
+        if (source == null) return; // nothing playing — nothing to duck
+
+        // Restore to the exact level the music played at before the duck,
+        // not to _activeTrack.Volume — _activeTrack can be null after
+        // ClearTrack (e.g. MusicZone exit) while the source keeps playing.
+        if (targetMultiplier < 1f) {
+            // Ducking down — remember the level the music was playing at
+            _preDuckVolume = source.volume;
+        } else if (_preDuckVolume < 0f) {
+            _preDuckVolume = source.volume; // restore without a prior duck — keep current level
+        }
+
+        float toVolume = targetMultiplier < 1f
+            ? _preDuckVolume * Mathf.Clamp01(targetMultiplier)
+            : _preDuckVolume;
+
+        _duckCoroutine = StartCoroutine(DuckRoutine(source, source.volume, toVolume, fadeDuration));
+
+        if (targetMultiplier >= 1f)
+            _preDuckVolume = -1f; // restored — forget the remembered level
+    }
+
+    private IEnumerator DuckRoutine(AudioSource source, float fromVolume, float toVolume, float duration) {
+        float elapsed = 0f;
+        while (elapsed < duration && source != null) {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            source.volume = Mathf.Lerp(fromVolume, toVolume, t);
+            yield return null;
+        }
+
+        if (source != null) source.volume = toVolume;
+        _duckCoroutine = null;
+    }
+
     private void ClearTrackInternal(MusicTrack track) {
         if (_activeTrack != track) return;
 
@@ -137,12 +190,13 @@ public class MusicDirector : MonoBehaviour {
         _lastSwitchTime = Time.unscaledTime;
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        _duckCoroutine = null; // track switch cancels any active duck
         _fadeCoroutine = restoreTo != null ? StartCoroutine(FadeRoutine(restoreTo)) : null;
     }
 
     private IEnumerator FadeRoutine(MusicTrack track) {
         float duration = track.FadeDuration < 0f ? _minSwitchInterval : track.FadeDuration;
-        float targetVolume = track.Volume;
+        float targetVolume = track.Volume * AudioManager.MusicVolume;
         AudioClip clip = track.Clip;
 
         AudioSource oldSource = _activeSource;
