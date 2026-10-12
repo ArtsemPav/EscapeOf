@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,8 +11,11 @@ using UnityEngine;
 /// Sources are pooled and paused instead of destroyed, so a track that already
 /// played resumes from the position where it faded out.
 /// Tracks requested with playOnce are remembered and never restarted.
+/// Implements ISaveable: persists which play-once tracks already fired and
+/// which one is currently dominant, so a reloaded session restarts the
+/// dominant track and the fired zones never re-trigger.
 /// </summary>
-public class MusicDirector : MonoBehaviour {
+public class MusicDirector : MonoBehaviour, ISaveable {
     [Tooltip("Track played when the game starts. Leave empty to keep using AudioManager.PlayGameMusic.")]
     [SerializeField] private MusicTrack _defaultGameTrack;
 
@@ -23,7 +27,8 @@ public class MusicDirector : MonoBehaviour {
     private MusicTrack _activeTrack;
     private MusicTrack _previousTrack;
     private Coroutine _fadeCoroutine;
-    private float _lastSwitchTime;
+    // -999 so the very first track request is never rejected by _minSwitchInterval
+    private float _lastSwitchTime = -999f;
     private AudioSource _activeSource;
     private Coroutine _eventPauseCoroutine;
     private bool _mutedForEvent;
@@ -31,10 +36,56 @@ public class MusicDirector : MonoBehaviour {
     /// <summary>True while the director is silenced for a horror event.</summary>
     public static bool MutedForEvent => Instance != null && Instance._mutedForEvent;
 
-    private readonly HashSet<MusicTrack> _playedOnceTracks = new HashSet<MusicTrack>();
+    private readonly HashSet<string> _playedOnceTrackNames = new HashSet<string>();
     private readonly Dictionary<MusicTrack, AudioSource> _sourcePool = new Dictionary<MusicTrack, AudioSource>();
+    // All MusicTrack assets seen this session (registered by zones and Start).
+    // Static so zones can register in Awake() before the director's Instance exists.
+    private static readonly Dictionary<string, MusicTrack> KnownTracks = new Dictionary<string, MusicTrack>();
+    private string _loadedDominantTrackName; // set by LoadSaveData, applied in Start
+    private float _pendingResumeTime; // set by LoadSaveData, moved to _resumeTime in Start
+    private float _resumeTime; // playback position the next created source starts from
     private Coroutine _duckCoroutine;
     private float _preDuckVolume = -1f; // volume the active source played at before the last duck
+
+    // ── ISaveable ─────────────────────────────────────────────────────────────
+
+    public string SaveId => "music_director";
+
+    /// <summary>Serializes the dominant track, its playback position and the list of already-fired play-once tracks.</summary>
+    public string GetSaveData() => JsonUtility.ToJson(new MusicDirectorSaveData
+    {
+        dominantTrack = _activeTrack != null ? _activeTrack.name : (_defaultGameTrack != null ? _defaultGameTrack.name : null),
+        // Only the position of the dominant track's own source — a faded-out
+        // leftover source belongs to the previous track and must not shift
+        // the dominant one.
+        dominantTrackTime = _activeSource != null && _activeTrack != null && _activeSource.clip == _activeTrack.Clip ? _activeSource.time : 0f,
+        playedOnceTracks = new List<string>(_playedOnceTrackNames),
+    });
+
+    /// <summary>
+    /// Restores which play-once tracks already fired and which track was
+    /// dominant, including where it stopped. The dominant track is applied in
+    /// Start() — it restarts from the saved position.
+    /// </summary>
+    public void LoadSaveData(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return;
+        MusicDirectorSaveData data = JsonUtility.FromJson<MusicDirectorSaveData>(json);
+        _playedOnceTrackNames.Clear();
+        if (data.playedOnceTracks != null) {
+            foreach (string trackName in data.playedOnceTracks) _playedOnceTrackNames.Add(trackName);
+        }
+        _loadedDominantTrackName = data.dominantTrack;
+        _pendingResumeTime = Mathf.Max(0f, data.dominantTrackTime);
+    }
+
+    [Serializable]
+    private class MusicDirectorSaveData
+    {
+        public string dominantTrack;
+        public float dominantTrackTime;
+        public List<string> playedOnceTracks = new List<string>();
+    }
 
     /// <summary>
     /// The track that is currently playing (or pending fade-in).
@@ -47,23 +98,67 @@ public class MusicDirector : MonoBehaviour {
             return;
         }
         Instance = this;
+        SaveManager.Instance?.Register(this);
+    }
+
+    private void OnDestroy() {
+        if (Instance == this) SaveManager.Instance?.Unregister(this);
     }
 
     private void Start() {
-        if (_defaultGameTrack != null) {
-            RequestTrackInternal(_defaultGameTrack, playOnce: false);
+        // A restored dominant track wins over the scene default: the zone the
+        // player last entered stays the "main" melody for the loaded session,
+        // resuming from the position saved at the last checkpoint.
+        MusicTrack dominant = ResolveTrack(_loadedDominantTrackName);
+        if (dominant == null) dominant = _defaultGameTrack;
+        if (dominant != null) {
+            RegisterTrack(dominant);
+            _resumeTime = _pendingResumeTime;
+            _pendingResumeTime = 0f;
+            RequestTrackInternal(dominant, playOnce: false);
+            // FadeRoutine consumed the position on its first frame — don't
+            // re-apply it to later source requests in this session.
+            _resumeTime = 0f;
         }
+    }
+
+    /// <summary>
+    /// Finds a track asset by name among the ones registered this session.
+    /// Returns null when no zone has registered it (unknown save entry).
+    /// </summary>
+    private static MusicTrack ResolveTrack(string trackName) {
+        if (string.IsNullOrEmpty(trackName)) return null;
+        return KnownTracks.TryGetValue(trackName, out MusicTrack track) ? track : null;
+    }
+
+    /// <summary>Remembers a track asset so save data can resolve it by name later. Called by zones in Awake.</summary>
+    public static void RegisterTrack(MusicTrack track) {
+        if (track != null) KnownTracks[track.name] = track;
+    }
+
+    private void Update() {
+        // A non-looping track that stopped playing has finished — restore the
+        // previous track. Explicitly skip the paused-for-menu and muted-for-event
+        // states: a paused source also reports isPlaying == false.
+        if (_activeSource == null || _activeTrack == null || _activeTrack.Loop) return;
+        if (_fadeCoroutine != null || _mutedForEvent) return;
+        if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
+
+        if (!_activeSource.isPlaying)
+            ClearTrackInternal(_activeTrack);
     }
 
     /// <summary>
     /// Requests a track to play. If the same track is already active the request is ignored;
     /// otherwise the director crossfades to it and remembers the previous track for ClearTrack.
     /// Tracks already played with playOnce are skipped.
+    /// Returns true when the request was accepted (the track is now the dominant one).
     /// </summary>
-    public static void RequestTrack(MusicTrack track, bool playOnce = false) {
-        if (Instance == null || track == null) return;
-        if (playOnce && Instance._playedOnceTracks.Contains(track)) return;
-        Instance.RequestTrackInternal(track, playOnce);
+    public static bool RequestTrack(MusicTrack track, bool playOnce = false) {
+        if (Instance == null || track == null) return false;
+        RegisterTrack(track);
+        if (playOnce && Instance._playedOnceTrackNames.Contains(track.name)) return false;
+        return Instance.RequestTrackInternal(track, playOnce);
     }
 
     /// <summary>
@@ -75,12 +170,12 @@ public class MusicDirector : MonoBehaviour {
         Instance.ClearTrackInternal(track);
     }
 
-    private void RequestTrackInternal(MusicTrack track, bool playOnce) {
-        if (_mutedForEvent) return; // horror event owns the music — requests are queued out
-        if (_activeTrack == track) return;
-        if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) return;
+    private bool RequestTrackInternal(MusicTrack track, bool playOnce) {
+        if (_mutedForEvent) return false; // horror event owns the music — requests are queued out
+        if (_activeTrack == track) return true;
+        if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) return false;
 
-        if (playOnce) _playedOnceTracks.Add(track);
+        if (playOnce) _playedOnceTrackNames.Add(track.name);
 
         _previousTrack = _activeTrack;
         _activeTrack = track;
@@ -89,6 +184,7 @@ public class MusicDirector : MonoBehaviour {
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
         _duckCoroutine = null; // track switch cancels any active duck
         _fadeCoroutine = StartCoroutine(FadeRoutine(track));
+        return true;
     }
 
     /// <summary>
@@ -129,6 +225,47 @@ public class MusicDirector : MonoBehaviour {
         MusicTrack track = Instance._activeTrack;
         if (track != null)
             Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track));
+    }
+
+    /// <summary>
+    /// Pauses the active director track instantly — used when the game is
+    /// paused and the menu music takes over. The track resumes from the same
+    /// position via ResumeForGameplay.
+    /// </summary>
+    public static void PauseForMenu() {
+        if (Instance == null) return;
+
+        if (Instance._fadeCoroutine != null) {
+            Instance.StopCoroutine(Instance._fadeCoroutine);
+            Instance._fadeCoroutine = null;
+        }
+        if (Instance._duckCoroutine != null) {
+            Instance.StopCoroutine(Instance._duckCoroutine);
+            Instance._duckCoroutine = null;
+        }
+
+        // Pause EVERY pooled source, not just the active one — a mid-crossfade
+        // state may have a not-yet-active source already fading in.
+        // _activeSource is always taken from the pool, so it is covered too.
+        foreach (KeyValuePair<MusicTrack, AudioSource> kvp in Instance._sourcePool) {
+            if (kvp.Value == null) continue;
+            kvp.Value.volume = 0f;
+            kvp.Value.Pause();
+        }
+    }
+
+    /// <summary>
+    /// Fades the active director track back in after the pause menu closes.
+    /// No-op when no track is active or the director is muted for a horror event.
+    /// </summary>
+    public static void ResumeForGameplay() {
+        if (Instance == null || Instance._mutedForEvent || Instance._activeTrack == null) return;
+
+        // FadeRoutine only un-pauses sources taken from the pool — resume a
+        // paused active source explicitly so the track keeps playing.
+        if (Instance._activeSource != null) Instance._activeSource.UnPause();
+
+        Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(Instance._activeTrack));
     }
 
     /// <summary>
@@ -191,7 +328,30 @@ public class MusicDirector : MonoBehaviour {
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
         _duckCoroutine = null; // track switch cancels any active duck
-        _fadeCoroutine = restoreTo != null ? StartCoroutine(FadeRoutine(restoreTo)) : null;
+        if (restoreTo != null) {
+            _fadeCoroutine = StartCoroutine(FadeRoutine(restoreTo));
+        } else {
+            // Nothing to restore (the cleared zone track was the first one the
+            // director played) — fade the active source out and pause it so it
+            // doesn't keep playing ownerless. _activeSource keeps pointing at
+            // it so a later track request can crossfade away from it properly.
+            _fadeCoroutine = StartCoroutine(FadeOutAndPauseRoutine(_activeSource));
+        }
+    }
+
+    private IEnumerator FadeOutAndPauseRoutine(AudioSource source) {
+        if (source == null) yield break;
+        float from = source.volume;
+        float elapsed = 0f;
+        while (elapsed < _minSwitchInterval && source != null) {
+            elapsed += Time.unscaledDeltaTime;
+            source.volume = Mathf.Lerp(from, 0f, Mathf.Clamp01(elapsed / _minSwitchInterval));
+            yield return null;
+        }
+        if (source != null) {
+            source.volume = 0f;
+            source.Pause();
+        }
     }
 
     private IEnumerator FadeRoutine(MusicTrack track) {
@@ -202,9 +362,11 @@ public class MusicDirector : MonoBehaviour {
         AudioSource oldSource = _activeSource;
         AudioSource newSource;
 
-        // Same clip is already playing — only refade its volume.
+        // Same clip is already assigned — refade its volume (and resume it if
+        // it was paused, e.g. after PauseForMenu or a cleared ownerless track).
         if (oldSource != null && oldSource.clip == clip) {
             newSource = oldSource;
+            if (!newSource.isPlaying) newSource.UnPause();
         } else {
             newSource = GetOrCreateSource(track);
             newSource.volume = 0f;
@@ -241,11 +403,21 @@ public class MusicDirector : MonoBehaviour {
     /// </summary>
     private AudioSource GetOrCreateSource(MusicTrack track) {
         if (_sourcePool.TryGetValue(track, out AudioSource pooled) && pooled != null) {
+            if (pooled.isPlaying) return pooled;
+
+            // A paused source resumes where it faded out; a stopped source
+            // (one-shot that played through, or never played) starts from the
+            // saved session position if it was just restored from a save.
+            pooled.time = _resumeTime > 0f && track.name == _loadedDominantTrackName ? _resumeTime : 0f;
             pooled.UnPause();
+            if (!pooled.isPlaying) pooled.Play();
             return pooled;
         }
 
         AudioSource created = AudioManager.Instance.PlayNewMusicSource(track.Clip, track.Loop);
+        if (_resumeTime > 0f && track.name == _loadedDominantTrackName) {
+            created.time = Mathf.Min(_resumeTime, Mathf.Max(0f, track.Clip != null ? track.Clip.length : 0f));
+        }
         _sourcePool[track] = created;
         return created;
     }

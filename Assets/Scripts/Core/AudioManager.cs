@@ -51,6 +51,7 @@ public class AudioManager : MonoBehaviour {
     }
     private readonly List<TrackedLoop> _trackedLoops = new List<TrackedLoop>();
     private Coroutine _muteCoroutine;
+    private Coroutine _musicFadeCoroutine;
     private AudioSource _activeMusicSource;
 
     // ── Background layer state ─────────────────────────────────────────────────
@@ -97,14 +98,20 @@ public class AudioManager : MonoBehaviour {
     public void PlayMenuMusic() {
         _activeMusicSource = _menuMusicSource;
         if (_backgroundMuted) return; // Stay silent if muted, but update target
-        
-        StopMuteCoroutine();
 
-        // Перед началом плавного перехода перезапускаем музыку меню с нуля
-        if (_menuMusicSource != null) {
-            _menuMusicSource.Stop();
-            _menuMusicSource.Play();
+        // When the MusicDirector owns the in-game music (e.g. a music zone
+        // trigger switched the track), pause its track — otherwise both keep
+        // playing during pause. The legacy game music source is faded out too,
+        // so any of the two in-game layers can be active without conflict.
+        if (MusicDirector.Instance != null) {
+            MusicDirector.PauseForMenu();
+            FadeInMenuMusic();
+            StartCoroutine(FadeGameSourceOut());
+            return;
         }
+
+        StopMuteCoroutine();
+        FadeInMenuMusic();
 
         // Запускаем плавный переход (игровая музыка просто затихнет, но продолжит играть)
         StartCoroutine(FadeBetweenSources(_menuMusicSource, _gameMusicSource));
@@ -113,10 +120,60 @@ public class AudioManager : MonoBehaviour {
         _activeMusicSource = _gameMusicSource;
         if (_backgroundMuted) return; // Stay silent if muted, but update target
 
+        // The MusicDirector track owns the in-game music — restore it instead
+        // of fading the legacy game music source back up. Checked by Instance
+        // rather than the active track: the director's Start may not have run
+        // yet when this is called from GameManager.SetPause on scene load.
+        if (MusicDirector.Instance != null) {
+            MusicDirector.ResumeForGameplay();
+            FadeOutMenuMusic();
+            return;
+        }
+
         StopMuteCoroutine();
-        
+
         // При возврате в игру просто плавно выводим громкость игрового источника
         StartCoroutine(FadeBetweenSources(_gameMusicSource, _menuMusicSource));
+    }
+
+    /// <summary>Restarts the menu music from the beginning and fades it in to full volume.</summary>
+    private void FadeInMenuMusic() {
+        if (_menuMusicSource == null) return;
+        _menuMusicSource.Stop();
+        _menuMusicSource.Play();
+        StartCoroutine(FadeMenuSource(_menuMusicSource, 0f, BackMusicVolume));
+    }
+
+    /// <summary>Fades the menu music out and stops it when it is fully silent.</summary>
+    private void FadeOutMenuMusic() {
+        if (_menuMusicSource == null) return;
+        StartCoroutine(FadeMenuSource(_menuMusicSource, _menuMusicSource.volume, 0f, stopWhenSilent: true));
+    }
+
+    /// <summary>Fades the legacy in-game music source to silence without stopping it.</summary>
+    private IEnumerator FadeGameSourceOut() {
+        if (_gameMusicSource == null) yield break;
+        float from = _gameMusicSource.volume;
+        float elapsed = 0f;
+        while (elapsed < _fadeDuration && _gameMusicSource != null) {
+            elapsed += Time.unscaledDeltaTime;
+            _gameMusicSource.volume = Mathf.Lerp(from, 0f, Mathf.Clamp01(elapsed / _fadeDuration));
+            yield return null;
+        }
+        if (_gameMusicSource != null) _gameMusicSource.volume = 0f;
+    }
+
+    private IEnumerator FadeMenuSource(AudioSource source, float from, float to, bool stopWhenSilent = false) {
+        float elapsed = 0f;
+        while (elapsed < _fadeDuration && source != null) {
+            elapsed += Time.unscaledDeltaTime;
+            source.volume = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / _fadeDuration));
+            yield return null;
+        }
+        if (source != null) {
+            source.volume = to;
+            if (stopWhenSilent) source.Stop();
+        }
     }
 
     private void StopMuteCoroutine() {
@@ -296,17 +353,23 @@ public class AudioManager : MonoBehaviour {
     public void FadeMusicVolume(float targetMultiplier, float fadeDuration = -1f)
     {
         float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
-        StartCoroutine(FadeMusicOnly(targetMultiplier, duration));
+        if (_musicFadeCoroutine != null) StopCoroutine(_musicFadeCoroutine);
+        _musicFadeCoroutine = StartCoroutine(FadeMusicOnly(targetMultiplier, duration));
         MusicDirector.DuckActiveTrack(targetMultiplier, duration);
     }
 
     private IEnumerator FadeMusicOnly(float targetMultiplier, float duration)
     {
+        // When the MusicDirector owns the music, the legacy sources stay at
+        // zero — raising them here would stack a second copy of the track
+        // (e.g. on every elevator exit).
+        bool directorOwnsMusic = MusicDirector.Instance != null;
+
         float startMenuVol = _menuMusicSource != null ? _menuMusicSource.volume : 0f;
         float startGameVol = _gameMusicSource != null ? _gameMusicSource.volume : 0f;
 
-        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? BackMusicVolume : 0f;
-        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? BackMusicVolume : 0f;
+        float targetMenuVol = !directorOwnsMusic && targetMultiplier > 0f && _activeMusicSource == _menuMusicSource ? BackMusicVolume : 0f;
+        float targetGameVol = !directorOwnsMusic && targetMultiplier > 0f && _activeMusicSource == _gameMusicSource ? BackMusicVolume : 0f;
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -324,6 +387,7 @@ public class AudioManager : MonoBehaviour {
 
         if (_menuMusicSource != null) _menuMusicSource.volume = targetMenuVol;
         if (_gameMusicSource != null) _gameMusicSource.volume = targetGameVol;
+        _musicFadeCoroutine = null;
     }
 
     /// <summary>Fades out background music and all tracked 3D loops, leaving SFX intact.</summary>
@@ -357,9 +421,13 @@ public class AudioManager : MonoBehaviour {
         float startMenuVol = _menuMusicSource != null ? _menuMusicSource.volume : 0f;
         float startGameVol = _gameMusicSource != null ? _gameMusicSource.volume : 0f;
 
+        // When the MusicDirector owns the music, the legacy sources stay at
+        // zero — UnmuteBackground must not raise a second copy of the track.
+        bool directorOwnsMusic = MusicDirector.Instance != null;
+
         // Determine targets based on active source and multiplier
-        float targetMenuVol = (targetMultiplier > 0f && _activeMusicSource == _menuMusicSource) ? BackMusicVolume : 0f;
-        float targetGameVol = (targetMultiplier > 0f && _activeMusicSource == _gameMusicSource) ? BackMusicVolume : 0f;
+        float targetMenuVol = !directorOwnsMusic && targetMultiplier > 0f && _activeMusicSource == _menuMusicSource ? BackMusicVolume : 0f;
+        float targetGameVol = !directorOwnsMusic && targetMultiplier > 0f && _activeMusicSource == _gameMusicSource ? BackMusicVolume : 0f;
 
         // Snapshot 3D loop starting volumes
         _trackedLoops.RemoveAll(l => l.source == null);

@@ -129,6 +129,7 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     private AudioSource _audio;
     private float _ringTimer;
     private float _maxRingTimer;
+    private int _ringGeneration;
 
     // True when loaded save requires re-arming in Start()
     private bool _pendingArm;
@@ -153,6 +154,7 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         _isArmed = true;
         _ringTimer = _ringDuration;
         _maxRingTimer = _maxRingTime;
+        _ringGeneration++;
         _onArmed?.Invoke();
 
         if (_armedClip != null && _audio != null)
@@ -169,9 +171,25 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     public void Disarm()
     {
         _isArmed = false;
+        _ringGeneration++; // cancel any pending ring-cycle restarts
 
         if (_audio != null && _audio.isPlaying)
             _audio.Stop();
+    }
+
+    /// <summary>
+    /// Called when Max Ring Time expires and the player never interacted.
+    /// For One Shot objects the event is lost forever: the object is marked as
+    /// triggered so it can never be re-armed. The state is saved.
+    /// </summary>
+    private void GiveUpRinging()
+    {
+        Disarm();
+
+        if (_oneShot)
+            _wasTriggered = true;
+
+        SaveManager.Instance?.Save();
     }
 
     // ── Ring timer ─────────────────────────────────────────────────────────────
@@ -187,7 +205,7 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 
             if (_maxRingTimer <= 0f)
             {
-                Disarm();
+                GiveUpRinging();
                 return;
             }
         }
@@ -206,6 +224,8 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     /// </summary>
     private IEnumerator RingCycleRestart()
     {
+        int generation = _ringGeneration;
+
         // Stop audio but keep armed state so the player can still interact
         if (_audio != null && _audio.isPlaying)
             _audio.Stop();
@@ -213,8 +233,9 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         if (_ringPause > 0f)
             yield return new WaitForSeconds(_ringPause);
 
-        // Re-start the ring cycle (only if still armed and not yet triggered)
-        if (_isArmed && !_wasTriggered && _maxRingTimer > 0f)
+        // Re-start the ring cycle only if the same ring session is still active
+        // (Disarm/Interact/give-up bump the generation, cancelling pending restarts)
+        if (_isArmed && !_wasTriggered && (_maxRingTime <= 0f || _maxRingTimer > 0f) && generation == _ringGeneration)
         {
             _ringTimer = _ringDuration;
 

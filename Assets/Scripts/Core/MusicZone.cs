@@ -17,16 +17,29 @@ public class MusicZone : MonoBehaviour {
 
     private bool _hasTriggered;
 
+    private void Awake() {
+        // Make the track resolvable by name for save data before the director's Start applies it.
+        MusicDirector.RegisterTrack(_zoneTrack);
+    }
+
     private void OnTriggerEnter(Collider other) {
         if (_playOnce && _hasTriggered) return;
         if (!other.CompareTag(PLAYER_TAG)) return;
 
-        _hasTriggered = true;
-        MusicDirector.RequestTrack(_zoneTrack, playOnce: _playOnce);
+        // Only an accepted request makes this zone the dominant track — and
+        // only then it is persisted, so already-fired zones never re-trigger
+        // in the next session.
+        if (MusicDirector.RequestTrack(_zoneTrack, playOnce: _playOnce)) {
+            _hasTriggered = true;
+            SaveManager.Instance?.Save();
+        }
     }
 
     private void OnTriggerExit(Collider other) {
         if (!other.CompareTag(PLAYER_TAG)) return;
+        // A play-once track plays through to its end — leaving the zone does
+        // not stop it. Only looping zone tracks restore the previous music.
+        if (_playOnce && _hasTriggered) return;
         MusicDirector.ClearTrack(_zoneTrack);
     }
 }
