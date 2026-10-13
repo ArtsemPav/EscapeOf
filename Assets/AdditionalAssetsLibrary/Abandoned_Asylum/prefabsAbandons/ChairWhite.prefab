@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 8822220440124297229}
   - component: {fileID: 7717054516450848427}
   - component: {fileID: 7759344056630041710}
+  - component: {fileID: 8355460199816623876}
   m_Layer: 8
   m_Name: ChairWhite
   m_TagString: Untagged
@@ -134,6 +135,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
   dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
+  _maxDragDistance: 0
+  _holdDistance: 0
 --- !u!65 &7759344056630041710
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -153,5 +156,26 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.41670623, y: 0.8887562, z: 0.4407562}
-  m_Center: {x: -0.0013163941, y: 0.44405806, z: 0.006020495}
+  m_Size: {x: 0.41670623, y: 0.45, z: 0.4407562}
+  m_Center: {x: -0.0013163941, y: 0.23, z: 0.006020495}
+--- !u!65 &8355460199816623876
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1534614067781904}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.41670623, y: 0.45, z: 0.05}
+  m_Center: {x: 0, y: 0.68, z: 0.19}

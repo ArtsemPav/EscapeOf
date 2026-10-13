@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5616310397234942149}
   - component: {fileID: 5820905796346846162}
   m_Layer: 0
-  m_Name: VentBasement
+  m_Name: PRF_VentBasement
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -679,6 +679,59 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RoomTrigger
   _room: {fileID: 0}
+--- !u!1 &6298584609213814089
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 142902159105812834}
+  - component: {fileID: 3521584438230426092}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &142902159105812834
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6298584609213814089}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1280141458614641730}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3521584438230426092
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6298584609213814089}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 10, y: 10, z: 0.16}
+  m_Center: {x: 0, y: 0, z: 1.08}
 --- !u!1 &6315140064808360760
 GameObject:
   m_ObjectHideFlags: 0
@@ -1689,10 +1742,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -1748,6 +1797,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (46)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -2243,10 +2296,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -2302,6 +2351,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (43)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -2407,10 +2460,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -2466,6 +2515,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_Name
       value: VentPeaceRight (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -2626,10 +2679,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -2685,6 +2734,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (51)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -3028,10 +3081,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -3088,6 +3137,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VentPeaceForward (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3106,10 +3159,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -3165,6 +3214,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (45)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -3750,10 +3803,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -3817,6 +3866,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_Name
       value: VentPeaceRight
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -4133,10 +4186,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -4193,6 +4242,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VentPeaceForward (44)
       objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -4215,10 +4268,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -4274,6 +4323,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (42)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -5390,10 +5443,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -5457,6 +5506,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (40)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -6361,7 +6414,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6491565864587046082, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -20.816101
+      value: -20.814896
       objectReference: {fileID: 0}
     - target: {fileID: 6491565864587046082, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6369,7 +6422,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6491565864587046082, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 21.551569
+      value: 21.552774
       objectReference: {fileID: 0}
     - target: {fileID: 6491565864587046082, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6413,7 +6466,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 6491565864587046082, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 142902159105812834}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
 --- !u!4 &1280141458614641730 stripped
@@ -6429,10 +6485,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -6497,6 +6549,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VentPeaceForward (52)
       objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -6519,10 +6575,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -6586,6 +6638,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_Name
       value: VentPeaceRight (6)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -6757,10 +6813,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -6816,6 +6868,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (50)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -6929,10 +6985,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -6988,6 +7040,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (41)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -7253,10 +7309,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -7321,6 +7373,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VentPeaceForward (49)
       objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -7343,6 +7399,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
+    - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -7390,10 +7450,6 @@ PrefabInstance:
     - target: {fileID: 6491565864587046082, guid: 567d22ffbb0b98448a193522d9448a87, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 1517e4455cbda5f4d926c45e9758b95b, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -7923,10 +7979,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -7983,6 +8035,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VentPeaceForward (47)
       objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -8005,10 +8061,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -8064,6 +8116,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: d3b57253ae9cca84d8e9ec436395be1a, type: 3}
       propertyPath: m_Name
       value: VentPeaceRight (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -8723,9 +8779,49 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+    - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -15.211667
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.7265507
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 21.551569
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 239390232699344441, guid: ecc39cad34f0ad245b7461d2a79acac4, type: 3}
       propertyPath: m_Name
@@ -8783,49 +8879,9 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
-    - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -15.211667
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.7265507
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 21.551569
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6491565864587046082, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -8849,10 +8905,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -8909,6 +8961,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VentPeaceForward (48)
       objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
+      objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -8931,10 +8987,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7272255990258063513}
     m_Modifications:
-    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2560
-      objectReference: {fileID: 0}
     - target: {fileID: 382728565223268432, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -8998,6 +9050,10 @@ PrefabInstance:
     - target: {fileID: 9002584625202361831, guid: 734d0d5704a7a9e40be81d3741127931, type: 3}
       propertyPath: m_Name
       value: VentPeaceForward (53)
+      objectReference: {fileID: 0}
+    - target: {fileID: 689697715787395287, guid: 32786bd95769ddb4ea4e85dc8b67dbaf, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2560
       objectReference: {fileID: 0}
     - target: {fileID: 6121524352063060688, guid: 903f30581a875984cb0aaad26412b7c2, type: 3}
       propertyPath: m_RenderingLayerMask

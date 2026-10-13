@@ -881,6 +881,7 @@ GameObject:
   - component: {fileID: 5975817222826434317}
   - component: {fileID: 6584588908689623542}
   - component: {fileID: 1985285290815550871}
+  - component: {fileID: 6793221839768788966}
   m_Layer: 0
   m_Name: ratTrigger
   m_TagString: Untagged
@@ -939,6 +940,27 @@ MonoBehaviour:
   _playerTag: Player
   _eventId: rat_scare
   _requireCrouch: 1
+  _onFired:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &6793221839768788966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3547138663821807407}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8d6821503578c94aa6c9d7e46246f7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CrouchTrigger
+  _playerTag: Player
+  _eventId: rat_scare
+  _requireCrouch: 1
+  _onFired:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &3826536853485600766
 GameObject:
   m_ObjectHideFlags: 0
