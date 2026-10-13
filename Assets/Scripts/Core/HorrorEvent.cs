@@ -185,6 +185,15 @@ public class HorrorEvent : MonoBehaviour, ISaveable
              "Оставь пустым если звук не нужен.")]
     [SerializeField] private GameObject _soundObject;
 
+    [Tooltip("Seconds for the Sound Object to fade to silence in FadeOutSoundObject().")]
+    [SerializeField] private float _soundFadeDuration = 1.5f;
+
+    [Tooltip("Seconds for the background music to fade back in after RestoreBackgroundMusic().")]
+    [SerializeField] private float _musicRestoreFadeDuration = 3f;
+
+    [Tooltip("Seconds for the background music to fade to silence in MuteBackgroundMusic(). 0 = instant cut.")]
+    [SerializeField] private float _musicMuteFadeDuration = 2f;
+
     [Header("Interactable")]
     [Tooltip("Объект с HorrorInteractable который станет активным при срабатывании события.\n" +
              "Перетащи объект (например телефон). При активации он автоматически «включится»\n" +
@@ -220,24 +229,31 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     /// <summary>Uses _eventId as the stable save key. Must be unique across all HorrorEvents.</summary>
     public string SaveId => string.IsNullOrEmpty(_eventId) ? string.Empty : "horror_" + _eventId;
 
-    /// <summary>Serializes whether this event has already fired.</summary>
-    public string GetSaveData() => JsonUtility.ToJson(new HorrorEventSaveData { hasFired = HasFired });
+    /// <summary>Serializes whether this event has already fired, plus the target's actual visibility.</summary>
+    public string GetSaveData() => JsonUtility.ToJson(new HorrorEventSaveData
+    {
+        hasFired = HasFired,
+        targetVisible = _target != null && _target.activeSelf
+    });
 
     /// <summary>
-    /// Restores HasFired state. For AppearAndStay effects, marks the target to be shown in Start().
+    /// Restores HasFired state. For AppearAndStay effects the target is shown on Start()
+    /// ONLY if it was actually visible when the game was saved. Events whose target has
+    /// already disappeared (e.g. the vent maid that crawled away and vanished) restore hidden.
     /// </summary>
     public void LoadSaveData(string json)
     {
         var data = JsonUtility.FromJson<HorrorEventSaveData>(json);
         if (!data.hasFired) return;
         HasFired = true;
-        _pendingActivation = _effectType == HorrorEffectType.AppearAndStay;
+        _pendingActivation = _effectType == HorrorEffectType.AppearAndStay && data.targetVisible;
     }
 
     [Serializable]
     private struct HorrorEventSaveData
     {
         public bool hasFired;
+        public bool targetVisible;
     }
 
     private void Awake()
@@ -588,5 +604,50 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     {
         if (AudioManager.Instance != null && clip != null)
             AudioManager.Instance.PlaySFX(clip);
+    }
+
+    /// <summary>
+    /// Silences the background music (MusicDirector.MuteForEvent), fading it out
+    /// over _musicMuteFadeDuration seconds, so this horror event owns the soundscape.
+    /// Wire it to On Activated. Pair with RestoreBackgroundMusic().
+    /// </summary>
+    public void MuteBackgroundMusic() => MusicDirector.MuteForEvent(_musicMuteFadeDuration);
+
+    /// <summary>
+    /// Restores the background music paused earlier by MuteBackgroundMusic(),
+    /// fading it in over _musicRestoreFadeDuration seconds.
+    /// Wire it to On Deactivated. Safe to call when nothing was muted.
+    /// </summary>
+    public void RestoreBackgroundMusic() => MusicDirector.RestoreAfterEvent(_musicRestoreFadeDuration);
+
+    /// <summary>
+    /// Fades the Sound Object's audio to silence over _soundFadeDuration, then stops it.
+    /// Used for the warning cue so it dies out smoothly when the main horror action starts.
+    /// </summary>
+    public void FadeOutSoundObject()
+    {
+        if (_soundObject == null || !_soundObject.TryGetComponent(out AudioSource audio)) return;
+        StartCoroutine(FadeOutRoutine(audio));
+    }
+
+    private IEnumerator FadeOutRoutine(AudioSource audio)
+    {
+        if (_soundFadeDuration <= 0f)
+        {
+            audio.Stop();
+            yield break;
+        }
+
+        float startVolume = audio.volume;
+        float elapsed = 0f;
+        while (elapsed < _soundFadeDuration && audio.isPlaying)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            audio.volume = Mathf.Lerp(startVolume, 0f, Mathf.Clamp01(elapsed / _soundFadeDuration));
+            yield return null;
+        }
+
+        audio.Stop();
+        audio.volume = startVolume; // restore for a potential replay
     }
 }

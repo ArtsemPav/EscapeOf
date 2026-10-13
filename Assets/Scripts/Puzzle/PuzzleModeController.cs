@@ -115,6 +115,14 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (_isSolved) return;
 
         _isSolved = true;
+
+        // If puzzle mode is not active, ExitPuzzleMode will never run — the main
+        // interactable collider must be disabled right here so it doesn't block
+        // raycasts to items revealed by the solve (e.g. the medallion in the box).
+        // Collider stays enabled ONLY when re-entry after solving is allowed.
+        if (!_isActive)
+            SetPuzzleInteractableColliderEnabled(_allowEnterWhenSolved);
+
         FireSolvedEvents();
     }
 
@@ -199,21 +207,21 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         SetSupportLightsEnabled(false);
 
         SaveManager.Instance?.Register(this);
-
-        // If the puzzle was already solved on load: disable the interactable
-        // collider so it doesn't block raycasts to items revealed by the open
-        // animation (e.g. contents of the Chinese box) — unless the puzzle allows
-        // re-entry after solving (then the collider must stay active).
-        if (_isSolved)
-        {
-            SetPuzzleInteractableColliderEnabled(!_allowEnterWhenSolved);
-        }
     }
 
     private void Start()
     {
         // Deferred subscription: InputManager singleton is guaranteed to exist by Start.
         SubscribeToInput();
+
+        // If the puzzle was already solved (restored from a save in SaveManager.Start,
+        // execution order -10): disable the interactable collider so it doesn't block
+        // raycasts to items revealed by the open animation (e.g. contents of the
+        // Chinese box). Collider stays enabled ONLY when re-entry after solving is
+        // allowed. NOTE: this must run in Start, not Awake — SaveManager distributes
+        // loaded data in its Start(), which runs after every Awake() but before this.
+        if (_isSolved)
+            SetPuzzleInteractableColliderEnabled(_allowEnterWhenSolved);
     }
 
     private void OnDisable()
@@ -364,9 +372,14 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private void SetChildInteractablesEnabled(bool isEnabled)
     {
+        // Same empty-cache guard as SetPuzzleInteractableColliderEnabled.
+        if (_cachedChildInteractables == null || _cachedChildInteractables.Length == 0)
+            _cachedChildInteractables = GetComponentsInChildren<SimpleInteractable>(true);
+
         if (_cachedChildInteractables == null) return;
         foreach (var interactable in _cachedChildInteractables)
         {
+            if (interactable == null) continue;
             if (interactable.TryGetComponent<Collider>(out var col))
             {
                 col.enabled = isEnabled;
@@ -376,9 +389,16 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
     private void SetPuzzleInteractableColliderEnabled(bool isEnabled)
     {
+        // Rebuild the cache when it's empty: Awake can run before the room/prefab
+        // hierarchy is fully instantiated (e.g. room visibility activation), leaving
+        // zero cached interactables and silently skipping the collider toggle.
+        if (_cachedPuzzleInteractables == null || _cachedPuzzleInteractables.Length == 0)
+            _cachedPuzzleInteractables = GetComponentsInChildren<PuzzleInteractable>(true);
+
         if (_cachedPuzzleInteractables == null) return;
         foreach (var pi in _cachedPuzzleInteractables)
         {
+            if (pi == null) continue;
             if (pi.TryGetComponent<Collider>(out var col))
             {
                 col.enabled = isEnabled;

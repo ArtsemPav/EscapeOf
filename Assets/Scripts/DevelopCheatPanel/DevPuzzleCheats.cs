@@ -176,6 +176,95 @@ public static class DevPuzzleCheats
         return SolveByAutoSolve("FifteenPuzzleManager", "Fifteen Puzzle");
     }
 
+    /// <summary>
+    /// Solves the Medallion (Chinese box) Puzzle: fills every hole with the correct
+    /// medallion and forces the final solved state (open box, SetSolved, save).
+    /// </summary>
+    public static CheatResult SolveMedallionBoxPuzzle()
+    {
+        Type interactionType = FindType("MedallionBoxInteraction");
+        if (interactionType == null) return Failed("MedallionBoxInteraction type not found");
+
+        UnityEngine.Object interaction = FindFirst(interactionType);
+        if (interaction == null) return Failed("MedallionBoxInteraction not found in scene");
+
+        // MedallionBoxUI lives on the panel GameObject referenced by the interaction.
+        GameObject panel = GetField<GameObject>(interaction, "_panel");
+        var boxUI = (panel != null) ? panel.GetComponent<MedallionBoxUI>() : null;
+        if (boxUI == null) return Failed("MedallionBoxUI not found on panel");
+
+        // NOTE: no early-exit on already-solved UI state — the cheat must be
+        // self-healing: a stale save can leave boxUI._solved=true while the
+        // controller and animator never reached the solved state.
+        var order = GetField<ItemData[]>(interaction, "_medallionOrder");
+        if (order == null || order.Length == 0) return Failed("Medallion Puzzle: _medallionOrder is not assigned");
+        boxUI.Populate(order);
+
+        var holes = GetField<MedallionHole[]>(boxUI, "_holes");
+        if (holes == null || holes.Length == 0) return Failed("Medallion Puzzle: no holes assigned");
+
+        GameObject coinPrefab = GetField<GameObject>(boxUI, "_coinPrefab");
+
+        // Fill every empty hole with the correct medallion. Holes holding a wrong
+        // item are reported back — retrieval is a player-facing interaction.
+        string wrongHoles = null;
+        for (int i = 0; i < holes.Length && i < order.Length; i++)
+        {
+            var hole = holes[i];
+            if (hole == null) continue;
+
+            if (hole.IsFilled)
+            {
+                if (hole.PlacedItem != order[i])
+                    wrongHoles = (wrongHoles == null) ? $"Hole_{i}" : $"{wrongHoles}, Hole_{i}";
+                continue;
+            }
+
+            hole.FillImmediate(order[i], coinPrefab);
+        }
+
+        if (wrongHoles != null)
+            return Failed($"Medallion Puzzle: holes with wrong medallions must be cleared manually: {wrongHoles}");
+
+        // Force the complete final state synchronously — do NOT rely on the
+        // open-animation coroutine, which can stall when the box is off-screen
+        // (animator culling) and leave the puzzle half-solved.
+        Action victory = () =>
+        {
+            boxUI.MarkSolved();
+            SetField(interaction, "_puzzleSolved", true);
+
+            GameObject solvedObject = GetField<GameObject>(interaction, "_solvedObject");
+            if (solvedObject != null) solvedObject.SetActive(true);
+
+            Animator animator = (interaction as MonoBehaviour)?.GetComponent<Animator>();
+            if (animator != null)
+            {
+                animator.SetBool(Animator.StringToHash("IsOpen"), true);
+                animator.Play(Animator.StringToHash("Opened"), 0, 1f);
+            }
+
+            object controller = GetField<object>(interaction, "_controller");
+            if (controller == null)
+            {
+                var mb = interaction as MonoBehaviour;
+                Type controllerType = FindType("PuzzleModeController");
+                if (mb != null && controllerType != null)
+                    controller = mb.GetComponent(controllerType) ?? mb.GetComponentInParent(controllerType);
+            }
+            if (controller != null)
+                controller.GetType().GetMethod("SetSolved", PublicFlags)?.Invoke(controller, null);
+
+            SaveManager.Instance?.Save();
+        };
+
+        if (Time.timeScale == 0f)
+            return Pending("Medallion Puzzle marked as solved. Event fires on unpause.", victory);
+
+        victory();
+        return Solved("Medallion Puzzle solved!");
+    }
+
     /// <summary>Solves the Paint (Loop) Puzzle via AutoSolve().</summary>
     public static CheatResult SolvePaintPuzzle()
     {

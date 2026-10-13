@@ -107,25 +107,28 @@ public class SaveManager : MonoBehaviour
         // Priority: explicit one-shot request (debug Load Save button) >
         // persisted last-used slot > default. The persisted slot makes a full
         // app restart resume from the same slot the previous session played in.
-        int slot = _pendingLoadSlot >= 0
-            ? _pendingLoadSlot
-            : PlayerPrefs.GetInt(SlotPrefKey, defaultSlot);
-        _pendingLoadSlot = -1;
+        bool isDebugLoad  = _pendingLoadSlot >= 0;
+        int  requestedSlot = _pendingLoadSlot;
+        _pendingLoadSlot  = -1;
 
-        // The slot we loaded from becomes the session's active slot: all
-        // subsequent event saves, debounced saves and auto-saves write there.
-        // This keeps the debug-slot workflow consistent — if the session was
-        // resumed from slot 999, continuing progress must not silently drift
-        // back into slot 0 (or overwrite it with stale state).
-        _activeSlot = slot;
-        Load(slot);
+        int persistedSlot = PlayerPrefs.GetInt(SlotPrefKey, defaultSlot);
+        int loadSlot      = isDebugLoad ? requestedSlot : persistedSlot;
+
+        // The debug slot (999) is a restore point, NOT a write slot: loading
+        // from it must never adopt it as the session's active slot, otherwise
+        // autosaves/debounced saves would overwrite the unique snapshot the
+        // Save button created. The session keeps persisting to the normal
+        // progression slot; slot 999 is only ever written by the Save button.
+        _activeSlot = isDebugLoad ? persistedSlot : loadSlot;
+        if (_activeSlot == DebugSlot) _activeSlot = defaultSlot;
+
+        Load(loadSlot);
         _initialLoadComplete = true;
 
-        // Persist which slot the session resumed from so a full app restart
-        // (not just a scene reload) continues from the same slot. Without this,
-        // progress saved into slot 999 by a debug-resumed session would be
-        // invisible after the game is closed and launched again.
-        PlayerPrefs.SetInt(SlotPrefKey, slot);
+        // Persist the session's write slot so a full app restart (not just a
+        // scene reload) continues from it. The debug slot is never persisted —
+        // a restart after a debug load resumes normal progression.
+        PlayerPrefs.SetInt(SlotPrefKey, _activeSlot);
     }
 
     private void Update()

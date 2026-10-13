@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -76,6 +77,22 @@ public class FlashlightController : MonoBehaviour, ISaveable
     private float _proximityScale = 1f;
     private float _proximityScaleVelocity;
     private int _modeIndex;
+
+    [Header("Hard Off Restore")]
+    [Tooltip("Seconds between the hard-off source disappearing (e.g. the horror mannequin) " +
+             "and the flashlight flickering back on.")]
+    [SerializeField] private float _hardOffRestoreDelay = 2f;
+
+    [Tooltip("Total duration of the flicker sequence after the restore delay.")]
+    [SerializeField] private float _hardOffFlickerDuration = 1.2f;
+
+    [Tooltip("Number of on/off blinks during the flicker sequence.")]
+    [SerializeField] [Min(1)] private int _hardOffFlickerCount = 4;
+
+    [Tooltip("Fraction of full brightness during the blinks (0-1).")]
+    [SerializeField] [Range(0.05f, 1f)] private float _hardOffFlickerBrightness = 0.6f;
+
+    private bool _flickering;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -171,6 +188,8 @@ public class FlashlightController : MonoBehaviour, ISaveable
     {
         if (Keyboard.current.fKey.wasPressedThisFrame)
             TryToggle();
+
+        if (_flickering) return; // flicker coroutine owns intensity right now
 
         UpdateProximityScale();
 
@@ -308,6 +327,70 @@ public class FlashlightController : MonoBehaviour, ISaveable
     {
         if (config == null || !config.operatingCondition.IsMet()) return;
         SetState(true);
+    }
+
+    private bool _wasOnBeforeForcedOff;
+
+    /// <summary>
+    /// Forces the flashlight off and remembers whether it was on, so that
+    /// RestoreAfterForcedOff() can bring back the previous state. Used by horror events.
+    /// The light fades out over transitionSpeed — use ForceOffHard() for an instant blackout.
+    /// </summary>
+    public void ForceOffTemporarily()
+    {
+        _wasOnBeforeForcedOff = _isOn;
+        SetState(false);
+    }
+
+    /// <summary>
+    /// Hard blackout: the light cuts to zero instantly (no smooth fade), remembering
+    /// whether it was on for RestoreAfterForcedOff(). Used by horror events.
+    /// </summary>
+    public void ForceOffHard()
+    {
+        _wasOnBeforeForcedOff = _isOn;
+        SetState(false);
+        _light.intensity = 0f;
+    }
+
+    /// <summary>
+    /// Restores the flashlight to the state it had before ForceOffTemporarily()/ForceOffHard().
+    /// Waits a configured delay, then flickers a few times before coming on for real.
+    /// Does nothing if the flashlight was off back then.
+    /// </summary>
+    public void RestoreAfterForcedOff()
+    {
+        if (!_wasOnBeforeForcedOff || _flickering) return;
+        StartCoroutine(FlickerRestoreRoutine());
+    }
+
+    /// <summary>Delay → series of blinks → smooth power-on. Flicker holds Update() off so it can drive intensity directly.</summary>
+    private IEnumerator FlickerRestoreRoutine()
+    {
+        _flickering = true;
+
+        yield return new WaitForSeconds(_hardOffRestoreDelay);
+
+        float blinkTime = _hardOffFlickerDuration / (_hardOffFlickerCount * 2f);
+        for (int i = 0; i < _hardOffFlickerCount; i++)
+        {
+            SetFlickerLight(true);
+            yield return new WaitForSeconds(blinkTime);
+            SetFlickerLight(false);
+            yield return new WaitForSeconds(blinkTime);
+        }
+
+        _flickering = false;
+        ForceOn();
+    }
+
+    /// <summary>Directly sets light intensity for one blink (Update() is paused while _flickering).</summary>
+    private void SetFlickerLight(bool on)
+    {
+        if (on && GetCurrentModeConfig() is { } modeConfig)
+            _light.intensity = modeConfig.onState.intensity * _hardOffFlickerBrightness;
+        else
+            _light.intensity = 0f;
     }
 
     private void SetState(bool on)
