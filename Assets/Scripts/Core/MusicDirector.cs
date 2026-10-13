@@ -32,6 +32,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private AudioSource _activeSource;
     private Coroutine _eventPauseCoroutine;
     private bool _mutedForEvent;
+    private Coroutine _muteCoroutine;
 
     /// <summary>True while the director is silenced for a horror event.</summary>
     public static bool MutedForEvent => Instance != null && Instance._mutedForEvent;
@@ -193,38 +194,91 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// requests until RestoreAfterEvent. Used by the horror event to own the
     /// soundscape for the duration of a track.
     /// </summary>
-    public static void MuteForEvent() {
+    public static void MuteForEvent() => MuteForEvent(0f);
+
+    /// <summary>
+    /// Silences every director source over fadeDuration seconds and blocks new
+    /// track requests until RestoreAfterEvent. Pass 0 for an instant cut.
+    /// Requests are blocked immediately (before the fade finishes).
+    /// </summary>
+    public static void MuteForEvent(float fadeDuration) {
         if (Instance == null || Instance._mutedForEvent) return;
         Instance._mutedForEvent = true;
 
         if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
         if (Instance._eventPauseCoroutine != null) Instance.StopCoroutine(Instance._eventPauseCoroutine);
 
-        // Mute and pause every pooled source — whatever is playing, it dies now
-        foreach (KeyValuePair<MusicTrack, AudioSource> kvp in Instance._sourcePool) {
+        if (fadeDuration <= 0f) {
+            // Mute and pause every pooled source — whatever is playing, it dies now
+            foreach (KeyValuePair<MusicTrack, AudioSource> kvp in Instance._sourcePool) {
+                if (kvp.Value == null) continue;
+                kvp.Value.volume = 0f;
+                kvp.Value.Pause();
+            }
+            if (Instance._activeSource != null) {
+                Instance._activeSource.volume = 0f;
+                Instance._activeSource.Pause();
+            }
+            return;
+        }
+
+        Instance._muteCoroutine = Instance.StartCoroutine(Instance.MuteRoutine(fadeDuration));
+    }
+
+    private IEnumerator MuteRoutine(float duration) {
+        // Snapshot the sources and their starting volumes — the pool can contain
+        // leftovers from past crossfades, all of them must die together.
+        List<AudioSource> sources = new List<AudioSource>();
+        List<float> startVolumes = new List<float>();
+        foreach (KeyValuePair<MusicTrack, AudioSource> kvp in _sourcePool) {
             if (kvp.Value == null) continue;
-            kvp.Value.volume = 0f;
-            kvp.Value.Pause();
+            sources.Add(kvp.Value);
+            startVolumes.Add(kvp.Value.volume);
         }
-        if (Instance._activeSource != null) {
-            Instance._activeSource.volume = 0f;
-            Instance._activeSource.Pause();
+
+        float elapsed = 0f;
+        while (elapsed < duration) {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            for (int i = 0; i < sources.Count; i++)
+                if (sources[i] != null)
+                    sources[i].volume = Mathf.Lerp(startVolumes[i], 0f, t);
+            yield return null;
         }
+
+        for (int i = 0; i < sources.Count; i++) {
+            if (sources[i] == null) continue;
+            sources[i].volume = 0f;
+            sources[i].Pause(); // paused sources resume from the same position later
+        }
+        _muteCoroutine = null;
     }
 
     /// <summary>
     /// Returns the director to normal operation: resumes the track it was
     /// playing before MuteForEvent (from the same position).
     /// </summary>
-    public static void RestoreAfterEvent() {
+    public static void RestoreAfterEvent() => RestoreAfterEvent(-1f);
+
+    /// <summary>
+    /// Same as RestoreAfterEvent() but with an explicit fade-in duration in seconds.
+    /// Pass -1 to use the track's own fade duration.
+    /// </summary>
+    public static void RestoreAfterEvent(float fadeDurationOverride) {
         if (Instance == null || !Instance._mutedForEvent) return;
         Instance._mutedForEvent = false;
+
+        // An unfinished mute fade must stop — its volume writes would fight the restore fade
+        if (Instance._muteCoroutine != null) {
+            Instance.StopCoroutine(Instance._muteCoroutine);
+            Instance._muteCoroutine = null;
+        }
 
         // Refade the track that was active before the event; FadeRoutine
         // un-pauses the pooled source and brings its volume back up.
         MusicTrack track = Instance._activeTrack;
         if (track != null)
-            Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track));
+            Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track, fadeDurationOverride));
     }
 
     /// <summary>
@@ -354,8 +408,12 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         }
     }
 
-    private IEnumerator FadeRoutine(MusicTrack track) {
-        float duration = track.FadeDuration < 0f ? _minSwitchInterval : track.FadeDuration;
+    private IEnumerator FadeRoutine(MusicTrack track) => FadeRoutine(track, -1f);
+
+    private IEnumerator FadeRoutine(MusicTrack track, float fadeDurationOverride) {
+        float duration = fadeDurationOverride >= 0f
+            ? fadeDurationOverride
+            : (track.FadeDuration < 0f ? _minSwitchInterval : track.FadeDuration);
         float targetVolume = track.Volume * AudioManager.MusicVolume;
         AudioClip clip = track.Clip;
 

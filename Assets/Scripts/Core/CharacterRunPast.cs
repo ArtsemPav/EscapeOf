@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// Animation states available in maid controllers (Animator int parameter "State").
@@ -36,8 +37,19 @@ public class CharacterRunPast : MonoBehaviour
     [Tooltip("Animation state to play when the character activates.")]
     [SerializeField] private CharacterAnimationState _animationState = CharacterAnimationState.ZombieCrawl;
 
+    [Header("Meeting Player (optional)")]
+    [Tooltip("If greater than 0, the character stops and fires On Reached when the player " +
+             "comes within this distance (flat XZ). 0 = disabled.")]
+    [SerializeField] private float _meetDistance = 0f;
+
+    [Header("Callbacks")]
+    [Tooltip("Fired when the character reaches the destination OR meets the player. " +
+             "Wire e.g. HorrorEvent.Deactivate() to hide the character.")]
+    [SerializeField] private UnityEvent _onReached;
+
     private Animator _animator;
     private bool     _moving;
+    private Transform _player;
 
     private void Awake()
     {
@@ -70,6 +82,27 @@ public class CharacterRunPast : MonoBehaviour
     {
         if (!_moving || _destination == null) return;
 
+        // Player moving toward the character: disappear the moment they meet.
+        if (_meetDistance > 0f)
+        {
+            if (_player == null)
+            {
+                var playerGO = GameObject.FindGameObjectWithTag("Player");
+                if (playerGO != null) _player = playerGO.transform;
+            }
+            if (_player != null)
+            {
+                float flatDx = _player.position.x - transform.position.x;
+                float flatDz = _player.position.z - transform.position.z;
+                if (new Vector2(flatDx, flatDz).sqrMagnitude < _meetDistance * _meetDistance)
+                {
+                    _moving = false;
+                    _onReached?.Invoke();
+                    return;
+                }
+            }
+        }
+
         // Ignore Y so the character doesn't float or sink
         Vector3 flatTarget = new Vector3(_destination.position.x, transform.position.y, _destination.position.z);
         Vector3 dir        = flatTarget - transform.position;
@@ -77,6 +110,7 @@ public class CharacterRunPast : MonoBehaviour
         if (dir.sqrMagnitude < 0.01f)
         {
             _moving = false;
+            _onReached?.Invoke();
             return;
         }
 

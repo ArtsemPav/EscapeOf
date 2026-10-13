@@ -152,6 +152,11 @@ public class MedallionRoomTransformation : MonoBehaviour, ISaveable
         // Crystals must be invisible until the puzzle is solved.
         SetCrystalsActive(false);
 
+        // The medallion revealed by the box has no box walls in front of it (the box
+        // meshes have no colliders), so until the box is opened the medallion must be
+        // disabled — otherwise it can be grabbed through the closed walls.
+        SetMedallionEnabled(false);
+
         // Cache room lights so their color can be lerped to the cold tone on solve.
         CacheRoomLights();
 
@@ -232,7 +237,23 @@ public class MedallionRoomTransformation : MonoBehaviour, ISaveable
         _subscribedToPickup = true;
 
         if (_medallionPickable != null)
+        {
+            // The box is now open — the medallion becomes grabbable.
+            SetMedallionEnabled(true);
             _medallionPickable.OnPickedUp += HandleMedallionPickedUp;
+        }
+    }
+
+    /// <summary>
+    /// Enables/disables the medallion's colliders. The box meshes have no colliders of
+    /// their own, so while the box is closed the medallion would otherwise be grabbable
+    /// straight through the walls.
+    /// </summary>
+    private void SetMedallionEnabled(bool enabled)
+    {
+        if (_medallionPickable == null) return;
+        foreach (var col in _medallionPickable.GetComponentsInChildren<Collider>(true))
+            col.enabled = enabled;
     }
 
     /// <summary>Second gate: the medallion is in the inventory — the room can now be sealed.</summary>

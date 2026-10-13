@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// Fires a horror event when the crouching player enters this trigger zone.
@@ -21,6 +22,11 @@ public class CrouchTrigger : MonoBehaviour
     [Header("Requirements")]
     [Tooltip("When true the event fires only while the player is crouching inside the zone.")]
     [SerializeField] private bool _requireCrouch = true;
+
+    [Header("Callbacks")]
+    [Tooltip("Fired at the trigger moment, before the horror event's Activation Delay. " +
+             "Use for immediate reactions (e.g. FlashlightController.ForceOffHard).")]
+    [SerializeField] private UnityEvent _onFired;
 
     private bool _playerInside;
     private FPSController _playerController;
@@ -74,6 +80,7 @@ public class CrouchTrigger : MonoBehaviour
         }
 
         HorrorSystem.Instance.Trigger(_eventId);
+        _onFired?.Invoke();
         _playerInside = false;
         enabled = false;
     }
