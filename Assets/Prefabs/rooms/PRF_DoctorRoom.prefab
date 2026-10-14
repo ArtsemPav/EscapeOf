@@ -2710,7 +2710,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EscapeOf.Puzzle.Laptop.LaptopOS
   _saveId: MorrowPC
-  _password: 1234
+  _password: 1936
   _loginScreen: {fileID: 6406111062845251660}
   _desktopScreen: {fileID: 9175640786203280575}
   _passwordField: {fileID: 1839695996473849026}
@@ -9034,6 +9034,10 @@ PrefabInstance:
       propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 757523965165757973, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 5446863638593008116, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
       propertyPath: m_Name
       value: Diplom
@@ -9082,11 +9086,62 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 33280
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6732641654681009841, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 757523965165757973, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 44998529247499155}
+    - targetCorrespondingSourceObject: {fileID: 757523965165757973, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7821028650391072504}
   m_SourcePrefab: {fileID: 100100000, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
+--- !u!1 &222597318704891011 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 757523965165757973, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
+  m_PrefabInstance: {fileID: 690624266966721174}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &44998529247499155
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 222597318704891011}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.0010921853, y: 0.008945528, z: 0.010888484}
+  m_Center: {x: 0.0002688766, y: -0.000000002561137, z: -0.0000000030267981}
+--- !u!114 &7821028650391072504
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 222597318704891011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81bacb2ff05cc24ea744b6a5e765f0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickableItem
+  itemData: {fileID: 11400000, guid: 03392fd9080bfec468c80cf04fb11489, type: 2}
+  _previewSound: {fileID: 8300000, guid: a6f4485c104ace0498f1ad13a888549a, type: 3}
+  _previewSoundVolume: 1
+  inspectOnly: 1
+  _crosshairMode: 1
+  _saveId: View_Diplom
 --- !u!4 &6882921253863937201 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6201627615185024551, guid: 445dc2f51226fd84ebee9a1d2aa0b849, type: 3}
@@ -18126,6 +18181,34 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.626
+      objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.487
+      objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.5273695
+      objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.52606857
+      objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.47095084
+      objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.4725873
+      objectReference: {fileID: 0}
+    - target: {fileID: 4251237468252018, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: -6.3
+      objectReference: {fileID: 0}
     - target: {fileID: 4286290546154522, guid: 02c8e7d6543477e41af07f3454648f45, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.11904761
@@ -22879,6 +22962,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3344039340454467238}
     m_Modifications:
+    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4118868574131736382, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
       propertyPath: m_LocalScale.x
       value: 1.7
@@ -22944,10 +23031,6 @@ PrefabInstance:
       value: MorroDairy
       objectReference: {fileID: 0}
     - target: {fileID: 8732660922886064280, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}

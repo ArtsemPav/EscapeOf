@@ -131,7 +131,10 @@ namespace EscapeOf.Puzzle.Laptop
             var kb = Keyboard.current;
             if (kb == null) return;
 
-            if (kb.backspaceKey.wasPressedThisFrame)
+            // When the field is focused, TMP_InputField already deletes the last
+            // character on Backspace — handle it manually only when it is not,
+            // otherwise the character is deleted twice per press.
+            if (kb.backspaceKey.wasPressedThisFrame && !_passwordField.isFocused)
                 DeleteLastCharacter();
 
             if (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame)
