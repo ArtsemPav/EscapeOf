@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 7849936503933527974}
   - component: {fileID: 2848653733420427132}
   m_Layer: 6
-  m_Name: colbaDirt
+  m_Name: PRF_ColbaDirt
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -71,7 +71,7 @@ MonoBehaviour:
   _previewSound: {fileID: 0}
   _previewSoundVolume: 1
   inspectOnly: 0
-  inspectPrefix: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _crosshairMode: 1
   _saveId: pickable_colba_dirt
 --- !u!1001 &8008349878312117248
 PrefabInstance:
@@ -196,6 +196,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: a43bdea61d1af4343abe59cd4d619b26, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7767942423268915864, guid: a43bdea61d1af4343abe59cd4d619b26, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 4294967295
       objectReference: {fileID: 0}
     - target: {fileID: 7767942423268915864, guid: a43bdea61d1af4343abe59cd4d619b26, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'

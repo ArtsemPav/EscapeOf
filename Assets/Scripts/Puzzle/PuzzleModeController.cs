@@ -214,14 +214,13 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         // Deferred subscription: InputManager singleton is guaranteed to exist by Start.
         SubscribeToInput();
 
-        // If the puzzle was already solved (restored from a save in SaveManager.Start,
-        // execution order -10): disable the interactable collider so it doesn't block
-        // raycasts to items revealed by the open animation (e.g. contents of the
-        // Chinese box). Collider stays enabled ONLY when re-entry after solving is
-        // allowed. NOTE: this must run in Start, not Awake — SaveManager distributes
+        // Always normalize the interactable collider state on start: enabled for an
+        // unsolved puzzle; for a solved one — enabled only when re-entry is allowed.
+        // This also heals a collider left disabled in the saved scene (e.g. by an
+        // Edit Mode tool run that persisted the runtime toggling).
+        // NOTE: this must run in Start, not Awake — SaveManager distributes
         // loaded data in its Start(), which runs after every Awake() but before this.
-        if (_isSolved)
-            SetPuzzleInteractableColliderEnabled(_allowEnterWhenSolved);
+        SetPuzzleInteractableColliderEnabled(!_isSolved || _allowEnterWhenSolved);
     }
 
     private void OnDisable()

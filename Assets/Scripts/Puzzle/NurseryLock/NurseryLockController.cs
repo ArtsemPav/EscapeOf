@@ -145,6 +145,21 @@ public class NurseryLockController : MonoBehaviour,
         if (_minigame == null && _minigamePanel != null)
             _minigame = _minigamePanel.GetComponent<LockPickMinigame>();
 
+        // Fallback: ссылка на панель потеряна (сцена-специфичная ссылка в префабе) —
+        // ищем единственную панель мини-игры в сцене, включая неактивные объекты
+        if (_minigame == null)
+        {
+            _minigame = FindFirstObjectByType<LockPickMinigame>(FindObjectsInactive.Include);
+            if (_minigame != null)
+            {
+                _minigamePanel = _minigame.gameObject;
+                Debug.LogWarning($"[NurseryLockController] _minigamePanel не назначен в Inspector — найден автоматически: '{_minigamePanel.name}'. Назначьте ссылку вручную.", this);
+            }
+        }
+
+        if (_minigame == null)
+            Debug.LogError("[NurseryLockController] LockPickMinigame не найден в сцене и _minigamePanel не назначен — мини-игра не сможет запуститься. Назначьте панель в Inspector.", this);
+
         // Панель скрыта по умолчанию
         if (_minigamePanel != null)
             _minigamePanel.SetActive(false);
@@ -287,6 +302,14 @@ public class NurseryLockController : MonoBehaviour,
         if (!PerformRaycast(screenPosition))
             return false;
 
+        // Не принимаем дроп без рабочей мини-игры — иначе будет софтлок:
+        // отмычка вставлена, _isProcessing = true, выход заблокирован, мини-игры нет
+        if (_minigame == null || _minigamePanel == null)
+        {
+            Debug.LogError("[NurseryLockController] Дроп отклонён: мини-игра недоступна (_minigamePanel/_minigame == null). Назначьте панель в Inspector.", this);
+            return false;
+        }
+
         // Отмычка принята, но не расходуется — стартуем последовательность
         _isLockpickInserted = true;
         _isProcessing = true;
@@ -306,6 +329,12 @@ public class NurseryLockController : MonoBehaviour,
 
     public bool CanExitPuzzle()
     {
+        // Fail-safe против софтлока: если обработка застряла (например, мини-игра
+        // не смогла запуститься из-за потерянных ссылок) — разрешаем выход,
+        // чтобы игрок не оказался навсегда заперт в режиме загадки.
+        if (_isProcessing && (_minigame == null || _minigamePanel == null))
+            return true;
+
         // Блокируем выход во время анимации вставки и мини-игры
         return !_isProcessing;
     }
@@ -396,6 +425,13 @@ public class NurseryLockController : MonoBehaviour,
 
         if (_minigame != null)
             _minigame.StartMinigame();
+        else
+        {
+            // Мини-игра недоступна — снимаем processing, иначе софтлок:
+            // CanExitPuzzle навсегда вернёт false
+            Debug.LogError("[NurseryLockController] Мини-игра не запущена: _minigame == null. Выход из режима загадки разблокирован.", this);
+            _isProcessing = false;
+        }
     }
 
     private void HandleMinigameCompleted()
