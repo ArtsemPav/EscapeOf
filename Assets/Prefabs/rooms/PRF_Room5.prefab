@@ -4892,6 +4892,18 @@ PrefabInstance:
       propertyPath: preventTipping
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5684033542123657546, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
+      propertyPath: _impactVolumeAtMax
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5684033542123657546, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
+      propertyPath: _impactClips.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5684033542123657546, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
+      propertyPath: '_impactClips.Array.data[0]'
+      value: 
+      objectReference: {fileID: 8300000, guid: 21f8a75680b7ac84389eeaebe138af9a, type: 3}
     - target: {fileID: 6321214578454832908, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
       propertyPath: m_Mass
       value: 0.5
@@ -5222,10 +5234,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2558556392371781558}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -5295,6 +5303,10 @@ PrefabInstance:
       value: PRF_PaperNoteRoom5 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -6042,10 +6054,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8030864556830515540}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: 7635ca297a3838a4fba82d42e460b421, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -6115,6 +6123,10 @@ PrefabInstance:
       value: PRF_PaperNoteRoom5 2
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 7635ca297a3838a4fba82d42e460b421, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -9729,6 +9741,21 @@ MonoBehaviour:
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0
+  _scrapeClips:
+  - {fileID: 8300000, guid: 69342c3ecd9d9a545b0e50476ee20814, type: 3}
+  _scrapeVolume: 0.7
+  _scrapeFullVolumeSpeed: 3
+  _scrapeFadeSpeed: 6
+  _scrapeStartSpeed: 0.05
+  _impactClips:
+  - {fileID: 8300000, guid: 1bfc70c73fb8a184e912763b877e8307, type: 3}
+  - {fileID: 8300000, guid: e2ec9dd3580ceb144b8e11dacf0ad89a, type: 3}
+  _impactVolumeAtMin: 0.15
+  _impactVolumeAtMax: 1
+  _impactMaxSpeed: 5
+  _impactMinSpeed: 0.5
+  _impactCooldown: 0.1
+  _impactPitchVariation: 0.05
 --- !u!64 &9081248732812298608
 MeshCollider:
   m_ObjectHideFlags: 0
