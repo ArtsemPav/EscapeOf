@@ -226,6 +226,14 @@ public class AudioManager : MonoBehaviour {
     /// Use this when the AudioSource is placed directly in a prefab (not created by Play3DLoop).
     /// The source must already be configured (clip, loop, 3D settings) and will start playing immediately.
     /// </summary>
+    /// <summary>
+    /// Routes a dynamically created AudioSource to the SFX mixer group so the
+    /// SFX volume setting applies to it. Use for component-owned sources
+    /// (e.g. object drag/scrape loops) that should not be registered in
+    /// the background mute-tracking system.
+    /// </summary>
+    public void RouteSourceToSfxGroup(AudioSource source) => RouteToSfxGroup(source);
+
     public void RegisterLoopSource(AudioSource source, float volume) {
         if (source == null) return;
         source.volume = _backgroundMuted ? 0f : volume;

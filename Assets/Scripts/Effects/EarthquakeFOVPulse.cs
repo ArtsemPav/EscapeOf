@@ -106,11 +106,23 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
     /// <summary>
     /// Запустить землетрясение с параметрами из Inspector.
     /// Повторные вызовы после того, как эффект уже отыгран и состояние сохранено, игнорируются.
+    /// Также блокируется во время первоначальной загрузки сейва: в этот момент
+    /// PuzzleModeController.LoadSaveData повторяет UnityEvent OnPuzzleSolved для
+    /// восстановления визуала — эффект и звук должны «восстановиться молча».
     /// </summary>
     public void Play()
     {
         if (_hasFired)
             return;
+
+        // Мы ещё в SaveManager.Start() (данные сейва распределяются, игра не «устаканилась»).
+        // Любой вызов Play() сейчас — это восстановление состояния из сейва, а не
+        // живое событие: помечаем эффект отыгранным без запуска.
+        if (!SaveManager.InstanceHasSettled)
+        {
+            _hasFired = true;
+            return;
+        }
 
         _hasFired = true;
 

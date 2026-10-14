@@ -84,6 +84,16 @@ public class SaveManager : MonoBehaviour
     // the debounced flush snapshots the settled state instead.
     private bool _initialSettled;
 
+    /// <summary>
+    /// True once the initial load has settled (first Update after every Start() has run).
+    /// While false, event-driven effects must restore silently instead of replaying
+    /// (e.g. the earthquake effect fired from PuzzleModeController's load-time UnityEvent).
+    /// </summary>
+    public bool HasSettled => _initialSettled;
+
+    /// <summary>Static shortcut, safe to call before the instance exists (returns true).</summary>
+    public static bool InstanceHasSettled => Instance != null && Instance._initialSettled;
+
     // Background write infrastructure — file I/O offloaded to avoid main-thread stalls.
     private readonly Queue<Action> _mainThreadCallbacks = new();
     private int _isWriting; // 0 = idle, 1 = write in progress (Interlocked)
