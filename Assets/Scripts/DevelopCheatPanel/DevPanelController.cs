@@ -6,7 +6,7 @@ using TMPro;
 
 /// <summary>
 /// In-game developer panel for testing and cheating.
-/// Toggle with the P key.
+/// Toggle with the ` (~) key.
 /// Provides item giving, puzzle solving, and game progression controls.
 /// Attach to any GameObject in the scene — the panel auto-parents to the Canvas.
 /// </summary>
@@ -72,7 +72,7 @@ public class DevPanelController : MonoBehaviour
     private TMP_Text _statusText;
     private TMP_FontAsset _font;
     private bool _isVisible;
-    private bool _wasPKeyPressed;
+    private bool _wasToggleKeyPressed;
     private Action _pendingDeferredAction;
 
     private void Start()
@@ -172,13 +172,13 @@ public class DevPanelController : MonoBehaviour
     private void Update()
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        bool isPKeyPressed = Keyboard.current != null && Keyboard.current[Key.P].isPressed;
-        if (isPKeyPressed && !_wasPKeyPressed)
+        bool isToggleKeyPressed = Keyboard.current != null && Keyboard.current[Key.Backquote].isPressed;
+        if (isToggleKeyPressed && !_wasToggleKeyPressed)
         {
             if (_isVisible) Close();
             else Toggle();
         }
-        _wasPKeyPressed = isPKeyPressed;
+        _wasToggleKeyPressed = isToggleKeyPressed;
 
         if (_pendingDeferredAction != null && Time.timeScale > 0f)
         {
