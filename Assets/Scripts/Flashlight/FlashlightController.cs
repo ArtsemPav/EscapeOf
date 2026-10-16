@@ -78,6 +78,9 @@ public class FlashlightController : MonoBehaviour, ISaveable
     private float _proximityScaleVelocity;
     private int _modeIndex;
 
+    private float _webDimScale = 1f; // external dimming (e.g. spider web touch), multiplies final intensity
+    private Coroutine _webDimRoutine;
+
     [Header("Hard Off Restore")]
     [Tooltip("Seconds between the hard-off source disappearing (e.g. the horror mannequin) " +
              "and the flashlight flickering back on.")]
@@ -195,7 +198,7 @@ public class FlashlightController : MonoBehaviour, ISaveable
 
         _light.intensity = Mathf.MoveTowards(
             _light.intensity,
-            _targetIntensity * _proximityScale,
+            _targetIntensity * _proximityScale * _webDimScale,
             config.transitionSpeed * Time.deltaTime
         );
     }
@@ -255,6 +258,39 @@ public class FlashlightController : MonoBehaviour, ISaveable
             ref _proximityScaleVelocity,
             1f / proximitySmoothSpeed
         );
+    }
+
+    /// <summary>
+    /// Temporarily dims the flashlight (e.g. when the player walks through a spider web).
+    /// Intensity is multiplied by dimScale for duration seconds, then fades back to full brightness.
+    /// Repeated calls restart the effect — the dimmest value wins while it lasts.
+    /// </summary>
+    public void DimTemporarily(float dimScale, float duration)
+    {
+        dimScale = Mathf.Clamp01(dimScale);
+        if (dimScale >= 1f || duration <= 0f) return;
+
+        // Take the darker of the current scale and the new one so stacked touches don't brighten the light.
+        _webDimScale = Mathf.Min(_webDimScale, dimScale);
+
+        if (_webDimRoutine != null) StopCoroutine(_webDimRoutine);
+        _webDimRoutine = StartCoroutine(WebDimRoutine(dimScale, duration));
+    }
+
+    /// <summary>Holds dimScale while active, then smoothly restores full brightness.</summary>
+    private IEnumerator WebDimRoutine(float dimScale, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        // Fade the dimming factor back to 1 for a smooth recovery.
+        while (_webDimScale < 1f)
+        {
+            _webDimScale = Mathf.MoveTowards(_webDimScale, 1f, Time.deltaTime / Mathf.Max(duration * 0.5f, 0.1f));
+            yield return null;
+        }
+
+        _webDimScale = 1f;
+        _webDimRoutine = null;
     }
 
     /// <summary>Attempts to toggle the flashlight on or off. Requires the operating condition to be met.</summary>

@@ -1,10 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
 /// Full-screen spider web overlay shown when the player touches a spider web.
-/// Fades out and hides itself after the configured duration.
+/// Each new touch while a web is already visible spawns an additional,
+/// randomly rotated web on top; every web fades out independently.
 /// </summary>
 public class SpiderWebOverlay : MonoBehaviour
 {
@@ -23,12 +25,24 @@ public class SpiderWebOverlay : MonoBehaviour
     [Tooltip("Сколько секунд длится «набрасывание» паутины на экран.")]
     [SerializeField] private float scaleInDuration = 0.4f;
 
-    private Coroutine _fadeCoroutine;
+    [Tooltip("Запас масштаба повёрнутых паутин, чтобы закрыть углы экрана.")]
+    [SerializeField, Range(1f, 1.6f)] private float rotationCoverPadding = 1.05f;
+
+    private sealed class ActiveWeb
+    {
+        public Image Image;
+        public bool IsClone;
+        public Coroutine Fade;
+        public float CoverScale = 1f;
+    }
+
+    private readonly List<ActiveWeb> _activeWebs = new List<ActiveWeb>();
 
     private void Awake()
     {
+        if (Instance != null && Instance != this) return; // клон: не перехватываем синглтон
         Instance = this;
-        if (webImage != null) Hide();
+        if (webImage != null) HideWeb(webImage);
     }
 
     private void OnDestroy()
@@ -37,58 +51,103 @@ public class SpiderWebOverlay : MonoBehaviour
     }
 
     /// <summary>
-    /// Shows the overlay: the web "throws" onto the screen, scaling up from
-    /// startScale to full size, holds for the duration, then fades out.
+    /// Shows the overlay. If a web is already visible, spawns an additional
+    /// randomly rotated web on top; each web fades out independently.
     /// </summary>
     public void Show(float duration)
     {
         if (webImage == null) return;
-        webImage.enabled = true;
-        webImage.color = new Color(1f, 1f, 1f, 1f);
 
-        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
-        _fadeCoroutine = StartCoroutine(FadeOutAndHide(duration, scaleInDuration));
+        bool alreadyHasWeb = _activeWebs.Count > 0;
+        Image image = alreadyHasWeb ? CreateStackedWeb() : webImage;
 
-        StartCoroutine(ScaleIn());
+        ActiveWeb web = new ActiveWeb { Image = image, IsClone = alreadyHasWeb };
+        ApplyRandomRotation(web);
+        _activeWebs.Add(web);
+
+        image.enabled = true;
+        image.color = Color.white;
+
+        web.Fade = StartCoroutine(FadeOutAndHide(web, duration, scaleInDuration));
+        StartCoroutine(ScaleIn(web));
     }
 
-    private void Hide()
+    /// <summary>
+    /// Creates a copy of the base web image as a sibling so it stacks on top.
+    /// </summary>
+    private Image CreateStackedWeb()
     {
-        webImage.color = new Color(1f, 1f, 1f, 0f);
-        webImage.enabled = false;
-        webImage.rectTransform.localScale = Vector3.one;
+        Image clone = Instantiate(webImage, webImage.transform.parent);
+        clone.name = "SpiderWebOverlay_Clone";
+        clone.rectTransform.localRotation = Quaternion.identity;
+        clone.rectTransform.localScale = Vector3.one;
+
+        SpiderWebOverlay cloneController = clone.GetComponent<SpiderWebOverlay>();
+        if (cloneController != null) Destroy(cloneController);
+
+        return clone;
     }
 
-    private IEnumerator ScaleIn()
+    /// <summary>
+    /// Rotates the web by a random angle and scales it so the rotated
+    /// rectangle still covers the whole screen (no empty corners).
+    /// </summary>
+    private void ApplyRandomRotation(ActiveWeb web)
     {
-        RectTransform rect = webImage.rectTransform;
+        RectTransform rect = web.Image.rectTransform;
+        float angle = Random.Range(0f, 360f);
+        rect.localEulerAngles = new Vector3(0f, 0f, angle);
+
+        Vector2 size = rect.rect.size;
+        float rad = angle * Mathf.Deg2Rad;
+        float cos = Mathf.Abs(Mathf.Cos(rad));
+        float sin = Mathf.Abs(Mathf.Sin(rad));
+
+        float coverX = (size.x * cos + size.y * sin) / Mathf.Max(size.x, 1f);
+        float coverY = (size.y * cos + size.x * sin) / Mathf.Max(size.y, 1f);
+        web.CoverScale = Mathf.Max(coverX, coverY) * rotationCoverPadding;
+    }
+
+    private void HideWeb(Image image)
+    {
+        image.color = new Color(1f, 1f, 1f, 0f);
+        image.enabled = false;
+        image.rectTransform.localScale = Vector3.one;
+    }
+
+    private IEnumerator ScaleIn(ActiveWeb web)
+    {
+        RectTransform rect = web.Image.rectTransform;
         float t = 0f;
         while (t < scaleInDuration)
         {
             t += Time.deltaTime;
             // EaseOutCubic — быстрый старт, плавное прибытие
             float progress = 1f - Mathf.Pow(1f - t / scaleInDuration, 3f);
-            float s = Mathf.Lerp(startScale, 1f, progress);
+            float s = Mathf.Lerp(startScale, web.CoverScale, progress);
             rect.localScale = new Vector3(s, s, s);
             yield return null;
         }
-        rect.localScale = Vector3.one;
+        rect.localScale = new Vector3(web.CoverScale, web.CoverScale, web.CoverScale);
     }
 
-    private IEnumerator FadeOutAndHide(float duration, float scaleInTime)
+    private IEnumerator FadeOutAndHide(ActiveWeb web, float duration, float scaleInTime)
     {
         yield return new WaitForSeconds(duration + scaleInTime);
 
         float t = 0f;
-        Color start = webImage.color;
         while (t < fadeOutDuration)
         {
             t += Time.deltaTime;
-            webImage.color = new Color(start.r, start.g, start.b, 1f - t / fadeOutDuration);
+            float a = 1f - t / fadeOutDuration;
+            web.Image.color = new Color(1f, 1f, 1f, a);
             yield return null;
         }
 
-        Hide();
-        _fadeCoroutine = null;
+        if (web.IsClone) Destroy(web.Image.gameObject);
+        else HideWeb(web.Image);
+
+        _activeWebs.Remove(web);
+        web.Fade = null;
     }
 }
