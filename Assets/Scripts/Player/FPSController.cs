@@ -82,6 +82,9 @@ public class FPSController : MonoBehaviour, ISaveable
     private Vector3 _velocitySmoothRef;
     private float _speedMultiplier = 1f;
 
+    // True while the spider web slow effect owns the speed multiplier.
+    private bool _webSlowActive;
+
     // Position lock (used to prevent animated objects from pushing the player)
     private bool _positionLocked = false;
     private Vector3 _lockedPosition;
@@ -626,7 +629,31 @@ public class FPSController : MonoBehaviour, ISaveable
     /// </summary>
     public void SetSpeedMultiplier(float multiplier)
     {
+        // Spider web slow owns the multiplier while active — other systems
+        // (e.g. PhysicsGrabber) must not overwrite it.
+        if (_webSlowActive) return;
         _speedMultiplier = Mathf.Clamp01(multiplier);
+    }
+
+    /// <summary>
+    /// Applies the spider web slow effect: stores the multiplier and slows
+    /// the player until RemoveWebSlow is called. Idempotent while active.
+    /// </summary>
+    public void ApplyWebSlow(float multiplier)
+    {
+        _webSlowActive = true;
+        _speedMultiplier = Mathf.Clamp01(multiplier);
+    }
+
+    /// <summary>
+    /// Removes the spider web slow effect and restores normal speed.
+    /// Does nothing if the effect is not active.
+    /// </summary>
+    public void RemoveWebSlow()
+    {
+        if (!_webSlowActive) return;
+        _webSlowActive = false;
+        _speedMultiplier = 1f;
     }
 
     /// <summary>
