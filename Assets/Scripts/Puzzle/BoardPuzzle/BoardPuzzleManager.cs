@@ -208,6 +208,7 @@ public class BoardPuzzleManager : MonoBehaviour, ISaveable {
                 AudioManager.Instance?.PlaySFX(_solvedClip, _solvedVolume);
                 SaveManager.Instance?.Save();
                 OnPuzzleSolved.Invoke();
+                ProgressLogger.Log("puzzle_solved", "board_puzzle");
                 return;
             }
         }

@@ -42,6 +42,13 @@ public class InventorySystem : MonoBehaviour, ISaveable
     /// <summary>Fires whenever the collected rune set changes (add or remove).</summary>
     public event Action OnRunesChanged;
 
+    /// <summary>
+    /// Fired after any inventory change (add, remove, move, craft). Parameter:
+    /// a snapshot of the current inventory state, e.g. "0:ItemKey,1:ItemRope".
+    /// Used by ProgressLogger to record inventory changes.
+    /// </summary>
+    public event Action<string> OnInventoryStateChanged;
+
     // ── Runes ────────────────────────────────────────────────────────────────
 
     private readonly System.Collections.Generic.HashSet<string> _collectedRuneIds =
@@ -185,6 +192,30 @@ public class InventorySystem : MonoBehaviour, ISaveable
         SaveManager.Instance?.Register(this);
     }
 
+    /// <summary>Builds a "0:ItemId,1:ItemId" snapshot of the current inventory + runes for logging.</summary>
+    private string BuildStateSnapshot()
+    {
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < _slots.Length; i++)
+        {
+            if (_slots[i] == null) continue;
+            if (sb.Length > 0) sb.Append(',');
+            sb.Append(i).Append(':').Append(_slots[i].ItemId);
+        }
+
+        if (_collectedRuneIds.Count > 0)
+        {
+            if (sb.Length > 0) sb.Append(',');
+            sb.Append("runes:");
+            sb.Append(string.Join("|", _collectedRuneIds));
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>Fires OnInventoryStateChanged with the current inventory snapshot.</summary>
+    private void NotifyStateChanged() => OnInventoryStateChanged?.Invoke(BuildStateSnapshot());
+
     private void OnDestroy()
     {
         SaveManager.Instance?.Unregister(this);
@@ -219,6 +250,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             {
                 OnRunesChanged?.Invoke();
                 OnInventoryChanged?.Invoke();
+                NotifyStateChanged();
                 SaveManager.Instance?.Save();
             }
             return true;
@@ -234,6 +266,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
 
         _slots[0] = item;
         OnInventoryChanged?.Invoke();
+        NotifyStateChanged();
         SaveManager.Instance?.Save();
         return true;
     }
@@ -255,6 +288,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             {
                 OnRunesChanged?.Invoke();
                 OnInventoryChanged?.Invoke();
+                NotifyStateChanged();
                 SaveManager.Instance?.Save();
                 return true;
             }
@@ -267,6 +301,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             _slots[i] = null;
             CompactSlots();
             OnInventoryChanged?.Invoke();
+            NotifyStateChanged();
             SaveManager.Instance?.Save();
             return true;
         }
@@ -285,6 +320,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
         _slots[slotIndex] = null;
         CompactSlots();
         OnInventoryChanged?.Invoke();
+        NotifyStateChanged();
         SaveManager.Instance?.Save();
         return true;
     }
@@ -302,6 +338,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
         {
             _slots[slotIndex] = item;
             OnInventoryChanged?.Invoke();
+            NotifyStateChanged();
             SaveManager.Instance?.Save();
             return true;
         }
@@ -320,6 +357,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             if (_slots[i] != from) continue;
             _slots[i] = to;
             OnInventoryChanged?.Invoke();
+            NotifyStateChanged();
             SaveManager.Instance?.Save();
             return true;
         }
@@ -417,6 +455,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             }
 
             OnCrafted?.Invoke();
+            NotifyStateChanged();
             return true;
         }
 
@@ -441,6 +480,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
     {
         CompactSlots();
         OnInventoryChanged?.Invoke();
+        NotifyStateChanged();
         SaveManager.Instance?.Save();
     }
 
@@ -515,6 +555,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             CompactSlots();
             OnInventoryChanged?.Invoke();
             OnCrafted?.Invoke();
+            NotifyStateChanged();
             return true;
         }
 

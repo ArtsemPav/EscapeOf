@@ -512,6 +512,8 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
         _serumPoured = true;
         _pouring = false;
 
+        ProgressLogger.Log("puzzle_solved", "final_door_phase2_scull_complete");
+
         // Exit puzzle mode and mark the whole puzzle as solved.
         _controller?.ExitPuzzleModeInstant();
         _controller?.SetSolved();

@@ -102,6 +102,16 @@ public class RoomVisibilityManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Raised when the room the player physically stands in changes (tightest geometry
+    /// bounds containing the player). Parameter: room GameObject name, null when nowhere.
+    /// Used by ProgressLogger to record room visits.
+    /// </summary>
+    public event Action<string> CurrentRoomChanged;
+
+    /// <summary>Room name reported by the last CurrentRoomChanged event.</summary>
+    public string CurrentRoomName { get; private set; }
+
+    /// <summary>
     /// Rebuilds room visibility from the player's spawn/teleport position without relying
     /// on physics events. Unity fires OnTriggerEnter only on overlap CHANGES — a player
     /// restored directly inside a trigger volume generates no event, and Start()-order
@@ -237,6 +247,7 @@ public class RoomVisibilityManager : MonoBehaviour
         // what the occupied-trigger union says (teleport races, vent shafts below the
         // trigger volumes, missing trigger coverage).
         RoomController currentRoom = FindCurrentRoom();
+        ReportCurrentRoom(currentRoom);
 
         // Geometry: toggle each room's renderers independently.
         foreach (var candidate in _allRooms)
@@ -288,6 +299,16 @@ public class RoomVisibilityManager : MonoBehaviour
         }
 
         return current;
+    }
+
+    /// <summary>Fires CurrentRoomChanged when the physical room changes.</summary>
+    private void ReportCurrentRoom(RoomController room)
+    {
+        string name = room != null ? room.gameObject.name : null;
+        if (string.Equals(name, CurrentRoomName, StringComparison.Ordinal)) return;
+
+        CurrentRoomName = name;
+        CurrentRoomChanged?.Invoke(name);
     }
 
     private void LogState(string sourceName)

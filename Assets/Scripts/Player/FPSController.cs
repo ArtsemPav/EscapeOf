@@ -25,6 +25,8 @@ public class FPSController : MonoBehaviour, ISaveable
 
     [Header("Crouching")]
     [SerializeField] private float standingHeight = 2f;
+    /// <summary>Capsule height while standing. Exposed for scripted sequences that position the player body.</summary>
+    public float StandingHeight => standingHeight;
     [SerializeField] private float crouchingHeight = 1f;
     [SerializeField] private float cameraOffset = 0.4f;
     [SerializeField] private float crouchSpeedUp = 6f;
@@ -183,6 +185,11 @@ public class FPSController : MonoBehaviour, ISaveable
     /// <summary>Instantly moves the player to the given position and yaw without physics interaction.</summary>
     public void Teleport(Vector3 position, float yaw)
     {
+        // Lazy cache: Teleport can be called before Awake ran (editor-script
+        // races, scene-load timing) — the cached reference must exist here.
+        if (_characterController == null)
+            _characterController = GetComponent<CharacterController>();
+
         _characterController.enabled = false;
         transform.position = position;
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
@@ -292,13 +299,44 @@ public class FPSController : MonoBehaviour, ISaveable
         InputManager.Instance?.SetPlayerInputEnabled(enabled);
     }
 
+    /// <summary>
+    /// True while a scripted cinematic owns the camera in WORLD space —
+    /// ApplyCameraTransform must not overwrite its position/rotation.
+    /// </summary>
+    private bool _worldSpaceCameraOverride;
+
+    /// <summary>
+    /// Gives a cinematic full world-space control of the camera: HandleLook
+    /// and ApplyCameraTransform stop touching it until
+    /// <see cref="ReturnCameraToWorldToRig"/> is called. While active the
+    /// cinematic sets camera.position/rotation (world space) every frame.
+    /// </summary>
+    public void TakeCameraWorldOverride()
+    {
+        _worldSpaceCameraOverride = true;
+        _cinematicControl = true;
+    }
+
+    /// <summary>
+    /// Ends the world-space override: the camera snaps back into the rig
+    /// (local standing pose) — used when the cinematic hands control back.
+    /// </summary>
+    public void ReturnCameraWorldToRig()
+    {
+        _worldSpaceCameraOverride = false;
+        cameraTransform.localPosition = new Vector3(0f, _baseCameraLocalY, 0f);
+        cameraTransform.localRotation = Quaternion.identity;
+    }
+
+    /// <summary>Reads whether the world-space camera override is active.</summary>
+    public bool CameraWorldOverrideActive => _worldSpaceCameraOverride;
+
     private void HandleLook()
     {
         // Cinematics (e.g. EndGameSequence) take the camera over completely —
         // do not fight their scripted rotation with input-driven values.
         if (_cinematicControl)
             return;
-
         Vector2 lookInput = InputManager.Instance != null ? InputManager.Instance.LookInput : Vector2.zero;
         float sensitivity = mouseSensitivity
             * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f)
@@ -409,6 +447,11 @@ public class FPSController : MonoBehaviour, ISaveable
     // Combines crouch base position and head bob into final camera local position
     private void ApplyCameraTransform()
     {
+        // A cinematic owning the camera in WORLD space writes position itself —
+        // writing localPosition here would teleport it back to the rig.
+        if (_worldSpaceCameraOverride)
+            return;
+
         cameraTransform.localPosition = new Vector3(
             _bobOffset.x,
             _baseCameraLocalY + _bobOffset.y,

@@ -210,6 +210,8 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         _phase1Completed = true;
         _isActivating = true;
 
+        ProgressLogger.Log("puzzle_solved", "final_door_phase1_medallions");
+
         PlaySFX(_activationClip, _activationVolume);
 
         // Lock UI — no more drops or retrieval.

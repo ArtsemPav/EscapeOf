@@ -176,6 +176,7 @@ public class EndGameSequence : MonoBehaviour
         // stands at the start point looking at it.
         InputManager.Instance?.SetPlayerInputEnabled(false);
         InputManager.Instance?.SetUIInputEnabled(false);
+        InteractionUI.Instance?.SetVisible(false); // hide crosshair + hint HUD for the cutscene
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 

@@ -13,6 +13,8 @@ public static class SaveProgressEditor
     private const string FileExtension   = ".json";
     private const int    DefaultSlot     = 0;
     private const int    BackupCount     = 2;
+    private const string LogFileName     = "progress_log.jsonl";
+    private const string LogOldFileName  = "progress_log.old.jsonl";
 
     [MenuItem("Tools/Escape/Reset Save Progress")]
     private static void ResetSaveProgress()
@@ -24,18 +26,22 @@ public static class SaveProgressEditor
         for (int i = 1; i <= BackupCount && !anyExists; i++)
             anyExists = File.Exists(GetBackupPath(saveDir, DefaultSlot, i));
 
+        string logPath = Path.Combine(Application.persistentDataPath, LogFileName);
+        string logOldPath = Path.Combine(Application.persistentDataPath, LogOldFileName);
+        anyExists |= File.Exists(logPath) || File.Exists(logOldPath);
+
         if (!anyExists)
         {
             EditorUtility.DisplayDialog(
                 "Сброс прогресса",
-                "Сохранённых данных не найдено.",
+                "Сохранённых данных и логов не найдено.",
                 "OK");
             return;
         }
 
         bool confirmed = EditorUtility.DisplayDialog(
             "Сброс прогресса",
-            $"Удалить файл сохранения?\n\n{mainPath}",
+            $"Удалить файл сохранения и лог прогресса?\n\n{mainPath}\n{logPath}",
             "Удалить", "Отмена");
 
         if (!confirmed) return;
@@ -44,6 +50,8 @@ public static class SaveProgressEditor
         deleted += TryDelete(mainPath);
         for (int i = 1; i <= BackupCount; i++)
             deleted += TryDelete(GetBackupPath(saveDir, DefaultSlot, i));
+        deleted += TryDelete(logPath);
+        deleted += TryDelete(logOldPath);
 
         Debug.Log($"[SaveProgressEditor] Удалено файлов: {deleted}. Прогресс сброшен.");
         EditorUtility.DisplayDialog(

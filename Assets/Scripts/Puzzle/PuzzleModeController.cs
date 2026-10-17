@@ -133,6 +133,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     {
         OnPuzzleSolved?.Invoke();
         OnSolved?.Invoke();
+        ProgressLogger.Log("puzzle_solved", _saveId);
 
         if (_isActive)
         {

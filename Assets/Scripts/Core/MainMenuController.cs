@@ -35,18 +35,24 @@ public class MainMenuController : MonoBehaviour
     }
 
     /// <summary>Starts a new game: clears the default save slot, shows the fake loading screen, then loads the gameplay scene.</summary>
+    /// <remarks>The wake-up intro is triggered by SaveManager itself: after the slot
+    /// is cleared, SaveManager.Start() in the gameplay scene finds no save and
+    /// requests the intro — a single decision point for all entry paths.</remarks>
     public void OnNewGame()
     {
         SaveManager.StartNewGame(DefaultSaveSlot);
         BeginGameTransition();
     }
-
     /// <summary>Loads the default save slot into the gameplay scene. Does nothing when no save exists.</summary>
+    /// <remarks>Double-checks the save file: after the credits finish, the save
+    /// is deleted and the start scene is shown — the finished game must not be
+    /// loadable, even if the button was still visible for a frame.</remarks>
     public void OnLoadGame()
     {
         if (!SaveManager.SlotHasSave(DefaultSaveSlot))
         {
             Debug.LogWarning("MainMenuController: Load skipped — no save file found.", this);
+            if (_loadGameButton != null) _loadGameButton.SetActive(false);
             return;
         }
 

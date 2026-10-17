@@ -289,6 +289,7 @@ namespace PuzzleGame
         {
             Debug.Log("Puzzle Solved!");
             isPuzzleSolved = true;
+            ProgressLogger.Log("puzzle_solved", _saveId);
             
             // Disable interaction for all elements
             foreach (var element in elements)

@@ -151,6 +151,7 @@ public class MetamorfPuzzleController : MonoBehaviour, ISaveable
             DisableCollidersOnSolved();
             OnPuzzleSolved?.Invoke();
             SaveManager.Instance?.Save();
+            ProgressLogger.Log("puzzle_solved", "metamorf_puzzle");
         }
     }
 }

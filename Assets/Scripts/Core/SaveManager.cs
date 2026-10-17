@@ -64,6 +64,30 @@ public class SaveManager : MonoBehaviour
     /// <summary>Tells the next SaveManager instance to load from a specific slot on Start().</summary>
     public static void RequestLoadFromSlot(int slot) => _pendingLoadSlot = slot;
 
+    // One-shot flag for the wake-up intro: set by the main menu before the
+    // scene transition, consumed by WakeUpIntroController.Start() in the
+    // Game scene. Persisted in PlayerPrefs because a static flag does not
+    // survive domain reloads (editor recompiles mid-play reset it and the
+    // intro silently skipped).
+    private const string WakeUpIntroPrefKey = "save_manager_wake_up_intro_pending";
+
+    /// <summary>
+    /// Marks that the next gameplay scene load must play the wake-up intro.
+    /// Called by the main menu on New Game.
+    /// </summary>
+    public static void RequestWakeUpIntro() => PlayerPrefs.SetInt(WakeUpIntroPrefKey, 1);
+
+    /// <summary>
+    /// Consumes the pending intro request: returns true once (first
+    /// WakeUpIntroController that asks), then resets until the next request.
+    /// </summary>
+    public static bool ConsumeWakeUpIntroRequest()
+    {
+        if (PlayerPrefs.GetInt(WakeUpIntroPrefKey, 0) == 0) return false;
+        PlayerPrefs.DeleteKey(WakeUpIntroPrefKey);
+        return true;
+    }
+
     private readonly Dictionary<string, ISaveable> _saveables = new();
 
     private float      _autoSaveTimer;
@@ -132,7 +156,15 @@ public class SaveManager : MonoBehaviour
         _activeSlot = isDebugLoad ? persistedSlot : loadSlot;
         if (_activeSlot == DebugSlot) _activeSlot = defaultSlot;
 
-        Load(loadSlot);
+        // Fresh start detection: no save file (and no backups) in the slot —
+        // a new game, a deleted save, or the very first launch. The gameplay
+        // scene's WakeUpIntroController picks this up and plays the intro.
+        // Works regardless of entry point: menu New Game button, editor Play
+        // directly in the Game scene, app restart after deleting the save.
+        bool loaded = Load(loadSlot);
+        if (!loaded)
+            RequestWakeUpIntro();
+
         _initialLoadComplete = true;
 
         // Persist the session's write slot so a full app restart (not just a
@@ -520,6 +552,23 @@ public class SaveManager : MonoBehaviour
     /// <summary>Returns true if a save file exists for the given slot.</summary>
     public bool HasSave(int slot = 0) => File.Exists(GetSavePath(slot));
 
+    /// <summary>
+    /// Read-only dump of every registered ISaveable: SaveId → its JSON save data.
+    /// Used by ProgressLogger's progress snapshots; makes no assumptions about
+    /// save files and performs no writes.
+    /// </summary>
+    public List<KeyValuePair<string, string>> GetSaveableData()
+    {
+        var list = new List<KeyValuePair<string, string>>(_saveables.Count);
+        foreach (var pair in _saveables)
+        {
+            if (pair.Value == null) continue;
+            try { list.Add(new KeyValuePair<string, string>(pair.Key, pair.Value.GetSaveData())); }
+            catch (Exception) { /* a saveable mid-teardown — skip it this snapshot */ }
+        }
+        return list;
+    }
+
     // ── File helpers ──────────────────────────────────────────────────────────
 
     private static bool TryReadFile(string path, out string content)
@@ -563,6 +612,13 @@ public class SaveManager : MonoBehaviour
         TryDelete(Path.Combine(dir, $"{FilePrefix}{slot}{FileExtension}"));
         for (int i = 1; i <= 4; i++)
             TryDelete(Path.Combine(dir, $"{FilePrefix}{slot}_bk{i}{FileExtension}"));
+
+        // Request the wake-up intro for the scene reload that follows.
+        // Needed for the menu flow: the SaveManager instance is DontDestroyOnLoad,
+        // so its Start() (the no-save check) does NOT re-run after the scene
+        // reloads — the flag must be set here explicitly.
+        RequestWakeUpIntro();
+
         Debug.Log($"[SaveManager] StartNewGame: cleared slot {slot}.");
     }
     private string GetBackupPath(int slot, int n) => Path.Combine(SaveDir, $"{FilePrefix}{slot}_bk{n}{FileExtension}");
