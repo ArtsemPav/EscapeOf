@@ -96,6 +96,27 @@ public class PhysicsDraggable : MonoBehaviour
     /// <summary>Custom hold distance while dragged (only meaningful when HasCustomHoldDistance).</summary>
     public float HoldDistance => _holdDistance;
 
+    [Header("Fall Safety")]
+    [Tooltip("If the object falls below its start position by this many metres " +
+             "(fell through the floor / out of the world), it is teleported back " +
+             "to its last grounded position. 0 = disabled.")]
+    [SerializeField, Min(0f)] private float _fallReturnDepth = 10f;
+
+    [Tooltip("Extra lift applied when the object is returned after a fall-through, " +
+             "so it re-settles on top of the floor instead of re-penetrating it.")]
+    [SerializeField, Min(0f)] private float _fallReturnLift = 0.5f;
+
+    /// <summary>Contact normals steeper than this (world Y) count as ground under the object.</summary>
+    private const float GroundNormalThreshold = 0.6f;
+
+    /// <summary>World position the object started at — the ultimate fall-safety fallback.</summary>
+    private Vector3 _startPosition;
+    private Quaternion _startRotation;
+
+    /// <summary>Last position where the object rested on a floor-like surface.
+    /// Fall-through returns here instead of the scene spawn point.</summary>
+    private Vector3 _lastGroundedPosition;
+
     private AudioSource _scrapeSource;
     private AudioSource _impactSource;
     private bool _isScraping;
@@ -112,11 +133,95 @@ public class PhysicsDraggable : MonoBehaviour
         // volumeScale argument of PlayOneShot. (The scrape source's volume is driven
         // manually in code and starts at 0.)
         _impactSource.volume = 1f;
+
+        // Remember the inspector-serialized CCD mode so a runtime pin (PinCcdAfterCarry)
+        // can be undone later without touching per-object inspector overrides.
+        _initialCcdMode = Body.collisionDetectionMode;
+
+        // NOTE: CCD is NOT forced here for every draggable — continuous detection is
+        // noticeably more expensive and a weak PC should not pay for it on all ~80
+        // physics props. CCD runs only on:
+        //   1. Objects pinned in the Inspector (catcan — always on).
+        //   2. The object currently dragged by the player.
+        //   3. The last carried object (pin survives until another object is carried).
+        // The fall-safety teleport below is the last-resort net for anything that
+        // still tunnels (e.g. a fast free fall after a throw).
+
+        _startPosition = Body.position;
+        _startRotation = Body.rotation;
+        _lastGroundedPosition = Body.position;
+    }
+
+    private void FixedUpdate()
+    {
+        if (_fallReturnDepth <= 0f) return;
+
+        // Fell through the floor — return to the last spot where it stood on solid
+        // ground (scene start position until the first ground contact is recorded).
+        if (Body.position.y < _startPosition.y - _fallReturnDepth)
+        {
+            Body.linearVelocity = Vector3.zero;
+            Body.angularVelocity = Vector3.zero;
+            Body.position = _lastGroundedPosition + Vector3.up * _fallReturnLift;
+        }
+    }
+
+    /// <summary>Collision detection mode serialized in the Inspector — runtime CCD pins
+    /// must never downgrade an inspector-level override.</summary>
+    private CollisionDetectionMode _initialCcdMode;
+    private bool _ccdPinnedByGrab;
+
+    /// <summary>Called by PhysicsGrabber when the player grabs this object: switches the
+    /// body to continuous collision detection — the drag spring can ram the object through
+    /// thin floors at discrete-detection speeds. Cheap here: only one body at a time.</summary>
+    public void OnGrabBegin()
+    {
+        if (!Body.isKinematic && Body.collisionDetectionMode == CollisionDetectionMode.Discrete)
+            Body.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    }
+
+    /// <summary>Called by PhysicsGrabber on release: keeps CCD on this body permanently.
+    /// A just-carried object is the one most likely to be thrown around and tunnel next.</summary>
+    public void PinCcdAfterCarry()
+    {
+        _ccdPinnedByGrab = true;
+        if (!Body.isKinematic && Body.collisionDetectionMode == CollisionDetectionMode.Discrete)
+            Body.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    }
+
+    /// <summary>Removes a runtime CCD pin (restores the mode serialized in the Inspector).
+    /// Called when the player starts carrying a different object, so at most two objects
+    /// (the can with its inspector override + the last carried one) run CCD at a time.
+    /// Never downgrades an inspector-level override.</summary>
+    public void UnpinCcd()
+    {
+        if (!_ccdPinnedByGrab) return;
+        _ccdPinnedByGrab = false;
+        Body.collisionDetectionMode = _initialCcdMode;
+    }
+
+    /// <summary>Records the object's position when a contact looks like ground beneath it
+    /// (upward normal). Called from collision callbacks — the last such position is where
+    /// the fall-safety teleport returns the object to.</summary>
+    private void RecordGroundContact(Collision collision)
+    {
+        foreach (ContactPoint contact in collision.contacts)
+        {
+            if (contact.normal.y >= GroundNormalThreshold)
+            {
+                _lastGroundedPosition = Body.position;
+                return;
+            }
+        }
     }
 
     private void OnCollisionStay(Collision collision)
     {
-        if (_scrapeClips.Count == 0 || Body.isKinematic) return;
+        if (Body.isKinematic) return;
+
+        RecordGroundContact(collision);
+
+        if (_scrapeClips.Count == 0) return;
 
         // Fastest contact-point speed along the surface plane (tangential velocity
         // ignores motion straight into/away from the surface). The other collider may
@@ -152,7 +257,11 @@ public class PhysicsDraggable : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (_impactClips.Count == 0 || Body.isKinematic) return;
+        if (Body.isKinematic) return;
+
+        RecordGroundContact(collision);
+
+        if (_impactClips.Count == 0) return;
         if (Time.time - _lastImpactTime < _impactCooldown) return;
 
         float impactSpeed = collision.relativeVelocity.magnitude;

@@ -47,6 +47,8 @@ public class PhysicsGrabber : MonoBehaviour
     private FPSController _fpsController;
     private PhysicsDraggable _hoveredDraggable;
     private PhysicsDraggable _grabbedDraggable;
+    /// <summary>Last carried object that keeps a runtime CCD pin until another object is carried.</summary>
+    private PhysicsDraggable _ccdPinnedDraggable;
     private float _originalLinearDrag;
     private RigidbodyConstraints _originalConstraints;
     private float _massSpeedMultiplier = 1f;
@@ -207,6 +209,14 @@ public class PhysicsGrabber : MonoBehaviour
 
         rb.linearDamping = grabLinearDrag;
 
+        // Move the runtime CCD pin to this object: unpin the previously carried one,
+        // then pin (and CCD-enable for the duration of the drag) the current one.
+        // At most two bodies run CCD at any moment: the can (inspector override)
+        // and the last object the player carried.
+        _ccdPinnedDraggable?.UnpinCcd();
+        _ccdPinnedDraggable = draggable;
+        draggable.OnGrabBegin();
+
         if (draggable.PreventTipping)
             rb.constraints = _originalConstraints | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
@@ -219,7 +229,9 @@ public class PhysicsGrabber : MonoBehaviour
         InteractionUI.Instance?.SetHint(false);
     }
 
-    /// <summary>Releases the grabbed object and restores its original drag, constraints, and player speed.</summary>
+    /// <summary>Releases the grabbed object and restores its original drag, constraints, and player speed.
+    /// The released object keeps its CCD pin — it stays the "last carried" until the player
+    /// grabs a different object.</summary>
     private void ReleaseObject()
     {
         if (_grabbedDraggable == null) return;
@@ -227,6 +239,8 @@ public class PhysicsGrabber : MonoBehaviour
         Rigidbody rb = _grabbedDraggable.Body;
         rb.linearDamping = _originalLinearDrag;
         rb.constraints = _originalConstraints;
+
+        _grabbedDraggable.PinCcdAfterCarry();
 
         _fpsController?.SetSpeedMultiplier(1f);
         _fpsController?.SetPhysicsGrabActive(false);

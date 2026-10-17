@@ -331,6 +331,7 @@ namespace Escape.Core {
 
             // Locked door: play locked sound and prevent any movement.
             if (_isLocked && !_isOpen) {
+                ProgressLogger.Log("drag_locked", $"дверь {name}: заперта");
                 AudioManager.Instance.PlaySFX(_lockedClip);
                 _isDragging = true;
                 return;
@@ -433,11 +434,21 @@ namespace Escape.Core {
                 _isOpen      = _flingTarget > 0.5f;
                 _velocity    = 0f;
                 SaveManager.Instance?.Save();
+                LogDragEnd();
                 return;
             }
 
             _isOpen = _openFraction > 0.5f;
             SaveManager.Instance?.Save();
+            LogDragEnd();
+        }
+
+        /// <summary>Записывает, чем закончился драг двери: открыта, закрыта или промежуточно.</summary>
+        private void LogDragEnd() {
+            string result = _isOpen ? "открыта"
+                          : _openFraction <= 0.01f ? "закрыта"
+                          : $"промежуточно ({_openFraction:P0})";
+            ProgressLogger.Log("drag_end", $"дверь {name}: {result}");
         }
 
         // ── IInteractable ────────────────────────────────────────────────────────
@@ -594,6 +605,7 @@ namespace Escape.Core {
         /// </summary>
         private void ToggleClick() {
             if (_isLocked && !_isOpen) {
+                ProgressLogger.Log("drag_locked", $"дверь {name}: заперта (клик)");
                 AudioManager.Instance.PlaySFX(_lockedClip);
                 return;
             }
@@ -610,6 +622,7 @@ namespace Escape.Core {
             _velocity          = 0f;
 
             SaveManager.Instance?.Save();
+            LogDragEnd();
         }
 
         private void ApplyAngle() {

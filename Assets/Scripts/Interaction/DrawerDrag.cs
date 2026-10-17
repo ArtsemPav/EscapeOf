@@ -148,6 +148,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
 
         if (_isLockedDrag)
         {
+            ProgressLogger.Log("drag_locked", $"ящик {name}: заперт");
             if (_lockedClip != null)
                 _audioSource.PlayOneShot(_lockedClip, _openVolume);
         }
@@ -247,6 +248,11 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         else
             _targetOpenAmount = _openAmount;
         _wasOpen = _targetOpenAmount >= 1f;
+
+        string result = _targetOpenAmount >= 1f ? "открыт"
+                      : _targetOpenAmount <= 0f ? "закрыт"
+                      : $"промежуточно ({_targetOpenAmount:P0})";
+        ProgressLogger.Log("drag_end", $"ящик {name}: {result}");
     }
 
     // ── IInteractable ───────────────────────────────────────────────────────────
