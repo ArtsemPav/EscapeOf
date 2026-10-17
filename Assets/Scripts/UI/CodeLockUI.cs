@@ -153,6 +153,7 @@ public class CodeLockUI : MonoBehaviour
 
     private IEnumerator ErrorRoutine()
     {
+        ProgressLogger.Log("puzzle_failed", $"{_currentLock.SaveId}: код {_enteredCode}");
         _isProcessing = true;
         Color error = Config?.errorColor ?? new Color(0.9f, 0.2f, 0.2f);
         _displayText.color = error;

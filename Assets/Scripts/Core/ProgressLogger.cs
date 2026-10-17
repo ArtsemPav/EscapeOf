@@ -8,25 +8,27 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Local playtest telemetry: appends gameplay events to a JSONL file in
-/// persistentDataPath. No network — the file is only meant to be collected
-/// from playtesters (manually or with the feedback form).
+/// Local playtest telemetry: appends gameplay events to a plain-text file.
+/// No network — the file is only meant to be collected from playtesters.
+///
+/// Format — one event per line, "HH:mm:ss | event | details":
+///   14:03:41 | room_enter | Room 3
+///   14:04:12 | puzzle_failed | code_lock: код 3719
+/// Readable in Notepad, no JSON parsing needed.
 ///
 /// All file I/O runs on a dedicated background thread: the game thread only
 /// formats the event line and enqueues it, so a logging write can never stall
 /// a frame (no HDD seek, no antivirus scan on the main thread).
 ///
 /// What is logged automatically:
-/// - session_start / scene_loaded            — when and where the session begins;
-/// - room_enter                              — the room the player is physically in (any change);
-/// - room_unlocked                           — room progression index (GameManager);
-/// - inventory_changed                       — full inventory contents after every change;
-/// - puzzle_solved                           — explicit events from puzzle scripts;
-/// - progress_snapshot                       — after every save: SaveId + short state
-///   of every registered ISaveable (shows which puzzles are solved).
+/// - session_start / scene_loaded — when and where the session begins;
+/// - room_enter                   — the room the player is physically in;
+/// - room_unlocked                — room progression (GameManager);
+/// - inventory_changed            — inventory contents after every change;
+/// - puzzle_solved / puzzle_failed / puzzle_exit_unsolved — puzzle outcomes.
 ///
-/// File: persistentDataPath/progress_log.jsonl (rotated to .old past the size cap).
-/// Cleared by Tools → Escape → Reset Save Progress in the Editor.
+/// In a build the file lives next to the game exe; in the Editor — in
+/// persistentDataPath. Cleared by Tools → Escape → Reset Save Progress.
 /// Attach to the GameManager GameObject in the Game scene (it is DontDestroyOnLoad).
 /// </summary>
 public class ProgressLogger : MonoBehaviour
@@ -37,23 +39,24 @@ public class ProgressLogger : MonoBehaviour
     [Tooltip("Rotate the log to .old past this size (bytes). 0 disables rotation.")]
     [SerializeField] private long _maxLogBytes = 2_000_000;
 
-    [Tooltip("Seconds between progress snapshots even if no save happened.")]
-    [SerializeField, Min(0f)] private float _snapshotInterval = 300f;
-
-    private const string LogFileName = "progress_log.jsonl";
-    private const string OldFileName = "progress_log.old.jsonl";
+    private const string LogFileName = "progress_log.txt";
+    private const string OldFileName = "progress_log.old.txt";
 
     private readonly BlockingCollection<string> _writeQueue = new(new ConcurrentQueue<string>(), 512);
     private Thread _writerThread;
     private readonly StringBuilder _lineBuffer = new(256);
 
-    private float _snapshotTimer;
     private GameManager _trackedGameManager;
     private RoomVisibilityManager _trackedRoomManager;
     private InventorySystem _trackedInventory;
     private string _lastRoomName;
     private string _lastInventoryState;
     private volatile bool _shuttingDown;
+    // Application.persistentDataPath is main-thread only — resolve it once here
+    // so the background writer thread never touches the Unity API.
+    private string _logDirectory;
+    private string _logFilePath;
+    private string _oldLogFilePath;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -66,6 +69,7 @@ public class ProgressLogger : MonoBehaviour
         }
 
         Instance = this;
+        ResolveLogPaths();
         StartWriterThread();
     }
 
@@ -76,7 +80,7 @@ public class ProgressLogger : MonoBehaviour
 
         SaveManager saveManager = SaveManager.Instance;
         if (saveManager != null)
-            saveManager.OnSaved += WriteProgressSnapshot;
+            saveManager.OnSaved += OnGameSaved;
 
         TrackInventory();
     }
@@ -87,7 +91,7 @@ public class ProgressLogger : MonoBehaviour
 
         SceneManager.sceneLoaded -= OnSceneLoaded;
         if (SaveManager.Instance != null)
-            SaveManager.Instance.OnSaved -= WriteProgressSnapshot;
+            SaveManager.Instance.OnSaved -= OnGameSaved;
         if (_trackedInventory != null)
             _trackedInventory.OnInventoryStateChanged -= OnInventoryStateChanged;
         UnsubscribeTracked();
@@ -137,13 +141,64 @@ public class ProgressLogger : MonoBehaviour
         _writerThread = null;
     }
 
+    /// <summary>
+    /// Resolves where the log lives. In a build the log is written next to the
+    /// game executable (a tester finds it in one step); in the Editor — in
+    /// persistentDataPath so the project folder is not littered. If the game
+    /// folder is not writable (e.g. installed under Program Files), falls back
+    /// to persistentDataPath.
+    /// </summary>
+    private void ResolveLogPaths()
+    {
+        string directory = null;
+
+        if (!Application.isEditor)
+        {
+            // The exe sits next to <game>_Data/ — the log goes right beside it.
+            string gameFolder = Path.GetDirectoryName(Application.dataPath);
+            if (!string.IsNullOrEmpty(gameFolder) && CanWrite(gameFolder))
+                directory = gameFolder;
+        }
+
+        if (directory == null)
+            directory = Application.persistentDataPath;
+
+        _logDirectory = directory;
+        _logFilePath = Path.Combine(directory, LogFileName);
+        _oldLogFilePath = Path.Combine(directory, OldFileName);
+
+        Debug.Log($"[ProgressLogger] Log file: {_logFilePath}");
+    }
+
+    /// <summary>Checks the folder accepts creating a file (admin-installed games).</summary>
+    private static bool CanWrite(string folder)
+    {
+        try
+        {
+            string probe = Path.Combine(folder, LogFileName + ".probe");
+            File.WriteAllText(probe, string.Empty);
+            File.Delete(probe);
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     private void WriterLoop()
     {
+        string path = _logFilePath;
+        if (string.IsNullOrEmpty(path))
+        {
+            Debug.LogWarning("[ProgressLogger] Log path was not resolved on the main thread — logging disabled.");
+            return;
+        }
+
         foreach (string line in _writeQueue.GetConsumingEnumerable())
         {
             try
             {
-                string path = Path.Combine(Application.persistentDataPath, LogFileName);
                 RotateIfNeeded(path);
                 File.AppendAllText(path, line + Environment.NewLine);
             }
@@ -170,7 +225,6 @@ public class ProgressLogger : MonoBehaviour
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         Log("scene_loaded", scene.name);
-        WriteProgressSnapshot();
     }
 
     private void TrackGameManager()
@@ -247,45 +301,17 @@ public class ProgressLogger : MonoBehaviour
         Log("inventory_changed", snapshot);
     }
 
-    // ── Progress Snapshot ─────────────────────────────────────────────────────
+    // ── Save Logging ──────────────────────────────────────────────────────────
 
-    /// <summary>Writes SaveId + short state of every registered ISaveable.</summary>
-    private void WriteProgressSnapshot()
+    /// <summary>Notes that the player saved — a natural checkpoint in the timeline.</summary>
+    private void OnGameSaved()
     {
-        _snapshotTimer = 0f;
-
-        var saveManager = SaveManager.Instance;
-        if (saveManager == null) return;
-
-        var entries = saveManager.GetSaveableData();
-        if (entries == null || entries.Count == 0) return;
-
-        _lineBuffer.Clear();
-        _lineBuffer.Append('{').Append("\"t\":\"").Append(Escape(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))).Append('"');
-        _lineBuffer.Append(",\"e\":\"progress_snapshot\",\"d\":{");
-
-        bool first = true;
-        foreach (var (id, json) in entries)
-        {
-            if (!first) _lineBuffer.Append(',');
-            first = false;
-            _lineBuffer.Append('"').Append(Escape(id)).Append("\":\"").Append(Escape(Truncate(json))).Append('"');
-        }
-        _lineBuffer.Append("}}");
-
-        Enqueue(_lineBuffer.ToString());
-    }
-
-    private static string Truncate(string text)
-    {
-        const int MaxLength = 200;
-        return string.IsNullOrEmpty(text) || text.Length <= MaxLength ? text : text.Substring(0, MaxLength);
+        Log("game_saved", "сохранение");
     }
 
     private static string Escape(string text) => text
-        .Replace("\\", "\\\\")
-        .Replace("\"", "\\\"")
-        .Replace("\n", "\\n")
+        .Replace("|", "/")
+        .Replace("\n", " ")
         .Replace("\r", "");
 
     // ── Line Formatting & Enqueue (game thread) ───────────────────────────────
@@ -293,11 +319,10 @@ public class ProgressLogger : MonoBehaviour
     private void Write(string eventName, string detail)
     {
         _lineBuffer.Clear();
-        _lineBuffer.Append('{').Append("\"t\":\"").Append(Escape(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))).Append('"');
-        _lineBuffer.Append(",\"e\":\"").Append(Escape(eventName)).Append('"');
+        _lineBuffer.Append(DateTime.Now.ToString("HH:mm:ss"));
+        _lineBuffer.Append(" | ").Append(eventName);
         if (!string.IsNullOrEmpty(detail))
-            _lineBuffer.Append(",\"d\":\"").Append(Escape(detail)).Append('"');
-        _lineBuffer.Append('}');
+            _lineBuffer.Append(" | ").Append(detail);
 
         Enqueue(_lineBuffer.ToString());
     }
@@ -323,16 +348,6 @@ public class ProgressLogger : MonoBehaviour
         TrackGameManager();
         TrackRoomManager();
         TrackInventory();
-
-        if (_snapshotInterval > 0f)
-        {
-            _snapshotTimer += Time.unscaledDeltaTime;
-            if (_snapshotTimer >= _snapshotInterval)
-            {
-                _snapshotTimer = 0f;
-                WriteProgressSnapshot();
-            }
-        }
     }
 
     private void RotateIfNeeded(string path)
@@ -342,7 +357,8 @@ public class ProgressLogger : MonoBehaviour
         var file = new FileInfo(path);
         if (!file.Exists || file.Length < _maxLogBytes) return;
 
-        string oldPath = Path.Combine(Application.persistentDataPath, OldFileName);
+        string oldPath = _oldLogFilePath;
+        if (string.IsNullOrEmpty(oldPath)) return;
         if (File.Exists(oldPath)) File.Delete(oldPath);
         File.Move(path, oldPath);
     }

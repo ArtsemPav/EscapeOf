@@ -318,6 +318,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         if (!_isActive) return;
 
         _isActive = false;
+        if (!_isSolved)
+            ProgressLogger.Log("puzzle_exit_unsolved", _saveId);
         RestoreLensDistortion();
 
         // Disable child interactables when exiting puzzle mode.

@@ -192,22 +192,21 @@ public class InventorySystem : MonoBehaviour, ISaveable
         SaveManager.Instance?.Register(this);
     }
 
-    /// <summary>Builds a "0:ItemId,1:ItemId" snapshot of the current inventory + runes for logging.</summary>
+    /// <summary>Builds a "item1, item2, руны: a, b" snapshot of the current inventory for logging.</summary>
     private string BuildStateSnapshot()
     {
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < _slots.Length; i++)
         {
             if (_slots[i] == null) continue;
-            if (sb.Length > 0) sb.Append(',');
-            sb.Append(i).Append(':').Append(_slots[i].ItemId);
+            if (sb.Length > 0) sb.Append(", ");
+            sb.Append(string.IsNullOrEmpty(_slots[i].itemName) ? _slots[i].ItemId : _slots[i].itemName);
         }
 
         if (_collectedRuneIds.Count > 0)
         {
-            if (sb.Length > 0) sb.Append(',');
-            sb.Append("runes:");
-            sb.Append(string.Join("|", _collectedRuneIds));
+            if (sb.Length > 0) sb.Append(", ");
+            sb.Append("руны: ").Append(string.Join(", ", _collectedRuneIds));
         }
 
         return sb.ToString();

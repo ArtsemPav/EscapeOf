@@ -13,8 +13,8 @@ public static class SaveProgressEditor
     private const string FileExtension   = ".json";
     private const int    DefaultSlot     = 0;
     private const int    BackupCount     = 2;
-    private const string LogFileName     = "progress_log.jsonl";
-    private const string LogOldFileName  = "progress_log.old.jsonl";
+    private const string LogFileName     = "progress_log.txt";
+    private const string LogOldFileName  = "progress_log.old.txt";
 
     [MenuItem("Tools/Escape/Reset Save Progress")]
     private static void ResetSaveProgress()

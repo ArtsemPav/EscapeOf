@@ -648,6 +648,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         if (!_wiresCorrect)
         {
+            ProgressLogger.Log("puzzle_failed", $"{SaveId}: провода собраны неверно, рывок рычага");
             PlaySFX(_wrongPullClip, _wrongPullVolume);
             PlayWrongPullParticles();
             ResetAllWires();
