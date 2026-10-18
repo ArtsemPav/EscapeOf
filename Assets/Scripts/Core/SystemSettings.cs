@@ -11,6 +11,8 @@ public static class SystemSettings
     public const string MusicVolumePref = "Settings_MusicVolume";
     public const string SfxVolumePref = "Settings_SfxVolume";
     public const string QualityPref = "Settings_QualityLevel";
+    public const string ResolutionIndexPref = "Settings_ResolutionIndex";
+    public const string TargetFrameRatePref = "Settings_TargetFrameRate";
 
     /// <summary>Music loudness (0–1) as written to the mixer's Music bus.</summary>
     public static float MusicVolume => PlayerPrefs.GetFloat(MusicVolumePref, 1f);
@@ -64,10 +66,50 @@ public static class SystemSettings
         QualitySettings.SetQualityLevel(level, true);
     }
 
-    /// <summary>Restores the saved quality level. Call once at startup.</summary>
+    /// <summary>Index of the saved resolution in <see cref="VideoSettingOptions.Resolutions"/>, or -1 when the player has not chosen one yet.</summary>
+    public static int ResolutionIndex => PlayerPrefs.GetInt(ResolutionIndexPref, -1);
+
+    /// <summary>The saved target frame rate, or <see cref="VideoSettingOptions.DefaultFrameRate"/> when unset.</summary>
+    public static int TargetFrameRate => PlayerPrefs.GetInt(TargetFrameRatePref, VideoSettingOptions.DefaultFrameRate);
+
+    /// <summary>Applies and persists the resolution at the given curated-list index. Does nothing on an invalid index.</summary>
+    public static void SetResolutionIndex(int index)
+    {
+        if (index < 0 || index >= VideoSettingOptions.Resolutions.Count) return;
+
+        VideoSettingOptions.ResolutionOption option = VideoSettingOptions.Resolutions[index];
+        PlayerPrefs.SetInt(ResolutionIndexPref, index);
+        ApplyResolution(option);
+    }
+
+    /// <summary>Applies and persists the frame-rate cap.</summary>
+    public static void SetTargetFrameRate(int frameRate)
+    {
+        PlayerPrefs.SetInt(TargetFrameRatePref, frameRate);
+        ApplyTargetFrameRate(frameRate);
+    }
+
+    /// <summary>Pushes the resolution to the screen, keeping the current fullscreen mode.</summary>
+    private static void ApplyResolution(VideoSettingOptions.ResolutionOption option)
+        => Screen.SetResolution(option.Width, option.Height, Screen.fullScreenMode);
+
+    /// <summary>Applies the frame-rate cap. VSync stays disabled so the cap is strictly respected.</summary>
+    private static void ApplyTargetFrameRate(int frameRate)
+    {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = frameRate;
+    }
+
+    /// <summary>Restores the saved video settings (quality, resolution, frame rate). Call once at startup.</summary>
     public static void ApplyAtStartup()
     {
         if (PlayerPrefs.HasKey(QualityPref))
             QualitySettings.SetQualityLevel(PlayerPrefs.GetInt(QualityPref), true);
+
+        int resolutionIndex = ResolutionIndex;
+        if (resolutionIndex >= 0 && resolutionIndex < VideoSettingOptions.Resolutions.Count)
+            ApplyResolution(VideoSettingOptions.Resolutions[resolutionIndex]);
+
+        ApplyTargetFrameRate(TargetFrameRate);
     }
 }
