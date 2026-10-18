@@ -98,6 +98,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         _audioSource.playOnAwake  = false;
         _audioSource.spatialBlend = 1f;
         _audioSource.loop         = false;
+        AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
     }
 
     private void EnsureClosedPosition()

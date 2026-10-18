@@ -80,6 +80,10 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
         if (_earthquakeAudio == null)
             _earthquakeAudio = GetComponent<AudioSource>();
 
+        // Route to the SFX bus unless the source already has a mixer group from the Inspector.
+        if (_earthquakeAudio != null && _earthquakeAudio.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_earthquakeAudio);
+
         SaveManager.Instance?.Register(this);
     }
 

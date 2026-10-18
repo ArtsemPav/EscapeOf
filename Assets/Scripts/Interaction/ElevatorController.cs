@@ -487,7 +487,7 @@ namespace Escape.Interaction
 
                 // Player entered — cancel auto-close, duck game music
                 CancelAutoClose();
-                AudioManager.Instance?.FadeMusicVolume(0f, _musicFadeDuration);
+                MusicDirector.DuckActiveTrack(0f, _musicFadeDuration);
                 return;
             }
 
@@ -508,7 +508,7 @@ namespace Escape.Interaction
                 _playerFPSController = null;
 
                 // Player left — restore game music, start auto-close timer
-                AudioManager.Instance?.FadeMusicVolume(1f, _musicFadeDuration);
+                MusicDirector.DuckActiveTrack(1f, _musicFadeDuration);
                 StartAutoCloseTimer();
                 return;
             }
@@ -535,24 +535,7 @@ namespace Escape.Interaction
         {
             if (clip == null || _elevatorCab == null) return;
 
-            GameObject obj = new GameObject("ElevatorOneShot");
-            obj.transform.SetParent(_elevatorCab);
-            obj.transform.localPosition = Vector3.zero;
-
-            var source = obj.AddComponent<AudioSource>();
-            source.clip = clip;
-            source.spatialBlend = 1f;
-            source.rolloffMode = AudioRolloffMode.Linear;
-            source.minDistance = _sfxMinDistance;
-            source.maxDistance = _sfxMaxDistance;
-            source.dopplerLevel = 0f;
-            source.reverbZoneMix = 0f;
-            source.bypassReverbZones = true;
-            source.spread = 0f;
-            source.volume = _sfxVolume;
-            source.playOnAwake = false;
-            source.Play();
-            Destroy(obj, clip.length + 0.1f);
+            AudioManager.Instance?.Play3DOneShot(clip, _elevatorCab.position, _sfxVolume, _sfxMinDistance, _sfxMaxDistance);
         }
 
         /// <summary>

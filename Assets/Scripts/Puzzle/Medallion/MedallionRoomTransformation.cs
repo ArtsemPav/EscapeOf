@@ -291,9 +291,13 @@ public class MedallionRoomTransformation : MonoBehaviour, ISaveable
         if (_ventGrillAnimator != null)
             yield return PlayGrillFallRoutine();
 
-        // 5. One-shot 3D whisper from the vent.
+        // 5. One-shot 3D whisper from the vent (routed to the SFX bus if it has no mixer group yet).
         if (_whisperSource != null)
+        {
+            if (_whisperSource.outputAudioMixerGroup == null)
+                AudioManager.Instance?.RouteSourceToSfxGroup(_whisperSource);
             _whisperSource.Play();
+        }
     }
 
     /// <summary>Grows every crystal from zero to its authored scale, each with its own random duration.</summary>
@@ -385,6 +389,7 @@ public class MedallionRoomTransformation : MonoBehaviour, ISaveable
         _iceCrackingLoopSource.spatialBlend = 0f;
         _iceCrackingLoopSource.loop = true;
         _iceCrackingLoopSource.playOnAwake = false;
+        AudioManager.Instance?.RouteSourceToSfxGroup(_iceCrackingLoopSource);
         _iceCrackingLoopSource.Play();
     }
 

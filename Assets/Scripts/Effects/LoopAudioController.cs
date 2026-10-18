@@ -67,6 +67,10 @@ public class LoopAudioController : MonoBehaviour
         _loopAudio.dopplerLevel = 0f;
         _loopAudio.spread       = 0f;
 
+        // Route to the SFX bus unless the source was already assigned a mixer group in the Inspector.
+        if (_loopAudio.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_loopAudio);
+
         _loopAudio.enabled = true;
         _loopAudio.Play();
         AudioManager.Instance?.RegisterLoopSource(_loopAudio, _loopVolume);

@@ -120,16 +120,19 @@ public class GameManager : MonoBehaviour, ISaveable
     {
         _isPaused = pause;
         Time.timeScale = _isPaused ? 0f : 1f;
+        // Pause the audio DSP for the whole game — silence everything except
+        // sources marked ignoreListenerPause (the pause menu music only).
+        AudioListener.pause = pause;
 
         if (_isPaused)
         {
             UIManager.Instance?.OpenPanel(menuUI);
-            AudioManager.Instance?.PlayMenuMusic();
+            MusicDirector.PlayMenuMusic();
         }
         else
         {
             UIManager.Instance?.ClosePanel(menuUI);
-            AudioManager.Instance?.PlayGameMusic();
+            MusicDirector.PlayGameMusic();
         }
 
         UpdateCursorState();

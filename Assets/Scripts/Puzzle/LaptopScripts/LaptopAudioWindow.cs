@@ -39,6 +39,10 @@ namespace EscapeOf.Puzzle.Laptop
             if (_progressSlider != null)
                 _progressSlider.onValueChanged.AddListener(OnSliderSeeked);
 
+            // Route to the SFX bus unless the source already has a mixer group from the Inspector.
+            if (_audioSource != null && _audioSource.outputAudioMixerGroup == null)
+                AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
+
             _bands = new float[_bandCount];
         }
 

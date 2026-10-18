@@ -14,10 +14,19 @@ using UnityEngine;
 /// Implements ISaveable: persists which play-once tracks already fired and
 /// which one is currently dominant, so a reloaded session restarts the
 /// dominant track and the fired zones never re-trigger.
+/// The director also owns the menu music: the persistent instance lives in
+/// Start.unity, plays Menu_Main there, and picks up the gameplay default
+/// track in Game.unity (its scene duplicate adopts it in Awake).
 /// </summary>
 public class MusicDirector : MonoBehaviour, ISaveable {
-    [Tooltip("Track played when the game starts. Leave empty to keep using AudioManager.PlayGameMusic.")]
+    [Tooltip("Track played when the game starts.")]
     [SerializeField] private MusicTrack _defaultGameTrack;
+
+    [Tooltip("Track played while the game is paused (pause menu). Restored gameplay music resumes after.")]
+    [SerializeField] private MusicTrack _pauseMenuTrack;
+
+    [Tooltip("Mixer group all music sources are routed to (the Music bus).")]
+    [SerializeField] private UnityEngine.Audio.AudioMixerGroup _musicGroup;
 
     [Tooltip("Minimum time in seconds between music switches to avoid flickering on door triggers.")]
     [SerializeField] private float _minSwitchInterval = 2f;
@@ -30,12 +39,11 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     // -999 so the very first track request is never rejected by _minSwitchInterval
     private float _lastSwitchTime = -999f;
     private AudioSource _activeSource;
-    private Coroutine _eventPauseCoroutine;
-    private bool _mutedForEvent;
+    private int _muteOwnerCount; // nested horror events — restore fires only when the last owner releases
     private Coroutine _muteCoroutine;
 
     /// <summary>True while the director is silenced for a horror event.</summary>
-    public static bool MutedForEvent => Instance != null && Instance._mutedForEvent;
+    public static bool MutedForEvent => Instance != null && Instance._muteOwnerCount > 0;
 
     private readonly HashSet<string> _playedOnceTrackNames = new HashSet<string>();
     private readonly Dictionary<MusicTrack, AudioSource> _sourcePool = new Dictionary<MusicTrack, AudioSource>();
@@ -52,16 +60,29 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
     public string SaveId => "music_director";
 
-    /// <summary>Serializes the dominant track, its playback position and the list of already-fired play-once tracks.</summary>
-    public string GetSaveData() => JsonUtility.ToJson(new MusicDirectorSaveData
-    {
-        dominantTrack = _activeTrack != null ? _activeTrack.name : (_defaultGameTrack != null ? _defaultGameTrack.name : null),
-        // Only the position of the dominant track's own source — a faded-out
-        // leftover source belongs to the previous track and must not shift
-        // the dominant one.
-        dominantTrackTime = _activeSource != null && _activeTrack != null && _activeSource.clip == _activeTrack.Clip ? _activeSource.time : 0f,
-        playedOnceTracks = new List<string>(_playedOnceTrackNames),
-    });
+    /// <summary>Serializes the dominant track, its playback position and the list of already-fired play-once tracks.
+    /// While the pause menu owns the music, the gameplay track that the menu interrupted is saved instead —
+    /// the autosave timer runs on unscaled time and must never persist the menu track as dominant.</summary>
+    public string GetSaveData() {
+        MusicTrack dominant;
+        float dominantTime;
+        if (_menuMusicActive) {
+            dominant = _preMenuTrack;
+            AudioSource preMenuSource = dominant != null && _sourcePool.TryGetValue(dominant, out AudioSource pooled) ? pooled : null;
+            dominantTime = preMenuSource != null ? preMenuSource.time : 0f;
+        } else {
+            dominant = _activeTrack != _pauseMenuTrack ? _activeTrack : null;
+            dominantTime = dominant != null && _activeSource != null && _activeSource.clip == dominant.Clip ? _activeSource.time : 0f;
+        }
+        if (dominant == null) dominant = _defaultGameTrack;
+
+        return JsonUtility.ToJson(new MusicDirectorSaveData
+        {
+            dominantTrack = dominant != null ? dominant.name : null,
+            dominantTrackTime = dominantTime,
+            playedOnceTracks = new List<string>(_playedOnceTrackNames),
+        });
+    }
 
     /// <summary>
     /// Restores which play-once tracks already fired and which track was
@@ -93,18 +114,116 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// </summary>
     public MusicTrack ActiveTrack => _activeTrack;
 
+    // Menu (pause) music state — the director owns ALL music, including the menu.
+    private bool _menuMusicActive;
+    private MusicTrack _preMenuTrack; // gameplay track the menu interrupted (never the menu track itself)
+    private float _menuResumeTime;
+    private Coroutine _menuResumeCoroutine;
+
+    /// <summary>
+    /// Switches to the pause menu track, remembering the gameplay track's
+    /// playback position. Replaces the legacy AudioManager.PlayMenuMusic.
+    /// </summary>
+    public static void PlayMenuMusic() {
+        if (Instance == null || Instance._pauseMenuTrack == null) return;
+        // Plays even during a horror event: while paused the listener is muted
+        // (AudioListener.pause) and the menu track is the ONLY audible sound.
+
+        Instance._menuMusicActive = true;
+
+        // Remember where the gameplay track stopped so it resumes from the same spot.
+        if (Instance._activeSource != null && Instance._activeTrack != null
+            && Instance._activeTrack != Instance._pauseMenuTrack
+            && Instance._activeSource.clip == Instance._activeTrack.Clip) {
+            Instance._menuResumeTime = Instance._activeSource.time;
+            Instance._preMenuTrack = Instance._activeTrack;
+        } else if (Instance._preMenuTrack == null) {
+            // Menu opened with no gameplay music (main menu) — nothing to restore.
+            Instance._preMenuTrack = null;
+        }
+
+        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
+        Instance._preDuckVolume = -1f; // the duck is abandoned — the restored track plays at its own level
+        Instance._activeTrack = Instance._pauseMenuTrack;
+        Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(Instance._pauseMenuTrack));
+    }
+
+    /// <summary>
+    /// Restores the gameplay music after the pause menu closes, resuming the
+    /// gameplay track from the position where the menu music took over.
+    /// When no gameplay track is active (main menu → gameplay transition),
+    /// starts the scene's default track.
+    /// </summary>
+    public static void PlayGameMusic() {
+        if (Instance == null) return;
+
+        Instance._menuMusicActive = false;
+        // Closing the menu during an active horror event: the event still owns
+        // the soundscape — stay silent until RestoreAfterEvent refades the track.
+        if (MutedForEvent) return;
+
+        MusicTrack gameplayTrack = Instance._preMenuTrack != null
+            ? Instance._preMenuTrack
+            : (Instance._previousTrack != null && Instance._previousTrack != Instance._pauseMenuTrack
+                ? Instance._previousTrack
+                : Instance._defaultGameTrack);
+        if (gameplayTrack == null) return;
+
+        if (Instance._menuResumeCoroutine != null) Instance.StopCoroutine(Instance._menuResumeCoroutine);
+        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        Instance._activeTrack = gameplayTrack;
+        Instance._menuResumeCoroutine = Instance.StartCoroutine(Instance.ResumeGameplayRoutine(gameplayTrack));
+    }
+
+    private IEnumerator ResumeGameplayRoutine(MusicTrack track) {
+        // Pause every other pooled source (menu track included) while gameplay resumes.
+        foreach (KeyValuePair<MusicTrack, AudioSource> pooled in _sourcePool) {
+            if (pooled.Value == null || pooled.Key == track) continue;
+            pooled.Value.volume = 0f;
+            pooled.Value.Pause();
+        }
+
+        // Resume the gameplay track from where the menu interrupted it.
+        if (_sourcePool.TryGetValue(track, out AudioSource source) && source != null && _menuResumeTime > 0f) {
+            source.time = Mathf.Min(_menuResumeTime, Mathf.Max(0f, track.Clip != null ? track.Clip.length : 0f));
+        }
+        _menuResumeTime = 0f;
+        _preMenuTrack = null;
+
+        yield return FadeRoutine(track);
+    }
+
     private void Awake() {
-        if (Instance != null) {
-            Destroy(gameObject);
+        if (Instance != null && Instance != this) {
+            // A newly loaded scene brings its own director as a config carrier —
+            // adopt its default game track, then drop the duplicate component.
+            if (_defaultGameTrack != null) Instance._defaultGameTrack = _defaultGameTrack;
+            Destroy(this);
             return;
         }
         Instance = this;
-        SaveManager.Instance?.Register(this);
+        RegisterWithSaveManager();
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) {
+        // The persistent director must join the SaveManager of the gameplay scene.
+        RegisterWithSaveManager();
+    }
+
+    private void RegisterWithSaveManager() {
+        if (_registeredWithSaveManager || SaveManager.Instance == null) return;
+        SaveManager.Instance.Register(this);
+        _registeredWithSaveManager = true;
     }
 
     private void OnDestroy() {
-        if (Instance == this) SaveManager.Instance?.Unregister(this);
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (Instance == this && _registeredWithSaveManager) SaveManager.Instance?.Unregister(this);
     }
+
+    private bool _registeredWithSaveManager;
 
     private void Start() {
         // A restored dominant track wins over the scene default: the zone the
@@ -120,6 +239,12 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             // FadeRoutine consumed the position on its first frame — don't
             // re-apply it to later source requests in this session.
             _resumeTime = 0f;
+        }
+        // Menu scenes have no default game track — the pause menu track serves as menu music.
+        else if (_pauseMenuTrack != null) {
+            _menuMusicActive = true;
+            _activeTrack = _pauseMenuTrack;
+            _fadeCoroutine = StartCoroutine(FadeRoutine(_pauseMenuTrack));
         }
     }
 
@@ -142,7 +267,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         // previous track. Explicitly skip the paused-for-menu and muted-for-event
         // states: a paused source also reports isPlaying == false.
         if (_activeSource == null || _activeTrack == null || _activeTrack.Loop) return;
-        if (_fadeCoroutine != null || _mutedForEvent) return;
+        if (_fadeCoroutine != null || MutedForEvent) return;
         if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
 
         if (!_activeSource.isPlaying)
@@ -172,7 +297,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     }
 
     private bool RequestTrackInternal(MusicTrack track, bool playOnce) {
-        if (_mutedForEvent) return false; // horror event owns the music — requests are queued out
+        if (MutedForEvent) return false; // horror event owns the music — requests are queued out
         if (_activeTrack == track) return true;
         if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) return false;
 
@@ -183,6 +308,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         _lastSwitchTime = Time.unscaledTime;
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        if (_duckCoroutine != null) StopCoroutine(_duckCoroutine); // its volume writes would fight FadeRoutine
         _duckCoroutine = null; // track switch cancels any active duck
         _fadeCoroutine = StartCoroutine(FadeRoutine(track));
         return true;
@@ -202,11 +328,12 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// Requests are blocked immediately (before the fade finishes).
     /// </summary>
     public static void MuteForEvent(float fadeDuration) {
-        if (Instance == null || Instance._mutedForEvent) return;
-        Instance._mutedForEvent = true;
+        if (Instance == null) return;
+        Instance._muteOwnerCount++; // nested events stack — each owner must release individually
 
         if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
-        if (Instance._eventPauseCoroutine != null) Instance.StopCoroutine(Instance._eventPauseCoroutine);
+        if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
+        Instance._preDuckVolume = -1f; // the duck is abandoned — restore plays at full level
 
         if (fadeDuration <= 0f) {
             // Mute and pause every pooled source — whatever is playing, it dies now
@@ -265,61 +392,25 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// Pass -1 to use the track's own fade duration.
     /// </summary>
     public static void RestoreAfterEvent(float fadeDurationOverride) {
-        if (Instance == null || !Instance._mutedForEvent) return;
-        Instance._mutedForEvent = false;
+        if (Instance == null || Instance._muteOwnerCount <= 0) return;
+        Instance._muteOwnerCount--;
+        if (Instance._muteOwnerCount > 0) return; // another horror event still owns the soundscape
 
         // An unfinished mute fade must stop — its volume writes would fight the restore fade
         if (Instance._muteCoroutine != null) {
             Instance.StopCoroutine(Instance._muteCoroutine);
             Instance._muteCoroutine = null;
         }
+        Instance._preDuckVolume = -1f; // a duck interrupted by the event must not restore a stale level
+
+        // The menu owns the music — nothing to restore until the menu closes.
+        if (Instance._menuMusicActive) return;
 
         // Refade the track that was active before the event; FadeRoutine
         // un-pauses the pooled source and brings its volume back up.
         MusicTrack track = Instance._activeTrack;
         if (track != null)
             Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track, fadeDurationOverride));
-    }
-
-    /// <summary>
-    /// Pauses the active director track instantly — used when the game is
-    /// paused and the menu music takes over. The track resumes from the same
-    /// position via ResumeForGameplay.
-    /// </summary>
-    public static void PauseForMenu() {
-        if (Instance == null) return;
-
-        if (Instance._fadeCoroutine != null) {
-            Instance.StopCoroutine(Instance._fadeCoroutine);
-            Instance._fadeCoroutine = null;
-        }
-        if (Instance._duckCoroutine != null) {
-            Instance.StopCoroutine(Instance._duckCoroutine);
-            Instance._duckCoroutine = null;
-        }
-
-        // Pause EVERY pooled source, not just the active one — a mid-crossfade
-        // state may have a not-yet-active source already fading in.
-        // _activeSource is always taken from the pool, so it is covered too.
-        foreach (KeyValuePair<MusicTrack, AudioSource> kvp in Instance._sourcePool) {
-            if (kvp.Value == null) continue;
-            kvp.Value.volume = 0f;
-            kvp.Value.Pause();
-        }
-    }
-
-    /// <summary>
-    /// Fades the active director track back in after the pause menu closes.
-    /// No-op when no track is active or the director is muted for a horror event.
-    /// </summary>
-    public static void ResumeForGameplay() {
-        if (Instance == null || Instance._mutedForEvent || Instance._activeTrack == null) return;
-
-        // FadeRoutine only un-pauses sources taken from the pool — resume a
-        // paused active source explicitly so the track keeps playing.
-        if (Instance._activeSource != null) Instance._activeSource.UnPause();
-
-        Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(Instance._activeTrack));
     }
 
     /// <summary>
@@ -334,6 +425,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     }
 
     private void DuckActiveTrackInternal(float targetMultiplier, float fadeDuration) {
+        // During a horror event (or while the menu owns the music) the elevator
+        // must not fight the mute: duck and restore are both ignored.
+        if (_muteOwnerCount > 0 || _menuMusicActive) return;
+
         if (_duckCoroutine != null) StopCoroutine(_duckCoroutine);
 
         AudioSource source = _activeSource;
@@ -381,6 +476,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         _lastSwitchTime = Time.unscaledTime;
 
         if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        if (_duckCoroutine != null) StopCoroutine(_duckCoroutine); // its volume writes would fight FadeRoutine
         _duckCoroutine = null; // track switch cancels any active duck
         if (restoreTo != null) {
             _fadeCoroutine = StartCoroutine(FadeRoutine(restoreTo));
@@ -414,7 +510,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         float duration = fadeDurationOverride >= 0f
             ? fadeDurationOverride
             : (track.FadeDuration < 0f ? _minSwitchInterval : track.FadeDuration);
-        float targetVolume = track.Volume * AudioManager.MusicVolume;
+        float targetVolume = track.Volume;
         AudioClip clip = track.Clip;
 
         AudioSource oldSource = _activeSource;
@@ -463,16 +559,24 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (_sourcePool.TryGetValue(track, out AudioSource pooled) && pooled != null) {
             if (pooled.isPlaying) return pooled;
 
-            // A paused source resumes where it faded out; a stopped source
-            // (one-shot that played through, or never played) starts from the
-            // saved session position if it was just restored from a save.
-            pooled.time = _resumeTime > 0f && track.name == _loadedDominantTrackName ? _resumeTime : 0f;
+            // A paused source resumes where it faded out — its position must not
+            // be touched here (the menu/resume logic manages positions itself).
+            // A stopped source (one-shot that played through) restarts from zero,
+            // or from the saved session position if it was just restored from a save.
+            if (!pooled.loop && !pooled.isPlaying) pooled.time = 0f;
+            if (_resumeTime > 0f && track.name == _loadedDominantTrackName) {
+                pooled.time = _resumeTime;
+            }
             pooled.UnPause();
             if (!pooled.isPlaying) pooled.Play();
             return pooled;
         }
 
-        AudioSource created = AudioManager.Instance.PlayNewMusicSource(track.Clip, track.Loop);
+        AudioSource created = AudioManager.Instance.PlayNewMusicSource(track.Clip, track.Loop, track.name);
+        if (_musicGroup != null) created.outputAudioMixerGroup = _musicGroup;
+        // The pause menu track is the ONLY sound audible while the game is
+        // paused (AudioListener.pause silences everything else).
+        created.ignoreListenerPause = track == _pauseMenuTrack;
         if (_resumeTime > 0f && track.name == _loadedDominantTrackName) {
             created.time = Mathf.Min(_resumeTime, Mathf.Max(0f, track.Clip != null ? track.Clip.length : 0f));
         }

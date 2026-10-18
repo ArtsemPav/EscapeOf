@@ -172,6 +172,12 @@ public class WakeUpIntroController : MonoBehaviour
 
     private void Start()
     {
+        // Route intro sources to the SFX bus unless they already have a mixer group from the Inspector.
+        if (_wakeSound != null && _wakeSound.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_wakeSound);
+        if (_ambientSource != null && _ambientSource.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_ambientSource);
+
         if (!SaveManager.ConsumeWakeUpIntroRequest())
         {
             // Unconditional so the flag-loss is visible even without debug logging.
@@ -354,16 +360,7 @@ public class WakeUpIntroController : MonoBehaviour
     /// <summary>Fades the ambient loop in over the wake-up (unscaled — intro is never paused).</summary>
     private IEnumerator AmbientFadeInRoutine()
     {
-        float t = 0f;
-        while (t < _ambientFadeInDuration)
-        {
-            t += Time.deltaTime;
-            if (_ambientSource != null)
-                _ambientSource.volume = Mathf.Lerp(0f, _ambientTargetVolume, t / _ambientFadeInDuration);
-            yield return null;
-        }
-        if (_ambientSource != null)
-            _ambientSource.volume = _ambientTargetVolume;
+        yield return AudioFades.Volume(_ambientSource, _ambientTargetVolume, _ambientFadeInDuration);
     }
 
     private void PoseLying()

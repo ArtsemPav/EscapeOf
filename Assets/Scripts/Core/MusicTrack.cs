@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Describes a single music track: the clip, its target volume and fade time.
-/// Create one asset per track in /Assets/sound and reference it from
+/// Create one asset per track in /Assets/Data/Sound and reference it from
 /// MusicZone, MusicDirector or other systems instead of raw AudioClips.
 /// </summary>
 [CreateAssetMenu(fileName = "MusicTrack", menuName = "Audio/Music Track")]

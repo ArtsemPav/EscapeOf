@@ -106,6 +106,7 @@ public class PaintingColumn : MonoBehaviour, ISaveable
         _audioSource.minDistance   = _moveMinDistance;
         _audioSource.maxDistance   = _moveMaxDistance;
         _audioSource.loop          = false;
+        AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
     }
 
     private void PlayMoveSound()

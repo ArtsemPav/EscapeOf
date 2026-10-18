@@ -152,6 +152,11 @@ public class FlashlightController : MonoBehaviour, ISaveable
 
     private void Start()
     {
+        // Route to the SFX bus once — deferred to Start so the AudioManager
+        // singleton is guaranteed to exist (Awake order is not).
+        if (_audioSource != null && _audioSource.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
+
         if (InventorySystem.Instance != null)
         {
             InventorySystem.Instance.OnInventoryChanged += OnInventoryChanged;

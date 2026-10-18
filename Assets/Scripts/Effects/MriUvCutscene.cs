@@ -197,6 +197,10 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         if (_signsRoot != null)
             _signs = _signsRoot.GetComponentsInChildren<HiddenWallSign>(true);
 
+        // Route the fallback source to the SFX bus unless it already has a mixer group.
+        if (_audioSource != null && _audioSource.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
+
         SaveManager.Instance?.Register(this);
     }
 

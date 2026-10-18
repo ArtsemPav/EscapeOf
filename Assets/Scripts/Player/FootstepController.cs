@@ -79,6 +79,12 @@ public class FootstepController : MonoBehaviour
 
     private void Start()
     {
+        // Route the pooled sources to the SFX bus once — deferred to Start so the
+        // AudioManager singleton is guaranteed to exist (Awake order is not).
+        for (int i = 0; i < PoolSize; i++)
+            if (_audioPool[i] != null && _audioPool[i].outputAudioMixerGroup == null)
+                AudioManager.Instance?.RouteSourceToSfxGroup(_audioPool[i]);
+
         Subscribe();
     }
 

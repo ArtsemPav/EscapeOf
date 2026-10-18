@@ -117,7 +117,7 @@ public class SnakeCrawlAmbient : MonoBehaviour
 
         CreateSnakeSource();
         _crawlRoutine = StartCoroutine(CrawlRoutine());
-        _fadeRoutine = StartCoroutine(FadeRoutine(0f, _volume, _fadeInDuration));
+        _fadeRoutine = StartCoroutine(AudioFades.Volume(_snakeSource, _volume, _fadeInDuration));
     }
 
     /// <summary>Fades out and destroys the snake sound. Call when puzzle is exited or solved.</summary>
@@ -184,6 +184,7 @@ public class SnakeCrawlAmbient : MonoBehaviour
         _snakeSource.loop          = true;
         _snakeSource.playOnAwake   = false;
         _snakeSource.rolloffMode   = AudioRolloffMode.Linear;
+        AudioManager.Instance?.RouteSourceToSfxGroup(_snakeSource);
         _snakeSource.Play();
     }
 
@@ -233,38 +234,10 @@ public class SnakeCrawlAmbient : MonoBehaviour
 
     // ── Fade ──────────────────────────────────────────────────────────────────
 
-    private IEnumerator FadeRoutine(float from, float to, float duration)
-    {
-        if (_snakeSource == null) yield break;
-
-        float elapsed = 0f;
-        while (elapsed < duration && _snakeSource != null)
-        {
-            elapsed += Time.deltaTime;
-            _snakeSource.volume = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
-            yield return null;
-        }
-
-        if (_snakeSource != null)
-            _snakeSource.volume = to;
-
-        _fadeRoutine = null;
-    }
-
     private IEnumerator FadeOutAndDestroyRoutine(float duration)
     {
         if (_snakeSource != null)
-        {
-            float startVol = _snakeSource.volume;
-            float elapsed  = 0f;
-
-            while (elapsed < duration && _snakeSource != null)
-            {
-                elapsed += Time.deltaTime;
-                _snakeSource.volume = Mathf.Lerp(startVol, 0f, Mathf.Clamp01(elapsed / duration));
-                yield return null;
-            }
-        }
+            yield return AudioFades.Volume(_snakeSource, 0f, duration);
 
         if (_snakeObject != null)
             Destroy(_snakeObject);

@@ -276,6 +276,7 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             _audioSource.playOnAwake  = false;
             _audioSource.spatialBlend  = 1f;
             _audioSource.loop          = false;
+            AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
         }
 
         if (_steamAudioSource == null)
@@ -285,6 +286,7 @@ public class PressurePuzzle : MonoBehaviour, ISaveable
             _steamAudioSource.spatialBlend  = 1f;
             _steamAudioSource.loop          = true;
             _steamAudioSource.volume        = 0f;
+            AudioManager.Instance?.RouteSourceToSfxGroup(_steamAudioSource);
         }
 
         if (_steamLoopClip != null)

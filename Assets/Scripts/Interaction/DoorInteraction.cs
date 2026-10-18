@@ -689,6 +689,7 @@ namespace Escape.Core {
             source.maxDistance  = 6f;
             source.volume     = _motionVolume;
             source.playOnAwake = false;
+            AudioManager.Instance?.RouteSourceToSfxGroup(source);
             return source;
         }
 

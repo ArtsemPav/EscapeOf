@@ -102,6 +102,7 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
         _audioSource.loop = true;
         _audioSource.playOnAwake = false;
         _audioSource.volume = 0f;
+        AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
     }
 
     /// <summary>
@@ -199,7 +200,7 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
         AudioManager.Instance?.RegisterLoopSource(_audioSource, _volume);
 
         StopFadeCoroutine();
-        _fadeCoroutine = StartCoroutine(FadeVolume(_audioSource.volume, _volume, FadeDuration));
+        _fadeCoroutine = StartCoroutine(AudioFades.Volume(_audioSource, _volume, FadeDuration));
     }
 
     /// <summary>Fades out the duck sound and stops playback after fade.</summary>
@@ -211,7 +212,7 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
         AudioManager.Instance?.UnregisterLoopSource(_audioSource);
 
         StopFadeCoroutine();
-        _fadeCoroutine = StartCoroutine(FadeVolume(_audioSource.volume, 0f, FadeDuration, () =>
+        _fadeCoroutine = StartCoroutine(AudioFades.Volume(_audioSource, 0f, FadeDuration, () =>
         {
             if (_audioSource != null)
             {
@@ -240,25 +241,6 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     {
         if (_audioSource != null && _soundTarget != null)
             _audioSource.transform.position = _soundTarget.position;
-    }
-
-    /// <summary>Smoothly transitions volume over time.</summary>
-    private IEnumerator FadeVolume(float from, float to, float duration, System.Action onComplete = null)
-    {
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            if (_audioSource != null)
-                _audioSource.volume = Mathf.Lerp(from, to, Mathf.Clamp01(elapsed / duration));
-            yield return null;
-        }
-
-        if (_audioSource != null)
-            _audioSource.volume = to;
-
-        onComplete?.Invoke();
-        _fadeCoroutine = null;
     }
 
     private void StopFadeCoroutine()

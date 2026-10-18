@@ -520,7 +520,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
         AudioManager.Instance?.StopBackgroundLayer();
         AudioManager.Instance?.UnmuteBackground();
-        AudioManager.Instance?.PlayGameMusic();
+        MusicDirector.PlayGameMusic();
     }
 
     // ── UI & Visuals ───────────────────────────────────────────────────────────

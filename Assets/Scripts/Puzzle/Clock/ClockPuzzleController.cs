@@ -304,14 +304,9 @@ public class ClockPuzzleController : MonoBehaviour
             return;
         }
 
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySFX(_chimeClip, _chimeVolume);
-        }
-        else
-        {
-            AudioSource.PlayClipAtPoint(_chimeClip, transform.position, _chimeVolume);
-        }
+        // Pooled 3D one-shot through AudioManager — routed to the SFX mixer group,
+        // unlike AudioSource.PlayClipAtPoint which creates an unrouted orphan source.
+        AudioManager.Instance?.Play3DOneShot(_chimeClip, transform.position, _chimeVolume);
     }
 
     // ── Waveform Analysis ──────────────────────────────────────────────────────

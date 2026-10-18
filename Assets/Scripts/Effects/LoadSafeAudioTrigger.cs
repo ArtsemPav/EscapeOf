@@ -18,6 +18,10 @@ public class LoadSafeAudioTrigger : MonoBehaviour
     {
         if (_audioSource == null)
             _audioSource = GetComponent<AudioSource>();
+
+        // Route to the SFX bus unless the source already has a mixer group from the Inspector.
+        if (_audioSource != null && _audioSource.outputAudioMixerGroup == null)
+            AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
     }
 
     /// <summary>Проиграть звук. Игнорируется во время начальной загрузки сейва.</summary>

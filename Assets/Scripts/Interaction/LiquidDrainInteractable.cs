@@ -180,7 +180,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
             _drainSource.loop             = false;
             _drainSource.playOnAwake      = false;
             _drainSource.Play();
-            AudioManager.Instance?.RegisterLoopSource(_drainSource, _drainVolume);
+            AudioManager.Instance?.RouteSourceToSfxGroup(_drainSource);
         }
 
         _liquid.AnimateFillTo(0f, _drainDuration);

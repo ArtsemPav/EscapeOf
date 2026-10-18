@@ -194,6 +194,15 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     [Tooltip("Seconds for the background music to fade to silence in MuteBackgroundMusic(). 0 = instant cut.")]
     [SerializeField] private float _musicMuteFadeDuration = 2f;
 
+    [Header("Music Ownership")]
+    [Tooltip("Если true, событие при активации САМО глушит фоновую музыку, а при завершении — возвращает её. " +
+             "Ручные MuteBackgroundMusic/RestoreBackgroundMusic больше не нужно вешать в On Activated / On Deactivated.")]
+    [SerializeField] private bool _ownsBackgroundMusic = true;
+
+    [Tooltip("Страховка: сколько секунд музыка остаётся заглушённой, если событие так и не завершилось " +
+             "(напр. игрок ушёл, не досмотрев). 0 = без ограничения. Отсчёт с момента активации.")]
+    [SerializeField] private float _musicMuteTimeout = 30f;
+
     [Header("Interactable")]
     [Tooltip("Объект с HorrorInteractable который станет активным при срабатывании события.\n" +
              "Перетащи объект (например телефон). При активации он автоматически «включится»\n" +
@@ -223,6 +232,10 @@ public class HorrorEvent : MonoBehaviour, ISaveable
 
     // For OnPlayerEnterZone with Puzzle To Watch: false until the prerequisite puzzle is solved
     private bool _prerequisiteMet = true;
+
+    // True while this event holds a MusicDirector mute (ReleaseMusic pending)
+    private bool _holdsMusicMute;
+    private Coroutine _musicTimeoutCoroutine;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -462,7 +475,59 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     {
         if (HasFired) return;
         HasFired = true;
+        BeginMusicOwnership();
         StartCoroutine(ActivateRoutine());
+    }
+
+    // ── Background music ownership ────────────────────────────────────────────
+
+    /// <summary>
+    /// When _ownsBackgroundMusic is set, the event mutes the background music on
+    /// activation and releases the mute when it finishes (Deactivate, StopSoundObject
+    /// for interactable events, or the _musicMuteTimeout failsafe). Nested events
+    /// are safe: MusicDirector counts mute owners, so the music returns only when
+    /// the LAST owning event releases.
+    /// </summary>
+    private void BeginMusicOwnership()
+    {
+        if (!_ownsBackgroundMusic) return;
+        _holdsMusicMute = true;
+        MusicDirector.MuteForEvent(_musicMuteFadeDuration);
+
+        if (_musicMuteTimeout > 0f)
+        {
+            if (_musicTimeoutCoroutine != null) StopCoroutine(_musicTimeoutCoroutine);
+            _musicTimeoutCoroutine = StartCoroutine(MusicTimeoutRoutine());
+        }
+    }
+
+    /// <summary>Releases this event's music mute exactly once.</summary>
+    private void EndMusicOwnership()
+    {
+        if (_musicTimeoutCoroutine != null)
+        {
+            StopCoroutine(_musicTimeoutCoroutine);
+            _musicTimeoutCoroutine = null;
+        }
+        if (!_holdsMusicMute) return;
+        _holdsMusicMute = false;
+        MusicDirector.RestoreAfterEvent(_musicRestoreFadeDuration);
+    }
+
+    /// <summary>
+    /// Failsafe: if the event never finished (the player left the vent without
+    /// crouching, an interactable was never answered), restore the music after
+    /// _musicMuteTimeout seconds so the game is never left music-less.
+    /// </summary>
+    private IEnumerator MusicTimeoutRoutine()
+    {
+        yield return new WaitForSeconds(_musicMuteTimeout);
+        _musicTimeoutCoroutine = null;
+        if (_holdsMusicMute)
+        {
+            _holdsMusicMute = false;
+            MusicDirector.RestoreAfterEvent(_musicRestoreFadeDuration);
+        }
     }
 
     /// <summary>
@@ -548,6 +613,8 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     /// </summary>
     public void Deactivate()
     {
+        EndMusicOwnership();
+
         // Если звук играет на том же объекте что и Target —
         // скрываем только визуал, ждём пока звук доиграет, потом выключаем.
         if (_soundObject != null && _target != null &&
@@ -597,6 +664,8 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     {
         if (_soundObject != null && _soundObject.TryGetComponent(out AudioSource audio))
             audio.Stop();
+        // The player answered the interactable — the event is effectively over
+        EndMusicOwnership();
     }
 
     /// <summary>Helper for UnityEvents in prefabs to play sound without scene dependencies.</summary>

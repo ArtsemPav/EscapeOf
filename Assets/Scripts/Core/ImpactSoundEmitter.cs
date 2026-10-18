@@ -53,6 +53,7 @@ public class ImpactSoundEmitter : MonoBehaviour
         _audioSource.minDistance = _minDistance;
         _audioSource.maxDistance = _maxDistance;
         _audioSource.rolloffMode = AudioRolloffMode.Logarithmic;
+        AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
     }
 
     private void OnCollisionEnter(Collision collision)

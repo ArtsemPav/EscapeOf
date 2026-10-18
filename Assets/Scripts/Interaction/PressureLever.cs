@@ -79,6 +79,7 @@ public class PressureLever : MonoBehaviour, IInteractable
             _audioSource.playOnAwake  = false;
             _audioSource.spatialBlend = 1f;
             _audioSource.loop         = false;
+            AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
         }
 
         _puzzle = GetComponentInParent<PressurePuzzle>();
