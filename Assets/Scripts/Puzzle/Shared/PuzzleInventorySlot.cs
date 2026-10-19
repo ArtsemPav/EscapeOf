@@ -17,6 +17,7 @@ public class PuzzleInventorySlot : MonoBehaviour,
     [SerializeField] private Image iconImage;
 
     private PuzzleInventoryBar _bar;
+    private IconHoverScale _iconHoverScale;
 
     /// <summary>The item currently assigned to this slot, or null if empty.</summary>
     public ItemData Item { get; private set; }
@@ -31,6 +32,7 @@ public class PuzzleInventorySlot : MonoBehaviour,
     public void Init(PuzzleInventoryBar bar)
     {
         _bar = bar;
+        _iconHoverScale = GetComponentInChildren<IconHoverScale>(true);
     }
 
     /// <summary>
@@ -71,12 +73,14 @@ public class PuzzleInventorySlot : MonoBehaviour,
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (!HasItem) return;
+        _iconHoverScale?.SetHovered(true);
         ItemTooltip.Instance?.Show(Item, GetComponent<RectTransform>());
         UI.PuzzleCursor.Instance?.SetSlotHover(true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
+        _iconHoverScale?.SetHovered(false);
         ItemTooltip.Instance?.Hide();
         UI.PuzzleCursor.Instance?.SetSlotHover(false);
     }
@@ -84,6 +88,7 @@ public class PuzzleInventorySlot : MonoBehaviour,
     public void OnPointerDown(PointerEventData eventData)
     {
         if (!HasItem) return;
+        _iconHoverScale?.PlayPressSound();
         UI.PuzzleCursor.Instance?.SetSlotPress(true);
     }
 
@@ -112,6 +117,7 @@ public class PuzzleInventorySlot : MonoBehaviour,
     {
         if (!HasItem) return;
         ItemTooltip.Instance?.Hide();
+        _iconHoverScale?.SetHovered(false);
         _bar?.OnSlotBeginDrag(this, eventData);
     }
 

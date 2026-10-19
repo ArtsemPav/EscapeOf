@@ -98,7 +98,14 @@ public class GameManager : MonoBehaviour, ISaveable
 
     private void OnToggleMenu()
     {
-        // Не обрабатываем ESC если открыта другая панель (инвентарь, превью и т.д.)
+        // ESC закрывает таб-инвентарь и не открывает паузу в тот же кадр.
+        if (InventoryUI.Instance != null && InventoryUI.Instance.IsOpen)
+        {
+            InventoryUI.Instance.CloseInventory();
+            return;
+        }
+
+        // Не обрабатываем ESC если открыта другая панель (превью, пазл и т.д.)
         if (!_isPaused && UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen)
             return;
 

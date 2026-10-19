@@ -17,6 +17,9 @@ public class InventoryUI : MonoBehaviour
     private bool _isOpen;
     private InventorySlot[] _slots;
 
+    /// <summary>True while the inventory panel is open.</summary>
+    public bool IsOpen => _isOpen;
+
     private void Awake()
     {
         Instance = this;

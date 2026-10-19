@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3008859381933688961}
   - component: {fileID: 1546250762797785902}
   m_Layer: 5
-  m_Name: SlotPrefab
+  m_Name: PRF_SlotPrefab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -103,6 +103,7 @@ GameObject:
   - component: {fileID: 7540632590601540850}
   - component: {fileID: 1995599505002978964}
   - component: {fileID: 9002267320477687621}
+  - component: {fileID: 6510623128876934839}
   m_Layer: 5
   m_Name: Icon
   m_TagString: Untagged
@@ -192,3 +193,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DraggableItem
   iconImage: {fileID: 7540632590601540850}
+--- !u!114 &6510623128876934839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9202201002238775353}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a0a7a726415a7e4285256db78ae0c97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IconHoverScale
+  hoverScale: 1.12
+  scaleSpeed: 8
+  _hoverClip: {fileID: 8300000, guid: 659c387eebfa8b9468ab671c83d3e150, type: 3}
+  _hoverVolume: 0.7
+  _pressClip: {fileID: 8300000, guid: 1873c566b3f3a1b49acb9bfee2a3271c, type: 3}
+  _pressVolume: 0.7

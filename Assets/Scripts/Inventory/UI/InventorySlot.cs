@@ -6,16 +6,24 @@ using UnityEngine.UI;
 /// One inventory slot. Always visible as a background cell.
 /// Shows item icon when filled, hides icon when empty.
 /// Handles drag-and-drop: moves items between slots or tries crafting.
-/// Shows item tooltip on hover.
 /// Left-click shows the item's 3D preview in the embedded InventoryItemPreview panel.
+/// On hover the icon smoothly scales up via IconHoverScale (no tooltip here —
+/// the puzzle inventory bar keeps its own hover tooltip).
 /// </summary>
-public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler, IPointerDownHandler
 {
     [SerializeField] private Image iconImage;
+
+    private IconHoverScale _iconHoverScale;
 
     public int SlotIndex { get; set; }
     public ItemData Item { get; private set; }
     public bool IsEmpty => Item == null;
+
+    private void Awake()
+    {
+        _iconHoverScale = GetComponentInChildren<IconHoverScale>(true);
+    }
 
     /// <summary>Fills the slot with an item and shows its icon.</summary>
     public void Setup(ItemData item)
@@ -44,12 +52,19 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (IsEmpty) return;
-        ItemTooltip.Instance?.Show(Item, GetComponent<RectTransform>());
+        _iconHoverScale?.SetHovered(true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        ItemTooltip.Instance?.Hide();
+        _iconHoverScale?.SetHovered(false);
+    }
+
+    /// <summary>Plays the press sound when the player presses an item icon.</summary>
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (IsEmpty) return;
+        _iconHoverScale?.PlayPressSound();
     }
 
     /// <summary>Left-click shows the item's 3D preview in the embedded preview panel.</summary>
@@ -58,7 +73,6 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
         if (eventData.button != PointerEventData.InputButton.Left) return;
         if (IsEmpty) return;
 
-        ItemTooltip.Instance?.Hide();
         InventoryItemPreview.Instance?.Show(Item);
     }
 
