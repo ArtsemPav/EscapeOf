@@ -211,7 +211,13 @@ public class FPSController : MonoBehaviour, ISaveable
     {
         _characterController = GetComponent<CharacterController>();
         _targetHeight = standingHeight;
-        _baseCameraLocalY = cameraTransform.localPosition.y;
+        // Normalize the camera into the neutral standing pose. The scene file
+        // can carry a stale pose if it was saved while a cinematic held the
+        // camera in world space (e.g. mid intro) — trusting it desyncs the
+        // camera from the capsule (visible as looking through walls).
+        _baseCameraLocalY = standingHeight - cameraOffset;
+        cameraTransform.localPosition = new Vector3(0f, _baseCameraLocalY, 0f);
+        cameraTransform.localRotation = Quaternion.identity;
         _playerCamera = Camera.main;
         SaveManager.Instance?.Register(this);
     }
