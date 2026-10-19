@@ -855,7 +855,6 @@ Transform:
   - {fileID: 1617077152845642905}
   - {fileID: 2911125352330987822}
   - {fileID: 5943580494493711668}
-  - {fileID: 3411013877474345023}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!114 &114341542026717196
@@ -1161,37 +1160,6 @@ MonoBehaviour:
   _onFired:
     m_PersistentCalls:
       m_Calls: []
---- !u!1 &3826536853485600766
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 3411013877474345023}
-  m_Layer: 0
-  m_Name: BeziTestObj
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &3411013877474345023
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3826536853485600766}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 5208663571104902764}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &3889523670103735808
 GameObject:
   m_ObjectHideFlags: 0
@@ -13009,6 +12977,26 @@ PrefabInstance:
       propertyPath: _flashlightSupportLights.Array.size
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3226673696525262679, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_Target
+      value: 
+      objectReference: {fileID: 5652831438855357203}
+    - target: {fileID: 3226673696525262679, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[1].m_Target
+      value: 
+      objectReference: {fileID: 2355629700616449967}
+    - target: {fileID: 3226673696525262679, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[2].m_Target
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 3226673696525262679, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: Play
+      objectReference: {fileID: 0}
+    - target: {fileID: 3226673696525262679, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[1].m_MethodName
+      value: RaiseEvent
+      objectReference: {fileID: 0}
     - target: {fileID: 5255321210154169151, guid: c6346ad04a699a149b8121db55629e35, type: 3}
       propertyPath: m_Size.x
       value: 0.59
@@ -13144,6 +13132,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5388190922982622878, guid: c6346ad04a699a149b8121db55629e35, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2355629700616449967}
+    - targetCorrespondingSourceObject: {fileID: 5388190922982622878, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8948833059129634398}
   m_SourcePrefab: {fileID: 100100000, guid: c6346ad04a699a149b8121db55629e35, type: 3}
 --- !u!4 &39494936868805452 stripped
 Transform:
@@ -13168,6 +13159,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameEventRaiser
   _event: {fileID: 11400000, guid: 64444ccc85cb63d4aad05f53cbf301bd, type: 2}
+--- !u!114 &8948833059129634398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1883455060722116332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 134a261ffc123fc40bad16f5b657a83b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LoadSafeAudioTrigger
+  _audioSource: {fileID: 5879811763010492260}
+--- !u!114 &5652831438855357203 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2204291294107247457, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+  m_PrefabInstance: {fileID: 5829297833749897330}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1883455060722116332}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9907c84a05df474485f127679cacfd4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EarthquakeFOVPulse
 --- !u!82 &5879811763010492260 stripped
 AudioSource:
   m_CorrespondingSourceObject: {fileID: 107130760682190614, guid: c6346ad04a699a149b8121db55629e35, type: 3}
@@ -16762,6 +16777,14 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 4096
       objectReference: {fileID: 0}
+    - target: {fileID: 10800000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+      propertyPath: m_BoundingSphereOverride.y
+      value: NaN
+      objectReference: {fileID: 0}
+    - target: {fileID: 10800000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+      propertyPath: m_BoundingSphereOverride.z
+      value: 5.050952e-39
+      objectReference: {fileID: 0}
     - target: {fileID: 842408713643506030, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       propertyPath: m_RenderingLayersMask.m_Bits
       value: 4096
@@ -18293,6 +18316,14 @@ PrefabInstance:
     - target: {fileID: 10800000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 4096
+      objectReference: {fileID: 0}
+    - target: {fileID: 10800000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+      propertyPath: m_BoundingSphereOverride.y
+      value: NaN
+      objectReference: {fileID: 0}
+    - target: {fileID: 10800000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+      propertyPath: m_BoundingSphereOverride.z
+      value: 8.724542e-39
       objectReference: {fileID: 0}
     - target: {fileID: 842408713643506030, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       propertyPath: m_RenderingLayersMask.m_Bits

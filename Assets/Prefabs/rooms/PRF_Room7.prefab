@@ -11027,6 +11027,37 @@ Transform:
   - {fileID: 8666900163296864926}
   m_Father: {fileID: 4569375799012946507}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &5425245963599274365
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5173727407831762589}
+  m_Layer: 0
+  m_Name: Point_Locker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5173727407831762589
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5425245963599274365}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.0256753, y: 1.8809283, z: 6.7052183}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4039184290761972785}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &5532885987282823605
 GameObject:
   m_ObjectHideFlags: 0
@@ -11258,6 +11289,7 @@ Transform:
   - {fileID: 1243963512444272233}
   - {fileID: 4039184290761972785}
   - {fileID: 232945082088245011}
+  - {fileID: 4946274885077378026}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7871157805275546529
@@ -11448,9 +11480,9 @@ MonoBehaviour:
   _sitPoint: {fileID: 8732048856042496846}
   _bedGazeTarget: {fileID: 1367537108579499447}
   _lyingGazeTarget: {fileID: 2947361033422837709}
-  _lyingSecondGazeTarget: {fileID: 0}
+  _lyingSecondGazeTarget: {fileID: 5016594920887837967}
   _lyingGazeTurnDuration: 1.6
-  _standGazeTarget: {fileID: 0}
+  _standGazeTarget: {fileID: 5173727407831762589}
   _startDelay: 0.4
   _firstPartOpenDuration: 2.2
   _firstBlinkDuration: 0.9
@@ -11464,7 +11496,7 @@ MonoBehaviour:
   _sitPauseDuration: 0.7
   _standUpDuration: 2
   _standSettleDuration: 0.6
-  _gazeHoldTime: 1.1
+  _gazeHoldTime: 1.6
   _maxGazePitch: 45
   _lampFocusWeight: 0.25
   _lampFocusDuration: 2
@@ -11472,7 +11504,7 @@ MonoBehaviour:
   _wakeSound: {fileID: 0}
   _ambientSource: {fileID: 231923041190059172}
   _ambientFadeInDuration: 3
-  _debugLogging: 0
+  _debugLogging: 1
 --- !u!1 &6848094933213094165
 GameObject:
   m_ObjectHideFlags: 0
@@ -12073,6 +12105,54 @@ Transform:
   - {fileID: 4511575830935786980}
   m_Father: {fileID: 4569375799012946507}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7859820974066420318
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4946274885077378026}
+  - component: {fileID: 6779685851667587066}
+  m_Layer: 0
+  m_Name: EyelidOverlayHost
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4946274885077378026
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7859820974066420318}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4569375799012946507}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6779685851667587066
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7859820974066420318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d9fe447ea75e2545bba4c72c626a065, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EyelidOverlay
+  _shader: {fileID: 4800000, guid: fb911e056ffa9104798d943f971214e3, type: 3}
+  lidCurve: 0.6
+  lidEdgeSoftness: 0.08
+  sleepTint: {r: 0.02, g: 0.02, b: 0.04, a: 1}
 --- !u!1 &7929887293099268692
 GameObject:
   m_ObjectHideFlags: 0
@@ -12560,6 +12640,7 @@ Transform:
   - {fileID: 6776360180095174013}
   - {fileID: 2795068606083738271}
   - {fileID: 9082819434892479366}
+  - {fileID: 5173727407831762589}
   m_Father: {fileID: 4569375799012946507}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &9155039838600425289

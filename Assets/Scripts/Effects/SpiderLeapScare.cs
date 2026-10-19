@@ -1,20 +1,19 @@
 using UnityEngine;
 
 /// <summary>
-/// Spider horror effect: the spider leaps at the player, then turns and runs away.
+/// Spider horror effect with three phases:
+///   1. Leap — plays the leap animation and lunges toward the leap target
+///      (a scene object, or the player's camera if none assigned).
+///   2. Eat — plays the eating animation, standing still at the target.
+///   3. Escape — turns toward the flee point (or away from the player) and
+///      crawls there, then disappears.
 /// Attach to a spider GameObject that is initially inactive.
-/// A <see cref="HorrorEvent"/> with <c>AppearAndStay</c> activates the GameObject;
-/// this script handles the leap and the escape in <see cref="OnEnable"/> and
-/// deactivates the GameObject when the escape ends (so no HorrorEvent delay is needed).
-///
-/// Phase 1 (leap): plays the leap animation, faces the player and lunges toward
-/// the player's camera, stopping a short distance in front of it.
-/// Phase 2 (escape): plays the walk animation, turns away from the player and
-/// runs along its own forward axis until the flee duration elapses.
+/// A HorrorEvent activates the GameObject; this script handles all phases
+/// and deactivates the GameObject when the escape ends.
 /// </summary>
 public class SpiderLeapScare : MonoBehaviour
 {
-    [Header("Leap (toward the player)")]
+    [Header("Leap")]
     [Tooltip("Name of the leap animation state in the Animator Controller.")]
     [SerializeField] private string _leapStateName = "rig|leap";
 
@@ -24,7 +23,7 @@ public class SpiderLeapScare : MonoBehaviour
     [Tooltip("Leap speed (units per second).")]
     [SerializeField] private float _leapSpeed = 7f;
 
-    [Tooltip("Distance from the camera at which the leap stops (units).")]
+    [Tooltip("Distance from the target at which the leap stops (units).")]
     [SerializeField] private float _leapStopDistance = 0.8f;
 
     [Tooltip("Player camera. Auto-assigned to Camera.main if left empty.")]
@@ -34,17 +33,24 @@ public class SpiderLeapScare : MonoBehaviour
              "Пусто = прежнее поведение (прыжок к камере игрока).")]
     [SerializeField] private Transform _leapTarget;
 
-    [Header("Escape (away from the player)")]
+    [Header("Eat (at the target)")]
+    [Tooltip("Name of the eating animation state (played at the leap target before fleeing).")]
+    [SerializeField] private string _eatStateName = "rig|eating";
+
+    [Tooltip("How long the spider eats before crawling to the flee point (seconds).")]
+    [SerializeField] private float _eatDuration = 2f;
+
+    [Header("Escape (to the flee point)")]
     [Tooltip("Name of the run/walk animation state in the Animator Controller.")]
     [SerializeField] private string _fleeStateName = "rig|walk";
 
     [Tooltip("Escape speed (units per second).")]
     [SerializeField] private float _fleeSpeed = 6f;
 
-    [Tooltip("Escape duration before the spider disappears (seconds).")]
+    [Tooltip("Escape duration before the spider disappears (seconds). Safety timeout.")]
     [SerializeField] private float _fleeLifetime = 1.5f;
 
-    [Tooltip("Куда ползти после прыжка. Назначь пустышку-маркер в сцене. " +
+    [Tooltip("Куда ползти после поедания. Назначь пустышку-маркер в сцене. " +
              "Пусто = прежнее поведение (убегание от игрока/цели прыжка).")]
     [SerializeField] private Transform _fleePoint;
 
@@ -56,13 +62,15 @@ public class SpiderLeapScare : MonoBehaviour
 
     private const string PlayerTag = "Player";
 
-    private Animator _animator;
-    private Transform _player;
-    private float   _fleeTimer;
-    private bool    _escaping;
-    private bool    _leaping;
+    private enum Phase { Leap, Eat, Escape }
 
     private const float LeapStartTimeout = 0.5f; // fallback if the leap state never plays
+
+    private Animator _animator;
+    private Transform _player;
+    private float   _phaseTimer;
+    private bool    _leaping;   // movement unlocked once the animator entered the leap state
+    private Phase   _phase;
 
     private void Awake()
     {
@@ -71,8 +79,8 @@ public class SpiderLeapScare : MonoBehaviour
 
     private void OnEnable()
     {
-        _fleeTimer = 0f;
-        _escaping  = false;
+        _phaseTimer = 0f;
+        _phase      = Phase.Leap;
 
         if (_playerCamera == null) _playerCamera = Camera.main;
         if (_player == null)
@@ -113,23 +121,22 @@ public class SpiderLeapScare : MonoBehaviour
             yield return null;
         }
         _leaping = true;
+        Debug.Log($"[SpiderLeapScare '{name}'] Leap released after {elapsed:F2}s (timeout={elapsed >= LeapStartTimeout})", this);
     }
 
     private void Update()
     {
         if (!_leaping) return;
 
-        if (!_escaping)
+        switch (_phase)
         {
-            LeapPhase();
-        }
-        else
-        {
-            EscapePhase();
+            case Phase.Leap:   LeapPhase();   break;
+            case Phase.Eat:    EatPhase();    break;
+            case Phase.Escape: EscapePhase(); break;
         }
     }
 
-    /// <summary>Lunges toward the leap target (or the player's camera); switches to the escape when close or out of time.</summary>
+    /// <summary>Lunges toward the leap target (or the player's camera); switches to eating when close or out of time.</summary>
     private void LeapPhase()
     {
         // Цель прыжка: назначенный объект, иначе камера игрока (прежнее поведение).
@@ -151,14 +158,36 @@ public class SpiderLeapScare : MonoBehaviour
                 transform.position, targetPos, _leapSpeed * Time.deltaTime);
 
             float dist = Vector3.Distance(transform.position, target.position);
-            if (_fleeTimer >= _leapDuration || dist <= _leapStopDistance + 0.05f)
+            if (_phaseTimer >= _leapDuration || dist <= _leapStopDistance + 0.05f)
             {
-                StartEscape();
+                StartEating();
                 return;
             }
         }
 
-        _fleeTimer += Time.deltaTime;
+        _phaseTimer += Time.deltaTime;
+    }
+
+    /// <summary>Spider lands at the target and eats for _eatDuration seconds.</summary>
+    private void StartEating()
+    {
+        _phase      = Phase.Eat;
+        _phaseTimer = 0f;
+        Debug.Log($"[SpiderLeapScare '{name}'] StartEating at pos={transform.position}", this);
+        if (_animator != null)
+        {
+            // Перезапуск компонента сбрасывает culling-кэш и гарантирует проигрыш eating.
+            _animator.enabled = false;
+            _animator.enabled = true;
+            _animator.Play(_eatStateName, 0, 0f);
+        }
+    }
+
+    private void EatPhase()
+    {
+        _phaseTimer += Time.deltaTime;
+        if (_phaseTimer >= _eatDuration)
+            StartEscape();
     }
 
     /// <summary>Turns toward the flee point (or away from the player) and crawls until arrival or timeout.</summary>
@@ -200,23 +229,22 @@ public class SpiderLeapScare : MonoBehaviour
         // Move along the object's forward axis.
         transform.position += transform.forward * (_fleeSpeed * Time.deltaTime);
 
-        _fleeTimer += Time.deltaTime;
-        if (_fleeTimer >= _fleeLifetime)
+        _phaseTimer += Time.deltaTime;
+        if (_phaseTimer >= _fleeLifetime)
         {
             gameObject.SetActive(false);
         }
     }
 
-    /// <summary>Switches from the leap to the escape phase and swaps the animation.</summary>
+    /// <summary>Switches from eating to the escape phase and swaps the animation.</summary>
     private void StartEscape()
     {
-        _escaping  = true;
-        _fleeTimer = 0f;
+        _phase      = Phase.Escape;
+        _phaseTimer = 0f;
+        Debug.Log($"[SpiderLeapScare '{name}'] StartEscape at pos={transform.position}", this);
         if (_animator != null)
         {
-            // CullUpdateTransforms: если рендерер вне камеры, Animator не применяет
-            // смену состояния и паук бежит в застывшей позе leap. Перезапуск
-            // компонента сбрасывает culling-кэш и гарантирует проигрыш walk.
+            // Перезапуск компонента сбрасывает culling-кэш и гарантирует проигрыш walk.
             _animator.enabled = false;
             _animator.enabled = true;
             _animator.Play(_fleeStateName, 0, 0f);

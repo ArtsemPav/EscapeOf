@@ -1867,7 +1867,7 @@ Rigidbody:
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
 --- !u!114 &8843258042979786329
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1883,7 +1883,7 @@ MonoBehaviour:
   dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
-  _holdDistance: 1
+  _holdDistance: 0.7
   _scrapeClips:
   - {fileID: 8300000, guid: 69342c3ecd9d9a545b0e50476ee20814, type: 3}
   _scrapeVolume: 0.7
@@ -1891,8 +1891,8 @@ MonoBehaviour:
   _scrapeFadeSpeed: 6
   _scrapeStartSpeed: 0.05
   _impactClips:
-  - {fileID: 8300000, guid: 1bfc70c73fb8a184e912763b877e8307, type: 3}
-  - {fileID: 8300000, guid: e2ec9dd3580ceb144b8e11dacf0ad89a, type: 3}
+  - {fileID: 8300000, guid: a0dc50d7d938e1941afc770a312c9184, type: 3}
+  - {fileID: 8300000, guid: a0dc50d7d938e1941afc770a312c9184, type: 3}
   _impactVolumeAtMin: 0.15
   _impactVolumeAtMax: 1
   _impactMaxSpeed: 5
@@ -3329,7 +3329,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4142985427427638619, guid: 5b8637f3e45a4cc4db07fedaa3245923, type: 3}
       propertyPath: _triggerZones.Array.data[0].VisibleRooms.Array.size
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4142985427427638619, guid: 5b8637f3e45a4cc4db07fedaa3245923, type: 3}
       propertyPath: '_triggerZones.Array.data[0].VisibleRooms.Array.data[0]'
