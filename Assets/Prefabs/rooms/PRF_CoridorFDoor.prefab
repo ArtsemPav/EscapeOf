@@ -103631,8 +103631,82 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1020880700372864779, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1536807456367674131}
+    - targetCorrespondingSourceObject: {fileID: 1020880700372864779, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5360228207634724238}
   m_SourcePrefab: {fileID: 100100000, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+--- !u!1 &4081975379280204914 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1020880700372864779, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+  m_PrefabInstance: {fileID: 3930784221582711673}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1536807456367674131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4081975379280204914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148bda7e1f9f14f4d9f6424ed3befa7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortalFinaleEffects
+  _coreMaterial: {fileID: 0}
+  _lensMaterial: {fileID: 0}
+  _coreLocalHeight: 6.8
+  _coreSize: 4.5
+  _idleGlow: 1
+  _idleRays: 1.1
+  _ringIntensity: 1.6
+  _ringRadius: 0.16
+  _heartbeatAmount: 0.35
+  _diskMaterial: {fileID: 0}
+  _diskSize: 8
+  _diskInnerRadius: 0.42
+  _diskOuterRadius: 2.6
+  _diskIntensity: 2
+  _lensSize: 9
+  _lensStrength: 1
+  _horizonRadius: 0.26
+  _coreLightColor: {r: 1, g: 0.72, b: 0.4, a: 1}
+  _coreLightIntensity: 6
+  _chargeDuration: 2.2
+  _revealDuration: 3.2
+  _flashDuration: 0.9
+  _flashPeakGlow: 14
+  _shockwaveDuration: 1.8
+--- !u!114 &5360228207634724238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4081975379280204914}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8bebf71d225e7e469d282d9d4cc167e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PortalPlayerImpact
+  _effectRange: 8
+  _fullEffectDistance: 2.5
+  _impactShakeAmplitude: 0.14
+  _rumbleAmplitude: 0.012
+  _impactFovKick: 7
+  _bloomIntensity: 1.6
+  _bloomThreshold: 0.85
+  _chromaticAberration: 0.45
+  _vignette: 0.32
+  _lensDistortion: -0.22
+  _enterRadius: 1.6
+  _enterFovStretch: 28
+  _onPlayerEntered:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!4 &6130840080149028303 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7177029157982258870, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
