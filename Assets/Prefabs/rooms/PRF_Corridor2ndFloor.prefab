@@ -8944,6 +8944,8 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _fallReturnDepth: 10
+  _fallReturnLift: 0.5
 --- !u!65 &4355648738831497165
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9292,6 +9294,10 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
+    - target: {fileID: 6997762445998423593, guid: 5848e39d2e752f341b3df72e668913fa, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 8556262120643298411, guid: 510a7d656b9e60a4ba07946b74951761, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -13461,7 +13467,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.15
+      value: 1.04
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalRotation.w
@@ -21185,6 +21191,8 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _fallReturnDepth: 10
+  _fallReturnLift: 0.5
 --- !u!1001 &6789269233197870481
 PrefabInstance:
   m_ObjectHideFlags: 0

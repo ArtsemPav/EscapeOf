@@ -636,8 +636,10 @@ public class FPSController : MonoBehaviour, ISaveable
 
     bool CanStandUp() {
         float checkDistance = standingHeight - crouchingHeight; // Дистанция проверки вверх
-        bool _canStandUp = !Physics.Raycast(transform.position + Vector3.up * crouchingHeight, Vector3.up, checkDistance);
-        return _canStandUp;
+        Vector3 checkOrigin = transform.position + Vector3.up * crouchingHeight;
+        // QueryTriggerInteraction.Ignore: room visibility / sound zones are triggers spanning the
+        // whole room, so without it the ray always hits a trigger and the player stays crouched.
+        return !Physics.Raycast(checkOrigin, Vector3.up, checkDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
     }
 
     /// <summary>

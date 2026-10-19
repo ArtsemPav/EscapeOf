@@ -13036,6 +13036,8 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _fallReturnDepth: 10
+  _fallReturnLift: 0.5
 --- !u!1001 &304253551860162925
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -15948,6 +15950,18 @@ PrefabInstance:
       propertyPath: _isLocked
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2331725174984256806, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
+      propertyPath: _latchClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 2819b9a7b511ce34c9f3e938ba60248b, type: 3}
+    - target: {fileID: 2331725174984256806, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
+    - target: {fileID: 2331725174984256806, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
     - target: {fileID: 2635464718802532016, guid: 1be0809da3ac39343b782e14e48aded2, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -17131,7 +17145,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4148054462777516, guid: fc7b989fd0d186b44857d07520da1347, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.717
+      value: 1.626
       objectReference: {fileID: 0}
     - target: {fileID: 4148054462777516, guid: fc7b989fd0d186b44857d07520da1347, type: 3}
       propertyPath: m_LocalPosition.z
@@ -18627,6 +18641,8 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _fallReturnDepth: 10
+  _fallReturnLift: 0.5
 --- !u!4 &5728052807591593864 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9082051708398900947, guid: 4d35e24df8fa2cd46a0e27551094709f, type: 3}
