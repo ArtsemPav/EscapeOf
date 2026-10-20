@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
@@ -30,6 +31,13 @@ public class DocumentUI : MonoBehaviour
     [SerializeField] private Button _prevPageButton;
     [SerializeField] private Button _nextPageButton;
     [SerializeField] private TextMeshProUGUI _pageIndicator;
+
+    [Header("Click To Close")]
+    [Tooltip("Если включено — клик (ЛКМ или ПКМ) вне 3D-превью и вне UI-элементов закрывает документ.")]
+    [SerializeField] private bool _allowClickToClose = true;
+
+    [Tooltip("RectTransform превью документа. Клик внутри этой области документ не закрывает.")]
+    [SerializeField] private RectTransform _clickSafeArea;
 
     [Header("Darkening")]
     [Tooltip("Длительность затемнения экрана (секунды).")]
@@ -105,6 +113,12 @@ public class DocumentUI : MonoBehaviour
     private bool _justOpened;
     private float _singlePageZAngle;
 
+    private Canvas _parentCanvas;
+
+    // Half-extent of the note inside the preview RawImage, in normalized (0-1) u/v units.
+    // Clicks inside this centered rect are treated as "on the note" and do not close it.
+    private Vector2 _noteHalfFrac = new Vector2(0.5f, 0.5f);
+
     private Vector3 _pivotTargetPosition;
     private Quaternion _pivotTargetRotation;
 
@@ -114,6 +128,7 @@ public class DocumentUI : MonoBehaviour
     {
         Instance = this;
         _panel.SetActive(false);
+        _parentCanvas = _panel.GetComponentInParent<Canvas>();
 
         _inspectionLayer = LayerMask.NameToLayer(_inspectionLayerName);
         if (_inspectionLayer == -1)
@@ -171,6 +186,9 @@ public class DocumentUI : MonoBehaviour
             return;
         }
 
+        if (HandleCloseClick())
+            return;
+
         var kb = Keyboard.current;
         if (kb == null) return;
 
@@ -185,6 +203,91 @@ public class DocumentUI : MonoBehaviour
 
         if (kb.rightArrowKey.wasPressedThisFrame || kb.dKey.wasPressedThisFrame || kb.spaceKey.wasPressedThisFrame)
             NextPage();
+    }
+
+    // ── Click To Close ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Closes the document on LMB/RMB click outside the 3D preview and outside UI elements.
+    /// Returns true if the click was consumed (document is closing or click landed on UI/preview).
+    /// </summary>
+    private bool HandleCloseClick()
+    {
+        if (!_allowClickToClose) return false;
+
+        var mouse = Mouse.current;
+        if (mouse == null) return false;
+
+        bool leftPressed = mouse.leftButton.wasPressedThisFrame;
+        bool rightPressed = mouse.rightButton.wasPressedThisFrame;
+        if (!leftPressed && !rightPressed) return false;
+
+        // Click over the document interface (panel subtree) — do not close.
+        // Note: a blanket IsPointerOverGameObject() is unusable here because the
+        // fullscreen ScreenFader image is a raycast target and swallows every click.
+        if (IsPointerOverDocumentInterface(mouse.position.ReadValue()))
+            return true;
+
+        // Click inside the note preview — do not close.
+        if (IsPointerOverNotePreview(mouse.position.ReadValue()))
+            return true;
+
+        Close();
+        return true;
+    }
+
+    /// <summary>
+    /// True if the click lands on the note itself inside the preview image.
+    /// The RawImage is larger than the note, so the hit test uses the note's
+    /// projected extent (normalized to the camera view) stored in _noteHalfFrac.
+    /// </summary>
+    private bool IsPointerOverNotePreview(Vector2 screenPosition)
+    {
+        RectTransform previewRect = _clickSafeArea != null
+            ? _clickSafeArea
+            : (_documentPreview != null ? (RectTransform)_documentPreview.transform : null);
+        if (previewRect == null) return false;
+
+        Camera cam = _parentCanvas != null && _parentCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? _parentCanvas.worldCamera
+            : null;
+
+        if (!RectTransformUtility.RectangleContainsScreenPoint(previewRect, screenPosition, cam))
+            return false;
+
+        // Local point within the preview rect, normalized to 0..1 (0.5 = center).
+        Vector2 localPoint;
+        if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(previewRect, screenPosition, cam, out localPoint))
+            return false;
+
+        Rect rect = previewRect.rect;
+        Vector2 normalized = new Vector2(
+            localPoint.x / rect.width + 0.5f,
+            localPoint.y / rect.height + 0.5f);
+
+        return Mathf.Abs(normalized.x - 0.5f) <= _noteHalfFrac.x &&
+               Mathf.Abs(normalized.y - 0.5f) <= _noteHalfFrac.y;
+    }
+
+    /// <summary>
+    /// True if the screen point raycasts into any object of the document panel subtree.
+    /// The fullscreen ScreenFader image is intentionally ignored (it is not a panel child).
+    /// </summary>
+    private bool IsPointerOverDocumentInterface(Vector2 screenPosition)
+    {
+        var eventSystem = EventSystem.current;
+        if (eventSystem == null) return false;
+
+        var pointerData = new PointerEventData(eventSystem) { position = screenPosition };
+        var hits = new List<RaycastResult>();
+        eventSystem.RaycastAll(pointerData, hits);
+
+        var panelTransform = _panel.transform;
+        foreach (var hit in hits)
+            if (hit.gameObject.transform.IsChildOf(panelTransform))
+                return true;
+
+        return false;
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -491,6 +594,40 @@ public class DocumentUI : MonoBehaviour
         _inspectionCamera.targetTexture = _renderTexture;
         _documentPreview.texture = _renderTexture;
         _inspectionCamera.gameObject.SetActive(true);
+
+        UpdateNoteHitFraction();
+    }
+
+    /// <summary>
+    /// Computes the note's extent inside the preview RawImage as a fraction of the
+    /// camera view (0..1 half-extents), so click-to-close only triggers outside
+    /// the actual note silhouette, not the whole (much larger) RawImage.
+    /// </summary>
+    private void UpdateNoteHitFraction()
+    {
+        if (_inspectionInstance == null || _inspectionCamera == null) return;
+
+        Renderer[] renderers = _inspectionInstance.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0) return;
+
+        Bounds bounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
+
+        // Project world bounds onto camera axes (conservative world AABB footprint).
+        Vector3 right = _inspectionCamera.transform.right;
+        Vector3 up = _inspectionCamera.transform.up;
+        float halfW = bounds.extents.x * Mathf.Abs(right.x) + bounds.extents.y * Mathf.Abs(right.y) + bounds.extents.z * Mathf.Abs(right.z);
+        float halfH = bounds.extents.x * Mathf.Abs(up.x) + bounds.extents.y * Mathf.Abs(up.y) + bounds.extents.z * Mathf.Abs(up.z);
+
+        float orthoHalfH = _inspectionCamera.orthographicSize;
+        float orthoHalfW = orthoHalfH * _inspectionCamera.aspect;
+
+        const float HitMargin = 0.05f;
+        // halfFrac is in full-view units (|uv - 0.5|): note half-extent over the FULL view size.
+        _noteHalfFrac = new Vector2(
+            Mathf.Clamp01(orthoHalfW > 0.0001f ? halfW / (2f * orthoHalfW) + HitMargin : 1f),
+            Mathf.Clamp01(orthoHalfH > 0.0001f ? halfH / (2f * orthoHalfH) + HitMargin : 1f));
     }
 
     /// <summary>
