@@ -258,7 +258,7 @@ namespace EscapeOf.Puzzle.Laptop
 
             string entered = _passwordField != null ? _passwordField.text : string.Empty;
 
-            if (entered == _password)
+            if (string.Equals(entered, _password, System.StringComparison.OrdinalIgnoreCase))
                 StartCoroutine(SuccessRoutine());
             else
                 StartCoroutine(ErrorRoutine());
