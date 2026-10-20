@@ -29,6 +29,7 @@ namespace UI
         private bool _isDragging;
         private bool _isOverUI; // New flag to block 3D hover from overriding UI hover
         private ItemData _draggedItem;
+        private IPuzzleDropTarget _hoveredDropTarget;
 
         private void Awake()
         {
@@ -126,6 +127,7 @@ namespace UI
                     // Force clean interaction state when entering UI
                     InteractionUI.Instance?.SetHint(false);
                     InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
+                    EndHover();
                 }
                 return;
             }
@@ -174,13 +176,33 @@ namespace UI
 
                 if (dropTarget != null)
                 {
-                    string itemName = _draggedItem != null ? _draggedItem.itemName : string.Empty;
-                    InteractionUI.Instance?.ShowDragHint(itemName, dropTarget.GetDropHint());
+                    if (dropTarget is IPuzzleDropHoverHandler hoverHandler)
+                        hoverHandler.SetDragHover(dropTarget.CanAccept(_draggedItem));
+
+                    _hoveredDropTarget = dropTarget;
+
+                    // Text drag hints are removed for all items — only the drag
+                    // crosshair is shown as feedback.
+                    InteractionUI.Instance?.HideDragHint();
+                    InteractionUI.Instance?.SetCrosshair(CrosshairMode.ItemDrag);
                     return;
                 }
             }
 
+            EndHover();
             InteractionUI.Instance?.HideDragHint();
+        }
+
+        /// <summary>
+        /// Notifies the currently hovered drop target that the cursor left it
+        /// (or the drag ended) and clears the hover state.
+        /// </summary>
+        private void EndHover()
+        {
+            if (_hoveredDropTarget is IPuzzleDropHoverHandler hoverHandler)
+                hoverHandler.SetDragHover(false);
+
+            _hoveredDropTarget = null;
         }
 
         private void HandleStandardInteraction(Ray ray, LayerMask mask)
@@ -221,6 +243,7 @@ namespace UI
 
             if (!isDragging)
             {
+                EndHover();
                 InteractionUI.Instance?.HideDragHint();
             }
         }

@@ -25,7 +25,7 @@ public struct ComboStep
 /// Rotary combination dial. Handles rotation logic, combination validation, 
 /// and UI feedback in puzzle mode.
 /// </summary>
-public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDropTarget
+public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDropTarget, IPuzzleDropHoverHandler
 {
     // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -88,6 +88,11 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     [Tooltip("Volume for the background layer clip.")]
     [SerializeField, Range(0f, 1f)] private float _puzzleBackgroundLayerVolume = 1f;
+
+    [Header("Stethoscope Visual")]
+    [Tooltip("Stethoscope model shown on the safe while in puzzle mode after the item has been applied. " +
+             "Hidden on puzzle exit.")]
+    [SerializeField] private GameObject _stethoscopeVisual;
 
     [Header("Events")]
     [Tooltip("Fired when the entire combination is correctly entered.")]
@@ -473,6 +478,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         _isRequiredItemApplied = true;
         Debug.Log($"[{nameof(LockDial)}] {_requiredItemForAudio.itemName} applied to safe. Advanced audio feedback enabled.");
 
+        // Show the stethoscope visual immediately, without waiting for a puzzle re-entry.
+        if (_stethoscopeVisual != null) _stethoscopeVisual.SetActive(true);
+
         if (_puzzleMode != null && _puzzleMode.IsActive)
         {
             AudioManager.Instance?.MuteBackground();
@@ -496,11 +504,28 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         return item == _requiredItemForAudio && !_isRequiredItemApplied;
     }
 
+    // ── IPuzzleDropHoverHandler ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Shows the stethoscope visual while the stethoscope item is hovered over the
+    /// lock, and hides it when the cursor leaves without a successful drop.
+    /// Does nothing when the item has already been applied (visual stays visible).
+    /// </summary>
+    public void SetDragHover(bool isHovering)
+    {
+        if (_isRequiredItemApplied || _stethoscopeVisual == null) return;
+
+        _stethoscopeVisual.SetActive(isHovering);
+    }
+
     private void OnPuzzleEntered()
     {
         // Ensure the dial collider is enabled so IsMouseOverDial can detect it.
         // It may have been disabled by RoomController.Lock() or left disabled in the prefab.
         if (_colliderLock != null) _colliderLock.enabled = true;
+
+        // Show the stethoscope visual only when the item has been applied to the safe.
+        if (_stethoscopeVisual != null) _stethoscopeVisual.SetActive(_isRequiredItemApplied);
 
         if (_isRequiredItemApplied) {
             AudioManager.Instance?.MuteBackground();
@@ -515,6 +540,9 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         // Disable the dial collider so it doesn't block PuzzleInteract's collider
         // (they overlap on the door) when not in puzzle mode.
         if (_colliderLock != null) _colliderLock.enabled = false;
+
+        // The stethoscope visual is only visible in puzzle mode.
+        if (_stethoscopeVisual != null) _stethoscopeVisual.SetActive(false);
 
         if (!HasRequiredItem()) return;
 
