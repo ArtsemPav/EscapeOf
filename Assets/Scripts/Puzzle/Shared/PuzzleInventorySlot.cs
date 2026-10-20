@@ -15,9 +15,23 @@ public class PuzzleInventorySlot : MonoBehaviour,
     IPointerDownHandler, IPointerUpHandler
 {
     [SerializeField] private Image iconImage;
+    [Header("Cell Backgrounds")]
+    [SerializeField] private Sprite emptyCellSprite;
+    [SerializeField] private Sprite filledCellSprite;
 
     private PuzzleInventoryBar _bar;
     private IconHoverScale _iconHoverScale;
+    private UnityEngine.UI.Image _backgroundImage;
+
+    /// <summary>Background image of this cell (on the root GameObject).</summary>
+    public UnityEngine.UI.Image BackgroundImage
+    {
+        get
+        {
+            if (_backgroundImage == null) _backgroundImage = GetComponent<UnityEngine.UI.Image>();
+            return _backgroundImage;
+        }
+    }
 
     /// <summary>The item currently assigned to this slot, or null if empty.</summary>
     public ItemData Item { get; private set; }
@@ -138,6 +152,8 @@ public class PuzzleInventorySlot : MonoBehaviour,
     {
         if (iconImage == null) return;
 
+        SetCellBackground(Item != null ? filledCellSprite : emptyCellSprite);
+
         if (Item != null && Item.icon != null)
         {
             iconImage.sprite = Item.icon;
@@ -150,5 +166,12 @@ public class PuzzleInventorySlot : MonoBehaviour,
             iconImage.color = new Color(1f, 1f, 1f, 0f);
             iconImage.enabled = false;
         }
+    }
+
+    /// <summary>Swaps the cell background sprite when the item sprites are assigned.</summary>
+    private void SetCellBackground(Sprite sprite)
+    {
+        Image background = BackgroundImage;
+        if (background != null && sprite != null) background.sprite = sprite;
     }
 }

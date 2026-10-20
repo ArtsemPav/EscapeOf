@@ -13,8 +13,24 @@ using UnityEngine.UI;
 public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler, IPointerDownHandler
 {
     [SerializeField] private Image iconImage;
+    [Header("Cell Backgrounds")]
+    [SerializeField] private Sprite emptyCellSprite;
+    [SerializeField] private Sprite filledCellSprite;
+
+    private const float IconMissingAlpha = 0.3f;
 
     private IconHoverScale _iconHoverScale;
+    private UnityEngine.UI.Image _backgroundImage;
+
+    /// <summary>Background image of this cell (on the root GameObject).</summary>
+    public UnityEngine.UI.Image BackgroundImage
+    {
+        get
+        {
+            if (_backgroundImage == null) _backgroundImage = GetComponent<UnityEngine.UI.Image>();
+            return _backgroundImage;
+        }
+    }
 
     public int SlotIndex { get; set; }
     public ItemData Item { get; private set; }
@@ -32,8 +48,9 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
 
         if (item != null)
         {
+            SetCellBackground(filledCellSprite);
             iconImage.sprite = item.icon;
-            iconImage.color = item.icon != null ? Color.white : new Color(1f, 1f, 1f, 0.3f);
+            iconImage.color = item.icon != null ? Color.white : new Color(1f, 1f, 1f, IconMissingAlpha);
             iconImage.enabled = true;
         }
         else
@@ -46,7 +63,15 @@ public class InventorySlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, 
     public void Clear()
     {
         Item = null;
+        SetCellBackground(emptyCellSprite);
         iconImage.enabled = false;
+    }
+
+    /// <summary>Swaps the cell background sprite when the item sprites are assigned.</summary>
+    private void SetCellBackground(Sprite sprite)
+    {
+        Image background = BackgroundImage;
+        if (background != null && sprite != null) background.sprite = sprite;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
