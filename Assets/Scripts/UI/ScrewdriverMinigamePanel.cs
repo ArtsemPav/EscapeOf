@@ -97,6 +97,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     private bool _isRunning;
     private bool _isTransitioning;
     private float _arrowAngle;
+    private float _previousArrowAngle;
     private float _sectorStart;
     private int _rotationDirection;
     private float _totalRotation;
@@ -238,6 +239,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
 
         UpdateSectorVisuals();
         UpdateArrowVisual();
+        _previousArrowAngle = _arrowAngle;
     }
 
     /// <summary>Случайно позиционирует CircleContainer в пределах экрана с отступом, исключая зону прогресс-бара.</summary>
@@ -304,6 +306,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
 
         float delta = _arrowSpeed * _rotationDirection * Time.unscaledDeltaTime;
         _totalRotation += Mathf.Abs(delta);
+        _previousArrowAngle = _arrowAngle;
         _arrowAngle = ((_arrowAngle + delta) % FullCircle + FullCircle) % FullCircle;
 
         UpdateArrowVisual();
@@ -330,11 +333,16 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         float whiteEnd = (whiteStart + _whiteZoneSize) % FullCircle;
         float sectorEnd = (_sectorStart + _sectorSize) % FullCircle;
 
-        if (AngleInRange(_arrowAngle, whiteStart, whiteEnd))
+        // Проверять всю дугу, пройденную за кадр, а не только текущий угол,
+        // чтобы стрелка не могла перескочить зону при низком FPS или скачке deltaTime.
+        bool whiteWasInRange = IsArcIntersectingZone(_previousArrowAngle, _arrowAngle, whiteStart, whiteEnd);
+        bool sectorWasInRange = IsArcIntersectingZone(_previousArrowAngle, _arrowAngle, _sectorStart, sectorEnd);
+
+        if (whiteWasInRange)
         {
             RegisterHit(_whiteZoneProgress, isWhiteZone: true);
         }
-        else if (AngleInRange(_arrowAngle, _sectorStart, sectorEnd))
+        else if (sectorWasInRange)
         {
             RegisterHit(_grayZoneProgress);
         }
@@ -342,6 +350,20 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         {
             RegisterMiss();
         }
+    }
+
+    /// <summary>Определяет, пересекает ли дуга, пройденная стрелкой за кадр, заданный угловой диапазон зоны.</summary>
+    private static bool IsArcIntersectingZone(float fromAngle, float toAngle, float zoneStart, float zoneEnd)
+    {
+        float step = ((toAngle - fromAngle) % FullCircle + FullCircle) % FullCircle;
+        int sampleCount = Mathf.Max(1, Mathf.CeilToInt(step));
+        for (int i = 0; i <= sampleCount; i++)
+        {
+            float angle = ((fromAngle + step * i / sampleCount) % FullCircle + FullCircle) % FullCircle;
+            if (AngleInRange(angle, zoneStart, zoneEnd))
+                return true;
+        }
+        return false;
     }
 
     private void RegisterHit(float progressGain, bool isWhiteZone = false)
@@ -424,14 +446,17 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     {
         if (_graySector != null)
         {
-            _graySector.fillAmount = (_sectorSize - _whiteZoneSize) / FullCircle;
-            _graySector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -(_sectorStart + _whiteZoneSize));
+            _graySector.fillAmount = _sectorSize / FullCircle;
+            _graySector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -_sectorStart);
         }
 
         if (_whiteSector != null)
         {
+            // Белая зона рисуется поверх серой по центру сектора попадания,
+            // поэтому серый сектор здесь занимает весь _sectorSize.
+            float whiteCenter = (_sectorStart + _sectorSize * 0.5f) % FullCircle;
             _whiteSector.fillAmount = _whiteZoneSize / FullCircle;
-            _whiteSector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -_sectorStart);
+            _whiteSector.rectTransform.localEulerAngles = new Vector3(0f, 0f, -(whiteCenter - _whiteZoneSize * 0.5f));
         }
     }
 
