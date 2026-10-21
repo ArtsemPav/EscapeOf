@@ -67,6 +67,11 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
     [Tooltip("Fired when the puzzle is solved.")]
     [SerializeField] private UnityEvent OnPuzzleSolved;
 
+    [Tooltip("Fired when a solved state is restored from a save on load. Use this to restore the " +
+             "scene instantly (no delays), e.g. DelayedActionSequence.RunInstant(), so delayed " +
+             "transitions and physics effects from the live solve do not replay on load.")]
+    [SerializeField] private UnityEvent OnPuzzleSolvedRestored;
+
     // ── C# Events (for code-side subscriptions; prefer these over AddListener) ─
 
     /// <summary>Raised when the player enters puzzle mode.</summary>
@@ -158,14 +163,15 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         var data = JsonUtility.FromJson<SaveData>(json);
         _isSolved = data.isSolved;
 
-        // Fire only the UnityEvent (for visuals/UI wired in the Inspector).
-        // The C# OnSolved event is intentionally NOT raised here so that
-        // gameplay-side handlers (audio, animation, movement) do not trigger
-        // again on load. Each system should read IsSolved in its own Start()
-        // to restore its visual state silently.
+        // Fire the restore UnityEvent (for visuals/UI wired in the Inspector).
+        // The live-solve event OnPuzzleSolved is intentionally NOT raised here so that
+        // delayed sequences, audio, animation, and movement do not trigger again on
+        // load. Handlers that must restore scene state instantly should be wired to
+        // OnPuzzleSolvedRestored. Each system should also read IsSolved in its own
+        // Start() to restore its visual state silently.
         if (_isSolved)
         {
-            OnPuzzleSolved?.Invoke();
+            OnPuzzleSolvedRestored?.Invoke();
         }
     }
 
