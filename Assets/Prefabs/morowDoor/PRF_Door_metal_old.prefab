@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 665624175194111752}
   - component: {fileID: 8615795955348794482}
   m_Layer: 0
-  m_Name: door_metal_old
+  m_Name: PRF_Door_metal_old
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -132,7 +132,6 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: 
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _pivot: {fileID: 0}
@@ -146,13 +145,19 @@ MonoBehaviour:
   _openLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
   _closeLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
   _latchClip: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
-  _lockedClip: {fileID: 8300000, guid: 7dae6b88e0e2f4442b64e6588a0f4798, type: 3}
+  _lockedClip: {fileID: 8300000, guid: e6591fa135fba5c4d93d23c21d104827, type: 3}
   _unlockClip: {fileID: 8300000, guid: 6882df76d800fdf46a1093771301ff46, type: 3}
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &5268836974351370938

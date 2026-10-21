@@ -44,8 +44,8 @@ public class PuzzleInventoryBar : MonoBehaviour
     [Tooltip("Number of slots visible at once without scrolling.")]
     [SerializeField] private int visibleSlotCount = 5;
 
-    [Tooltip("Message shown when the dragged item is not accepted by the active puzzle handler.")]
-    [SerializeField] private string _wrongItemMessage = "Этот предмет сюда не подходит";
+    [Tooltip("Sound played when the dragged item is not accepted by the active puzzle handler or a slot swap fails.")]
+    [SerializeField] private AudioClip _wrongItemSound;
 
     [Tooltip("Width and height of each slot in pixels.")]
     [SerializeField] private float slotSize = 80f;
@@ -293,7 +293,7 @@ public class PuzzleInventoryBar : MonoBehaviour
             slot?.SetDragVisual(dimmed: false);
 
             if (_dragItem != null && _activeHandler != null)
-                PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
+                AudioManager.Instance?.PlaySFX(_wrongItemSound);
         }
 
         DragSourceSlotIndex = -1;
@@ -341,7 +341,7 @@ public class PuzzleInventoryBar : MonoBehaviour
         // No recipe match → swap slot positions.
         // Works even when the target slot is empty — effectively moves the item.
         if (!InventorySystem.Instance.SwapSlots(source.SlotIndex, target.SlotIndex))
-            PopupMessageSystem.Instance?.Show(_wrongItemMessage, PopupMessageType.Warning, 3f);
+            AudioManager.Instance?.PlaySFX(_wrongItemSound);
     }
 
     /// <summary>
