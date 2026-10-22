@@ -63,7 +63,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 2560
+  m_RenderingLayerMask: 512
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: 50b7089bebbf7034f89ed35208ec3f9c, type: 2}
@@ -408,7 +408,7 @@ GameObject:
   - component: {fileID: 3626984121313815478}
   - component: {fileID: 1252099864921230253}
   m_Layer: 0
-  m_Name: lamp
+  m_Name: PRF_Lamp
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -446,8 +446,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d99332458fb155b42b08bb5d1f6cb837, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EmergencyLamp
+  _activeWhenPowered: 0
   _emergencyLight: {fileID: 6561347738862314639}
   _lampGlassRenderer: {fileID: 5995605545357442884}
+  _lockedColor: {r: 1, g: 0, b: 0, a: 1}
+  _unlockedColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!1 &7939033910414723819
 GameObject:
   m_ObjectHideFlags: 0
