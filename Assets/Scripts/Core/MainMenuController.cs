@@ -1,9 +1,11 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Handles main menu button interactions.
-/// Attach to MainMenuCanvas. Wire buttons via Inspector onClick events.
+/// Handles main menu button interactions. Every screen change goes through the
+/// shared ScreenFader black overlay: fade to black, swap the visible panel,
+/// fade back in. Attach to MainMenuCanvas. Wire buttons via Inspector onClick.
 /// </summary>
 public class MainMenuController : MonoBehaviour
 {
@@ -34,7 +36,7 @@ public class MainMenuController : MonoBehaviour
         }
     }
 
-    /// <summary>Starts a new game: clears the default save slot, shows the fake loading screen, then loads the gameplay scene.</summary>
+    /// <summary>Starts a new game: clears the default save slot, fades to the loading screen.</summary>
     /// <remarks>The wake-up intro is triggered by SaveManager itself: after the slot
     /// is cleared, SaveManager.Start() in the gameplay scene finds no save and
     /// requests the intro — a single decision point for all entry paths.</remarks>
@@ -60,18 +62,32 @@ public class MainMenuController : MonoBehaviour
         BeginGameTransition();
     }
 
+    /// <summary>
+    /// Black-fade transition: fade to black, show the loading screen behind it,
+    /// then fade back in so the player sees the bar already at zero.
+    /// </summary>
     private void BeginGameTransition()
     {
+        StartCoroutine(GameTransitionRoutine());
+    }
+
+    private IEnumerator GameTransitionRoutine()
+    {
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn();
+
+        if (_menuRoot != null) _menuRoot.SetActive(false);
+        if (_settingsPanel != null) _settingsPanel.SetActive(false);
+
         if (_loadingScreen == null)
         {
             Debug.LogWarning("MainMenuController: Loading screen is not assigned, loading scene directly.", this);
             SceneManager.LoadScene(GameplaySceneName);
-            return;
+            yield break;
         }
 
-        if (_menuRoot != null) _menuRoot.SetActive(false);
-        if (_settingsPanel != null) _settingsPanel.SetActive(false);
         _loadingScreen.BeginLoading();
+        if (ScreenFader.Instance != null) ScreenFader.Instance.FadeOut();
     }
 
     /// <summary>Opens the settings panel and hides the main menu block.</summary>

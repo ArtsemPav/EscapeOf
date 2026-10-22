@@ -34,6 +34,10 @@ public class CharacterRunPast : MonoBehaviour
     [Tooltip("Rotation lerp speed toward the destination.")]
     [SerializeField] private float _turnSpeed = 10f;
 
+    [Tooltip("Animator playback speed multiplier. Higher = the crawl animation plays faster " +
+             "so the character doesn't look like it's sliding.")]
+    [SerializeField] private float _animationSpeed = 1.5f;
+
     [Tooltip("Animation state to play when the character activates.")]
     [SerializeField] private CharacterAnimationState _animationState = CharacterAnimationState.ZombieCrawl;
 
@@ -72,6 +76,7 @@ public class CharacterRunPast : MonoBehaviour
 
         // Parameter is already set in Awake. Enable Animator and force the state.
         _animator.enabled = true;
+        _animator.speed = _animationSpeed;
         _animator.Play(_animationState.ToString(), 0, 0f);
 
         _moving = true;
