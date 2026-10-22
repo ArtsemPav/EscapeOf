@@ -82,19 +82,7 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera)
 
 ## Пост-процессинг
 
-`GameManager.SetPause(bool)` включает и выключает компонент `Volume`:
-
-```csharp
-// При открытии меню
-_postProcessVolume.enabled = false;
-
-// При закрытии меню
-_postProcessVolume.enabled = true;
-```
-
-`_postProcessVolume` — это `[SerializeField]` поле на объекте `GameManager` в **SampleScene**. В Inspector назначен объект `Global Volume`.
-
-При переходе между сценами ссылка обновляется автоматически через `SceneManager.sceneLoaded` — `GameManager` переназначает `Volume` из новой сцены. Это важно, так как `GameManager` помечен `DontDestroyOnLoad` и живёт во всех сценах.
+`GameManager.SetPause(bool)` при паузе глушит весь звук через `AudioListener.pause` и переключает музыку через `MusicDirector` (`PlayMenuMusic` / `PlayGameMusic`). Пост-обработку (Volume) `GameManager` не трогает.
 
 > `MenuScript` упразднён — вся логика паузы, меню и подписки на ESC находится исключительно в `GameManager`.
 

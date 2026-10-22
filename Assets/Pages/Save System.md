@@ -116,7 +116,7 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 | `DoorInteraction`             | `door_firstroom_main`         | Открыта/заперта/угол открытия                     |
 | `CodeLock`                    | `codelock_firstroom`          | Разблокирован ли замок, текущий код               |
 | `HorrorEvent`                 | `horror_mannequin_appears`    | Сработало ли событие                              |
-| `GameManager`                 | `game_manager`                | Текущая комната                                   |
+| `GameManager`                 | — (не сейвится)               | Только пауза/курсор — состояния не сохраняются    |
 | `FPSController` (Player)      | `player`                      | Позиция и угол камеры                             |
 | `PressurePuzzle`              | `pressure_puzzle_boilerroom`  | Решена ли загадка (`isSolved`)                    |
 | `MedallionBoxInteraction`     | `medallion_puzzle`            | Solved-флаг + ItemId в каждой из 5 лунок          |

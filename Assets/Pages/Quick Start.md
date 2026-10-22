@@ -12,7 +12,7 @@ Escape Room — игра от первого лица. Игрок перемещ
 | **UIManager**             | Управляет всеми UI-панелями: открытие, закрытие, курсор, ввод игрока                                                                          |
 | **GameConfig**            | Единый конфиг для текстов и цветов — меняешь в одном месте, работает везде                                                                    |
 | **InventorySystem**       | Хранит предметы игрока, поддерживает крафтинг                                                                                                 |
-| **GameManager**           | Управляет прогрессом по комнатам, паузой (ESC), меню — вся логика паузы здесь                                                                 |
+| **GameManager**           | Управляет паузой (ESC), меню, курсором — вся логика паузы здесь                                                                              |
 | **MainMenuController**    | Обрабатывает кнопки главного меню (New Game, Settings, Exit). См. [@ id="/Pages/Private/Main Menu System.md" label="Main Menu System"] |
 | **SaveManager**           | Автосохранение и загрузка состояния игры. См. [@ id="/Pages/Private/Save System.md" label="Save System"]                          |
 | **LightingSystem**        | Управление электричеством, зонами освещения, генератором. См. [@ id="/Pages/Private/Lighting System.md" label="Lighting System"]      |
@@ -29,7 +29,7 @@ Escape Room — игра от первого лица. Игрок перемещ
 Чтобы игра работала, в сцене должны быть:
 
 ```
-GameManager             ← компонент GameManager, список комнат
+GameManager             ← компонент GameManager, ссылка на menuUI
 UIManager               ← компонент UIManager, ссылки на Player и GameConfig
 Canvas                  ← все UI-панели внутри (включая ScreenFader)
 Player                  ← компонент FPSController
@@ -66,7 +66,7 @@ HorrorSystem            ← компонент HorrorSystem
 
 ## Быстрый чеклист для новой сцены
 
-- [ ] В сцене есть `GameManager` с заполненным списком комнат
+- [ ] В сцене есть `GameManager` — назначен `Menu UI`
 - [ ] В сцене есть `UIManager` — назначены `FPSController` и `GameConfig`
 - [ ] Создан и назначен ассет `GameConfig` (правой кнопкой → Create → Game → Game Config)
 - [ ] `Canvas` содержит все панели: инвентарь, записки, кодовый замок, инспекцию предметов

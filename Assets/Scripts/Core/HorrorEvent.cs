@@ -86,14 +86,13 @@ using UnityEngine.Events;
 /// <summary>What causes this horror event to fire.</summary>
 public enum HorrorTriggerType
 {
-    OnItemPickup,        // Player picks up a specific ItemData
-    OnRoomEnter,         // Player enters a specific room (GameManager.OnRoomChanged index)
-    OnManual,            // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
-    OnPlayerEnterZone,   // Player enters the trigger collider on this GameObject.
-                         // If Puzzle To Watch is assigned, the zone is ignored until that puzzle is solved.
-    OnPuzzleSolved,      // A referenced PuzzleModeController is solved
-    OnPowerStateChanged, // LightingSystem master power matches desired state
-    OnZoneSwitchChanged  // A specific light zone switch matches desired state
+    OnItemPickup = 0,        // Player picks up a specific ItemData
+    OnManual = 2,            // Fired explicitly via HorrorSystem.Instance.Trigger(eventId)
+    OnPlayerEnterZone = 3,   // Player enters the trigger collider on this GameObject.
+                             // If Puzzle To Watch is assigned, the zone is ignored until that puzzle is solved.
+    OnPuzzleSolved = 4,      // A referenced PuzzleModeController is solved
+    OnPowerStateChanged = 5, // LightingSystem master power matches desired state
+    OnZoneSwitchChanged = 6  // A specific light zone switch matches desired state
 }
 
 /// <summary>What happens to the target when the event fires.</summary>
@@ -125,9 +124,6 @@ public class HorrorEvent : MonoBehaviour, ISaveable
 
     [Tooltip("Item that must be picked up (OnItemPickup only).")]
     [SerializeField] private ItemData _requiredItem;
-
-    [Tooltip("Room index to enter (OnRoomEnter only). Matches GameManager.CurrentRoomIndex.")]
-    [SerializeField] private int _requiredRoomIndex = 1;
 
     [Header("Zone Trigger")]
     [Tooltip("Tag of the collider that triggers the event (OnPlayerEnterZone only). " +
@@ -221,7 +217,6 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     public string EventId => _eventId;
     public HorrorTriggerType TriggerType => _triggerType;
     public ItemData RequiredItem => _requiredItem;
-    public int RequiredRoomIndex => _requiredRoomIndex;
     public bool HasFired { get; private set; }
 
     private bool _targetVisible;

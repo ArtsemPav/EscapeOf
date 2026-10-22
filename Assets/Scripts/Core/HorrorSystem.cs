@@ -3,7 +3,7 @@ using UnityEngine;
 
 /// <summary>
 /// Singleton coordinator for all horror events in the scene.
-/// Subscribes to InventorySystem and GameManager and notifies registered
+/// Subscribes to InventorySystem and notifies registered
 /// HorrorEvent instances when their trigger conditions are met.
 ///
 /// Usage — manual trigger from any script:
@@ -32,20 +32,12 @@ public class HorrorSystem : MonoBehaviour
             InventorySystem.Instance.OnInventoryChanged += OnInventoryChanged;
         else
             Debug.LogWarning("[HorrorSystem] InventorySystem not found — OnItemPickup triggers won't fire.", this);
-
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnRoomChanged += OnRoomChanged;
-        else
-            Debug.LogWarning("[HorrorSystem] GameManager not found — OnRoomEnter triggers won't fire.", this);
     }
 
     private void OnDestroy()
     {
         if (InventorySystem.Instance != null)
             InventorySystem.Instance.OnInventoryChanged -= OnInventoryChanged;
-
-        if (GameManager.Instance != null)
-            GameManager.Instance.OnRoomChanged -= OnRoomChanged;
     }
 
     /// <summary>Called by HorrorEvent on Start to subscribe to the system.</summary>
@@ -83,16 +75,6 @@ public class HorrorSystem : MonoBehaviour
         {
             if (evt.HasFired || evt.TriggerType != HorrorTriggerType.OnItemPickup) continue;
             if (evt.RequiredItem != null && InventorySystem.Instance.HasItem(evt.RequiredItem))
-                evt.Activate();
-        }
-    }
-
-    private void OnRoomChanged(int roomIndex)
-    {
-        foreach (var evt in _events)
-        {
-            if (evt.HasFired || evt.TriggerType != HorrorTriggerType.OnRoomEnter) continue;
-            if (evt.RequiredRoomIndex == roomIndex)
                 evt.Activate();
         }
     }

@@ -5,7 +5,7 @@
 ## Архитектура
 
 ```
-HorrorSystem (GameObject)         # Singleton — слушает InventorySystem и GameManager
+HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 ├── Event_Mannequin (GameObject)  # HorrorEvent — один хоррор-момент
 └── Event_RunPastDoor (GameObject)# Ещё один момент — добавляй сколько нужно
     └── SoundSource
@@ -14,7 +14,6 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 `HorrorSystem` подписывается на:
 
 - `InventorySystem.OnInventoryChanged` → обрабатывает триггеры `OnItemPickup`
-- `GameManager.OnRoomChanged` → обрабатывает триггеры `OnRoomEnter`
 
 `HorrorEvent` может сам подписываться на источники событий для триггеров `OnPuzzleSolved`, `OnPowerStateChanged`, `OnZoneSwitchChanged` — без участия `HorrorSystem`.
 
@@ -56,7 +55,6 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 | ----------------------- | ---------------------------------------------------------------------- |
 | **Trigger Type**        | Тип триггера — см. таблицу ниже                                        |
 | **Required Item**       | Предмет, который должен попасть в инвентарь (`OnItemPickup`)           |
-| **Required Room Index** | Индекс комнаты при входе в которую срабатывает событие (`OnRoomEnter`) |
 | **Activation Delay**    | Задержка в секундах между срабатыванием триггера и началом эффекта     |
 
 
@@ -66,7 +64,6 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 | Trigger Type          | Когда срабатывает                                                                                      |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
 | `OnItemPickup`        | Игрок подбирает конкретный `ItemData`                                                                  |
-| `OnRoomEnter`         | `GameManager.OnRoomChanged` даёт индекс = `Required Room Index`                                        |
 | `OnManual`            | Только явный вызов: `HorrorSystem.Instance.Trigger("id")` или UnityEvent                               |
 | `OnPlayerEnterZone`   | Игрок входит в trigger-коллайдер на этом GameObject (нужен `BoxCollider` с `Is Trigger = true`)        |
 | `OnPuzzleSolved`      | Привязка к загадке. Укажи **Puzzle To Watch** (объект с `PuzzleModeController`). Сработает при решении |

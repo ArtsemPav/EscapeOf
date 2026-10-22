@@ -22,8 +22,7 @@ using UnityEngine.SceneManagement;
 ///
 /// What is logged automatically:
 /// - session_start / scene_loaded — when and where the session begins;
-/// - room_enter                   — the room the player is physically in;
-/// - room_unlocked                — room progression (GameManager);
+/// - room_enter                   — the room the player is physically in (RoomVisibilityManager);
 /// - inventory_changed            — inventory contents after every change;
 /// - puzzle_solved / puzzle_failed / puzzle_exit_unsolved — puzzle outcomes.
 ///
@@ -46,7 +45,6 @@ public class ProgressLogger : MonoBehaviour
     private Thread _writerThread;
     private readonly StringBuilder _lineBuffer = new(256);
 
-    private GameManager _trackedGameManager;
     private RoomVisibilityManager _trackedRoomManager;
     private InventorySystem _trackedInventory;
     private string _lastRoomName;
@@ -227,44 +225,14 @@ public class ProgressLogger : MonoBehaviour
         Log("scene_loaded", scene.name);
     }
 
-    private void TrackGameManager()
-    {
-        if (_trackedGameManager != null) return;
-        var gm = GameManager.Instance;
-        if (gm == null) return;
-
-        _trackedGameManager = gm;
-        gm.OnRoomChanged += OnRoomChanged;
-        gm.OnGameCompleted += OnGameCompleted;
-    }
-
     private void UnsubscribeTracked()
     {
-        if (_trackedGameManager != null)
-        {
-            _trackedGameManager.OnRoomChanged -= OnRoomChanged;
-            _trackedGameManager.OnGameCompleted -= OnGameCompleted;
-            _trackedGameManager = null;
-        }
         if (_trackedRoomManager != null)
         {
             _trackedRoomManager.CurrentRoomChanged -= OnCurrentRoomChanged;
             _trackedRoomManager = null;
         }
     }
-
-    private void OnRoomChanged(int roomIndex)
-    {
-        string roomName = _trackedGameManager != null &&
-                          _trackedGameManager.Rooms != null &&
-                          roomIndex < _trackedGameManager.Rooms.Count &&
-                          _trackedGameManager.Rooms[roomIndex] != null
-            ? _trackedGameManager.Rooms[roomIndex].gameObject.name
-            : $"index {roomIndex}";
-        Log("room_unlocked", $"{roomIndex}:{roomName}");
-    }
-
-    private void OnGameCompleted() => Log("game_completed", "all rooms exited");
 
     private void TrackRoomManager()
     {
@@ -343,9 +311,8 @@ public class ProgressLogger : MonoBehaviour
 
     private void Update()
     {
-        // Late subscription: GameManager, RoomVisibilityManager and InventorySystem
+        // Late subscription: RoomVisibilityManager and InventorySystem
         // live in the Game scene and may be created after this component initializes.
-        TrackGameManager();
         TrackRoomManager();
         TrackInventory();
     }
