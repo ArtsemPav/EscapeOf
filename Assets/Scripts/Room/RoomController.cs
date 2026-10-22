@@ -121,6 +121,8 @@ public class RoomController : MonoBehaviour
     /// <summary>
     /// Collects renderers that are enabled at startup. Authored-disabled renderers are
     /// left untouched so culling never force-enables something meant to stay hidden.
+    /// Renderers of PhysicsDraggable props are excluded: they are dynamic and may be
+    /// carried outside the room, so they must never be culled with it.
     /// </summary>
     private void CollectRenderers()
     {
@@ -129,6 +131,11 @@ public class RoomController : MonoBehaviour
 
         foreach (var renderer in renderers)
         {
+            // Dynamic physics props (draggables) never cull with the room — the player
+            // can carry them out of the room's volume before it gets suppressed.
+            if (renderer != null && renderer.transform.GetComponentInParent<PhysicsDraggable>() != null)
+                continue;
+
             if (renderer != null && renderer.enabled)
                 managed.Add(renderer);
         }
