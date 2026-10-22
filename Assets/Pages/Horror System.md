@@ -8,7 +8,7 @@
 HorrorSystem (GameObject)         # Singleton — слушает InventorySystem и GameManager
 ├── Event_Mannequin (GameObject)  # HorrorEvent — один хоррор-момент
 └── Event_RunPastDoor (GameObject)# Ещё один момент — добавляй сколько нужно
-    └── RunDestination
+    └── SoundSource
 ```
 
 `HorrorSystem` подписывается на:
@@ -332,12 +332,35 @@ bool alreadyFired = horrorEvent.HasFired;
 ## Текущие события в сцене
 
 
-| GameObject          | Триггер                     | Эффект                          | Target   |
-| ------------------- | --------------------------- | ------------------------------- | -------- |
-| `Event_Mannequin`   | `OnItemPickup` (FlashLight) | `AppearThenDisappearOnLookAway` | **null** |
-| `Event_RunPastDoor` | `OnPlayerEnterZone`         | `AppearThenDisappearAfterDelay` | **null** |
-| `Event_DoorKnock`   | (в `/Env/HorrorTriggers/`)  | —                               | **null** |
-| `Event_NurseryExit` | (в `/HorrorSystem/`)        | —                               | **null** |
+| GameObject          | Триггер                                          | Эффект                          | Target        |
+| ------------------- | ------------------------------------------------ | ------------------------------- | ------------- |
+| `Event_Mannequin`   | `OnItemPickup` (FlashLight)                      | `AppearThenDisappearOnLookAway` | **null**      |
+| `Event_RunPastDoor` | `OnPlayerEnterZone` (+ puzzle `electric` как условие) | `AppearThenDisappearAfterDelay` | `MaidHolder`  |
+| `Event_VentMaid`    | `OnManual`                                       | `AppearAndStay`                 | `MaidHolder` (вент) |
+| `Event_NurseryExit` | `OnPuzzleSolved` (NurseryLock)                   | `AppearAndStay`                 | **null**      |
+| `Event_DoorKnock`   | (в `/Env/HorrorTriggers/`)                       | —                               | **null**      |
 
 
-> У всех событий Target не назначен — эффект появления/исчезновения не сработает пока не назначить. `Event_DoorKnock` и `Event_NurseryExit` добавлены позже и требуют настройки триггера и эффекта.
+> У `Event_Mannequin`, `Event_NurseryExit` и `Event_DoorKnock` Target не назначен / требует настройки.
+
+### Событие `run_past_door` (горничная ползёт по коридору 2-го этажа)
+
+```
+HorrorSystem/Event_RunPastDoor              # зона-триггер (BoxCollider trigger) + HorrorEvent
+└── SoundSource                             # джампскейр-звук (2D, Play On Awake = off)
+
+Env/2ndFloor/Corridor2stF/Horror
+├── MaidHolder                              # Target — горничная (CharacterRunPast, скорость 5.5, анимация ×1.6, Crawl)
+└── RunPosition                             # точка в конце коридора, куда ползёт
+```
+
+Цепочка при срабатывании (игрок вошёл в зону **и** электрическая загадка решена):
+
+1. `HorrorEvent.Activate()` — глушит фоновую музыку (`_ownsBackgroundMusic`, таймаут-страховка 30 сек)
+2. `MaidHolder` активируется, играет джампскейр-звук
+3. **On Activated**:
+   - `MaidHolder.CharacterRunPast.StartRun()` — горничная ползёт в `RunPosition`
+   - `doors_A/Doormesh.DoorInteraction.Open()` — дверь детской распахивается перед ней (игрок потом проходит свободно)
+4. Доползла → `CharacterRunPast._onReached` → `HorrorEvent.Deactivate()` — горничная скрывается, музыка возвращается
+
+> Сохраняется `HasFired` через сейв (`horror_run_past_door`) — не повторяется после загрузки.

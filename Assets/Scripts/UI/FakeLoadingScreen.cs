@@ -16,6 +16,7 @@ public class FakeLoadingScreen : MonoBehaviour
     private const float FillDurationSeconds = 2.2f;
     private const float DisplayedProgressCap = 0.99f;
     private const float MinSceneReadyDelaySeconds = 0.2f;
+    private const float RevealHeadStartSeconds = 1.2f;
     // A long hitch (e.g. from scene deserialization) must not jump the bar forward.
     private const float MaxFrameDeltaSeconds = 0.05f;
 
@@ -34,31 +35,44 @@ public class FakeLoadingScreen : MonoBehaviour
     private AsyncOperation _sceneLoadOperation;
     private bool _sceneReady;
 
+    /// <summary>Shows the loading screen with the bar at zero, without starting the fill.</summary>
+    public void Show()
+    {
+        gameObject.SetActive(true);
+        _progressSlider.interactable = false;
+        _progressSlider.value = 0f;
+        UpdateProgressLabel(0f);
+    }
+
     /// <summary>
-    /// Shows the loading screen, animates the bar from 0 to 100% while the scene
-    /// loads in the background, then activates the gameplay scene.
+    /// Shows the loading screen and animates the bar from 0 to 100% while the
+    /// gameplay scene loads in the background. When the bar is full, the shared
+    /// ScreenFader fades the screen to black before the scene activates.
+    /// Call Show() first and let the reveal fade finish, so the heavy scene
+    /// load never freezes the fade mid-way (see MainMenuController).
     /// </summary>
     public void BeginLoading()
     {
-        // Activate before starting the coroutine: coroutines cannot run on an inactive GameObject.
-        gameObject.SetActive(true);
+        Show();
         _fillRoutine = StartCoroutine(FillAndLoad());
     }
 
     private IEnumerator FillAndLoad()
     {
-        // Block clicks through the overlay.
-        _progressSlider.interactable = false;
+        // Give the reveal fade a head start: for the first beats the heavy
+        // scene load competes with rendering, so postpone it until the screen
+        // is visually back and the bar is already moving.
+        yield return new WaitForSecondsRealtime(RevealHeadStartSeconds);
 
-        // Start fully empty and let the overlay render before any heavy work.
-        _progressSlider.value = 0f;
-        UpdateProgressLabel(0f);
-        yield return null;
-
-        // Lower loading-thread priority so background loading barely touches the main thread.
         Application.backgroundLoadingPriority = ThreadPriority.BelowNormal;
         _sceneLoadOperation = SceneManager.LoadSceneAsync(_sceneToLoad);
         _sceneLoadOperation.allowSceneActivation = false;
+
+        // Block clicks through the overlay.
+        _progressSlider.interactable = false;
+        _progressSlider.value = 0f;
+        UpdateProgressLabel(0f);
+        yield return null;
 
         float elapsed = 0f;
         while (elapsed < FillDurationSeconds)
@@ -78,12 +92,17 @@ public class FakeLoadingScreen : MonoBehaviour
         UpdateProgressLabel(1f);
         yield return new WaitForSecondsRealtime(MinSceneReadyDelaySeconds);
 
-        // Scene assets are already streamed in the background — activation is instant.
-        _sceneLoadOperation.allowSceneActivation = true;
-        while (!_sceneLoadOperation.isDone)
+        // Hide the scene switch: fade to black first, then activate — the
+        // assets are already streamed, so activation lands on a black screen.
+        if (ScreenFader.Instance != null)
         {
-            yield return null;
+            yield return ScreenFader.Instance.FadeIn();
+            _sceneLoadOperation.allowSceneActivation = true;
+            yield break;
         }
+
+        Debug.LogWarning("FakeLoadingScreen: ScreenFader is missing in this scene, activating scene directly.", this);
+        _sceneLoadOperation.allowSceneActivation = true;
     }
 
     private void UpdateProgressLabel(float progress)

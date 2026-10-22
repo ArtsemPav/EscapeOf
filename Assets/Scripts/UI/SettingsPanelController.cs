@@ -4,15 +4,13 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Main-menu settings panel: music volume, SFX volume, graphics quality and a
-/// back action. Values apply immediately and persist in PlayerPrefs.
+/// Main-menu settings panel: music volume, SFX volume, resolution, frame rate
+/// and a back action. Values apply immediately and persist in PlayerPrefs.
 /// </summary>
 public class SettingsPanelController : MonoBehaviour
 {
     [SerializeField] private Slider _musicSlider;
     [SerializeField] private Slider _sfxSlider;
-    [SerializeField] private Button _qualityButton;
-    [SerializeField] private TMP_Text _qualityLabel;
     [SerializeField] private Button _resolutionButton;
     [SerializeField] private TMP_Text _resolutionLabel;
     [SerializeField] private Button _frameRateButton;
@@ -34,10 +32,9 @@ public class SettingsPanelController : MonoBehaviour
             _sfxSlider.SetValueWithoutNotify(SystemSettings.SfxVolume);
             _sfxSlider.onValueChanged.AddListener(SystemSettings.SetSfxVolume);
         }
-        // Cycle buttons (quality/resolution/fps) are wired via persistent onClick
+        // Cycle buttons (resolution/fps) are wired via persistent onClick
         // calls in the scene — do NOT add code listeners too, or every click
         // fires twice and two-step cycles return to the same value.
-        RefreshQualityLabel();
         RefreshResolutionLabel();
         RefreshFrameRateLabel();
     }
@@ -46,20 +43,6 @@ public class SettingsPanelController : MonoBehaviour
     {
         if (_musicSlider != null) _musicSlider.onValueChanged.RemoveListener(SystemSettings.SetMusicVolume);
         if (_sfxSlider != null) _sfxSlider.onValueChanged.RemoveListener(SystemSettings.SetSfxVolume);
-    }
-
-    /// <summary>Switches to the next graphics quality level and refreshes the label.</summary>
-    public void CycleQuality()
-    {
-        int next = (QualitySettings.GetQualityLevel() + 1) % QualitySettings.names.Length;
-        SystemSettings.SetQualityLevel(next);
-        RefreshQualityLabel();
-    }
-
-    private void RefreshQualityLabel()
-    {
-        if (_qualityLabel != null)
-            _qualityLabel.text = "КАЧЕСТВО: " + QualitySettings.names[QualitySettings.GetQualityLevel()].ToUpper();
     }
 
     /// <summary>Switches to the next selectable resolution and applies it immediately.</summary>
