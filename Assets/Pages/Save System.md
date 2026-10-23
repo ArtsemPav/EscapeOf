@@ -140,7 +140,10 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 | `LockDial`                    | `lock_dial_...`               | Положение диска замка                             |
 | `RotateOnTrigger`             | `rotate_on_trigger_...`       | Угол вращения                                     |
 | `HorrorInteractable`          | `horror_interactable_...`     | Состояние хоррор-интерактивного объекта           |
-| `PuzzleSolvedCinematic`       | `puzzle_solved_cinematic_...` | Воспроизведён ли кинематик                        |
+| `SpiderWebSlowTrigger`        | `spider_web/...` (авто)       | Пройдена ли паутина (`isPassed`) — авто-ID из пути сцены |
+| `LiquidDrainInteractable`     | (GUID, авто)                  | Слита ли жидкость (`isDrained`)                          |
+| `DuckHorrorInteractable`      | (GUID)                        | Прогресс ныряний утки                                    |
+| `PuzzleSolvedCinematic`       | `puzzle_solved_cinematic_...` | Воспроизведён ли кинематик                               |
 
 
 ---

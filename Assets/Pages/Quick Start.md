@@ -17,6 +17,7 @@ Escape Room — игра от первого лица. Игрок перемещ
 | **SaveManager**           | Автосохранение и загрузка состояния игры. См. [@ id="/Pages/Private/Save System.md" label="Save System"]                          |
 | **LightingSystem**        | Управление электричеством, зонами освещения, генератором. См. [@ id="/Pages/Private/Lighting System.md" label="Lighting System"]      |
 | **AudioManager**          | Глобальное управление звуком (SFX, музыка, mute/volume)                                                                                       |
+| **MusicDirector**         | Управление фоновой музыкой (PlayMenuMusic / PlayGameMusic), вызывается из GameManager                                                        |
 | **ScreenFader**           | Затемнение экрана для переходов и кинематиков. Объект `/Canvas/ScreenFader` должен быть активен                                               |
 | **RoomVisibilityManager** | Отсечение геометрии комнат по позиции игрока. См. [@ id="/Pages/Private/Room Visibility System.md" label="Room Visibility System"]           |
 | **HorrorSystem**          | Координатор хоррор-событий. См. [@ id="/Pages/Private/Horror System.md" label="Horror System"]                                      |
@@ -63,6 +64,13 @@ HorrorSystem            ← компонент HorrorSystem
 - [@ id="/Pages/Private/Chemical Synthesis Puzzle.md" label="Chemical Synthesis Puzzle"]
 - [@ id="/Pages/Private/Card Lock Puzzle System.md" label="Card Lock Puzzle System"]
 - [@ id="/Pages/Private/Nursery Lock Puzzle System.md" label="Nursery Lock Puzzle System"]
+- [@ id="/Pages/Private/Screwdriver Repair Puzzle System.md" label="Screwdriver Repair Puzzle System"]
+- [@ id="/Pages/Private/Screwdriver Minigame System.md" label="Screwdriver Minigame System"]
+
+### Прочее
+
+- [@ id="/Pages/Private/Liquid Drain System.md" label="Liquid Drain System"] — слив воды из ванны/раковины
+- [@ id="/Pages/Private/Liquid Shader System.md" label="Liquid Shader System"] — шейдер жидкости `Custom/LiquidFlask` и контроллер `LiquidWobble`
 
 ## Быстрый чеклист для новой сцены
 
