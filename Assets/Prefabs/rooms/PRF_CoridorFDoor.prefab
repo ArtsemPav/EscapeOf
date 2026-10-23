@@ -658,6 +658,7 @@ MonoBehaviour:
   _guiltPauseDuration: 2
   _arrivalThreshold: 0.2
   _maxWalkDuration: 20
+  _portal: {fileID: 0}
   _startDelay: 2
   _earlyFadeLead: 5
   _fadeDuration: 2.5
@@ -103584,6 +103585,18 @@ PrefabInstance:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 3740919257047373610, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+      propertyPath: _coreSize
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3740919257047373610, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+      propertyPath: _diskSize
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 3740919257047373610, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+      propertyPath: _lensSize
+      value: 5
+      objectReference: {fileID: 0}
     - target: {fileID: 7177029157982258870, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
       propertyPath: m_LocalPosition.x
       value: -12.48
@@ -103622,6 +103635,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7177029157982258870, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7573901830340156311, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
+      propertyPath: _activateOnStart
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8419919408604144027, guid: 3aac972eaf23d8249a21ae82a9e7882a, type: 3}
@@ -103702,6 +103719,9 @@ MonoBehaviour:
   _chromaticAberration: 0.45
   _vignette: 0.32
   _lensDistortion: -0.22
+  _blockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   _enterRadius: 1.6
   _enterFovStretch: 28
   _onPlayerEntered:

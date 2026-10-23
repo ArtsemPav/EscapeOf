@@ -42,6 +42,11 @@ public class PortalPlayerImpact : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float _vignette = 0.32f;
     [SerializeField, Range(-1f, 0f)] private float _lensDistortion = -0.22f;
 
+    [Header("Line of Sight")]
+    [Tooltip("Layers that block the portal's effects when they occlude the core (walls, closed doors). " +
+             "With no line of sight to the core, post-processing, shake and rumble fade out.")]
+    [SerializeField] private LayerMask _blockingMask = ~0;
+
     [Header("Enter Portal")]
     [SerializeField] private float _enterRadius = 1.6f;
     [SerializeField] private float _enterFovStretch = 28f;
@@ -108,11 +113,27 @@ public class PortalPlayerImpact : MonoBehaviour
         float distance = Vector3.Distance(_cameraTransform.position, _finale.CoreWorldPosition);
         float proximity = 1f - Mathf.InverseLerp(_fullEffectDistance, _effectRange, distance);
         proximity = Mathf.Clamp01(proximity);
+        // Effects must not bleed through geometry: no line of sight to the core means no effect
+        UpdateVisibility();
+        proximity *= _visibility;
         float power = _finale.Power;
 
         UpdateVolume(power, proximity);
         UpdateEnterTrigger(distance, power);
-        ApplyCameraEffects(power, proximity);
+        ApplyCameraEffects(power * _visibility, proximity);
+    }
+
+    private const float VisibilityFadeSeconds = 0.4f;
+    private float _visibility;
+
+    /// <summary>
+    /// Smoothed 0..1 factor: zeroed when walls or the closed door occlude the portal core,
+    /// so the portal's post-processing never bleeds through geometry.
+    /// </summary>
+    private void UpdateVisibility()
+    {
+        float target = HasLineOfSight() ? 1f : 0f;
+        _visibility = Mathf.MoveTowards(_visibility, target, Time.deltaTime / VisibilityFadeSeconds);
     }
 
     private bool TryGetCamera()
@@ -123,6 +144,25 @@ public class PortalPlayerImpact : MonoBehaviour
             _cameraTransform = _camera != null ? _camera.transform : null;
         }
         return _camera != null;
+    }
+
+    private const float SightSkipDistance = 0.3f;
+
+    /// <summary>
+    /// True when nothing in <see cref="_blockingMask"/> occludes the core from the camera,
+    /// so effects do not bleed through walls or the closed door.
+    /// </summary>
+    private bool HasLineOfSight()
+    {
+        Vector3 from = _cameraTransform.position;
+        Vector3 to = _finale.CoreWorldPosition;
+        Vector3 delta = to - from;
+        float length = delta.magnitude;
+        if (length <= SightSkipDistance)
+            return true;
+
+        Vector3 direction = delta / length;
+        return !Physics.Raycast(from + direction * SightSkipDistance, direction, length - SightSkipDistance, _blockingMask, QueryTriggerInteraction.Ignore);
     }
 
     private void RemoveAppliedOffsets()
@@ -189,8 +229,9 @@ public class PortalPlayerImpact : MonoBehaviour
 
     private void UpdateVolume(float power, float proximity)
     {
-        // Subtle everywhere in range (so the glow always blooms), strong when close
-        float strength = power * Mathf.Lerp(0.45f, 1f, proximity);
+        // Subtle everywhere in range (so the glow always blooms), strong when close.
+        // _visibility multiplies the whole weight so nothing leaks through walls or the closed door.
+        float strength = power * Mathf.Lerp(0.45f, 1f, proximity) * _visibility;
         float flashBoost = 1f + _finale.Flash * 1.5f;
 
         _volume.weight = Mathf.Clamp01(strength);

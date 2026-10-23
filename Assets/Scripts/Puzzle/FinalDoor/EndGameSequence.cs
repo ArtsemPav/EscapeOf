@@ -112,6 +112,12 @@ public class EndGameSequence : MonoBehaviour
     [Tooltip("Safety timeout — the ending forces forward even if the walk is blocked.")]
     [SerializeField, Min(2f)] private float _maxWalkDuration = 20f;
 
+    [Header("Portal")]
+    [Tooltip("Portal funnel controller ignited while the door opens. " +
+             "Auto-found in the scene if empty. Keeps the black hole hidden " +
+             "(and its lens distortion off) until the puzzle is solved.")]
+    [SerializeField] private PortalFunnelController _portal;
+
     [Header("Fade & Credits")]
     [Tooltip("Delay after OnSolved before the sequence takes over (lets the " +
              "puzzle exit fade finish so the player sees the door).")]
@@ -144,6 +150,9 @@ public class EndGameSequence : MonoBehaviour
 
         if (_creditsView == null)
             _creditsView = FindFirstObjectByType<EndGameCreditsView>(FindObjectsInactive.Include);
+
+        if (_portal == null)
+            _portal = FindFirstObjectByType<PortalFunnelController>(FindObjectsInactive.Include);
 
         _characterController = FindFirstObjectByType<CharacterController>();
     }
@@ -194,7 +203,12 @@ public class EndGameSequence : MonoBehaviour
         if (_debugLogging)
             Debug.Log("[EndGameSequence] Input disabled, playing door open animation.");
 
-        // 3. Play the door-open animation.
+        // 3. Play the door-open animation. The portal ignites with it — the
+        //    black hole was kept off the whole game so its lens never bled
+        //    through the closed door.
+        if (_portal != null)
+            _portal.Activate();
+
         bool doorOpened = false;
         if (_doorAnimator != null && !string.IsNullOrEmpty(_doorOpenStateName))
         {
