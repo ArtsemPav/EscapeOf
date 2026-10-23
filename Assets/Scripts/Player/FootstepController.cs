@@ -195,6 +195,14 @@ public class FootstepController : MonoBehaviour
         if (_activeZones.Count == 0)
             return defaultProfile;
 
+        // Drop stale zones whose collider no longer contains the player
+        // (teleport, save load, or a disabled collider never fired OnTriggerExit).
+        Vector3 playerPos = transform.position;
+        _activeZones.RemoveAll(zone => zone == null || !zone.ContainsPoint(playerPos));
+
+        if (_activeZones.Count == 0)
+            return defaultProfile;
+
         FootstepZone best = null;
         for (int i = 0; i < _activeZones.Count; i++)
         {

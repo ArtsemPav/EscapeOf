@@ -40,6 +40,13 @@ public class SpiderLeapScare : MonoBehaviour
     [Tooltip("How long the spider eats before crawling to the flee point (seconds).")]
     [SerializeField] private float _eatDuration = 2f;
 
+    [Header("Eat Sound")]
+    [Tooltip("Чавканье/звук поедания, проигрывается в начале фазы Eat.")]
+    [SerializeField] private AudioClip _eatSound;
+
+    [Tooltip("Volume eat-звука.")]
+    [SerializeField, Range(0f, 1f)] private float _eatSoundVolume = 0.8f;
+
     [Header("Escape (to the flee point)")]
     [Tooltip("Name of the run/walk animation state in the Animator Controller.")]
     [SerializeField] private string _fleeStateName = "rig|walk";
@@ -180,6 +187,12 @@ public class SpiderLeapScare : MonoBehaviour
             _animator.enabled = false;
             _animator.enabled = true;
             _animator.Play(_eatStateName, 0, 0f);
+        }
+
+        if (_eatSound != null && AudioManager.Instance != null)
+        {
+            AudioManager.Instance.Play3DOneShot(
+                _eatSound, transform.position, _eatSoundVolume, minDistance: 1f, maxDistance: 12f);
         }
     }
 
