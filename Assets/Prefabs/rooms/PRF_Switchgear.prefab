@@ -108,7 +108,7 @@ GameObject:
   - component: {fileID: 4012713020447518478}
   - component: {fileID: 7464320916295420240}
   m_Layer: 0
-  m_Name: Foodstep (2)
+  m_Name: Footstep (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -124,7 +124,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.7036302, y: -0.07003281, z: 0.07003281, w: 0.7036302}
   m_LocalPosition: {x: -3.105, y: 0.005, z: 0.71099997}
-  m_LocalScale: {x: 0.0013333, y: 0.0013333, z: 0.0013333}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4880341501802934523}
@@ -186,7 +186,7 @@ SpriteRenderer:
   m_Size: {x: 4.92, y: 2.04}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &7464320916295420240
 MonoBehaviour:
@@ -218,7 +218,7 @@ GameObject:
   - component: {fileID: 9172396623698206361}
   - component: {fileID: 5121384729014788713}
   m_Layer: 0
-  m_Name: Foodstep (1)
+  m_Name: Footstep (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -234,7 +234,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.6948797, y: 0.13092819, z: -0.13092819, w: 0.6948797}
   m_LocalPosition: {x: -2.357, y: 0.005, z: 1.409}
-  m_LocalScale: {x: 0.0013333, y: 0.0013333, z: 0.0013333}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4880341501802934523}
@@ -296,7 +296,7 @@ SpriteRenderer:
   m_Size: {x: 4.92, y: 2.04}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &5121384729014788713
 MonoBehaviour:
@@ -975,7 +975,7 @@ GameObject:
   - component: {fileID: 5111413865303762876}
   - component: {fileID: 3419111630377228379}
   m_Layer: 0
-  m_Name: Foodstep (4)
+  m_Name: Footstep (4)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -991,7 +991,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.7036302, y: -0.07003281, z: 0.07003281, w: 0.7036302}
   m_LocalPosition: {x: -2.745, y: 0.038999848, z: 4.977}
-  m_LocalScale: {x: 0.0013333, y: 0.0013333, z: 0.0013333}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4880341501802934523}
@@ -1053,7 +1053,7 @@ SpriteRenderer:
   m_Size: {x: 4.92, y: 2.04}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &3419111630377228379
 MonoBehaviour:
@@ -1373,7 +1373,7 @@ GameObject:
   - component: {fileID: 1798453237379739523}
   - component: {fileID: 4762059858999428262}
   m_Layer: 0
-  m_Name: Foodstep (3)
+  m_Name: Footstep (3)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1389,7 +1389,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.6948797, y: 0.13092819, z: -0.13092819, w: 0.6948797}
   m_LocalPosition: {x: -2.357, y: 0.039, z: 4.92}
-  m_LocalScale: {x: 0.0013333, y: 0.0013333, z: 0.0013333}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4880341501802934523}
@@ -1451,7 +1451,7 @@ SpriteRenderer:
   m_Size: {x: 4.92, y: 2.04}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &4762059858999428262
 MonoBehaviour:
@@ -7710,6 +7710,30 @@ PrefabInstance:
       propertyPath: '_flashlightSupportLights.Array.data[1]'
       value: 
       objectReference: {fileID: 5804632480326404518}
+    - target: {fileID: 2312606357073352547, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2312606357073352547, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_Mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2312606357073352547, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2312606357073352547, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
+      value: UnlockAndOpen
+      objectReference: {fileID: 0}
+    - target: {fileID: 2312606357073352547, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
+      value: Escape.Core.DoorInteraction, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 2312606357073352547, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
+      value: UnityEngine.Object, UnityEngine
+      objectReference: {fileID: 0}
     - target: {fileID: 2381162673005071432, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -7749,6 +7773,10 @@ PrefabInstance:
     - target: {fileID: 2579934696538895751, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2688386476622516060, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: m_Layer
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2956216170133132451, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_Layer
@@ -8432,7 +8460,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8672264877814331972, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8778349022150735425, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -8496,7 +8524,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9008715576105339935, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: panLevelCustomCurve.m_Curve.Array.data[0].value
-      value: 0.906
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9008715576105339935, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: rolloffCustomCurve.m_Curve.Array.data[0].inSlope

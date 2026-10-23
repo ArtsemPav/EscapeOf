@@ -1,75 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1823374549126845269
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 6956096549872612359}
-  - component: {fileID: 5869636004347776350}
-  - component: {fileID: 7560403314560353046}
-  m_Layer: 6
-  m_Name: Button1 (2)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &6956096549872612359
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1823374549126845269}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.271, y: 1.768, z: 1.444}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6594556357767288498}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &5869636004347776350
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1823374549126845269}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.15888445, y: 0.16047154, z: 0.4737096}
-  m_Center: {x: 0.06, y: 0.11, z: -0.12}
---- !u!114 &7560403314560353046
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1823374549126845269}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8451bd29d77732d43877fa3328d50cdc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorButton
-  _floorIndex: 0
-  _controller: {fileID: 0}
-  _hintText: "\u0421\u043F\u0443\u0441\u0442\u0438\u0442\u044C\u0441\u044F \u0432
-    \u043F\u043E\u0434\u0432\u0430\u043B"
 --- !u!1 &3754735936621806093
 GameObject:
   m_ObjectHideFlags: 0
@@ -134,9 +64,6 @@ Transform:
   m_Children:
   - {fileID: 3129393599633974349}
   - {fileID: 4548477434012721419}
-  - {fileID: 2775032068511110535}
-  - {fileID: 1317525303462443270}
-  - {fileID: 6956096549872612359}
   m_Father: {fileID: 4353792321148103037}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &4012479035831461314
@@ -188,7 +115,7 @@ MonoBehaviour:
     wingB: {fileID: 0}
   - wingA: {fileID: 0}
     wingB: {fileID: 0}
-  _startingFloor: 1
+  _startingFloor: 0
   _cabinDoorOpenOffset: 0.6
   _floorDoorOpenOffset: 0.85
   _doorDuration: 1.5
@@ -260,82 +187,12 @@ Transform:
   m_GameObject: {fileID: 6560156934154879397}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.86, y: -8.51, z: 0}
+  m_LocalPosition: {x: -3.86, y: -8.81, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4353792321148103037}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &7020011957932726593
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2775032068511110535}
-  - component: {fileID: 6379813384970310194}
-  - component: {fileID: 304966985703551374}
-  m_Layer: 6
-  m_Name: Button1
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2775032068511110535
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7020011957932726593}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.271, y: 2.095, z: 1.444}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6594556357767288498}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &6379813384970310194
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7020011957932726593}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.15888445, y: 0.16047154, z: 0.4737096}
-  m_Center: {x: 0.06, y: 0.11, z: -0.12}
---- !u!114 &304966985703551374
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7020011957932726593}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8451bd29d77732d43877fa3328d50cdc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorButton
-  _floorIndex: 2
-  _controller: {fileID: 0}
-  _hintText: "\u041F\u043E\u0434\u043D\u044F\u0442\u044C\u0441\u044F \u043D\u0430
-    2-\u0439 \u044D\u0442\u0430\u0436"
 --- !u!1 &7507776594762748730
 GameObject:
   m_ObjectHideFlags: 0
@@ -484,75 +341,6 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
---- !u!1 &8773922484953618264
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1317525303462443270}
-  - component: {fileID: 3344915203084198435}
-  - component: {fileID: 3146058921165122835}
-  m_Layer: 6
-  m_Name: Button1 (1)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1317525303462443270
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8773922484953618264}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -5.271, y: 1.94, z: 1.444}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 6594556357767288498}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &3344915203084198435
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8773922484953618264}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.15888445, y: 0.16047154, z: 0.4737096}
-  m_Center: {x: 0.06, y: 0.11, z: -0.12}
---- !u!114 &3146058921165122835
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8773922484953618264}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8451bd29d77732d43877fa3328d50cdc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorButton
-  _floorIndex: 1
-  _controller: {fileID: 0}
-  _hintText: "\u041D\u0430 1-\u0439 \u044D\u0442\u0430\u0436"
 --- !u!1 &8877996676260401384
 GameObject:
   m_ObjectHideFlags: 0
@@ -758,19 +546,249 @@ PrefabInstance:
       propertyPath: m_Materials.Array.size
       value: 3
       objectReference: {fileID: 0}
+    - target: {fileID: 2366119563050914001, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5784973907401229410, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7766669581593740789, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 400000, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5526712877039724574}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2366119563050914001, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9162810766360934010}
+    - targetCorrespondingSourceObject: {fileID: 2366119563050914001, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8750425232902349635}
+    - targetCorrespondingSourceObject: {fileID: 2366119563050914001, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 139019589008617845}
+    - targetCorrespondingSourceObject: {fileID: 5784973907401229410, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7263814417932742427}
+    - targetCorrespondingSourceObject: {fileID: 5784973907401229410, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2383075101151594787}
+    - targetCorrespondingSourceObject: {fileID: 5784973907401229410, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4315934631007363838}
+    - targetCorrespondingSourceObject: {fileID: 7766669581593740789, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2968198405591748013}
+    - targetCorrespondingSourceObject: {fileID: 7766669581593740789, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6153230671560668465}
+    - targetCorrespondingSourceObject: {fileID: 7766669581593740789, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8051864960027037946}
   m_SourcePrefab: {fileID: 100100000, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+--- !u!4 &315529437062734671 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3390413098079477122, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+  m_PrefabInstance: {fileID: 3129393599634374349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &845537442077797916 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2366119563050914001, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+  m_PrefabInstance: {fileID: 3129393599634374349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &9162810766360934010
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 845537442077797916}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.02899122, y: 0.09613647, z: 0.09613657}
+  m_Center: {x: 0, y: 0.00000014342365, z: 0.00000014342368}
+--- !u!114 &8750425232902349635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 845537442077797916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e1d2658ff02cc45a26050cb688e1c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
+  _pressTarget: {fileID: 5376434236361678947}
+  _axis: 0
+  _pressDepth: 0.015
+  _pressDuration: 0.06
+  _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1
+--- !u!114 &139019589008617845
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 845537442077797916}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8451bd29d77732d43877fa3328d50cdc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorButton
+  _floorIndex: 2
+  _controller: {fileID: 0}
+  _hintText: "\u041F\u043E\u0434\u043D\u044F\u0442\u044C\u0441\u044F \u043D\u0430
+    2-\u0439 \u044D\u0442\u0430\u0436"
 --- !u!4 &3129393599633974349 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
   m_PrefabInstance: {fileID: 3129393599634374349}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4658153800940157752 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7766669581593740789, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+  m_PrefabInstance: {fileID: 3129393599634374349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &2968198405591748013
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4658153800940157752}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.02899122, y: 0.096136466, z: 0.09613657}
+  m_Center: {x: 0, y: -0.00000011920929, z: 0.00000014342368}
+--- !u!114 &6153230671560668465
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4658153800940157752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8451bd29d77732d43877fa3328d50cdc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorButton
+  _floorIndex: 0
+  _controller: {fileID: 0}
+  _hintText: "\u041C\u043E\u0440\u0433"
+--- !u!114 &8051864960027037946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4658153800940157752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e1d2658ff02cc45a26050cb688e1c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
+  _pressTarget: {fileID: 0}
+  _axis: 0
+  _pressDepth: 0.015
+  _pressDuration: 0.06
+  _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1
+--- !u!4 &5376434236361678947 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7057484307358572206, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+  m_PrefabInstance: {fileID: 3129393599634374349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8873654738925370031 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5784973907401229410, guid: cad45b40150a6bc4487e0fe0cbe8bfd9, type: 3}
+  m_PrefabInstance: {fileID: 3129393599634374349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7263814417932742427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8873654738925370031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e1d2658ff02cc45a26050cb688e1c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
+  _pressTarget: {fileID: 315529437062734671}
+  _axis: 0
+  _pressDepth: 0.015
+  _pressDuration: 0.06
+  _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1
+--- !u!65 &2383075101151594787
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8873654738925370031}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.02899122, y: 0.09613647, z: 0.09613657}
+  m_Center: {x: 0, y: -0.00000043027103, z: 0.00000014342368}
+--- !u!114 &4315934631007363838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8873654738925370031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8451bd29d77732d43877fa3328d50cdc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorButton
+  _floorIndex: 1
+  _controller: {fileID: 0}
+  _hintText: "\u041D\u0430 1-\u0439 \u044D\u0442\u0430\u0436"
 --- !u!1001 &4548477434012597135
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1075,6 +1093,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2300000, guid: e017d19fe61700f43841807fa9175b1e, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 526848
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1136,6 +1158,10 @@ PrefabInstance:
     - target: {fileID: 400000, guid: e017d19fe61700f43841807fa9175b1e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2300000, guid: e017d19fe61700f43841807fa9175b1e, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 526848
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

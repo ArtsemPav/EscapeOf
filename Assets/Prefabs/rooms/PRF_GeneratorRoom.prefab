@@ -465,7 +465,7 @@ GameObject:
   - component: {fileID: 6686234950888472342}
   - component: {fileID: 8474702047615511666}
   m_Layer: 0
-  m_Name: Foodstep (2)
+  m_Name: Footstep (2)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -481,7 +481,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.46357763, y: -0.53394365, z: 0.53394365, w: 0.46357763}
   m_LocalPosition: {x: -8.492, y: 0.005, z: 2.905}
-  m_LocalScale: {x: 0.0014141201, y: 0.0014141201, z: 0.0014141201}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4422218443436579290}
@@ -543,7 +543,7 @@ SpriteRenderer:
   m_Size: {x: 4.92, y: 2.04}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &8474702047615511666
 MonoBehaviour:
@@ -972,6 +972,8 @@ MonoBehaviour:
   _triggerZones:
   - Trigger: {fileID: 5054287357406793729}
     VisibleRooms:
+    - {fileID: 0}
+    - {fileID: 0}
     - {fileID: 0}
     - {fileID: 0}
 --- !u!1 &6046832651891169273
@@ -6008,7 +6010,7 @@ GameObject:
   - component: {fileID: 5703885859144597918}
   - component: {fileID: 619579905267156291}
   m_Layer: 0
-  m_Name: Foodstep (1)
+  m_Name: Footstep (1)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6024,7 +6026,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.5951677, y: -0.38180548, z: 0.38180548, w: 0.5951677}
   m_LocalPosition: {x: -7.79, y: 0.005, z: 3.3}
-  m_LocalScale: {x: 0.0014141201, y: 0.0014141201, z: 0.0014141201}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 4422218443436579290}
@@ -6086,7 +6088,7 @@ SpriteRenderer:
   m_Size: {x: 4.92, y: 2.04}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
 --- !u!114 &619579905267156291
 MonoBehaviour:
@@ -6540,6 +6542,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
     - target: {fileID: 4492372440869039146, guid: 32a9416018706304da993bb57f4e7f86, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -6609,10 +6615,6 @@ PrefabInstance:
       value: 520
       objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -16908,6 +16910,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2426034196023318138}
     m_Modifications:
+    - target: {fileID: 7483569351371789647, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2097664
+      objectReference: {fileID: 0}
+    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.1599946
+      objectReference: {fileID: 0}
+    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.000006610827
+      objectReference: {fileID: 0}
+    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.9468658
+      objectReference: {fileID: 0}
+    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_Name
+      value: PRF_HalfWall1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 4294967279
+      objectReference: {fileID: 0}
     - target: {fileID: 4008090468313799915, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -16959,30 +16985,6 @@ PrefabInstance:
     - target: {fileID: 4008090468313799915, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7483569351371789647, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2097664
-      objectReference: {fileID: 0}
-    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -2.1599946
-      objectReference: {fileID: 0}
-    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.000006610827
-      objectReference: {fileID: 0}
-    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 1.9468658
-      objectReference: {fileID: 0}
-    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_Name
-      value: PRF_HalfWall1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 4294967279
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -17444,6 +17446,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -17517,10 +17523,6 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
