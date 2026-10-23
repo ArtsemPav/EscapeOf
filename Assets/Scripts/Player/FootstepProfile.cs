@@ -36,11 +36,16 @@ public class FootstepProfile : ScriptableObject
     [Tooltip("Seconds to skip at the start of each clip. Use to trim silence so the impact hits exactly when the foot lands.")]
     [SerializeField] [Range(0f, 0.5f)] private float startOffset;
 
+    [Header("Landing")]
+    [Tooltip("Sound played when the player lands on this surface. If empty, the controller's fallback land clip is used.")]
+    [SerializeField] private AudioClip landClip;
+
     public BlendMode Mode           => blendMode;
     public AudioClip[] LeftClips    => leftClips;
     public AudioClip[] RightClips   => rightClips;
     public float VolumeMultiplier   => volumeMultiplier;
     public float StartOffset        => startOffset;
+    public AudioClip LandClip       => landClip;
 
     /// <summary>Returns a random clip for the requested foot, or null if the array is empty.</summary>
     public AudioClip GetRandomClip(bool isLeft)

@@ -117,16 +117,22 @@ public class FootstepController : MonoBehaviour
             PlayClip(jumpClip, jumpVolume, 0f);
     }
 
-    /// <summary>Plays the landing clip, volume scaled by impact speed.</summary>
+    /// <summary>
+    /// Plays the landing clip of the current surface's profile, falling back to the
+    /// shared landClip when the profile has none. Volume scales by impact speed.
+    /// </summary>
     private void OnLanded(float fallSpeed)
     {
-        if (landClip == null) return;
+        // Prefer the active surface profile's landing sound; fall back to the shared clip.
+        AudioClip clip = _currentProfile != null ? _currentProfile.LandClip : null;
+        if (clip == null) clip = landClip;
+        if (clip == null) return;
 
         // Volume scales with impact speed: quiet for small falls,
         // loud for hard landings. Clamped to the jump volume ceiling.
         const float ReferenceFallSpeed = 10f; // ~full jump fall speed
         float volume = Mathf.Min(landVolume, jumpVolume * (fallSpeed / ReferenceFallSpeed));
-        PlayClip(landClip, volume, 0f);
+        PlayClip(clip, volume, 0f);
     }
 
     private void Update()
