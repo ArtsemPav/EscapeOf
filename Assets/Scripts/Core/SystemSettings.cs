@@ -11,8 +11,17 @@ public static class SystemSettings
     public const string MusicVolumePref = "Settings_MusicVolume";
     public const string SfxVolumePref = "Settings_SfxVolume";
     public const string QualityPref = "Settings_QualityLevel";
-    public const string ResolutionIndexPref = "Settings_ResolutionIndex";
+    public const string ResolutionWidthPref = "Settings_ResolutionWidth";
+    public const string ResolutionHeightPref = "Settings_ResolutionHeight";
+    public const string LegacyResolutionIndexPref = "Settings_ResolutionIndex";
     public const string TargetFrameRatePref = "Settings_TargetFrameRate";
+    public const string FullScreenModePref = "Settings_FullScreenMode";
+
+    /// <summary>
+    /// Borderless fullscreen: letterboxes resolutions whose aspect ratio differs
+    /// from the monitor's, so non-native modes show black bars instead of stretching.
+    /// </summary>
+    public const FullScreenMode DefaultFullScreenMode = FullScreenMode.FullScreenWindow;
 
     /// <summary>Music loudness (0–1) as written to the mixer's Music bus.</summary>
     public static float MusicVolume => PlayerPrefs.GetFloat(MusicVolumePref, 1f);
@@ -66,19 +75,63 @@ public static class SystemSettings
         QualitySettings.SetQualityLevel(level, true);
     }
 
-    /// <summary>Index of the saved resolution in <see cref="VideoSettingOptions.Resolutions"/>, or -1 when the player has not chosen one yet.</summary>
-    public static int ResolutionIndex => PlayerPrefs.GetInt(ResolutionIndexPref, -1);
+    /// <summary>
+    /// The saved resolution as width x height, or null when the player has not
+    /// chosen one yet. Stored by dimensions (not by list index) so the choice
+    /// survives changes to the supported-mode list and monitor swaps.
+    /// </summary>
+    public static VideoSettingOptions.ResolutionOption? SavedResolution
+    {
+        get
+        {
+            if (!PlayerPrefs.HasKey(ResolutionWidthPref) || !PlayerPrefs.HasKey(ResolutionHeightPref))
+            {
+                // Fall back to the legacy index-based pref written by older builds.
+                int legacyIndex = PlayerPrefs.GetInt(LegacyResolutionIndexPref, -1);
+                var options = VideoSettingOptions.Resolutions;
+                if (legacyIndex >= 0 && legacyIndex < options.Count) return options[legacyIndex];
+                return null;
+            }
+
+            return new VideoSettingOptions.ResolutionOption(
+                PlayerPrefs.GetInt(ResolutionWidthPref),
+                PlayerPrefs.GetInt(ResolutionHeightPref));
+        }
+    }
 
     /// <summary>The saved target frame rate, or <see cref="VideoSettingOptions.DefaultFrameRate"/> when unset.</summary>
     public static int TargetFrameRate => PlayerPrefs.GetInt(TargetFrameRatePref, VideoSettingOptions.DefaultFrameRate);
 
-    /// <summary>Applies and persists the resolution at the given curated-list index. Does nothing on an invalid index.</summary>
-    public static void SetResolutionIndex(int index)
+    /// <summary>
+    /// The saved window mode, or <see cref="DefaultFullScreenMode"/> when unset.
+    /// Exclusive fullscreen is never restored: the monitor driver stretches
+    /// mismatched aspect ratios in that mode, so it is remapped to borderless.
+    /// </summary>
+    public static FullScreenMode FullScreenMode
     {
-        if (index < 0 || index >= VideoSettingOptions.Resolutions.Count) return;
+        get
+        {
+            if (!PlayerPrefs.HasKey(FullScreenModePref)) return DefaultFullScreenMode;
+            FullScreenMode saved = (FullScreenMode)PlayerPrefs.GetInt(FullScreenModePref);
+            return saved == FullScreenMode.ExclusiveFullScreen ? DefaultFullScreenMode : saved;
+        }
+    }
 
-        VideoSettingOptions.ResolutionOption option = VideoSettingOptions.Resolutions[index];
-        PlayerPrefs.SetInt(ResolutionIndexPref, index);
+    /// <summary>Sets the window mode, persists it and re-applies the current resolution.</summary>
+    public static void SetFullScreenMode(FullScreenMode mode)
+    {
+        PlayerPrefs.SetInt(FullScreenModePref, (int)mode);
+        if (SavedResolution is VideoSettingOptions.ResolutionOption saved)
+            Screen.SetResolution(saved.Width, saved.Height, mode);
+        else
+            Screen.fullScreenMode = mode;
+    }
+
+    /// <summary>Applies and persists the given resolution.</summary>
+    public static void SetResolution(VideoSettingOptions.ResolutionOption option)
+    {
+        PlayerPrefs.SetInt(ResolutionWidthPref, option.Width);
+        PlayerPrefs.SetInt(ResolutionHeightPref, option.Height);
         ApplyResolution(option);
     }
 
@@ -89,9 +142,9 @@ public static class SystemSettings
         ApplyTargetFrameRate(frameRate);
     }
 
-    /// <summary>Pushes the resolution to the screen, keeping the current fullscreen mode.</summary>
+    /// <summary>Pushes the resolution to the screen using the saved window mode.</summary>
     private static void ApplyResolution(VideoSettingOptions.ResolutionOption option)
-        => Screen.SetResolution(option.Width, option.Height, Screen.fullScreenMode);
+        => Screen.SetResolution(option.Width, option.Height, FullScreenMode);
 
     /// <summary>Applies the frame-rate cap. VSync stays disabled so the cap is strictly respected.</summary>
     private static void ApplyTargetFrameRate(int frameRate)
@@ -106,9 +159,13 @@ public static class SystemSettings
         if (PlayerPrefs.HasKey(QualityPref))
             QualitySettings.SetQualityLevel(PlayerPrefs.GetInt(QualityPref), true);
 
-        int resolutionIndex = ResolutionIndex;
-        if (resolutionIndex >= 0 && resolutionIndex < VideoSettingOptions.Resolutions.Count)
-            ApplyResolution(VideoSettingOptions.Resolutions[resolutionIndex]);
+        // Switch to the saved window mode first so mismatched-aspect resolutions
+        // are letterboxed by borderless fullscreen instead of being stretched.
+        if (Screen.fullScreenMode != FullScreenMode)
+            Screen.fullScreenMode = FullScreenMode;
+
+        if (SavedResolution is VideoSettingOptions.ResolutionOption saved)
+            ApplyResolution(saved);
 
         ApplyTargetFrameRate(TargetFrameRate);
     }

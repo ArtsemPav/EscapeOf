@@ -1,36 +1,34 @@
 using System.Collections;
-using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 
-/// <summary>
-/// Opening cinematic: the player wakes up lying on the bed in Room 7.
-/// Runs only on a NEW game (requested through <see cref="RequestStart"/> from
-/// the main menu) — a loaded save skips it entirely.
-///
-/// Phases:
-///   1. Setup — the capsule stands on the floor at the stand point (gravity
-///      and room visibility triggers stay valid); the CAMERA is taken over in
-///      world space: lying on the bed;
-///   2. Wake  — eyelids open with blinks while the intro Volume (blur /
-///      desaturation / darker exposure) mostly clears — the world stays soft
-///      on the lamp and resolves into focus WHILE the gaze rests on it;
-///   3. Lying gaze — the view turns from the lamp to the door; the remaining
-///      blur fades out during the turn;
-///   4. Rise  — sit up (still facing the door), a seated pause, then stand up
-///      WHILE turning the view to the stand gaze target (the locker);
-///   5. Focus — a slow drowsy turn to the bed (FTUE hints); control is
-///      returned with the view EXACTLY where the cinematic ended (no snap).
-///
-/// ESC at any point skips the remaining sequence (fast-forward to phase 5).
-/// All temporary post-processing lives in <see cref="_introVolume"/> — when it
-/// is disabled the game post-processing (global + room volumes) returns as is.
-/// </summary>
+    /// <summary>
+    /// Opening cinematic: the player wakes up lying on the bed in Room 7.
+    /// Runs only on a NEW game — the launch request comes through
+    /// <see cref="SaveManager.RequestWakeUpIntro"/> (a loaded save skips it entirely).
+    ///
+    /// Phases:
+    ///   1. Setup — the capsule stands on the floor at the stand point (gravity
+    ///      and room visibility triggers stay valid); the CAMERA is taken over in
+    ///      world space: lying on the bed;
+    ///   2. Wake  — eyelids open; the intro Volume (blur / desaturation / darker
+    ///      exposure) steps down the Focus Ladder, one step hidden under each blink;
+    ///   3. Lying gaze — gaze beats: the door, then the extra targets (the note,
+    ///      the desk) — all through the same LyingGazeBeatRoutine;
+    ///   4. Rise  — ONE continuous motion from the lying pose: the head leads up
+    ///      over the legs, leans forward, dips toward the feet spot mid-rise
+    ///      (watching where the feet plant), then lifts to the stand gaze target
+    ///      (the desk);
+    ///   5. Focus — a slow drowsy turn to the final point (the FTUE book);
+    ///      control is returned with the view EXACTLY where the cinematic ended.
+    ///
+    /// ESC at any point skips the remaining sequence (fast-forward to phase 5).
+    /// All temporary post-processing lives in <see cref="_introVolume"/> — when it
+    /// is disabled the game post-processing (global + room volumes) returns as is.
+    /// </summary>
 public class WakeUpIntroController : MonoBehaviour
 {
-    private const string PlayerTag = "Player";
-
     [Header("Volume")]
     [Tooltip("Temporary intro Volume (DoF blur / desaturation / darker exposure while asleep). " +
              "Must have a higher priority than game volumes. Disabled after the intro.")]
@@ -63,9 +61,6 @@ public class WakeUpIntroController : MonoBehaviour
     [Tooltip("Standing spot beside the bed the player ends up at after rising.")]
     [SerializeField] private Transform _standPoint;
 
-    [Tooltip("Seated head position — the middle stage of getting up: lying → sit → stand.")]
-    [SerializeField] private Transform _sitPoint;
-
     [Tooltip("Point above the FTUE hints on the bed — the final gaze target.")]
     [SerializeField] private Transform _bedGazeTarget;
 
@@ -77,12 +72,17 @@ public class WakeUpIntroController : MonoBehaviour
              "first target to this one (e.g. the room door) before the player rises.")]
     [SerializeField] private Transform _lyingSecondGazeTarget;
 
-    [Tooltip("Seconds the lying view takes to turn to the second gaze target.")]
-    [SerializeField, Min(0.1f)] private float _lyingGazeTurnDuration = 1.6f;
-
-    [Tooltip("What the player faces once standing (e.g. the locker): the view turns " +
-             "from the door to this target WHILE the body stands up. Empty = keep the gaze yaw.")]
+    [Tooltip("What the player faces once standing (e.g. the desk): the view turns to " +
+             "this target WHILE the body stands up. Empty = keep the gaze yaw.")]
     [SerializeField] private Transform _standGazeTarget;
+
+    [Tooltip("Extra lying head turns after the second lying target (e.g. the hint note): " +
+             "the player, still on the bed, turns his head through them in order.")]
+    [SerializeField] private Transform[] _lyingExtraGazeTargets;
+
+    [Tooltip("Scare prop (the maid) enabled while the player lies on the bed. Disabled the " +
+             "moment the gaze lands on the note — it is only ever seen from the lying pose.")]
+    [SerializeField] private GameObject _scareMaid;
 
     [Header("Wake-Up Timing")]
     [SerializeField, Min(0f)] private float _startDelay = 0.4f;
@@ -90,7 +90,6 @@ public class WakeUpIntroController : MonoBehaviour
     [SerializeField, Min(0.1f)] private float _firstBlinkDuration = 0.9f;
     [SerializeField, Min(0.1f)] private float _finalOpenDuration = 3.5f;
     [SerializeField, Range(0f, 1f)] private float _firstPartOpenAmount = 0.45f;
-    [SerializeField, Min(0.1f)] private float _postOpenBlinkDelay = 0.4f;
     [SerializeField, Min(0.1f)] private float _postOpenBlinkDuration = 0.7f;
 
     [Header("Rise From The Bed")]
@@ -101,36 +100,52 @@ public class WakeUpIntroController : MonoBehaviour
     [SerializeField, Min(0f)] private float _cameraBelowEyeOffset = 0.4f;
 
     [Header("Get Up Choreography")]
-    [Tooltip("Seconds to sit up from the lying pose (camera rises from the bed to the sitting pose).")]
-    [SerializeField, Min(0.1f)] private float _sitUpDuration = 1.8f;
-
-    [Tooltip("Seconds of the pause sitting on the bed before standing.")]
-    [SerializeField, Min(0f)] private float _sitPauseDuration = 0.7f;
-
-    [Tooltip("Seconds to stand up from the sitting pose (camera lowers onto the legs and rises to full height).")]
+    [Tooltip("Seconds of the continuous rise from the lying pose to the standing pose " +
+             "(head leads up over the legs, dips toward the feet spot, lifts to the gaze target).")]
     [SerializeField, Min(0.1f)] private float _standUpDuration = 2.0f;
 
-    [Tooltip("Seconds of a small body sway when the stand-up finishes (settling the balance).")]
-    [SerializeField, Min(0f)] private float _standSettleDuration = 0.6f;
+    [Tooltip("How strongly the head dips toward the feet spot mid-rise (0 = no dip, " +
+             "1 = fully aiming at the feet). A person watches where he plants his feet.")]
+    [SerializeField, Range(0f, 1f)] private float _standLookDownWeight = 0.8f;
+
+    [Tooltip("How far the head leans forward into the rise direction (m, peak mid-rise).")]
+    [SerializeField, Min(0f)] private float _standLeanDistance = 0.25f;
 
     [Header("Gaze")]
     [SerializeField, Min(0.1f)] private float _gazeHoldTime = 1.1f;
+
+    [Header("Human Gaze")]
+    [Tooltip("Rest range on each lying gaze beat (s, randomized per beat — a person " +
+             "looks at some things faster than others).")]
+    [SerializeField] private Vector2 _lyingGazeHoldRange = new Vector2(0.5f, 1.2f);
+
+    [Tooltip("Amplitude of the natural head sway while the gaze rests (degrees).")]
+    [SerializeField, Range(0f, 3f)] private float _headSwayDegrees = 0.7f;
+
+    [Tooltip("Blur weight while the head MOVES between lying gaze targets — the groggy " +
+             "defocus that resolves when the gaze settles on each target.")]
+    [SerializeField, Range(0f, 1f)] private float _wanderDefocusWeight = 0.45f;
 
     [Tooltip("Max |pitch| the gaze sweep may aim at (degrees, positive down). " +
              "Prevents the camera from diving into the bed/floor or craning up through the ceiling.")]
     [SerializeField, Range(5f, 60f)] private float _maxGazePitch = 45f;
 
     [Header("Lamp Focus (lying)")]
-    [Tooltip("Volume weight while the gaze settles on the lamp (0 = fully focused). " +
-             "The blur level the world still has when the player first looks at the lamp.")]
-    [SerializeField, Range(0f, 1f)] private float _lampFocusWeight = 0.25f;
+    [Tooltip("Focus ladder: the volume weight applied after each wake blink — the step hides " +
+             "under the closed lids. Deep sleep starts at 1; each blink moves to the next " +
+             "entry. The LAST entry must be 0 (fully sharp). Keep pre-final entries at ~0.5+ — " +
+             "a low DoF weight is visually indistinguishable from sharp and wastes a blink.")]
+    [SerializeField] private float[] _focusLadder = { 0.6f, 0f };
 
-    [Tooltip("Seconds of the gradual focus-in while looking at the lamp.")]
-    [SerializeField, Min(0.3f)] private float _lampFocusDuration = 2f;
+    [Tooltip("Seconds each SOFT (pre-final) focus level holds before the next blink.")]
+    [SerializeField, Min(0f)] private float _lampFocusHoldTime = 2f;
+
+    [Tooltip("Seconds the fully SHARP lamp view holds before the turn to the door.")]
+    [SerializeField, Min(0f)] private float _lampSharpHoldTime = 2f;
 
     [Header("Final Slow Turn")]
-    [Tooltip("Seconds of the slow drowsy turn to the bed note at the end of the intro.")]
-    [SerializeField, Min(0.3f)] private float _slowTurnDuration = 2.2f;
+    [Tooltip("Seconds of the slow drowsy turn from the stand gaze target to the bed note.")]
+    [SerializeField, Min(0.3f)] private float _slowTurnDuration = 1.4f;
 
     [Header("Audio")]
     [Tooltip("Source for the wake-up sound (gasp, breath). Plays once when the eyes part open.")]
@@ -140,9 +155,6 @@ public class WakeUpIntroController : MonoBehaviour
     [SerializeField] private AudioSource _ambientSource;
     [SerializeField, Min(0.1f)] private float _ambientFadeInDuration = 3f;
 
-    [Header("Debug")]
-    [SerializeField] private bool _debugLogging;
-
     // One-shot flag: consumed from SaveManager (survives domain reload, unlike
     // a static field on this class) — see SaveManager.RequestWakeUpIntro.
 
@@ -150,8 +162,6 @@ public class WakeUpIntroController : MonoBehaviour
     private CharacterController _characterController;
     private EyelidOverlay _eyelids;
     private VolumeProfile _runtimeProfile;
-    private DepthOfField _dof;
-    private ColorAdjustments _color;
     private bool _isPlaying;
     private bool _skipRequested;
     private float _ambientTargetVolume;
@@ -159,16 +169,9 @@ public class WakeUpIntroController : MonoBehaviour
     private Quaternion _cameraStartRotation;
     private Vector3 _pinnedCameraPos;
     private Coroutine _pinRoutine;
-    private float _baseLensFov = 60f;
 
     /// <summary>Standing eye height above the capsule root — matches the FPS rig camera offset.</summary>
     private float StandingEyeHeight => _fps.StandingHeight - _cameraBelowEyeOffset;
-
-    /// <summary>
-    /// Called by the main menu right before the scene transition. The intro
-    /// controller in the newly loaded scene picks this up in Start().
-    /// </summary>
-    public static void RequestStart() => SaveManager.RequestWakeUpIntro();
 
     private void Start()
     {
@@ -180,8 +183,6 @@ public class WakeUpIntroController : MonoBehaviour
 
         if (!SaveManager.ConsumeWakeUpIntroRequest())
         {
-            // Unconditional so the flag-loss is visible even without debug logging.
-            Debug.Log("[WakeUpIntro] Skipped — no new-game request (save load or scene reload).", this);
             enabled = false;
             return;
         }
@@ -225,8 +226,16 @@ public class WakeUpIntroController : MonoBehaviour
             return;
         }
 
+        SetScareMaid(true); // the maid watches from the start of the intro
+
         BuildRuntimeProfile();
         StartCoroutine(IntroRoutine());
+    }
+
+    /// <summary>Enables/disables the scare prop (the maid), if assigned.</summary>
+    private void SetScareMaid(bool active)
+    {
+        if (_scareMaid != null) _scareMaid.SetActive(active);
     }
 
     /// <summary>
@@ -239,21 +248,21 @@ public class WakeUpIntroController : MonoBehaviour
     {
         _runtimeProfile = ScriptableObject.CreateInstance<VolumeProfile>();
 
-        _dof = _runtimeProfile.Add<DepthOfField>(true);
-        _dof.mode.overrideState = true;
-        _dof.mode.value = DepthOfFieldMode.Gaussian;
-        _dof.gaussianStart.overrideState = true;
-        _dof.gaussianStart.value = _dofGaussianStart;
-        _dof.gaussianEnd.overrideState = true;
-        _dof.gaussianEnd.value = _dofGaussianEnd;
-        _dof.gaussianMaxRadius.overrideState = true;
-        _dof.gaussianMaxRadius.value = _dofMaxRadius;
+        DepthOfField dof = _runtimeProfile.Add<DepthOfField>(true);
+        dof.mode.overrideState = true;
+        dof.mode.value = DepthOfFieldMode.Gaussian;
+        dof.gaussianStart.overrideState = true;
+        dof.gaussianStart.value = _dofGaussianStart;
+        dof.gaussianEnd.overrideState = true;
+        dof.gaussianEnd.value = _dofGaussianEnd;
+        dof.gaussianMaxRadius.overrideState = true;
+        dof.gaussianMaxRadius.value = _dofMaxRadius;
 
-        _color = _runtimeProfile.Add<ColorAdjustments>(true);
-        _color.postExposure.overrideState = true;
-        _color.postExposure.value = _sleepExposure;
-        _color.saturation.overrideState = true;
-        _color.saturation.value = _sleepSaturation;
+        ColorAdjustments color = _runtimeProfile.Add<ColorAdjustments>(true);
+        color.postExposure.overrideState = true;
+        color.postExposure.value = _sleepExposure;
+        color.saturation.overrideState = true;
+        color.saturation.value = _sleepSaturation;
 
         if (_introVolume != null)
         {
@@ -305,56 +314,91 @@ public class WakeUpIntroController : MonoBehaviour
 
         yield return new WaitForSeconds(_startDelay);
 
-        // ── Phase 2: wake — lids part, blur fades ─────────────────────────────
-        // First: a sleepy half-open.
+        // ── Phase 2: wake — lids part, blur fades down the FOCUS LADDER ────────
+        // Each blink hides one ladder step: the blur drops WHILE the eyelids
+        // cover the screen, so the step itself is never seen — the player only
+        // perceives that every blink leaves the world a bit sharper.
+        // First: a sleepy half-open (still fully asleep — full blur).
         if (_wakeSound != null) _wakeSound.Play();
         if (_ambientSource != null) StartCoroutine(AmbientFadeInRoutine());
         yield return OpenEyesRoutine(_firstPartOpenDuration, _firstPartOpenAmount, volumeTarget);
 
-        // ...one heavy blink...
-        if (_eyelids != null) yield return _eyelids.Blink(_firstBlinkDuration, _firstPartOpenAmount);
+        // ...one heavy blink — behind it the deep-sleep wash thins one ladder
+        // step: still soft, but the lamp's silhouette appears...
+        float[] ladder = _focusLadder != null && _focusLadder.Length > 0 ? _focusLadder : new[] { 0f };
+        if (_eyelids != null)
+        {
+            yield return _eyelids.Blink(_firstBlinkDuration, _firstPartOpenAmount);
+            SetVolumeWeight(ladder[0]);
+        }
 
-        // ...then fully open while STILL LYING — the sleep blur keeps most of
-        // its strength (weight 1 → _lampFocusWeight): the world stays soft and
-        // out of focus while the gaze settles on the lamp.
-        yield return OpenEyesRoutine(_finalOpenDuration, 1f, _lampFocusWeight, alreadyOpen: _firstPartOpenAmount);
+        // ...then fully open while STILL LYING — the world holds the stepped
+        // blur while the gaze settles on the lamp.
+        yield return OpenEyesRoutine(_finalOpenDuration, 1f, ladder[0], alreadyOpen: _firstPartOpenAmount);
         if (_eyelids != null) _eyelids.OpenEyes();
 
-        yield return new WaitForSeconds(_postOpenBlinkDelay);
-        if (_eyelids != null && !_skipRequested) yield return _eyelids.Blink(_postOpenBlinkDuration, 1f);
+        // ...and the blink cycle continues: every further blink drops the blur
+        // one more ladder step (the step hides under the closed lids), with a
+        // hold on each level so the player actually SEES the stage. The final
+        // (sharp) level gets its own hold before the door turn.
+        for (int i = 1; ladder != null && i < ladder.Length; i++)
+        {
+            if (_skipRequested) break;
+            if (_eyelids != null) yield return _eyelids.Blink(_postOpenBlinkDuration, 1f);
+            SetVolumeWeight(ladder[i]);
+            yield return new WaitForSeconds(i == ladder.Length - 1 ? _lampSharpHoldTime : _lampFocusHoldTime);
+        }
+        SetVolumeWeight(0f); // skip-safety: the lamp is sharp when moving on
 
-        // ── Phase 2.5: the eyes focus on the lamp ─────────────────────────────
-        // While looking at the lamp, the blur gradually resolves — the world
-        // slowly comes into focus (a partial clear, the rest stays soft).
-        yield return FadeVolumeRoutine(_lampFocusWeight, _lampFocusDuration);
+        // ── Phase 2.5: the sharp lamp look rests before the door turn ──────────
+        // (the hold already ran at the end of the ladder)
 
-        // ── Phase 2.6: lying gaze — lamp → door, then hold ────────────────────
-        // Still lying: the view turns from the lamp to the door and rests on
-        // it. WHILE TURNING to the door the remaining blur fades out smoothly
-        // — by the time the gaze rests on the door the world is fully sharp.
-        yield return LyingGazeTurnRoutine();
-        if (!_skipRequested) yield return FadeVolumeRoutine(0f, _gazeHoldTime);
+        // ── Phase 2.6: lying gaze — lamp → door, then the wandering beats ──────
+        // Still lying: the door is just the FIRST gaze beat — the same drowsy
+        // turn (angle-scaled duration, defocus pulse, rest) as the beats that
+        // follow it to the note and the desk. The door beat does NOT resolve
+        // its defocus: the blur stays at full strength for the whole hold —
+        // the door (and anything at it) is never seen sharp; the NEXT beat
+        // (the note) carries and resolves the blur instead. The defocus also
+        // ramps EARLY (done by 30% of the turn) — the door is already fully
+        // blurred the moment it swings into the frame, masking the maid.
+        if (_lyingSecondGazeTarget != null)
+        {
+            float doorHold = Random.Range(_lyingGazeHoldRange.x, _lyingGazeHoldRange.y);
+            yield return LyingGazeBeatRoutine(_lyingSecondGazeTarget, doorHold,
+                resolveDefocusDuringRest: false, defocusRampEnd: 0.3f);
+            _cameraStartRotation = _fps.CameraTransform != null
+                ? _fps.CameraTransform.rotation
+                : _cameraStartRotation;
+        }
 
-        // ── Phase 3: get up — sit, turn to the locker, rise to standing ───────
+        // ── Phase 2.7: lying head turns — note, desk ──────────────────────────
+        // Still on the bed, the player glances through the extra lying targets
+        // with the same drowsy saccade, randomized rest lengths (some things
+        // catch the eye longer). The note is the first post-door look: the
+        // moment the gaze lands on it, the maid scare prop disappears — under
+        // the blur carried over from the door hold (vanish-while-looking).
+        if (_lyingExtraGazeTargets != null && _lyingExtraGazeTargets.Length > 0)
+        {
+            Transform noteTarget = _lyingExtraGazeTargets[0];
+            foreach (Transform target in _lyingExtraGazeTargets)
+            {
+                if (target == null) continue;
+                float hold = Random.Range(_lyingGazeHoldRange.x, _lyingGazeHoldRange.y);
+                bool isNote = target == noteTarget;
+                yield return LyingGazeBeatRoutine(target, hold,
+                    onArrived: isNote ? () => SetScareMaid(false) : null);
+                if (_skipRequested) break;
+            }
+        }
+        SetScareMaid(false); // skip-safety: the maid never survives the lying phase
+
+        // ── Phase 3: get up — ONE continuous rise to the stand gaze (the desk),
+        // then a slow drowsy turn to the FTUE book, then control ─────────────
         yield return RiseRoutine();
-
-        // ── Phase 4: a slow drowsy turn to the bed (the note), control ────────
-        // The door and the locker were already looked at (lying and sitting) —
-        // repeating them standing felt like the view bouncing back and forth.
         yield return SlowGazeRoutine(_bedGazeTarget, _slowTurnDuration);
 
         Finish();
-    }
-
-    /// <summary>
-    /// Writes the FOV into the Cinemachine lens (Lens is a struct — copy, set, assign back).
-    /// Kept for Finish()'s safety restore of the base lens after a skip.
-    /// </summary>
-    private static void SetLensFov(Unity.Cinemachine.CinemachineCamera cineCam, float fov)
-    {
-        var lens = cineCam.Lens;
-        lens.FieldOfView = fov;
-        cineCam.Lens = lens;
     }
 
     /// <summary>Fades the ambient loop in over the wake-up (unscaled — intro is never paused).</summary>
@@ -456,18 +500,24 @@ public class WakeUpIntroController : MonoBehaviour
         }
     }
 
+    /// <summary>Sets the intro Volume weight in one call (no-op without the volume).</summary>
+    private void SetVolumeWeight(float weight)
+    {
+        if (_introVolume != null) _introVolume.weight = weight;
+    }
+
     /// <summary>
     /// Opens the eyes from 0 (or fromOpenAmount) to targetAmount while fading
     /// the intro volume weight from weightFrom to weightTo in parallel.
     /// </summary>
     private IEnumerator OpenEyesRoutine(float duration, float targetAmount, float weightTo,
-        bool skipWhenRequested = true, float alreadyOpen = 0f)
+        float alreadyOpen = 0f)
     {
         float weightFrom = _introVolume != null ? _introVolume.weight : 0f;
         float t = 0f;
         while (t < duration)
         {
-            if (skipWhenRequested && _skipRequested) yield break;
+            if (_skipRequested) yield break;
             t += Time.deltaTime;
             float p = Mathf.SmoothStep(0f, 1f, t / duration);
             if (_eyelids != null)
@@ -481,65 +531,116 @@ public class WakeUpIntroController : MonoBehaviour
     }
 
     /// <summary>
-    /// Eases the intro volume weight to the target over the duration (smoothed).
-    /// The intro runs on unscaled-feeling fixed phases; the weight fade uses the
-    /// same deltaTime as the phases around it.
+    /// Drowsy head-turn easing: quintic smootherstep evaluated on a warped
+    /// progress (p^0.75). The velocity rises gently, peaks early (~a third
+    /// of the way) at a modest multiple of the average, then decays along a
+    /// LONG monotonic tail to zero — one impulse, one smooth settle. Zero
+    /// velocity and zero acceleration at both ends.
     /// </summary>
-    private IEnumerator FadeVolumeRoutine(float targetWeight, float duration)
+    private static float DrowsyEase(float p)
     {
-        if (_introVolume == null) yield break;
-        float from = _introVolume.weight;
-        if (Mathf.Approximately(from, targetWeight)) yield break;
-
-        float t = 0f;
-        while (t < duration)
-        {
-            if (_skipRequested) yield break;
-            t += Time.deltaTime;
-            _introVolume.weight = Mathf.Lerp(from, targetWeight, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / duration)));
-            yield return null;
-        }
-        _introVolume.weight = targetWeight;
+        float w = Mathf.Pow(Mathf.Clamp01(p), 0.75f);
+        return w * w * w * (w * (w * 6f - 15f) + 10f);
     }
 
     /// <summary>
-    /// While still lying: smoothly turns the camera from the first gaze target
-    /// (lamp) to the second one (door). The end rotation is stored as the new
-    /// start rotation for the rise arc. Skipped when no second target is set.
+    /// One HUMAN gaze beat while lying: one drowsy saccade toward the target
+    /// (single impulse, long decay — see DrowsyEase), then a natural head sway
+    /// while the gaze rests. The rest length is randomized by the caller — a
+    /// person looks at some things faster than others. With
+    /// <paramref name="resolveDefocusDuringRest"/> = false (the door beat)
+    /// the defocus stays at full strength for the whole hold — the door is
+    /// never seen sharp; the next beat resolves the blur instead.
+    /// <paramref name="onArrived"/> fires the instant the gaze LANDS on the
+    /// target (turn over, sway about to start) — e.g. the desk beat hides the
+    /// maid exactly then, under the full-blur landing.
     /// </summary>
-    private IEnumerator LyingGazeTurnRoutine()
+    private IEnumerator LyingGazeBeatRoutine(Transform target, float restTime,
+        bool resolveDefocusDuringRest = true, float defocusRampEnd = 1f,
+        System.Action onArrived = null)
     {
-        if (_lyingSecondGazeTarget == null || _fps.CameraTransform == null) yield break;
+        if (target == null || _fps.CameraTransform == null) yield break;
 
         Transform camera = _fps.CameraTransform;
+
+        Vector3 toTarget = target.position - camera.position;
+        if (toTarget.sqrMagnitude < 0.0001f) yield break;
+        Quaternion toRot = Quaternion.LookRotation(toTarget.normalized, Vector3.up);
+
+        // Saccade duration scales with the angle: the player is still groggy,
+        // every lying head turn is SLOW and unhurried.
+        float angle = Quaternion.Angle(camera.rotation, toRot);
+        float turnDuration = Mathf.Clamp(angle / 14f, 2.4f, 4.2f);
+
+        // ONE continuous motion with a LONG TAIL: the velocity rises gently,
+        // peaks around a third of the turn, then decays MONOTONICALLY to
+        // zero at the target. One single impulse, one single settle — no
+        // punch at the start, no overshoot, no re-turn, no hard stop.
         Quaternion fromRot = camera.rotation;
-        Vector3 toTarget = _lyingSecondGazeTarget.position - camera.position;
-        Quaternion toRot = toTarget.sqrMagnitude > 0.0001f
-            ? Quaternion.LookRotation(toTarget.normalized, Vector3.up)
-            : fromRot;
+
+        // Groggy defocus: the residual sleep blur CARRIES through the door
+        // rest and pulses UP while the head moves, resolving LATE in the hold
+        // — the eyes catch up with the head long after it stops.
+        float defocusFrom = _introVolume != null ? _introVolume.weight : 0f;
 
         float t = 0f;
-        while (t < _lyingGazeTurnDuration)
+        while (t < turnDuration)
         {
             if (_skipRequested) yield break;
             t += Time.deltaTime;
-            float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / _lyingGazeTurnDuration));
-            camera.rotation = Quaternion.Slerp(fromRot, toRot, p);
+            float p = Mathf.Clamp01(t / turnDuration);
+            camera.rotation = Quaternion.Slerp(fromRot, toRot, DrowsyEase(p));
+
+            // The defocus finishes ramping at defocusRampEnd of the turn:
+            // a SHORTER ramp front-loads the blur — the target is fully
+            // blurred long before it reaches the center of the frame.
+            if (_introVolume != null)
+                _introVolume.weight = Mathf.Lerp(defocusFrom, _wanderDefocusWeight,
+                    Mathf.Clamp01(p / Mathf.Max(defocusRampEnd, 0.01f)));
             yield return null;
         }
         camera.rotation = toRot;
 
-        // The rise now starts from the door-facing pose.
-        _cameraStartRotation = toRot;
+        // The gaze has LANDED on the target — fire the arrival hook (if any)
+        // BEFORE the rest begins.
+        onArrived?.Invoke();
+
+        // Natural sway while resting — and (unless the caller suppressed it)
+        // the defocus RESOLVES GRADUALLY across the hold (not a fast pull at
+        // the end): a fast blur-to-sharp transition reads as a camera jerk.
+        // resolveDefocusDuringRest = false (the DOOR beat): the blur STAYS at
+        // full strength for the whole hold — the door is never seen sharp;
+        // the defocusFrom of the NEXT beat carries on from this weight.
+        float swayT = 0f;
+        while (swayT < restTime)
+        {
+            if (_skipRequested) yield break;
+            swayT += Time.deltaTime;
+            float fadeIn = Mathf.Clamp01(swayT / 0.8f);
+            float fadeOut = Mathf.Clamp01((restTime - swayT) / Mathf.Max(restTime * 0.3f, 0.01f));
+            float amp = _headSwayDegrees * 0.5f * fadeIn * fadeOut;
+            float s2 = swayT;
+            float swayYaw = (Mathf.Sin(s2 * 1.7f) + 0.5f * Mathf.Sin(s2 * 2.9f + 1.3f)) * amp;
+            float swayPitch = (Mathf.Sin(s2 * 1.3f + 0.7f) + 0.5f * Mathf.Sin(s2 * 2.3f)) * amp;
+            camera.rotation = toRot * Quaternion.Euler(swayPitch, swayYaw, 0f);
+
+            if (resolveDefocusDuringRest && _introVolume != null)
+                _introVolume.weight = Mathf.Lerp(_wanderDefocusWeight, 0f,
+                    Mathf.Clamp01((swayT - restTime * 0.15f) / Mathf.Max(restTime * 0.85f, 0.01f)));
+            yield return null;
+        }
+        if (resolveDefocusDuringRest) SetVolumeWeight(0f);
+        camera.rotation = toRot;
     }
+
     /// <summary>
-    /// Full get-up imitation, not a teleport: the camera plays the body motion —
-    ///   3a. sit up from lying to a seated pose on the bed edge;
-    ///   3b. a short pause sitting;
-    ///   3c. stand up: rise from the seated height to full height at the stand
-    ///       point while the sleep blur clears;
-    ///   3d. a small balance settle sway.
-    /// The capsule stays at the stand point the whole time (gravity-safe) —
+    /// Full get-up imitation, not a teleport: ONE continuous motion from the
+    /// lying pose to the standing pose at the stand point — the camera plays
+    /// the body: Bezier arc up over the legs, a forward lean, a mid-rise dip
+    /// of the gaze toward the feet spot (watching where the feet plant), then
+    /// the head lifts to the stand gaze target. NO rest there — the stand
+    /// target exists only to steer the body yaw; control/turns move straight
+    /// on. The capsule stays at the stand point the whole time (gravity-safe) —
     /// the CAMERA carries the illusion of the body moving.
     /// </summary>
     private IEnumerator RiseRoutine()
@@ -547,12 +648,17 @@ public class WakeUpIntroController : MonoBehaviour
         Transform player = _characterController.transform;
         Transform camera = _fps.CameraTransform;
 
-        // The standing pose: eye height at the stand point, facing the stand
-        // gaze target (the locker) if assigned, else the lying gaze direction.
-        // The stand point, not the original lying spot, is where the player
-        // ends up — sitting and rising both move the body toward the locker.
+        // The standing pose: eye height at the stand point, facing the FINAL
+        // gaze target (the FTUE book) — the rise aims STRAIGHT at it, no
+        // intermediate stops. The end pose is built on the CAPSULE's actual
+        // position, not the marker's transform: the capsule has stood at the
+        // stand point (XZ) since the intro start and is gravity-settled — its
+        // root Y IS the real floor height. The marker hangs on the bed prop
+        // and can sit at any height; ending the rise at marker Y + eye offset
+        // made ReturnCameraWorldToRig snap the camera vertically (the rig
+        // puts the camera at capsule root + eye offset) — the post-battery jolt.
         Vector3 standPointPos = _standPoint != null
-            ? _standPoint.position
+            ? new Vector3(_standPoint.position.x, player.position.y, _standPoint.position.z)
             : player.position;
         Vector3 standCamPos = standPointPos + Vector3.up * StandingEyeHeight;
         Vector3 gazeFlatFwd = _cameraStartRotation * Vector3.forward;
@@ -564,103 +670,118 @@ public class WakeUpIntroController : MonoBehaviour
             ? FlatLookRotation(_standGazeTarget.position, standPointPos)
             : gazeYaw;
 
-        // ── 3a: sit up from the lying pose to the seated pose ─────────────────
-        // The seated eye height: the SitPoint drives BOTH the position and the
-        // height (1.35 — sitting upright, well above the mattress), so the
-        // sit-up visibly lifts the head instead of sliding it sideways.
-        // The lying-phase camera pin stops HERE — from the first sit-up frame
-        // the scripted phases own the camera exclusively.
+        // ── 3a: stand up — ONE continuous get-up motion ────────────────────────
+        // From the lying pose straight to the stand point: the head leads UP
+        // over the legs (Bezier arc), leans forward into the travel, DIPS
+        // toward the feet spot mid-rise (watching where the feet plant), then
+        // lifts to the stand gaze target (the desk). The lying-phase camera
+        // pin stops HERE — from the first frame the scripted phase owns the
+        // camera.
         StopCameraPin();
-        Vector3 sitCamPos = _sitPoint != null
-            ? _sitPoint.position
-            : Vector3.Lerp(_cameraWorldStart, standCamPos, 0.6f);
-        Quaternion sitRot = gazeYaw; // sitting keeps the current (door) direction
-
-        Vector3 sitStartPos = _cameraWorldStart;
-        Quaternion sitStartRot = _cameraStartRotation;
-
-        // Arc control point: the head leads up, over the legs — the vertical
-        // lift dominates, the horizontal travel stays minimal (sitting up from
-        // a lying pose moves the head mostly UP, not across the bed).
-        Vector3 sitControl = Vector3.Lerp(sitStartPos, sitCamPos, 0.5f)
-            + Vector3.up * _riseArcHeight;
-
-        float t = 0f;
-        while (t < _sitUpDuration)
-        {
-            if (_skipRequested) break;
-            t += Time.deltaTime;
-            float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / _sitUpDuration));
-
-            camera.position = Bezier(sitStartPos, sitControl, sitCamPos, p);
-            camera.rotation = Quaternion.Slerp(sitStartRot, sitRot, p);
-            yield return null;
-        }
-        // ── 3b: a beat sitting — the turn to the locker happens DURING the rise ─
-        // Sitting keeps the door direction; the rise below turns the view from
-        // the door to the locker while the body stands up, so getting up reads
-        // as one continuous motion instead of turn-then-rise.
-        if (!_skipRequested)
-            yield return new WaitForSeconds(_sitPauseDuration);
-
-        // ── 3c: stand up — rise to full height, the sleep blur clears ─────────
-        // Standing eye height: standingHeight(2) − 0.4 = 1.6 m — the SAME pose
-        // the rig uses. The rise keeps the camera LEVEL and turns the view from
-        // the door to the locker WHILE the body stands up — one continuous
-        // get-up motion (turn-then-rise felt like two separate steps).
         Vector3 standStartPos = camera.position;
         Quaternion standStartRot = camera.rotation;
         float riseStartWeight = _introVolume != null ? _introVolume.weight : 0f;
 
-        Quaternion standEndRot = _standGazeTarget != null
-            ? FlatLookRotation(_standGazeTarget.position, standCamPos)
-            : standCamRot;
+        Quaternion standEndRot = standCamRot;
+        if (_standGazeTarget != null)
+        {
+            // FULL look (level yaw + clamped pitch): the desk is BELOW eye
+            // level — the rise must arrive already pitched down at it.
+            Vector3 toDesk = _standGazeTarget.position - standCamPos;
+            float flatDist = new Vector2(toDesk.x, toDesk.z).magnitude;
+            float deskPitch = flatDist > 0.0001f
+                ? Mathf.Clamp(-Mathf.Atan2(toDesk.y, flatDist) * Mathf.Rad2Deg, -_maxGazePitch, _maxGazePitch)
+                : 0f;
+            standEndRot = FlatLookRotation(_standGazeTarget.position, standCamPos)
+                * Quaternion.Euler(deskPitch, 0f, 0f);
+        }
 
-        t = 0f;
+        // Arc control point: the head leads up, over the legs — the vertical
+        // lift dominates, the horizontal travel stays minimal (getting up from
+        // a lying pose moves the head mostly UP, not across the bed).
+        Vector3 standControl = Vector3.Lerp(standStartPos, standCamPos, 0.5f)
+            + Vector3.up * _riseArcHeight;
+
+        // The feet spot: the floor point the body stands up over (the stand
+        // point). The mid-rise dip lowers the PITCH toward the feet while the
+        // YAW keeps aiming at the stand gaze target (the desk) — the head
+        // tilts down in place, it never veers off toward the travel direction.
+        // Forward lean — the head leads into the direction of travel.
+        Vector3 travel = standCamPos - standStartPos;
+        travel.y = 0f;
+        Vector3 leanDir = travel.sqrMagnitude > 0.0001f ? travel.normalized : Vector3.zero;
+        Vector3 deskFlatFwd = standEndRot * Vector3.forward;
+        deskFlatFwd.y = 0f;
+        float deskYaw = deskFlatFwd.sqrMagnitude > 0.0001f
+            ? FlatYaw(deskFlatFwd)
+            : camera.eulerAngles.y;
+
+        float t = 0f;
         while (t < _standUpDuration)
         {
             if (_skipRequested) break;
             t += Time.deltaTime;
             float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / _standUpDuration));
+            float dip = Mathf.Sin(p * Mathf.PI) * _standLookDownWeight; // 0 → peak → 0
 
-            camera.position = Vector3.Lerp(standStartPos, standCamPos, p);
-            camera.rotation = Quaternion.Slerp(standStartRot, standEndRot, p);
+            camera.position = Bezier(standStartPos, standControl, standCamPos, p)
+                + leanDir * (Mathf.Sin(p * Mathf.PI) * _standLeanDistance);
+
+            Quaternion baseRot = Quaternion.Slerp(standStartRot, standEndRot, p);
+            if (dip > 0.001f)
+            {
+                // Pitch down toward the feet (clamped) at the CURRENT eye
+                // height — the yaw STAYS on the desk.
+                Vector3 toFoot = standPointPos - camera.position;
+                float flatDist = new Vector2(toFoot.x, toFoot.z).magnitude;
+                float downPitch = flatDist > 0.0001f
+                    ? Mathf.Clamp(-Mathf.Atan2(toFoot.y, flatDist) * Mathf.Rad2Deg, -_maxGazePitch, _maxGazePitch)
+                    : 0f;
+                baseRot = Quaternion.Slerp(baseRot, Quaternion.Euler(downPitch, deskYaw, 0f), dip);
+            }
+            camera.rotation = baseRot;
 
             if (_introVolume != null)
                 _introVolume.weight = Mathf.Lerp(riseStartWeight, 0f, p);
             yield return null;
         }
 
-        // ── 3d: balance settle — a small decaying sway ─────────────────────────
-        t = 0f;
-        Vector3 settledPos = camera.position;
-        Quaternion settledRot = camera.rotation;
-        Vector3 swayAxis = camera.right;
-        while (t < _standSettleDuration)
-        {
-            if (_skipRequested) break;
-            t += Time.deltaTime;
-            float phase = t / Mathf.Max(_standSettleDuration, 0.01f);
-            float sway = Mathf.Sin(phase * Mathf.PI * 2f) * (1f - phase) * 0.02f;
-            camera.position = settledPos + swayAxis * sway;
-            yield return null;
-        }
-        camera.position = settledPos;
-        camera.rotation = settledRot;
-
-        // Hand the camera back to the FPSController rig exactly where it is.
-        // The body is teleported to the stand point first — yaw faces the
-        // locker (the stand gaze target) so the rig snaps the camera onto
-        // the body standing where the rise finished, facing the locker.
+        // Hand the camera back to the FPSController rig immediately — NO rest
+        // on the stand gaze target: the rise already aims at the final point.
+        // CRITICAL ORDER: the scripted END pose is captured BEFORE the
+        // teleport — the teleport rotates the body, which DRAGS the child
+        // camera; reading camera.rotation after it would give the dragged
+        // (wrong) rotation. The captured pitch is then written into the
+        // camera's LOCAL rotation AFTER ReturnCameraWorldToRig resets it —
+        // the view stays EXACTLY on the book, no snap.
         if (_standPoint != null)
         {
-            float bodyYaw = _standGazeTarget != null
-                ? FlatYaw(_standGazeTarget.position - standPointPos)
+            Vector3 camFwd = camera.forward;
+            camFwd.y = 0f;
+            float bodyYaw = camFwd.sqrMagnitude > 0.0001f
+                ? FlatYaw(camFwd)
                 : player.eulerAngles.y;
+
+            Quaternion endRotWorld = camera.rotation; // BEFORE the teleport!
+
             _fps.Teleport(new Vector3(
-                _standPoint.position.x, player.position.y, _standPoint.position.z), bodyYaw);
+                standPointPos.x, player.position.y, standPointPos.z), bodyYaw);
+            _fps.ReturnCameraWorldToRig();
+
+            // Pitch AFTER ReturnCameraWorldToRig (it resets localRotation to
+            // identity): express the scripted end pose in the new body frame
+            // and read the pitch straight from it — convention-free, no sign
+            // assumptions. local yaw is 0 by construction (the body yaw IS
+            // the view's flat forward).
+            Quaternion localRot = Quaternion.Inverse(Quaternion.Euler(0f, bodyYaw, 0f)) * endRotWorld;
+            Vector3 euler = localRot.eulerAngles;
+            float endPitch = euler.x > 180f ? euler.x - 360f : euler.x;
+            _fps.CameraTransform.localRotation = Quaternion.Euler(endPitch, 0f, 0f);
         }
-        _fps.ReturnCameraWorldToRig();
+        else
+        {
+            _fps.ReturnCameraWorldToRig();
+        }
         SyncPitchAfterRise();
     }
 
@@ -703,10 +824,9 @@ public class WakeUpIntroController : MonoBehaviour
     }
 
     /// <summary>
-    /// The final drowsy turn: eases the body yaw + camera pitch toward the
-    /// target over a fixed duration (fixed-time Slerp, not the aim routine —
-    /// the slow drift must not be re-accelerated by the aim easing), then
-    /// holds briefly. Used for the last look at the bed note.
+    /// The slow drowsy turn after standing: eases the body yaw + camera pitch
+    /// toward the target (the FTUE book) over a fixed duration, then holds
+    /// briefly before control is handed over.
     /// </summary>
     private IEnumerator SlowGazeRoutine(Transform target, float duration)
     {
@@ -741,7 +861,7 @@ public class WakeUpIntroController : MonoBehaviour
         {
             if (_skipRequested) yield break;
             t += Time.deltaTime;
-            float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / duration));
+            float p = DrowsyEase(Mathf.Clamp01(t / duration));
 
             player.rotation = Quaternion.Slerp(startBody, endBody, p);
             camera.localRotation = Quaternion.Euler(Mathf.Lerp(startPitch, targetPitch, p), 0f, 0f);
@@ -751,7 +871,7 @@ public class WakeUpIntroController : MonoBehaviour
         player.rotation = endBody;
         camera.localRotation = Quaternion.Euler(targetPitch, 0f, 0f);
 
-        // A short hold on the note before control is handed over.
+        // A short hold on the book before control is handed over.
         yield return new WaitForSeconds(_gazeHoldTime);
     }
 
@@ -761,7 +881,6 @@ public class WakeUpIntroController : MonoBehaviour
         if (_isPlaying && !_skipRequested)
         {
             _skipRequested = true;
-            if (_debugLogging) Debug.Log("[WakeUpIntro] Skip requested (ESC).", this);
         }
     }
 
@@ -777,15 +896,7 @@ public class WakeUpIntroController : MonoBehaviour
     {
         _isPlaying = false;
         StopCameraPin();
-
-        // Safety: a skip mid-zoom would leave the lens narrowed — restore the
-        // base FOV so the returned control starts from the normal lens.
-        if (restoreCameraState && _fps != null && _fps.CameraTransform != null)
-        {
-            var cineCam = _fps.CameraTransform.GetComponent<Unity.Cinemachine.CinemachineCamera>();
-            if (cineCam != null)
-                SetLensFov(cineCam, _baseLensFov);
-        }
+        SetScareMaid(false); // ESC-skip safety: the maid never survives the intro
 
         if (_introVolume != null)
         {
@@ -847,8 +958,6 @@ public class WakeUpIntroController : MonoBehaviour
         if (InputManager.Instance != null) InputManager.Instance.OnMenuPerformed -= OnMenuPressed;
 
         InteractionUI.Instance?.SetVisible(true);
-
-        if (_debugLogging) Debug.Log("[WakeUpIntro] Finished — control returned to the player.", this);
     }
 
     private void OnDestroy()
