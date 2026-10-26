@@ -35,7 +35,7 @@ Sound-effect service. Owns no music. Provides:
 Single authority for all music (menu, gameplay, zones, events). Key design:
 
 - **Pooled sources:** every track gets a dedicated `AudioSource`; switching tracks fades the old one out and *pauses* it, so it resumes from the same position later.
-- **Track assets:** `MusicTrack` ScriptableObjects (clip, volume, loop, fade duration); zones register tracks in Awake and request/clear them via `RequestTrack` / `ClearTrack`. `playOnce` tracks never re-trigger and survive saves.
+- **Track assets:** `MusicTrack` ScriptableObjects (clip, volume, loop, fade duration); zones register tracks in Awake and request them via `RequestTrack` on entry (each zone fires once per playthrough). A finished non-looping track always falls back through `RestoreFallbackTrack` to the default game track — played zone tracks never restart.
 - **Save integration (ISaveable, id `music_director`):** persists the dominant track, its playback position and fired play-once tracks. The autosave never persists the pause-menu track as dominant.
 - **Menu music:** `PlayMenuMusic()` / `PlayGameMusic()` replace the legacy `AudioManager.PlayMenuMusic`. The gameplay track's position is remembered and restored. The menu track is marked `ignoreListenerPause` so it remains audible while `AudioListener.pause` silences everything else.
 - **Horror mute:** `MuteForEvent(fade)` / `RestoreAfterEvent(fade)` use a reference-counted owner set (`_muteOwnerCount`) — nested events each own a mute and the music restores only when the last one releases. While muted, all director sources are silenced and new track requests are queued out; `PlayGameMusic` during an active event stays silent until restore.
@@ -81,7 +81,7 @@ Sources created outside these APIs must be routed manually: `AudioManager.Instan
 ### Adding music
 
 1. Create a `MusicTrack` asset (clip, volume, loop, fade duration).
-2. Trigger it from a `MusicZone` (enter/exit) or code: `MusicDirector.RequestTrack(track, playOnce: false)` and `MusicDirector.ClearTrack(track)` to restore the previous track.
+2. Trigger it from a `MusicZone` (fires once per zone, on entry) or code: `MusicDirector.RequestTrack(track, playOnce: false)`. A non-looping track falls back automatically when it finishes; `MusicDirector.ClearTrack(track)` stays for manual/scripted restores only — zones never call it.
 
 ### Horror events
 

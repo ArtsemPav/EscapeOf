@@ -264,14 +264,17 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
     private void Update() {
         // A non-looping track that stopped playing has finished — restore the
-        // previous track. Explicitly skip the paused-for-menu and muted-for-event
-        // states: a paused source also reports isPlaying == false.
+        // previous track, or the scene default when nothing was playing before.
+        // Explicitly skip the paused-for-menu and muted-for-event states: a
+        // paused source also reports isPlaying == false.
         if (_activeSource == null || _activeTrack == null || _activeTrack.Loop) return;
         if (_fadeCoroutine != null || MutedForEvent) return;
         if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
 
-        if (!_activeSource.isPlaying)
-            ClearTrackInternal(_activeTrack);
+        if (!_activeSource.isPlaying) {
+            Debug.Log($"[Music] Track '{_activeTrack.name}' finished playing -> restoring fallback (isPlaying=false detected)");
+            RestoreFallbackTrack();
+        }
     }
 
     /// <summary>
@@ -296,13 +299,41 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         Instance.ClearTrackInternal(track);
     }
 
+    /// <summary>
+    /// Restores the music after a non-looping zone track plays through to
+    /// its end. Always falls back to the default game track — a previously
+    /// played zone track must never restart, only the default loops on.
+    /// </summary>
+    private void RestoreFallbackTrack() {
+        MusicTrack fallback = _defaultGameTrack != null && _defaultGameTrack != _activeTrack
+            ? _defaultGameTrack
+            : null;
+        Debug.Log($"[Music] RestoreFallbackTrack: finished '{_activeTrack.name}' -> fallback '{(fallback != null ? fallback.name : "NONE (fade to silence)")}'");
+        _previousTrack = null;
+        _activeTrack = fallback;
+        _lastSwitchTime = Time.unscaledTime;
+
+        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        if (_duckCoroutine != null) StopCoroutine(_duckCoroutine); // its volume writes would fight FadeRoutine
+        _duckCoroutine = null; // track switch cancels any active duck
+        if (fallback != null) {
+            _fadeCoroutine = StartCoroutine(FadeRoutine(fallback));
+        } else {
+            // No default track (or the finished track IS the default) — fade
+            // the active source out and pause it. _activeSource keeps pointing
+            // at it so a later track request can crossfade away from it.
+            _fadeCoroutine = StartCoroutine(FadeOutAndPauseRoutine(_activeSource));
+        }
+    }
+
     private bool RequestTrackInternal(MusicTrack track, bool playOnce) {
-        if (MutedForEvent) return false; // horror event owns the music — requests are queued out
+        if (MutedForEvent) { Debug.Log($"[Music] RequestTrack '{track.name}' REJECTED: muted for horror event"); return false; } // horror event owns the music — requests are queued out
         if (_activeTrack == track) return true;
-        if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) return false;
+        if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) { Debug.Log($"[Music] RequestTrack '{track.name}' REJECTED: min switch interval ({_minSwitchInterval}s)"); return false; }
 
         if (playOnce) _playedOnceTrackNames.Add(track.name);
 
+        Debug.Log($"[Music] RequestTrack '{track.name}' ACCEPTED (playOnce: {playOnce}), previous: '{(_activeTrack != null ? _activeTrack.name : "null")}'");
         _previousTrack = _activeTrack;
         _activeTrack = track;
         _lastSwitchTime = Time.unscaledTime;
@@ -330,6 +361,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     public static void MuteForEvent(float fadeDuration) {
         if (Instance == null) return;
         Instance._muteOwnerCount++; // nested events stack — each owner must release individually
+        Debug.Log($"[Music] MuteForEvent (fade {fadeDuration}s) — owners now: {Instance._muteOwnerCount}. Callers: {System.Environment.StackTrace}");
 
         if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
         if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
@@ -394,6 +426,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     public static void RestoreAfterEvent(float fadeDurationOverride) {
         if (Instance == null || Instance._muteOwnerCount <= 0) return;
         Instance._muteOwnerCount--;
+        Debug.Log($"[Music] RestoreAfterEvent — owners remaining: {Instance._muteOwnerCount}");
         if (Instance._muteOwnerCount > 0) return; // another horror event still owns the soundscape
 
         // An unfinished mute fade must stop — its volume writes would fight the restore fade
