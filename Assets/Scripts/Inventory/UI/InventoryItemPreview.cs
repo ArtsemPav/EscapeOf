@@ -35,6 +35,16 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     [Tooltip("Multiplier for camera orthographic size relative to model bounds. Higher = model appears smaller.")]
     [SerializeField] private float framingMultiplier = 2.2f;
 
+    [Header("Lighting")]
+    [Tooltip("Intensity of the key light (main, right-top-front).")]
+    [SerializeField] private float keyLightIntensity = 2f;
+    [Tooltip("Intensity of the fill light (left, opposite the key). Softens the dark side of rotating models.")]
+    [SerializeField] private float fillLightIntensity = 1f;
+    [Tooltip("Intensity of the rim light behind the model. Highlights the silhouette against the dark side.")]
+    [SerializeField] private float rimLightIntensity = 1.5f;
+    [Tooltip("Disable to render with the key light only (old single-light look).")]
+    [SerializeField] private bool useThreePointLighting = true;
+
     // Offset from ItemInspector's origin (0,-1000,0) to avoid camera conflicts.
     private static readonly Vector3 PreviewOrigin = new Vector3(500f, -1000f, 0f);
 
@@ -42,7 +52,9 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     private RawImage      _rawImage;
     private int           _previewLayer;
     private GameObject    _previewPivot;
-    private GameObject    _previewLight;
+    private GameObject    _previewKeyLight;
+    private GameObject    _previewFillLight;
+    private GameObject    _previewRimLight;
     private bool          _hasModel;
     private bool          _isDragging;
     private ItemData      _currentItem;
@@ -186,15 +198,39 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
             previewCamera.gameObject.SetActive(true);
         }
 
-        _previewLight = new GameObject("InventoryPreviewLight");
-        var light     = _previewLight.AddComponent<Light>();
-        light.type      = LightType.Point;
-        light.range     = 10f;
-        light.intensity = 2f;
-        light.color     = Color.white;
-        _previewLight.transform.position = center + new Vector3(0.5f, 1f, -1.5f);
+        CreatePreviewLights(center);
 
         _hasModel = true;
+    }
+
+    /// <summary>
+    /// Creates a three-point lighting rig around the model center. Offsets are
+    /// relative to the preview camera (which always sits at center + (0,0,-5)),
+    /// so the rig stays consistent for items of any size.
+    /// </summary>
+    private void CreatePreviewLights(Vector3 center)
+    {
+        _previewKeyLight = CreateLight(center + new Vector3(0.5f, 1f, -1.5f), keyLightIntensity);
+
+        if (!useThreePointLighting) return;
+
+        // Fill: left side, slightly below — softens the shadow side of the model.
+        _previewFillLight = CreateLight(center + new Vector3(-1.5f, -0.5f, -1.0f), fillLightIntensity);
+
+        // Rim: behind and above — outlines the silhouette against dark backgrounds.
+        _previewRimLight = CreateLight(center + new Vector3(0f, 1.5f, 2.0f), rimLightIntensity);
+    }
+
+    private GameObject CreateLight(Vector3 position, float intensity)
+    {
+        var lightObject = new GameObject("InventoryPreviewLight");
+        var light       = lightObject.AddComponent<Light>();
+        light.type      = LightType.Point;
+        light.range     = 10f;
+        light.intensity = intensity;
+        light.color     = Color.white;
+        lightObject.transform.position = position;
+        return lightObject;
     }
 
     private void DestroyModel()
@@ -203,7 +239,9 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
         _isDragging = false;
 
         if (_previewPivot != null) { Destroy(_previewPivot); _previewPivot = null; }
-        if (_previewLight != null) { Destroy(_previewLight); _previewLight = null; }
+        if (_previewKeyLight != null) { Destroy(_previewKeyLight); _previewKeyLight = null; }
+        if (_previewFillLight != null) { Destroy(_previewFillLight); _previewFillLight = null; }
+        if (_previewRimLight != null) { Destroy(_previewRimLight); _previewRimLight = null; }
 
         if (previewCamera != null) previewCamera.gameObject.SetActive(false);
     }
