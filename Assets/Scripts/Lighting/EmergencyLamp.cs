@@ -55,6 +55,10 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
         {
             _sharedMaterial = _lampGlassRenderer.sharedMaterial;
             _originalEmissionColor = _sharedMaterial.GetColor("_EmissionColor");
+            // Materials with unconfigured (black) emission would keep the glass dark
+            // even when the lamp is ON — fall back to the emergency indicator color.
+            if (_originalEmissionColor.maxColorComponent < 0.01f)
+                _originalEmissionColor = _lockedColor;
             _currentIndicatorColor = _originalEmissionColor;
 
             // Lamps with _activeWhenPowered = true need their own material instance
@@ -64,6 +68,8 @@ public class EmergencyLamp : MonoBehaviour, IPowerConsumer
                 _sharedMaterial = Instantiate(_sharedMaterial);
                 _lampGlassRenderer.sharedMaterial = _sharedMaterial;
                 _originalEmissionColor = _sharedMaterial.GetColor("_EmissionColor");
+                if (_originalEmissionColor.maxColorComponent < 0.01f)
+                    _originalEmissionColor = _lockedColor;
                 _currentIndicatorColor = _originalEmissionColor;
             }
         }
