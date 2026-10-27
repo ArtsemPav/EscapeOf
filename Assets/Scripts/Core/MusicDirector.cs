@@ -537,6 +537,65 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         _duckCoroutine = null;
     }
 
+    /// <summary>
+    /// Fades every pooled director source to silence over fadeDuration seconds
+    /// and pauses them, clearing the active track. Called when a loading screen
+    /// takes over (menu → game, game → menu): the new scene's own music logic
+    /// starts the next track after the load, nothing here resumes the old one.
+    /// Unlike MuteForEvent this blocks nothing and needs no restore — the
+    /// transition ends the director's current ownership entirely.
+    /// </summary>
+    public static void FadeOutForLoadingScreen(float fadeDuration = 1.5f, string caller = null) {
+        if (Instance == null) return;
+        Debug.Log($"[Music] FadeOutForLoadingScreen ({fadeDuration}s) from '{(caller ?? "unknown")}'");
+
+        // A fade still in progress: stop its bookkeeping, sources re-snapshot below.
+        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
+        Instance._preDuckVolume = -1f;
+
+        Instance._menuMusicActive = false;
+        Instance._activeTrack = null;
+        Instance._previousTrack = null;
+        Instance._preMenuTrack = null;
+        Instance._menuResumeTime = 0f;
+        Instance._activeSource = null;
+
+        // The fade runs on a dedicated DontDestroyOnLoad host, not on the
+        // director: MainMenuItemBtn destroys the persistent AudioManager
+        // mid-transition, which would kill a coroutine started on it.
+        LoadingFadeHost.BeginFadeOut(Instance._sourcePool.Values, fadeDuration);
+    }
+
+    /// <summary>
+    /// Survives singleton destruction during scene transitions so music fades
+    /// out cleanly even when the AudioManager itself is being destroyed.
+    /// </summary>
+    private class LoadingFadeHost : MonoBehaviour {
+        private static LoadingFadeHost _instance;
+
+        public static void BeginFadeOut(Dictionary<MusicTrack, AudioSource>.ValueCollection sources, float duration) {
+            if (_instance == null) {
+                GameObject hostObject = new GameObject("MusicFadeHost");
+                DontDestroyOnLoad(hostObject);
+                _instance = hostObject.AddComponent<LoadingFadeHost>();
+            }
+            foreach (AudioSource source in sources) {
+                if (source == null) continue;
+                _instance.StartCoroutine(FadeOutAndPause(source, duration));
+            }
+        }
+
+        private static IEnumerator FadeOutAndPause(AudioSource source, float duration) {
+            yield return AudioFades.Volume(source, 0f, duration);
+            if (source != null) source.Pause(); // keeps its position for later resume
+        }
+
+        private void OnDestroy() {
+            if (_instance == this) _instance = null;
+        }
+    }
+
     private void ClearTrackInternal(MusicTrack track) {
         if (_activeTrack != track) return;
 

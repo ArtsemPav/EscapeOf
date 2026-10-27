@@ -6,13 +6,22 @@ using UnityEngine;
 /// <summary>
 /// Video setting options exposed to the player.
 /// Resolutions are built from the modes the current display actually supports,
+/// capped at two largest options per aspect ratio so the list stays short, and
 /// including non-native aspect ratios: borderless fullscreen (FullScreenWindow)
 /// letterboxes mismatched modes with black bars instead of stretching them.
-/// Kept as plain data so a settings UI (dropdowns, steppers) can enumerate them.
 /// </summary>
 public static class VideoSettingOptions
 {
-    /// <summary>Supported resolutions of the current display, largest first.</summary>
+    /// <summary>Relative tolerance when grouping modes into one aspect ratio.</summary>
+    private const float AspectTolerance = 0.01f;
+
+    /// <summary>How many resolutions to keep per display aspect ratio.</summary>
+    private const int OptionsPerAspect = 2;
+
+    /// <summary>
+    /// Supported resolutions of the current display: the two largest modes of
+    /// every aspect ratio the display reports, sorted largest first.
+    /// </summary>
     public static IReadOnlyList<ResolutionOption> Resolutions => BuildResolutions();
 
     /// <summary>Selectable frame-rate caps.</summary>
@@ -73,15 +82,29 @@ public static class VideoSettingOptions
         => Resolutions.Select(r => r.ToString()).ToArray();
 
     /// <summary>
-    /// Builds the selectable resolutions from the display's supported modes,
-    /// deduplicated by width x height and sorted largest first. Includes every
-    /// aspect ratio the display reports: mismatched ones are letterboxed by
-    /// borderless fullscreen rather than stretched.
+    /// Builds the selectable resolutions from the display's supported modes:
+    /// deduplicated by width x height, grouped by aspect ratio, and capped at
+    /// the <see cref="OptionsPerAspect"/> largest modes of each group, sorted
+    /// largest first. Includes every aspect ratio the display reports:
+    /// mismatched ones are letterboxed by borderless fullscreen, not stretched.
     /// </summary>
     private static IReadOnlyList<ResolutionOption> BuildResolutions()
         => Screen.resolutions
             .Select(r => new ResolutionOption(r.width, r.height))
             .Distinct()
+            .GroupBy(option => option.Height == 0 ? 0f : (float)option.Width / option.Height, new AspectComparer())
+            .SelectMany(group => group
+                .OrderByDescending(o => (long)o.Width * o.Height)
+                .Take(OptionsPerAspect))
             .OrderByDescending(o => (long)o.Width * o.Height)
             .ToList();
+
+    /// <summary>Groups aspect ratios with a relative tolerance so near-identical ratios collapse into one group.</summary>
+    private sealed class AspectComparer : IEqualityComparer<float>
+    {
+        public bool Equals(float x, float y)
+            => Mathf.Abs(x - y) <= AspectTolerance * Mathf.Max(x, y);
+
+        public int GetHashCode(float aspect) => 0; // force pairwise comparison via Equals
+    }
 }

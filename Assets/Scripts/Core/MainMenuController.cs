@@ -1,11 +1,16 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 /// <summary>
 /// Handles main menu button interactions. Every screen change goes through the
 /// shared ScreenFader black overlay: fade to black, swap the visible panel,
 /// fade back in. Attach to MainMenuCanvas. Wire buttons via Inspector onClick.
+/// Also wires hover and click sounds to every Button under the canvas
+/// (main menu, settings submenu and any future panels) through AudioManager.
 /// </summary>
 public class MainMenuController : MonoBehaviour
 {
@@ -26,6 +31,75 @@ public class MainMenuController : MonoBehaviour
     [Header("Menu Items")]
     [Tooltip("Load Game button, hidden while no save file exists.")]
     [SerializeField] private GameObject _loadGameButton;
+
+    [Tooltip("Menu camera dolly that plays the push-forward beat on this transition.")]
+    [SerializeField] private MenuCameraDolly _cameraDolly;
+
+    [Header("Menu Sounds")]
+    [Tooltip("Played once when the cursor enters any menu button (including submenus).")]
+    [SerializeField] private AudioClip _hoverClip;
+
+    [Tooltip("Played when any menu button is clicked.")]
+    [SerializeField] private AudioClip _clickClip;
+
+    [Tooltip("Hover sound volume on the SFX bus.")]
+    [SerializeField] [Range(0f, 1f)] private float _hoverVolume = 0.7f;
+
+    [Tooltip("Click sound volume on the SFX bus.")]
+    [SerializeField] [Range(0f, 1f)] private float _clickVolume = 0.7f;
+
+    private readonly List<Button> _soundWiredButtons = new List<Button>();
+
+    private void Awake()
+    {
+        WireMenuSounds();
+    }
+
+    private void OnDestroy()
+    {
+        foreach (Button wiredButton in _soundWiredButtons)
+        {
+            if (wiredButton != null)
+                wiredButton.onClick.RemoveListener(PlayClickSound);
+        }
+    }
+
+    /// <summary>
+    /// Wires hover and click sounds to every Button under this canvas,
+    /// including buttons on currently inactive panels (settings submenu).
+    /// </summary>
+    private void WireMenuSounds()
+    {
+        foreach (Button button in GetComponentsInChildren<Button>(true))
+        {
+            button.onClick.AddListener(PlayClickSound);
+
+            EventTrigger trigger = button.GetComponent<EventTrigger>();
+            if (trigger == null)
+                trigger = button.gameObject.AddComponent<EventTrigger>();
+
+            EventTrigger.Entry onEnter = new EventTrigger.Entry();
+            onEnter.eventID = EventTriggerType.PointerEnter;
+            onEnter.callback.AddListener((_) => PlayHoverSound());
+            trigger.triggers.Add(onEnter);
+
+            _soundWiredButtons.Add(button);
+        }
+    }
+
+    /// <summary>Plays the hover sound through the AudioManager SFX service.</summary>
+    private void PlayHoverSound()
+    {
+        if (_hoverClip != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX(_hoverClip, _hoverVolume);
+    }
+
+    /// <summary>Plays the click sound through the AudioManager SFX service.</summary>
+    private void PlayClickSound()
+    {
+        if (_clickClip != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX(_clickClip, _clickVolume);
+    }
 
     /// <summary>Hides the Load Game button when there is nothing to load.</summary>
     private void Start()
@@ -68,6 +142,14 @@ public class MainMenuController : MonoBehaviour
     /// </summary>
     private void BeginGameTransition()
     {
+        // The loading screen takes over: menu music fades to silence while the
+        // bar fills, so the gameplay scene starts from a clean soundscape
+        // (GameManager.SetPause → PlayGameMusic starts Explore_Main from zero).
+        MusicDirector.FadeOutForLoadingScreen(caller: "MainMenuController.BeginGameTransition");
+
+        // The camera leans forward into the scene; the black fade covers the end of the push.
+        if (_cameraDolly != null) _cameraDolly.BeginLoadingPush();
+
         StartCoroutine(GameTransitionRoutine());
     }
 

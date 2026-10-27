@@ -26,6 +26,11 @@ public class MainMenuItemBtn : BaseButton
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeIn();
 
+        // The start scene boots with its own MusicDirector state (Menu_Main from
+        // Start()) — the gameplay soundscape must be silent before the transition,
+        // not killed mid-fade by the AudioManager destruction below.
+        MusicDirector.FadeOutForLoadingScreen(caller: "MainMenuItemBtn.ReturnToMainMenu");
+
         // Same cleanup as EndGameCreditsView and LoadSaveBtn: the start scene
         // must boot fresh. A surviving GameManager would keep the cursor
         // locked and keep ESC-pausing the menu animations; the persistent
