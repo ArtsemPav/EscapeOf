@@ -329,14 +329,15 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
 
     private void EvaluateHit()
     {
-        float whiteStart = _sectorStart;
+        // Белая зона по центру сектора — так же, как её рисует UpdateSectorVisuals()
+        float whiteStart = (_sectorStart + (_sectorSize - _whiteZoneSize) * 0.5f) % FullCircle;
         float whiteEnd = (whiteStart + _whiteZoneSize) % FullCircle;
         float sectorEnd = (_sectorStart + _sectorSize) % FullCircle;
 
         // Проверять всю дугу, пройденную за кадр, а не только текущий угол,
         // чтобы стрелка не могла перескочить зону при низком FPS или скачке deltaTime.
-        bool whiteWasInRange = IsArcIntersectingZone(_previousArrowAngle, _arrowAngle, whiteStart, whiteEnd);
-        bool sectorWasInRange = IsArcIntersectingZone(_previousArrowAngle, _arrowAngle, _sectorStart, sectorEnd);
+        bool whiteWasInRange = IsArcIntersectingZone(_previousArrowAngle, _arrowAngle, _rotationDirection, whiteStart, whiteEnd);
+        bool sectorWasInRange = IsArcIntersectingZone(_previousArrowAngle, _arrowAngle, _rotationDirection, _sectorStart, sectorEnd);
 
         if (whiteWasInRange)
         {
@@ -352,14 +353,18 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         }
     }
 
-    /// <summary>Определяет, пересекает ли дуга, пройденная стрелкой за кадр, заданный угловой диапазон зоны.</summary>
-    private static bool IsArcIntersectingZone(float fromAngle, float toAngle, float zoneStart, float zoneEnd)
+    /// <summary>Определяет, пересекает ли дуга, пройденная стрелкой за кадр с учётом направления вращения, заданный угловой диапазон зоны.</summary>
+    private static bool IsArcIntersectingZone(float fromAngle, float toAngle, int direction, float zoneStart, float zoneEnd)
     {
-        float step = ((toAngle - fromAngle) % FullCircle + FullCircle) % FullCircle;
+        // Дуга по часовой между from и to (0..360)
+        float clockwiseStep = ((toAngle - fromAngle) % FullCircle + FullCircle) % FullCircle;
+        // Реальная пройденная дуга с учётом направления вращения
+        float step = direction > 0 ? clockwiseStep : (FullCircle - clockwiseStep) % FullCircle;
+
         int sampleCount = Mathf.Max(1, Mathf.CeilToInt(step));
         for (int i = 0; i <= sampleCount; i++)
         {
-            float angle = ((fromAngle + step * i / sampleCount) % FullCircle + FullCircle) % FullCircle;
+            float angle = ((fromAngle + direction * step * i / sampleCount) % FullCircle + FullCircle) % FullCircle;
             if (AngleInRange(angle, zoneStart, zoneEnd))
                 return true;
         }
