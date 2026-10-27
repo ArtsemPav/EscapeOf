@@ -487,7 +487,7 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     {
         if (!_ownsBackgroundMusic) return;
         _holdsMusicMute = true;
-        MusicDirector.MuteForEvent(_musicMuteFadeDuration);
+        MusicDirector.MuteForEvent(_musicMuteFadeDuration, _eventId);
 
         if (_musicMuteTimeout > 0f)
         {

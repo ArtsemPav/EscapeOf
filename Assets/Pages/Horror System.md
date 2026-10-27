@@ -335,7 +335,6 @@ bool alreadyFired = horrorEvent.HasFired;
 
 | GameObject             | Event ID             | Триггер                                            | Эффект                          | Target                          |
 | ---------------------- | -------------------- | -------------------------------------------------- | ------------------------------- | ------------------------------- |
-| `Event_Mannequin`      | —                    | `OnItemPickup` (FlashLight)                        | `AppearThenDisappearOnLookAway` | **null**                        |
 | `Event_RunPastDoor`    | `run_past_door`      | `OnPlayerEnterZone` + FlashLight + electric puzzle | `AppearThenDisappearAfterDelay` | `MaidHolder` (горничная)        |
 | `Event_VentMaid`       | `vent_maid`          | `OnManual`                                         | `AppearAndStay`                 | `/Env/Vent/Horror/MaidHolder`   |
 | `Event_RatScare`       | `rat_scare`          | `OnManual` ← `CrouchTrigger`                       | `AppearAndStay`                 | `/Laboratory/Puzzle/Rat/Rat`    |
@@ -346,12 +345,12 @@ bool alreadyFired = horrorEvent.HasFired;
 | `Event_DoorKnock`      | —                    | (в `/Env/HorrorTriggers/`)                         | —                               | **null**                        |
 
 
-> У `Event_Mannequin` Target не назначен — эффект появления не сработает пока не назначить. `Event_EntityAppear` тоже требует настройки Target и звука. Все события с `_ownsBackgroundMusic = true` при срабатывании глушат фоновую музыку (таймаут-страховка 30 с) и восстанавливают её при деактивации.
+> У `Event_EntityAppear` Target не назначен — эффект появления не сработает пока не назначить. Все события с `_ownsBackgroundMusic = true` при срабатывании глушат фоновую музыку (таймаут-страховка 30 с) и восстанавливают её при деактивации.
 
 > **Enum-значения (проверено по `HorrorEvent.cs`):** `HorrorTriggerType` — `OnItemPickup = 0`, `OnManual = 2`, `OnPlayerEnterZone = 3`, `OnPuzzleSolved = 4`, `OnPowerStateChanged = 5`, `OnZoneSwitchChanged = 6`. Значение `1` отсутствует (не используется). `HorrorEffectType` — `AppearAndStay = 0`, `AppearThenDisappearOnLookAway = 1`, `AppearThenDisappearAfterDelay = 2`, `DisappearOnTrigger = 3`.
 
 
-> У `Event_Mannequin`, `Event_NurseryExit` и `Event_DoorKnock` Target не назначен / требует настройки.
+> У `Event_NurseryExit` и `Event_DoorKnock` Target не назначен / требует настройки.
 
 ### Триггеры OnPuzzleSolved / OnPowerStateChanged / OnZoneSwitchChanged — «выстрели сразу»
 

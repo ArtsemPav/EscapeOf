@@ -47,6 +47,9 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
     private readonly HashSet<string> _playedOnceTrackNames = new HashSet<string>();
     private readonly Dictionary<MusicTrack, AudioSource> _sourcePool = new Dictionary<MusicTrack, AudioSource>();
+    // Zone requests rejected while a horror mute held the soundscape. Stacked:
+    // on restore only the LAST pending zone fires — the others are stale.
+    private readonly List<(MusicTrack track, bool playOnce)> _pendingMutedRequests = new List<(MusicTrack, bool)>();
     // All MusicTrack assets seen this session (registered by zones and Start).
     // Static so zones can register in Awake() before the director's Instance exists.
     private static readonly Dictionary<string, MusicTrack> KnownTracks = new Dictionary<string, MusicTrack>();
@@ -226,6 +229,8 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private bool _registeredWithSaveManager;
 
     private void Start() {
+        PrewarmKnownTracks();
+
         // A restored dominant track wins over the scene default: the zone the
         // player last entered stays the "main" melody for the loaded session,
         // resuming from the position saved at the last checkpoint.
@@ -262,6 +267,19 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (track != null) KnownTracks[track.name] = track;
     }
 
+    /// <summary>
+    /// Kicks off background audio data loading for every registered track.
+    /// With the clips' "Load Type: Streaming + Preload Audio Data" the OS
+    /// streams the file without blocking, so the first play never hitches
+    /// the main thread. Best-effort: clips register as zones Awake.
+    /// </summary>
+    private void PrewarmKnownTracks() {
+        foreach (MusicTrack track in KnownTracks.Values) {
+            if (track == null || track.Clip == null) continue;
+            track.Clip.LoadAudioData();
+        }
+    }
+
     private void Update() {
         // A non-looping track that stopped playing has finished — restore the
         // previous track, or the scene default when nothing was playing before.
@@ -281,12 +299,22 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// Requests a track to play. If the same track is already active the request is ignored;
     /// otherwise the director crossfades to it and remembers the previous track for ClearTrack.
     /// Tracks already played with playOnce are skipped.
+    /// While a horror mute is held the request is not lost — it is queued and replayed
+    /// when the last mute owner releases.
     /// Returns true when the request was accepted (the track is now the dominant one).
     /// </summary>
     public static bool RequestTrack(MusicTrack track, bool playOnce = false) {
         if (Instance == null || track == null) return false;
         RegisterTrack(track);
         if (playOnce && Instance._playedOnceTrackNames.Contains(track.name)) return false;
+        if (MusicDirector.MutedForEvent) {
+            // The horror event owns the soundscape — remember which zone the
+            // player walked into and fire it once the mute lifts.
+            if (!Instance._pendingMutedRequests.Exists(p => p.track == track))
+                Instance._pendingMutedRequests.Add((track, playOnce));
+            Debug.Log($"[Music] RequestTrack '{track.name}' QUEUED: muted for horror event, will replay on restore");
+            return false;
+        }
         return Instance.RequestTrackInternal(track, playOnce);
     }
 
@@ -358,10 +386,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// track requests until RestoreAfterEvent. Pass 0 for an instant cut.
     /// Requests are blocked immediately (before the fade finishes).
     /// </summary>
-    public static void MuteForEvent(float fadeDuration) {
+    public static void MuteForEvent(float fadeDuration, string caller = null) {
         if (Instance == null) return;
         Instance._muteOwnerCount++; // nested events stack — each owner must release individually
-        Debug.Log($"[Music] MuteForEvent (fade {fadeDuration}s) — owners now: {Instance._muteOwnerCount}. Callers: {System.Environment.StackTrace}");
+        Debug.Log($"[Music] MuteForEvent (fade {fadeDuration}s) from '{(caller ?? "unknown")}' — owners now: {Instance._muteOwnerCount}");
 
         if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
         if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
@@ -438,6 +466,15 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
         // The menu owns the music — nothing to restore until the menu closes.
         if (Instance._menuMusicActive) return;
+
+        // A zone the player walked into during the mute wins over the old
+        // track — it fires now (the queued list collapses to its last entry).
+        if (Instance._pendingMutedRequests.Count > 0) {
+            (MusicTrack pending, bool pendingPlayOnce) = Instance._pendingMutedRequests[Instance._pendingMutedRequests.Count - 1];
+            Instance._pendingMutedRequests.Clear();
+            Debug.Log($"[Music] RestoreAfterEvent — replaying queued zone track '{pending.name}'");
+            if (Instance.RequestTrackInternal(pending, pendingPlayOnce)) return;
+        }
 
         // Refade the track that was active before the event; FadeRoutine
         // un-pauses the pooled source and brings its volume back up.
