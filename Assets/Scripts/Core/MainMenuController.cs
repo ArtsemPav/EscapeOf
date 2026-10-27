@@ -28,6 +28,9 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Fake loading screen shown before switching to the gameplay scene.")]
     [SerializeField] private FakeLoadingScreen _loadingScreen;
 
+    [Tooltip("Fade-to-black duration of the new game / load game transition. Should cover the camera loading push (MenuCameraDolly._loadingPushDurationSeconds).")]
+    [SerializeField, Min(0.1f)] private float _transitionFadeSeconds = 2.2f;
+
     [Header("Menu Items")]
     [Tooltip("Load Game button, hidden while no save file exists.")]
     [SerializeField] private GameObject _loadGameButton;
@@ -156,7 +159,7 @@ public class MainMenuController : MonoBehaviour
     private IEnumerator GameTransitionRoutine()
     {
         if (ScreenFader.Instance != null)
-            yield return ScreenFader.Instance.FadeIn();
+            yield return ScreenFader.Instance.FadeIn(_transitionFadeSeconds);
 
         if (_menuRoot != null) _menuRoot.SetActive(false);
         if (_settingsPanel != null) _settingsPanel.SetActive(false);
