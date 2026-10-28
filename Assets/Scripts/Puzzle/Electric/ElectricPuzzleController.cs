@@ -61,9 +61,12 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("GameObject to activate when the puzzle is fully solved (lever pulled).")]
     [SerializeField] private GameObject _solvedObject;
 
-    [Header("Generator")]
+    [Header("Hints")]
     [Tooltip("Hint shown when the player pulls the lever with correct wires before the generator is running.")]
     [SerializeField] private string _noGeneratorHint = "Сначала нужно запустить генератор.";
+
+    [Tooltip("Hint shown when the player pulls the lever with the generator running but without the fuse inserted.")]
+    [SerializeField] private string _noFuseHint = "Нужен предохранитель.";
 
     [Header("Lamp")]
     [Tooltip("Renderer on the lamp mesh (pSphere25) whose material is tinted red→green based on puzzle state.")]
@@ -626,7 +629,6 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     /// </summary>
     private bool TryInteractLever(Vector2 screenPos)
     {
-        if (!_fuseInserted) return false;
         if (_lever == null || !_lever.CanInteract()) return false;
         if (Camera.main == null) return false;
 
@@ -639,9 +641,19 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (lever == null) return false;
 
         // The panel is dead until the generator runs — nothing happens on pull.
+        // Checked before the fuse requirement so the lever still reacts without power.
         if (LightingSystem.Instance != null && !LightingSystem.Instance.IsGeneratorReady)
         {
             PopupMessageSystem.Instance?.Show(_noGeneratorHint, PopupMessageType.Hint);
+            lever.Interact();
+            return true;
+        }
+
+        // Lever always animates, but the puzzle can only be solved with the fuse inserted.
+        // Correct wires stay connected — the player inserts the fuse and pulls again.
+        if (!_fuseInserted)
+        {
+            PopupMessageSystem.Instance?.Show(_noFuseHint, PopupMessageType.Hint);
             lever.Interact();
             return true;
         }

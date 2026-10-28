@@ -415,6 +415,11 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     {
         if (_triggerType != HorrorTriggerType.OnPlayerEnterZone) return;
         Debug.Log($"[HorrorEvent] Zone '{_eventId}' OnTriggerEnter: {other.name} (tag={other.tag}), zonePos={transform.position}", this);
+        // Lazy re-check: the cached flag can be stale when the puzzle was solved
+        // outside the live OnSolved flow (cheat panel, restored save distributed
+        // after this Start already ran). IsSolved is the actual source of truth.
+        if (_puzzleToWatch != null && !_prerequisiteMet)
+            _prerequisiteMet = _puzzleToWatch.IsSolved;
         if (!_prerequisiteMet) { Debug.Log($"[HorrorEvent] Zone '{_eventId}' blocked: prerequisite not met", this); return; }
         if (!other.CompareTag(_playerTag)) return;
         Activate();

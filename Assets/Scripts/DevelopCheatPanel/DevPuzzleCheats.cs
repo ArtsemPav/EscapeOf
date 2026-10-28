@@ -70,6 +70,9 @@ public static class DevPuzzleCheats
         if (acceptedItems != null && acceptedItems.Length > 0 && acceptedItems[0] is ItemData fuse)
             fuseItemId = fuse.ItemId;
 
+        // ── Clear any previous state so re-running the cheat doesn't duplicate wires ──
+        type.GetMethod("ResetAllWires", InstanceFlags)?.Invoke(instance, null);
+
         // ── Set pending-load fields so ApplyPendingLoad recreates all wires ──
         SetField(instance, "_pendingSolved", true);
         SetField(instance, "_pendingFuseInserted", true);
@@ -83,7 +86,7 @@ public static class DevPuzzleCheats
         // Settle wires
         Type wireType = FindType("ElectricWire");
         wireType?.GetMethod("JointPresettle", PublicFlags | BindingFlags.Static)?
-            .Invoke(null, null);
+            .Invoke(null, new object[] { 400 });
 
         // ── Restore fuse visuals and disable anchor collider ─────────────────
         type.GetMethod("ShowFuseMesh", InstanceFlags)?.Invoke(instance, null);
