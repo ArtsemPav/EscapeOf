@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 /// <summary>
@@ -83,11 +84,93 @@ public class RoomVisibilityManager : MonoBehaviour
         // triggers are already re-enabled by their RoomPuzzleGate and ClosestPoint can
         // match them. Reconciling earlier (from FPSController.Start) runs while the gate
         // colliders are still disabled and misses every trigger.
-        if (!_pendingSpawnReconcile.HasValue) return;
+        if (_pendingSpawnReconcile.HasValue)
+        {
+            Vector3 position = _pendingSpawnReconcile.Value;
+            _pendingSpawnReconcile = null;
+            ReconcileAfterSpawnInternal(position);
+            return;
+        }
 
-        Vector3 position = _pendingSpawnReconcile.Value;
-        _pendingSpawnReconcile = null;
-        ReconcileAfterSpawnInternal(position);
+        // Continuous occupancy sync: teleport-capable flows (save load, cheat panel,
+        // cinematics) move the player WITHOUT physics sweeps, so OnTriggerEnter/Exit for
+        // the moved capsule are unreliable — _occupiedTriggers can drift from reality
+        // (e.g. listing a trigger the player has actually left), and the next ExitTrigger
+        // then recomputes the union without the room the player stands in, culling it.
+        // Rebuilding occupancy from point containment every frame keeps the union honest;
+        // a synchronous pass over 30+ triggers is cheap compared to the geometry toggles.
+        SyncOccupiedTriggers();
+    }
+
+    /// <summary>
+    /// Rebuilds _occupiedTriggers from the player's current position (point containment,
+    /// same test the spawn reconcile uses) and recomputes visibility when the set changed.
+    /// Physics events remain the fast path: when the synced set equals the tracked one,
+    /// nothing is recomputed.
+    /// </summary>
+    private void SyncOccupiedTriggers()
+    {
+        if (_player == null || _allRooms == null || _allRooms.Length == 0) return;
+
+        Vector3 position = _player.transform.position;
+
+        bool changed = false;
+
+        // Drop triggers the player is no longer inside (teleports skip OnTriggerExit).
+        foreach (var trigger in _occupiedTriggers.Keys.ToList())
+        {
+            if (trigger == null || !trigger.ContainsPoint(position))
+            {
+                _occupiedTriggers.Remove(trigger);
+                changed = true;
+            }
+        }
+
+        // Register triggers the player is inside but that never reported an enter event
+        // (spawned/restored inside the volume, or teleported into it).
+        foreach (var trigger in _allTriggers)
+        {
+            if (trigger == null || _occupiedTriggers.ContainsKey(trigger)) continue;
+            if (!trigger.ContainsPoint(position)) continue;
+
+            _occupiedTriggers[trigger] = trigger.ResolveRooms();
+            changed = true;
+        }
+
+        // Gap tolerance: when the player has left EVERY trigger (vent shafts, doorways,
+        // unmapped corridor sections), keep the last visible set instead of recomputing
+        // from an empty union — same contract as ExitTrigger's last-exit branch. Without
+        // this, the first step into a coverage gap culls the room the player is walking
+        // toward (e.g. CoridorFDoor right after leaving the basement vent trigger).
+        if (_occupiedTriggers.Count == 0)
+        {
+            if (changed) LogGap(position);
+            return;
+        }
+
+        if (changed) RecomputeActiveRooms("OccupancySync");
+    }
+
+    /// <summary>Diagnostics for coverage gaps: logs the closest trigger and how far the player is from it.</summary>
+    private void LogGap(Vector3 position)
+    {
+        RoomTrigger nearest = null;
+        float nearestSqr = float.MaxValue;
+
+        foreach (var trigger in _allTriggers)
+        {
+            if (trigger == null) continue;
+            float sqr = trigger.SqrDistanceTo(position, out _);
+            if (sqr < nearestSqr)
+            {
+                nearestSqr = sqr;
+                nearest = trigger;
+            }
+        }
+
+        Debug.Log($"[RoomVisibility] OccupancySync: player in a trigger GAP at {position.ToString("F1")}. " +
+                  $"Closest trigger: {(nearest != null ? nearest.name : "none")}, " +
+                  $"distance {(Mathf.Sqrt(nearestSqr)).ToString("F2")}m (path: {nearest?.transform.parent?.name}/{nearest?.name})");
     }
 
     /// <summary>
@@ -182,6 +265,10 @@ public class RoomVisibilityManager : MonoBehaviour
 
         if (_occupiedTriggers.Count > 0)
             RecomputeActiveRooms($"Exit '{trigger.name}'");
+        // When the LAST trigger is exited the previously visible set is intentionally kept:
+        // gaps between trigger volumes (crawl spaces, doorways, vent shafts) must not cull
+        // geometry while the player walks through them. The next RecomputeActiveRooms
+        // (Enter/Reconcile) restores the strict set.
     }
 
     /// <summary>
@@ -313,13 +400,15 @@ public class RoomVisibilityManager : MonoBehaviour
 
     private void LogState(string sourceName)
     {
-        if (!_debugLogging) return;
-
         var visible = new List<string>();
         foreach (var room in _activeRooms)
             if (room != null) visible.Add(room.name);
 
-        Debug.Log($"[RoomVisibility] Source: '{sourceName}'. Occupied triggers: {_occupiedTriggers.Count}. " +
-                  $"Visible: {(visible.Count > 0 ? string.Join(", ", visible) : "none")}");
+        var occupied = new List<string>();
+        foreach (var t in _occupiedTriggers.Keys)
+            if (t != null) occupied.Add($"{t.name}@{_player.transform.position.ToString("F1")}");
+
+        Debug.Log($"[RoomVisibility] Source: '{sourceName}'. Occupied({occupied.Count}): [{string.Join(", ", occupied)}]. " +
+                  $"Visible({visible.Count}): [{string.Join(", ", visible)}]. Pos: {_player.transform.position.ToString("F1")}");
     }
 }
