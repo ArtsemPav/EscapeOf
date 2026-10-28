@@ -1,6 +1,6 @@
 ## Overview
 
-The electric puzzle is a wire-connection panel. The player inserts a fuse to power the panel, then connects six colored terminals to six neutral terminals in the correct order. When all connections are correct the indicator lamp turns green. Pulling the lever with a correct solution completes the puzzle; pulling it with a wrong solution instantly resets all wires.
+The electric puzzle is a wire-connection panel gated by two conditions: the building generator must be running (`LightingSystem.IsGeneratorReady`) and a fuse must be inserted. The player then connects six colored terminals to six neutral terminals in the correct order. Pulling the lever with a correct solution completes the puzzle (with a solved cinematic); pulling it with a wrong solution instantly resets all wires.
 
 Camera, cursor management, FPS input blocking, and ESC handling are delegated to `PuzzleModeController` — the same shared component used by all puzzles in the project. `ElectricPuzzleController` subscribes to its `OnEntered` / `OnExited` / `OnSolved` events.
 
@@ -30,43 +30,58 @@ Player clicks panel
                              PuzzleInventoryBar shown (_showInventoryBar = true)
                              ElectricLever.SetInteractionEnabled(true)
 
-Player inserts fuse
-  Drag Safeguard from PuzzleInventoryBar → drop on Safeguardanchor
-  └─ HandleDrop() raycasts _terminalLayer, checks hit.collider == _fuseAnchorCollider
-       └─ AnimateFuseInsertion()  →  Lerp fuse mesh from offset to anchor (ease-out, 0.5s)
-            └─ FinalizeFuseInsertion()  →  _fuseInserted = true, fuseItemId saved
-                                          anchor collider disabled, lamp = red, Save()
-
-Player drags wires  (only after fuse is inserted; lamp must be on)
+Player drags wires  (independent of the fuse; only the lever solve is gated)
   LMB press on colored terminal  →  StartDrag()       creates ElectricWire
   LMB release on neutral terminal →  ConnectActiveWire() snaps wire, EvaluateWires()
   LMB on occupied terminal        →  PickUpWire() / PickUpWireFromNeutral()
   RMB                             →  CancelActiveDrag() discards floating wire
 
+Lever pulled while the generator is OFF
+  └─ TryInteractLever() checks LightingSystem.Instance.IsGeneratorReady FIRST
+       └─ PopupMessageSystem.Show(_noGeneratorHint)  — hint, lever still animates,
+         nothing else happens
+
+Player inserts fuse
+  Drag Safeguard from PuzzleInventoryBar → drop on Safeguardanchor
+  └─ HandleDrop() raycasts _terminalLayer, checks hit.collider == _fuseAnchorCollider
+       └─ AnimateFuseInsertion()  →  Lerp fuse mesh from offset to anchor (ease-out, 0.5s)
+            └─ FinalizeFuseInsertion()  →  _fuseInserted = true, fuseItemId saved
+                                         anchor collider disabled, Save()
+
+Lever pulled without the fuse (generator running)
+  └─ PopupMessageSystem.Show(_noFuseHint) — hint, lever animates,
+     correct wires STAY connected — player inserts the fuse and pulls again
+
 EvaluateWires()
   CheckSolution() matches _connections[] against ElectricPuzzleData.Solution
-  ├─ correct → lamp turns green, _wiresCorrect = true, Save()
-  └─ wrong   → lamp stays red
+  └─ _wiresCorrect updated on transition (Save() on first transition to correct);
+     lamp color is driven by _isSolved only — the lamp stays red until the lever
+     is pulled with correct wires
 
-Player clicks lever (pCube17 / ElectricLever)
-  TryInteractLever() returns early if !_fuseInserted
-  ├─ Wrong wires  →  particles play, ResetAllWires() instantly, lever animates down
+Player clicks lever (pCube17 / ElectricLever) with generator running and fuse inserted
+  ├─ Wrong wires  →  wrongPull sound + particles, ResetAllWires() instantly, lever animates down
   │                   OnPulled fires → HandleLeverPulled() → lever.Reset() returns it
   └─ Correct wires →  _isSolved = true
                         lever.Interact() → animates down
                         OnPulled fires → HandleLeverPulled()
+                        ├─ _solvedObject activated, Save()
                         ├─ _cinematicCamera assigned → SolvedCinematicRoutine():
+                        │    0. PuzzleInventoryBar + PuzzleCursor hidden
                         │    1. Quick fade to black (_cutFadeDuration, default 0.3s)
                         │    2. Instant cut to _cinematicCamera (EllectricCamera)
                         │    3. Fade from black — player sees cinematic shot
-                        │    4. ActivatePower(), UpdateLamp() (green), _solvedClip, StartSolvedLoop()
+                        │    4. UpdateLamp() (green), _solvedClip, StartSolvedLoop()
                         │       _lampAnimator.SetTrigger(_lampAnimTrigger) — lamp animation
                         │    5. Hold shot for _lampAnimDuration (default 3s)
                         │    6. Fade to black (_solvedFadeDuration, default 1s)
-                        │    7. Deactivate cinematic camera, restore blend
-                        │    8. _controller.SetSolved() → ExitPuzzleMode(), camera blends to player
-                        │    9. Fade from black — player regains control
-                        └─ _cinematicCamera null → fallback: ActivatePower(), lamp, sound, SetSolved()
+                        │    7. LightingSystem.ActivatePower() — building powers on
+                        │       while the screen is black
+                        │    8. Deactivate cinematic camera, restore blend
+                        │    9. _controller.SetSolved() → ExitPuzzleMode(), camera blends
+                        │       to player; coroutine waits for the blend to finish
+                        │   10. Fade from black — player regains control
+                        └─ _cinematicCamera null → fallback: UpdateLamp(), _solvedClip,
+                           StartSolvedLoop(), ActivatePower(), SetSolved() immediately
   ESC blocked during cinematic via IPuzzleExitGuard.CanExitPuzzle()
 
 Player exits puzzle
@@ -81,15 +96,15 @@ Player exits puzzle
 
 **PuzzleModeController delegation.** Camera blending, cursor management, FPS input blocking, ESC handling, and the puzzle inventory bar are all handled by `PuzzleModeController` — the same shared component used by all puzzles. `ElectricPuzzleController` subscribes to `OnEntered`, `OnExited`, and `OnSolved` events in `OnEnable()` and unsubscribes in `OnDisable()`.
 
-**Fuse gates everything.** Without a fuse the lamp stays off, `TryInteractLever` returns early, and wires can still be moved — but the panel is treated as unpowered. Only `FinalizeFuseInsertion()` unlocks the lever and lights the lamp.
+**Fuse gates everything — but only after the generator runs.** `TryInteractLever` checks, in order: (1) `LightingSystem.Instance.IsGeneratorReady` — without it the panel is dead and `_noGeneratorHint` is shown; (2) `_fuseInserted` — without it `_noFuseHint` is shown and correct wires stay connected; (3) `_wiresCorrect`. The lamp stays off and the anchor is inert until `FinalizeFuseInsertion()`.
 
 **Lever is locked outside puzzle mode.** `ElectricLever.CanInteract()` checks `_interactionEnabled && !_isPulled`. The flag is set to `true` only in `HandleEntered()` and back to `false` in `HandleExited()`, preventing the player from pulling the lever through the world camera before entering the puzzle.
 
 **Fuse insertion is an animated mesh, not a prefab spawn.** `_fuseMesh` is an existing GameObject in the scene (hidden until insertion). `HandleDrop()` starts `AnimateFuseInsertion()` — a coroutine that Lerps the mesh from an offset position to the anchor with ease-out over `_fuseInsertDuration` (0.5s). A ghost preview (`_fuseGhostAlpha = 0.4`) shows a semi-transparent fuse while dragging over the anchor.
 
-**Lamp is a material tint, not a light source.** `_lampRenderer` (MeshRenderer on `pSphere25`) instantiates a unique material in `Awake()` and toggles `_BaseColor` / `_EmissionColor` between red and green. HDR emission values (3.59) give a bright glow. The lamp turns green during the solved cinematic — not when the lever is clicked — to sync with the camera cut and `ActivatePower()`.
+**Lamp is a material tint, not a light source.** `_lampRenderer` (MeshRenderer on `pSphere25`) instantiates a unique material in `Awake()` and toggles `_BaseColor` / `_EmissionColor` between red and green. HDR emission values (3.59) give a bright glow. `UpdateLamp()` is driven by `_isSolved` — the lamp turns green only during the solved cinematic (or via `RefreshVisuals()` on load), not when the wires merely become correct.
 
-**Solved cinematic.** When the lever is pulled with correct wires, `HandleLeverPulled()` starts `SolvedCinematicRoutine()` — a coroutine that fades to black, cuts to `_cinematicCamera` (EllectricCamera), fades back in, then activates power + lamp + sound + lamp animation, holds the shot for `_lampAnimDuration`, fades to black again, and blends back to the player camera. ESC is blocked during the cinematic via `IPuzzleExitGuard`. If `_cinematicCamera` is null, the puzzle solves immediately without a cinematic (fallback). The `CinemachineBrain` blend is temporarily set to 0 for instant cuts hidden by fades, and restored to the original value for the exit transition.
+**Solved cinematic.** When the lever is pulled with correct wires, `HandleLeverPulled()` activates `_solvedObject`, saves, and starts `SolvedCinematicRoutine()` — a coroutine that hides the inventory bar and puzzle cursor, fades to black, cuts to `_cinematicCamera` (EllectricCamera), fades back in, then turns the lamp green + sound + solved loop + lamp animation, holds the shot for `_lampAnimDuration`, fades to black again, and activates building power via `LightingSystem.ActivatePower()` **while the screen is black** before blending back to the player camera (the coroutine waits for the exit blend before the final fade-in). ESC is blocked during the cinematic via `IPuzzleExitGuard`. If `_cinematicCamera` is null, the puzzle solves immediately without a cinematic (fallback). The `CinemachineBrain` blend is temporarily set to 0 for instant cuts hidden by fades, and restored to the original value for the exit transition.
 
 **Wire reset is instant.** `ResetAllWires()` is called in `TryInteractLever` on the same frame the player clicks — before the lever animation starts. The player sees all wires vanish immediately.
 
@@ -127,7 +142,8 @@ Player exits puzzle
 
 ## Solution Configuration
 
-Open `Assets/Data/ElectricPuzzleData.asset` in the Inspector.
+Script: `Assets/Scripts/Puzzle/Electric/ElectricPuzzleData.cs`
+Asset: `Assets/Data/ElectricPuzzleData.asset` (menu: `Create → Puzzle → Electric Puzzle Data`)
 
 
 | Field         | Description                                                                             |
@@ -136,9 +152,9 @@ Open `Assets/Data/ElectricPuzzleData.asset` in the Inspector.
 | `_wireColors` | Visual color of each wire; index matches the colored terminal index                     |
 
 
-Default solution: `[3, 5, 1, 4, 0, 2]`
+Default solution (both in code defaults and in the asset): `[3, 5, 1, 4, 0, 2]`
 
-Wire colors (from the asset):
+Wire colors (serialized in `Assets/Data/ElectricPuzzleData.asset`):
 
 
 | #   | Color  | RGBA               |
@@ -150,6 +166,8 @@ Wire colors (from the asset):
 | 4   | Blue   | `(0.1, 0.4, 1, 1)` |
 | 5   | Black  | `(0, 0, 0, 1)`     |
 
+
+> Code defaults differ (Yellow/Green/Blue/Magenta) — the asset overrides them. Treat the asset as the source of truth.
 
 ---
 
@@ -193,6 +211,15 @@ electric  (root — ElectricPuzzleController, BoxCollider, PuzzleModeController,
 | `_solvedObject`     | GameObject activated when the puzzle is fully solved (lever pulled with correct wires) |
 
 
+### Hints
+
+
+| Field               | Description                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------- |
+| `_noGeneratorHint`  | Hint via `PopupMessageSystem` when the lever is pulled before the generator runs (default: «Сначала нужно запустить генератор.») |
+| `_noFuseHint`       | Hint when the generator runs but no fuse is inserted (default: «Нужен предохранитель.»)               |
+
+
 ### Lamp
 
 
@@ -211,7 +238,7 @@ electric  (root — ElectricPuzzleController, BoxCollider, PuzzleModeController,
 | Field                 | Description                                                                                   |
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | `_lever`              | `ElectricLever` on `pCube17` — auto-found in `Awake()` if not assigned                        |
-| `_wrongPullParticles` | `ParticleSystem` on `vfx_Sparks_01` — plays on incorrect lever pulls (requires fuse inserted) |
+| `_wrongPullParticles` | `ParticleSystem` on `vfx_Sparks_01` — plays on incorrect lever pulls (generator on, fuse in)  |
 
 
 ### Settings

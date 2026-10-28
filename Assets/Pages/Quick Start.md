@@ -12,14 +12,13 @@ Escape Room — игра от первого лица. Игрок перемещ
 | **UIManager**             | Управляет всеми UI-панелями: открытие, закрытие, курсор, ввод игрока                                                                          |
 | **GameConfig**            | Единый конфиг для текстов и цветов — меняешь в одном месте, работает везде                                                                    |
 | **InventorySystem**       | Хранит предметы игрока, поддерживает крафтинг                                                                                                 |
-| **GameManager**           | Управляет паузой (ESC), меню, курсором — вся логика паузы здесь                                                                              |
+| **GameManager**           | Управляет прогрессом по комнатам, паузой (ESC), меню — вся логика паузы здесь                                                                 |
 | **MainMenuController**    | Обрабатывает кнопки главного меню (New Game, Settings, Exit). См. [@ id="/Pages/Private/Main Menu System.md" label="Main Menu System"] |
 | **SaveManager**           | Автосохранение и загрузка состояния игры. См. [@ id="/Pages/Private/Save System.md" label="Save System"]                          |
 | **LightingSystem**        | Управление электричеством, зонами освещения, генератором. См. [@ id="/Pages/Private/Lighting System.md" label="Lighting System"]      |
 | **AudioManager**          | Глобальное управление звуком (SFX, музыка, mute/volume)                                                                                       |
-| **MusicDirector**         | Управление фоновой музыкой (PlayMenuMusic / PlayGameMusic), вызывается из GameManager                                                        |
 | **ScreenFader**           | Затемнение экрана для переходов и кинематиков. Объект `/Canvas/ScreenFader` должен быть активен                                               |
-| **RoomVisibilityManager** | Отсечение геометрии комнат по позиции игрока. См. [@ id="/Pages/Private/Room Visibility System.md" label="Room Visibility System"]           |
+| **RoomVisibilityManager** | Отсечение геометрии комнат по позиции игрока. См. [@ id="/Pages/Private/Room Visibility System.md" label="Room Visibility System"]            |
 | **HorrorSystem**          | Координатор хоррор-событий. См. [@ id="/Pages/Private/Horror System.md" label="Horror System"]                                      |
 | **InventoryBackdrop**     | Закрывает инвентарь кликом вне его панели                                                                                                     |
 | **InventoryItemPreview**  | Встроенный 3D-просмотр предмета в правой части инвентаря                                                                                      |
@@ -30,7 +29,7 @@ Escape Room — игра от первого лица. Игрок перемещ
 Чтобы игра работала, в сцене должны быть:
 
 ```
-GameManager             ← компонент GameManager, ссылка на menuUI
+GameManager             ← компонент GameManager, список комнат
 UIManager               ← компонент UIManager, ссылки на Player и GameConfig
 Canvas                  ← все UI-панели внутри (включая ScreenFader)
 Player                  ← компонент FPSController
@@ -66,15 +65,27 @@ HorrorSystem            ← компонент HorrorSystem
 - [@ id="/Pages/Private/Nursery Lock Puzzle System.md" label="Nursery Lock Puzzle System"]
 - [@ id="/Pages/Private/Screwdriver Repair Puzzle System.md" label="Screwdriver Repair Puzzle System"]
 - [@ id="/Pages/Private/Screwdriver Minigame System.md" label="Screwdriver Minigame System"]
+- [@ id="/Pages/Private/Clock Puzzle System.md" label="Clock Puzzle System"]
+- [@ id="/Pages/Private/Fifteen Puzzle System.md" label="Fifteen Puzzle System"]
+- [@ id="/Pages/Private/Doctor Safe System.md" label="Doctor Safe System"]
+- [@ id="/Pages/Private/Generator Puzzle System.md" label="Generator Puzzle System"]
+- [@ id="/Pages/Private/Metamorf Puzzle System.md" label="Metamorf Puzzle System"]
+- [@ id="/Pages/Private/Mechanical Lock.md" label="Mechanical Lock"]
 
 ### Прочее
 
 - [@ id="/Pages/Private/Liquid Drain System.md" label="Liquid Drain System"] — слив воды из ванны/раковины
-- [@ id="/Pages/Private/Liquid Shader System.md" label="Liquid Shader System"] — шейдер жидкости `Custom/LiquidFlask` и контроллер `LiquidWobble`
+- [@ id="/Pages/Private/Liquid Shader System.md" label="Liquid Shader System"] — шейдер жидкости `Custom/LiquidFlaskLit` и контроллер `LiquidWobble`
+- [@ id="/Pages/Private/Elevator System.md" label="Elevator System"] — лифт между этажами
+- [@ id="/Pages/Private/Game Events.md" label="Game Events"] — ScriptableObject-шина событий
+- [@ id="/Pages/Private/Fog System.md" label="Fog System"] — напольный туман с подсветкой от фонарика
+- [@ id="/Pages/Private/Laptop System.md" label="Laptop System"] — виртуальная ОС на ноутбуке
+- [@ id="/Pages/Private/Final Door System.md" label="Final Door System"] — финальная дверь, эндинг и титры
+- [@ id="/Pages/Private/Portal Finale System.md" label="Portal Finale System"] — визуальный комплекс финального портала
 
 ## Быстрый чеклист для новой сцены
 
-- [ ] В сцене есть `GameManager` — назначен `Menu UI`
+- [ ] В сцене есть `GameManager` с заполненным списком комнат
 - [ ] В сцене есть `UIManager` — назначены `FPSController` и `GameConfig`
 - [ ] Создан и назначен ассет `GameConfig` (правой кнопкой → Create → Game → Game Config)
 - [ ] `Canvas` содержит все панели: инвентарь, записки, кодовый замок, инспекцию предметов

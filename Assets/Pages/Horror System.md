@@ -8,7 +8,7 @@
 HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 ├── Event_Mannequin (GameObject)  # HorrorEvent — один хоррор-момент
 └── Event_RunPastDoor (GameObject)# Ещё один момент — добавляй сколько нужно
-    └── SoundSource
+    └── RunDestination
 ```
 
 `HorrorSystem` подписывается на:
@@ -51,16 +51,15 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 ### Trigger — что запускает событие
 
 
-| Поле                    | Описание                                                               |
-| ----------------------- | ---------------------------------------------------------------------- |
-| **Trigger Type**        | Тип триггера — см. таблицу ниже                                        |
-| **Required Item**       | Предмет, который должен попасть в инвентарь (`OnItemPickup`)           |
-| **Activation Delay**    | Задержка в секундах между срабатыванием триггера и началом эффекта     |
+| Поле                 | Описание                                                                        |
+| -------------------- | ------------------------------------------------------------------------------- |
+| **Trigger Type**     | Тип триггера — см. таблицу ниже                                                 |
+| **Required Item**    | Предмет, который должен попасть в инвентарь (`OnItemPickup`)                    |
+| **Player Tag**       | Тег коллайдера, активирующего зону (`OnPlayerEnterZone`). По умолчанию `Player` |
+| **Activation Delay** | Задержка в секундах между срабатыванием триггера и началом эффекта              |
 
 
 **Типы триггеров:**
-
-> Триггер `OnRoomEnter` упомянут в комментарии enum, но **не реализован** в `SubscribeToTriggerSource()` — использовать нельзя.
 
 
 | Trigger Type          | Когда срабатывает                                                                                      |
@@ -82,6 +81,38 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 
 
 > Если загадка уже решена (восстановлена из сейва) — событие сработает сразу при старте.
+
+### Sound — звук и музыка
+
+Звук настраивается полями компонента — вручную подключать `AudioSource.Play()` в **On Activated** больше не нужно.
+
+
+| Поле                            | По умолчанию | Описание                                                                                                                                       |
+| ------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sound Object**                | (пусто)      | GameObject с `AudioSource`, который проиграется при активации (например дочерний `SoundSource`). `Play On Awake = false`, `Spatial Blend = 3D` |
+| **Sound Fade Duration**         | `1.5`        | Длительность плавного затухания звука в `FadeOutSoundObject()`                                                                                 |
+| **Music Mute Fade Duration**    | `2`          | За сколько секунд фоновая музыка глушится при активации (`0` = мгновенно)                                                                      |
+| **Music Restore Fade Duration** | `3`          | За сколько секунд фоновая музыка возвращается после события                                                                                    |
+
+
+### Music Ownership — автоматическое управление музыкой
+
+
+| Поле                      | По умолчанию | Описание                                                                                                  |
+| ------------------------- | ------------ | --------------------------------------------------------------------------------------------------------- |
+| **Owns Background Music** | `true`       | Событие само глушит фоновую музыку при активации и возвращает её при завершении                           |
+| **Music Mute Timeout**    | `30`         | Страховка: сколько секунд музыка остаётся заглушённой, если событие не завершилось. `0` = без ограничения |
+
+
+Глушение идёт через `MusicDirector.MuteForEvent()` / `RestoreAfterEvent()` — MusicDirector считает владельцев мьюта, поэтому вложенные события безопасны (музыка вернётся, когда последний владелец отпустит).
+
+### Interactable — интерактивный объект
+
+
+| Поле                    | Описание                                                                                                                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Interactable Object** | GameObject с `HorrorInteractable` (телефон, картина, радио). При активации события автоматически вызывается `Arm()` — игрок сможет взаимодействовать. Когда игрок ответит — `StopSoundObject()` вызовется автоматически, звук остановится. |
+
 
 ### Power Trigger
 
@@ -154,8 +185,23 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 
 | Поле               | Когда вызывается                                                                       |
 | ------------------ | -------------------------------------------------------------------------------------- |
-| **On Activated**   | Сразу после появления target (после задержки). Подключи: AudioSource, Animator, и т.д. |
+| **On Activated**   | Сразу после появления target (после задержки). Подключи: анимации, доп. эффекты и т.д. |
 | **On Deactivated** | После скрытия target. Подключи: звуки исчезновения, эффекты                            |
+
+
+### Публичные методы HorrorEvent
+
+Методы для ручного вызова из кода или UnityEvent:
+
+
+| Метод                         | Описание                                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Activate()` / `Deactivate()` | Запустить событие / скрыть target (`Activate` игнорирует повторные вызовы — `HasFired` защита)      |
+| `StopSoundObject()`           | Остановить звук на Sound Object. Вызывается автоматически из `HorrorInteractable` при ответе игрока |
+| `PlayGlobalSFX(AudioClip)`    | Проиграть клип глобально (без 3D-позиции) через `AudioManager`                                      |
+| `MuteBackgroundMusic()`       | Глушить фоновую музыку (фейд `_musicMuteFadeDuration`). Пара к `RestoreBackgroundMusic()`           |
+| `RestoreBackgroundMusic()`    | Вернуть фоновую музыку (фейд `_musicRestoreFadeDuration`). Безопасен без мьюта                      |
+| `FadeOutSoundObject()`        | Плавно заглушить звук Sound Object за `_soundFadeDuration` секунд, затем остановить                 |
 
 
 ---
@@ -197,9 +243,9 @@ HorrorSystem (GameObject)         # Singleton — слушает InventorySystem
 
 ---
 
-## Привязка звука к ивенту (On Activated)
+## Привязка звука к ивенту
 
-Связь между триггером и звуком настраивается через **UnityEvent** в поле **On Activated** на компоненте `HorrorEvent`. В Hierarchy эта связь **не видна** — только в Inspector.
+Основной способ — поле **Sound Object** на `HorrorEvent`: перетащи туда GameObject с `AudioSource` из сцены (например дочерний `SoundSource`). При активации события звук проиграется автоматически, при деактивации — остановится. В Hierarchy эта связь **не видна** — только в Inspector.
 
 ### Структура в сцене
 
@@ -212,46 +258,34 @@ Env
     └── FirstEventDoor          # AudioSource (3D, Play On Awake = false)
 ```
 
-Триггер и источник звука — **разные объекты**. Триггер активирует событие, источник звука — проигрывает звук. Связь между ними — в поле **On Activated**.
+Триггер и источник звука — **разные объекты**. Триггер активирует событие, источник звука — проигрывает звук. Связь между ними — поле **Sound Object**.
 
 ### Как настроить привязку в Inspector
 
 1. Выбери объект с `HorrorEvent` (например `Event_DoorKnock`)
-2. В компоненте `HorrorEvent` найди секцию **Callbacks** → **On Activated**
-3. Нажми `+`
-4. В поле **Object** перетащи объект с `AudioSource` (например `FirstEventDoor`)
-5. В выпадающем меню выбери `AudioSource → Play()`
-
-```
-On Activated
-  ┌──────────────────────────────────────────┐
-  │  ☑ Runtime Only                          │
-  │  FirstEventDoor           ← объект       │
-  │  AudioSource.Play()       ← метод        │
-  └──────────────────────────────────────────┘
-```
+2. В компоненте `HorrorEvent` найди секцию **Sound** → **Sound Object**
+3. Перетащи объект с `AudioSource` (например `FirstEventDoor`)
 
 ### Как проверить привязку
 
 1. Выбери объект с `HorrorEvent` (например `Event_DoorKnock`)
-2. В Inspector найди **On Activated**
-3. Там должен быть указан целевой объект и метод:
+2. В Inspector найди поле **Sound Object** — там должен быть указан объект с AudioSource:
 
 
-| Поле     | Что должно быть                                    |
-| -------- | -------------------------------------------------- |
-| Object   | `FirstEventDoor` (или другой объект с AudioSource) |
-| Function | `AudioSource.Play`                                 |
+| Поле         | Что должно быть                                    |
+| ------------ | -------------------------------------------------- |
+| Sound Object | `FirstEventDoor` (или другой объект с AudioSource) |
 
 
-### Альтернатива — PlayGlobalSFX (глобальный звук)
+### Альтернатива — UnityEvent в On Activated
 
-Если не нужна 3D-позиция звука (звук везде одинаковой громкости):
+Для сложных цепочек (несколько звуков, анимации) используй **On Activated**:
 
 1. В **On Activated** нажми `+`
-2. В поле **Object** перетащи **сам объект с HorrorEvent** (например `Event_DoorKnock`)
-3. Выбери `HorrorEvent → PlayGlobalSFX(AudioClip)`
-4. В поле аргумента перетащи аудиоклип (например `knock.aif`)
+2. В поле **Object** перетащи объект с действием
+3. Выбери метод — например `AudioSource.Play()` или `HorrorEvent → PlayGlobalSFX(AudioClip)`
+
+`PlayGlobalSFX` удобен, когда не нужна 3D-позиция звука (звук везде одинаковой громкости): перетащи **сам объект с HorrorEvent** и выбери `HorrorEvent → PlayGlobalSFX(AudioClip)`, в поле аргумента укажи аудиоклип.
 
 ### Можно добавить несколько действий
 
@@ -328,47 +362,31 @@ bool alreadyFired = horrorEvent.HasFired;
 
 ---
 
+## Deprecated — HorrorTrigger
+
+`Assets/Scripts/Core/HorrorTrigger.cs` — устаревшая заглушка, заменён парой `HorrorEvent` + `HorrorSystem`. Не используй его в новых сценах и удаляй с существующих объектов, заменяя на `HorrorEvent`.
+
+---
+
 ## Текущие события в сцене
 
 > Таблица сверен с фактическим состоянием сцены `Game.unity`. Детальные описания событий — в секциях ниже.
 
 
-| GameObject             | Event ID             | Триггер                                            | Эффект                          | Target                          |
-| ---------------------- | -------------------- | -------------------------------------------------- | ------------------------------- | ------------------------------- |
-| `Event_RunPastDoor`    | `run_past_door`      | `OnPlayerEnterZone` + FlashLight + electric puzzle | `AppearThenDisappearAfterDelay` | `MaidHolder` (горничная)        |
-| `Event_VentMaid`       | `vent_maid`          | `OnManual`                                         | `AppearAndStay`                 | `/Env/Vent/Horror/MaidHolder`   |
-| `Event_RatScare`       | `rat_scare`          | `OnManual` ← `CrouchTrigger`                       | `AppearAndStay`                 | `/Laboratory/Puzzle/Rat/Rat`    |
-| `Event_DuckHorror`     | `duck_horror`        | `OnManual` ← клики по утке                         | `AppearThenDisappearAfterDelay` | `duckHorror` (утка с глазами)   |
-| `Event_EntityAppear`   | `entity_appear`      | `OnPlayerEnterZone`                                | `AppearThenDisappearAfterDelay` | **null** — не настроено         |
-| `Event_UVPentagram`    | — (свой скрипт)      | `CanTriggerZone` (банка корма)                     | Секвенция `UVPentagramSequence` | `CatHorror` (13 котов + свет)   |
-| `Event_NurseryExit`    | `nursery_exit_scare` | `OnPuzzleSolved` (NurseryLock)                     | `AppearAndStay`                 | **null** — звонок телефона      |
-| `Event_DoorKnock`      | —                    | (в `/Env/HorrorTriggers/`)                         | —                               | **null**                        |
+| GameObject           | Event ID             | Триггер                                            | Эффект                          | Target                        |
+| -------------------- | -------------------- | -------------------------------------------------- | ------------------------------- | ----------------------------- |
+| `Event_Mannequin`    | —                    | `OnItemPickup` (FlashLight)                        | `AppearThenDisappearOnLookAway` | **null**                      |
+| `Event_RunPastDoor`  | `run_past_door`      | `OnPlayerEnterZone` + FlashLight + electric puzzle | `AppearThenDisappearAfterDelay` | `MaidHolder` (горничная)      |
+| `Event_VentMaid`     | `vent_maid`          | `OnManual`                                         | `AppearAndStay`                 | `/Env/Vent/Horror/MaidHolder` |
+| `Event_RatScare`     | `rat_scare`          | `OnManual` ← `CrouchTrigger`                       | `AppearAndStay`                 | `/Laboratory/Puzzle/Rat/Rat`  |
+| `Event_DuckHorror`   | `duck_horror`        | `OnManual` ← клики по утке                         | `AppearThenDisappearAfterDelay` | `duckHorror` (утка с глазами) |
+| `Event_EntityAppear` | `entity_appear`      | `OnPlayerEnterZone`                                | `AppearThenDisappearAfterDelay` | **null** — не настроено       |
+| `Event_UVPentagram`  | — (свой скрипт)      | `CanTriggerZone` (банка корма)                     | Секвенция `UVPentagramSequence` | `CatHorror` (13 котов + свет) |
+| `Event_NurseryExit`  | `nursery_exit_scare` | `OnPuzzleSolved` (NurseryLock)                     | `AppearAndStay`                 | **null** — звонок телефона    |
+| `Event_DoorKnock`    | —                    | (в `/Env/HorrorTriggers/`)                         | —                               | **null**                      |
 
 
-> У `Event_EntityAppear` Target не назначен — эффект появления не сработает пока не назначить. Все события с `_ownsBackgroundMusic = true` при срабатывании глушат фоновую музыку (таймаут-страховка 30 с) и восстанавливают её при деактивации.
-
-> **Enum-значения (проверено по `HorrorEvent.cs`):** `HorrorTriggerType` — `OnItemPickup = 0`, `OnManual = 2`, `OnPlayerEnterZone = 3`, `OnPuzzleSolved = 4`, `OnPowerStateChanged = 5`, `OnZoneSwitchChanged = 6`. Значение `1` отсутствует (не используется). `HorrorEffectType` — `AppearAndStay = 0`, `AppearThenDisappearOnLookAway = 1`, `AppearThenDisappearAfterDelay = 2`, `DisappearOnTrigger = 3`.
-
-
-> У `Event_NurseryExit` и `Event_DoorKnock` Target не назначен / требует настройки.
-
-### Триггеры OnPuzzleSolved / OnPowerStateChanged / OnZoneSwitchChanged — «выстрели сразу»
-
-Все три подписки в `SubscribeToTriggerSource()` проверяют: если условие **уже выполнено при старте** (загадка решена из сейва, питание уже включено) — `Activate()` вызывается немедленно. Событие не ждёт следующего изменения состояния.
-
-### Триггер OnPlayerEnterZone с Puzzle To Watch — предварительное условие
-
-Если у события с триггером `OnPlayerEnterZone` назначен **Puzzle To Watch**, зона игнорируется до решения этой загадки. Так устроен `Event_RunPastDoor`: зона активна только после решения электрощитка.
-
-### Триггеры OnItemPickup и OnManual — отличие в повторном срабатывании
-
-- `OnItemPickup` обрабатывает `HorrorSystem.OnInventoryChanged()` — срабатывает когда нужный `ItemData` появляется в инвентаре.
-- `OnManual` — только явный вызов `HorrorSystem.Instance.Trigger("event_id")` из кода (`CrouchTrigger`, `DuckHorrorInteractable` и т.д.).
-- Оба события активируются один раз (`HasFired` защита) и сохраняются через сейв.
-
-### Триггер OnRoomEnter — не реализован в коде
-
-Значение присутствует в enum-комментарии (`OnRoomEnter` — тип 1) и в таблицах выше, но **case для него в `SubscribeToTriggerSource()` отсутствует** — событие с таким типом никогда не сработает. Если нужен триггер по входу в комнату — используйте `OnPlayerEnterZone` с RoomTrigger-коллайдером.
+> У `Event_Mannequin` Target не назначен — эффект появления не сработает пока не назначить. `Event_EntityAppear` тоже требует настройки Target и звука. Все события с `_ownsBackgroundMusic = true` при срабатывании глушат фоновую музыку (таймаут-страховка 30 с) и восстанавливают её при деактивации.
 
 ---
 
@@ -379,6 +397,7 @@ bool alreadyFired = horrorEvent.HasFired;
 **Два события с горничной в сцене:**
 
 ### Event_RunPastDoor (`run_past_door`) — горничная ползёт по коридору
+
 
 ```
 HorrorSystem/Event_RunPastDoor              # зона-триггер (BoxCollider trigger) + HorrorEvent
@@ -394,8 +413,8 @@ Env/2ndFloor/Corridor2stF/Horror
 1. `HorrorEvent.Activate()` — глушит фоновую музыку (`_ownsBackgroundMusic`, таймаут-страховка 30 сек)
 2. `MaidHolder` активируется, играет джампскейр-звук
 3. **On Activated**:
-   - `MaidHolder.CharacterRunPast.StartRun()` — горничная ползёт в `RunPosition`
-   - `doors_A/Doormesh.DoorInteraction.Open()` — дверь детской распахивается перед ней (игрок потом проходит свободно)
+  - `MaidHolder.CharacterRunPast.StartRun()` — горничная ползёт в `RunPosition`
+  - `doors_A/Doormesh.DoorInteraction.Open()` — дверь детской распахивается перед ней (игрок потом проходит свободно)
 4. Доползла → `CharacterRunPast._onReached` → `HorrorEvent.Deactivate()` — горничная скрывается, музыка возвращается
 
 > Сохраняется `HasFired` через сейв (`horror_run_past_door`) — не повторяется после загрузки.
@@ -471,13 +490,13 @@ Env/2ndFloor/Corridor2stF/Horror
             └─ Фазы: Idle → Waiting → Shrinking → Playing → Finished
                  ├─ Shrinking: пентаграмма сжимается (_shrinkDuration=0.35, EaseInOut)
                  ├─ Playing: музыка с BPM-синхронизацией (_bpm=128), вращение (_spinSpeed=60°/с по часовой)
-                 ├─ Частицы включаются на _particlesStartTime=32 с
-                 └─ Эффекты обрезаются за _effectsCutoffBeforeEnd=0.5 с до конца музыки
+                 ├─ Частицы включаются на _particlesStartTime (код-дефолт 20 с)
+                 └─ Эффекты обрезаются за _effectsCutoffBeforeEnd (код-дефолт 1.5 с) до конца музыки
 ```
 
 - **Содержимое префаба `CatHorror`:** 13 котов (`uiiafixed`), «разрезанный» кот (`CatAnimation/uiiaCuted`), 4 световых столпа (`LightPilars/Pilar1-4`), партиклы `vfx_Hyperdrive_01`, спот-лайты.
-- `_catHorrorInstance` → `/Env/1stFloor/Pantry 2/Puzzle/CatHorror`, `_catCanObject` → `/Env/MovibleObjects/catcan`.
-- `_onMusicStarted` / `_onMusicFinished` — UnityEvent для доп. реакций (пост-процесс, звуки).
+- `_onMusicStarted` / `_onMusicFinished` — UnityEvent для доп. реакций (пост-процесс, звуки). Плюс `_timeline` — массив `TimelineEntry { time, onTime }`: UnityEvent срабатывают на заданных секундах трека для эскалации странности.
+- Статическое событие `OnBeat` — стреляет на каждый бит музыки (BPM-синхронизация).
 - `HasFired` сохраняется через сейв — секвенция проигрывается один раз за прохождение.
 - Editor-дебаг: `_enableEditorDebugHotkey` + клавиша `O` (`DebugPlay()`).
 - Статические свойства для внешних проверок: `MusicPlaying`, `ClimaxStarted`, `InstanceCatTransform`, `InstanceMusicSource`.
@@ -493,3 +512,38 @@ Env/2ndFloor/Corridor2stF/Horror
 - **Звук:** не назначен.
 - **_ownsBackgroundMusic = true** — при срабатывании глушит фоновую музыку (таймаут-страховка 30 с).
 - Сохраняется `HasFired` через сейв.
+
+---
+
+## Паучьи ивенты (SpiderRunPast / SpiderLeapScare)
+
+> **Статус:** скрипты есть в проекте (`Assets/Scripts/Effects/`), но их триггерные зоны и объекты пауков в текущей сцене `Game.unity` не расставлены. Секция сохранена как справочник — если паучьи ивенты вернутся в сцену.
+
+Три события с пауком (`/Assets/Models/SpiderInfestation/spider.fbx`, Animator Controller `SpiderController.controller`):
+
+
+| Объект     | Скрипт            | Поведение                                      | Точка в сцене                   |
+| ---------- | ----------------- | ---------------------------------------------- | ------------------------------- |
+| `Spider_1` | `SpiderRunPast`   | Ползёт по своему forward (`rig                 | walk`), исчезает по` _lifetime` |
+| `Spider_2` | `SpiderRunPast`   | То же, в обратную сторону (face −X), speed 3.5 | x=5.6, z=-4.0                   |
+| `Spider_3` | `SpiderLeapScare` | Прыжок на игрока (`rig                         | leap`), затем убегание (`rig    |
+
+
+Все три — неактивны изначально, висят под `HorrorSystem`, эффект `AppearAndStay` (паук сам себя деактивирует). Триггерные зоны `Event_SpiderPoint1/2/3` — BoxCollider 3×2×3 с Is Trigger.
+
+`SpiderRunPast` — аналог `RatRunAway` с настраиваемым `_crawlStateName` (у паука состояния с префиксом `rig|`). `SpiderLeapScare` — три фазы: прыжок (`rig|leap`) к цели (`_leapTarget`, иначе камера игрока), поедание на месте (`rig|eating`, `_eatDuration` сек), затем ползёт к `_fleePoint` (`rig|walk`) и исчезает по прибытии (`_fleeArriveDistance`) или по таймеру `_fleeLifetime`.
+
+**Звук и пост-процесс:**
+
+
+| Объект                           | Настройка                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------- |
+| `Event_SpiderPoint1/SoundSource` | `S_HorrorVent.aif`, 3D, volume 0.8                                          |
+| `Event_SpiderPoint2/SoundSource` | `S_HorrorVent.aif`, 3D, volume 0.8                                          |
+| `Event_SpiderPoint3/SoundSource` | `S_HorrorJumpScare.mp3`, 3D, volume 1.0                                     |
+| `HorrorPostProcess_Spider`       | копия манекенового пост-процесса: focus на `Spider_3`, fadeIn 0.3с, BPM 120 |
+
+
+Звук подключён через поле **Sound Object** каждого `HorrorEvent`. У точки 3 эффект переключён на `AppearThenDisappearAfterDelay` (2.5 с ≈ прыжок 0.6 + бег 1.5), потому что `AppearAndStay` не вызывает `Deactivate()`, а паук деактивирует себя сам — пост-процесс не погас бы. `On Activated` → `HorrorPostProcess_Spider.Activate()`, `On Deactivated` → `Deactivate()`.
+
+&nbsp;

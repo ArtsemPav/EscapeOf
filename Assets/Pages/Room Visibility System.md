@@ -21,7 +21,8 @@ between rooms never culls geometry that is still in view (no "holes in walls" / 
 Assets/Scripts/Room/
 ├── RoomVisibilityManager.cs  — singleton, owns the active-room set and applies culling
 ├── RoomController.cs         — per-room: collects renderers/zones, configures its triggers
-└── RoomTrigger.cs            — trigger volume; reports player enter/exit to the manager
+├── RoomTrigger.cs            — trigger volume; reports player enter/exit to the manager
+└── RoomPuzzleGate.cs         — hides a room until a linked puzzle is solved (ISaveable)
 ```
 
 Related: `LightingSystem.SetZoneRenderSuppressed(zoneId, suppressed)` is what actually toggles lights per zone.
@@ -41,15 +42,34 @@ Related: `LightingSystem.SetZoneRenderSuppressed(zoneId, suppressed)` is what ac
 
 **How it works:**
 
-- `Awake` caches all `RoomController`s (`FindObjectsByType`) and all managed `ZoneId`s.
+- `Awake` caches all `RoomController`s (`FindObjectsByType`), all `RoomTrigger`s (including inactive) and all managed `ZoneId`s.
 - Maintains `_occupiedTriggers` — a dictionary of every `RoomTrigger` the player currently overlaps,
 mapped to the rooms it keeps visible.
 - `EnterTrigger` / `ExitTrigger` update that dictionary, then `RecomputeActiveRooms` rebuilds the
 active set as the **union** of all occupied triggers' lists.
 - `ApplyActiveRooms`:
+  - Safety net: the room the player physically stands in (`FindCurrentRoom` — the tightest geometry
+  bounds containing the player) is **never culled**, regardless of the trigger union.
   - Geometry: `room.SetGeometryActive(activeRooms.Contains(room))` for every room.
   - Lights: a zone is lit if **any** active room owns it; otherwise `LightingSystem` suppresses it.
 - If the player leaves all triggers (gap between volumes), the **last** active set is kept to avoid flicker.
+
+**Spawn reconcile:** a player restored from a save directly inside a trigger volume generates no
+`OnTriggerEnter`, so after a save-load teleport the manager rebuilds visibility from the position:
+
+1. `FPSController` calls `ReconcileAfterSpawn(playerPosition)`.
+2. The reconcile is deferred to the next `Update` (so every `Start()` has run and `RoomPuzzleGate`
+
+has re-enabled its trigger colliders).
+3. Triggers containing the point are matched via physics-free `RoomTrigger.ContainsPoint()`.
+4. Fallback if the point is covered by no enabled trigger: every room whose **geometry bounds**
+contain the point (`RoomController.ContainsPoint`) plus the rooms of the nearest trigger
+(`RoomTrigger.SqrDistanceTo`) become active — over-showing only costs a bit of culling,
+under-showing breaks sightlines.
+
+**Current room tracking:** the event `CurrentRoomChanged(string)` fires when the room the player
+physically stands in changes (room name, `null` when nowhere); `CurrentRoomName` holds the last
+value. Used by `ProgressLogger` to record room visits.
 
 ---
 
@@ -73,6 +93,15 @@ active set as the **union** of all occupied triggers' lists.
 within this room** are merged.
 
 `SetGeometryActive(bool)` toggles only the managed renderers. `Lock()` / `Unlock()` toggle interactable colliders.
+
+Renderers of `PhysicsDraggable` props are **excluded** from `_managedRenderers`: they are dynamic and may be carried outside the room's volume, so they must never be culled with it.
+
+Additional API:
+
+- `SetOcclusionCulling(bool)` — toggles `allowOcclusionWhenDynamic` on all managed renderers. Set to `false` when the room is behind a removed wall (puzzle gate) so baked occlusion data does not cull geometry that should be visible through the doorway.
+- `ContainsPoint(Vector3)` — true when the world point lies within the room's cached geometry bounds (union of managed renderers' bounds). Used by the spawn reconcile fallback.
+- `GeometryVolume` — volume of the cached bounds; picks the tightest room when several overlap.
+- `IsUnlocked` — set by `Unlock()`/`Lock()`.
 
 ### TriggerZone — multiple zones per room
 
@@ -98,6 +127,46 @@ lists combine instead of the last caller overwriting the others. This prevents a
 being silently wiped by a stray reference.
 - `OnTriggerEnter` / `OnTriggerExit` / `OnDisable` report to the manager. Player is detected via
 `FPSController` in the colliding object's parent.
+- `IsPlayerInside` — true while the player is currently inside this trigger volume.
+- `ContainsPoint(Vector3)` — physics-free containment test (collider must be enabled). Used by the
+spawn reconcile, since a player restored inside a trigger never generates `OnTriggerEnter`.
+- `SqrDistanceTo(Vector3, out bool inside)` — squared distance to the collider; used to find the
+nearest trigger in the reconcile fallback.
+
+---
+
+## RoomPuzzleGate
+
+**File:** `RoomPuzzleGate.cs` — requires `RoomController` on the same GameObject. Implements `ISaveable`.
+
+Скрывает комнату до тех пор, пока не решена привязанная загадка (например, химическая).
+
+
+| Field              | Description                                                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Unlock Event`     | `GameEvent` (ScriptableObject .asset), разблокирующий комнату (например `PuzzleChemical_Solved`).                                                                      |
+| `Placeholder`      | Заглушка, перекрывающая проход, пока комната скрыта. Должна быть **отдельным объектом** — не дочерним к комнате, иначе `RoomController` будет управлять её рендерером. |
+| `Start Locked`     | Комната скрыта при старте, пока загадка не решена.                                                                                                                     |
+| `Occlusion Portal` | Портал окклюжн-кулинга на дверном проёме. Если не задан — ищется автоматически в дочерних объектах.                                                                    |
+| `Save Id`          | Уникальный ID сохранения. Никогда не менять после назначения. Дефолт: `room_gate_coridor_fdoor`.                                                                       |
+
+
+**Пока комната закрыта (`ApplyLockedState`):**
+
+- геометрия выключена: `RoomController.SetGeometryActive(false)` + `RoomController.Lock()`;
+- окклюжн-кулинг рендереров включён обратно (`SetOcclusionCulling(true)`) — комната скрыта за стеной;
+- коллайдеры дочерних `RoomTrigger` отключены — `RoomVisibilityManager` не покажет комнату;
+- заглушка активна, `OcclusionPortal.open = false`.
+
+**При разблокировке (`Unlock()` → `ApplyUnlockedState`):**
+
+- заглушка скрывается, `OcclusionPortal.open = true` — рендерер видит комнату через проём;
+- триггеры и интерактивные объекты включаются;
+- рендереры немедленно включаются (`SetGeometryActive(true)`), окклюжн-кулинг отключается
+(`SetOcclusionCulling(false)`) — baked-данные не знают, что стена убрана;
+- дальше видимостью снова управляет `RoomVisibilityManager`.
+
+Состояние `isUnlocked` сохраняется через `ISaveable`; разблокировка (`Unlock()`) делает `SaveManager.Save()`.
 
 ---
 
@@ -112,7 +181,7 @@ being silently wiped by a stray reference.
   From inside a room you can see down a corridor; if those far rooms aren't listed, they pop to skybox
    when you fully enter. Match a room's list to what its adjacent corridor segment shows.
 3. **Trigger volumes should cover the whole room interior**, including the doorway threshold, so the
-  player never stands in a spot covered by no trigger (or only a neighbor's trigger).
+   player never stands in a spot covered by no trigger (or only a neighbor's trigger).
 4. Light zones are shared (e.g. stairs lights use `ZoneId="Corridor"`). A zone lights up if any active
   room owns it — see [@ id="/Pages/Private/Lighting System.md" label="Lighting System"].
 

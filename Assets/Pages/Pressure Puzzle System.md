@@ -1,344 +1,460 @@
-## Overview
+## Обзор
 
-A pressure-balancing puzzle where the player toggles levers to move the dial arrow from 0° (start) to exactly 180° (target). Each lever has a hidden positive pressure magnitude — the player doesn't know which lever has which value and must experiment to find the right combination. If the arrow overshoots into the red zone at 300°, a reset fires: all levers snap OFF and the arrow sweeps back down through 180° to 0° — the long descending path, not the short wrap-around. This means the arrow passes through the target on its way home, creating dramatic tension. Levers lock during the reset cooldown. Each session the winning combination is chosen randomly and the pressure-to-angle scale shifts to match it — the puzzle is **always solvable by construction**. Solved state is saved and restored via the [@ id="/Pages/Private/Save System.md" label="Save System"].
+Загадка балансировки давления: игрок переключает рычаги, чтобы перевести стрелку манометра с 0° (старт) ровно на 180° (цель). У каждого рычага скрытая положительная величина давления — игрок не знает, какой рычаг сколько даёт, и должен подобрать комбинацию экспериментом. Каждое переключение рычага (включение или выключение) расходует лимит действий: при исчерпании лимита система уходит в сброс. Если стрелка переходит в красную зону на 300°, тоже срабатывает сброс: все рычаги выключаются (с плавной анимацией), а стрелка возвращается вниз через 180° к 0° — по длинному нисходящему пути, а не по короткой дуге через 360°. Во время сброса рычаги заблокированы. Каждую сессию выигрышная комбинация выбирается случайно, а масштаб «давление → угол» подгоняется под неё — загадка **всегда решаема по построению**.
+
+Загадка активируется только после закрытия входной двери: дверь блокируется, и рычаги становятся интерактивными. Решённое состояние сохраняется через [@ id="/Pages/Private/Save System.md" label="Save System"].
 
 ---
 
-## Components
+## Компоненты
 
 ### `PressureLever`
 
-Placed on each lever GameObject. Handles visual rotation and sound. **Does not expose pressure values in the Inspector** — values are assigned at runtime by `PressurePuzzle.GenerateAndAssignLeverValues()`.
+Файл: `Assets/Scripts/Interaction/PressureLever.cs`. Размещается на каждом рычаге (объект-пивот `stick*`). Отвечает за визуальный поворот и звук. **Значения давления не выставляются в Inspector** — они назначаются в рантайме через `PressurePuzzle.GenerateAndAssignLeverValues()` → `AssignValues(offValue, onValue)`.
+
+**Inspector — Visual Rotation**
 
 
-| Field            | Description                                                                                                     |
+| Поле             | Описание                                                                                                        |
 | ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| `_angleOnDelta`  | Z-axis rotation delta applied when the lever is toggled ON. OFF stays at the original editor placement rotation |
-| `_rotationSpeed` | Lerp speed of the lever rotation animation                                                                      |
-| `_switchClip`    | AudioClip played on toggle                                                                                      |
-| `_switchVolume`  | Volume of the switch clip                                                                                       |
-| `_textWhenOff`   | Interaction hint when the lever is OFF                                                                          |
-| `_textWhenOn`    | Interaction hint when the lever is ON                                                                           |
+| `_angleOnDelta`  | Дельта поворота по Z при включении (default: −180°). OFF остаётся в исходной ротации, заданной в редакторе      |
+| `_rotationSpeed` | Скорость lerp-анимации поворота (default: 8)                                                                    |
 
 
-**Public API**
+**Inspector — Audio**
 
 
-| Method                   | Description                                                                                                                                                                                  |
-| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SetStateQuiet(bool on)` | Sets state instantly without animation or events. Used by `PressurePuzzle` during initialization and reset                                                                                   |
-| `SnapVisual()`           | Forces the visual transform to match the current `IsOn`. Called at the end of `PressurePuzzle.Start()` after randomization — guarantees correct visuals regardless of script execution order |
-| `CanInteract()`          | Returns `false` when the puzzle is solved **or** during a pressure reset. `FPSController` skips the object entirely — no hint, no crosshair change                                           |
+| Поле            | Описание                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------ |
+| `_audioSource`  | AudioSource для звука переключения. Если пуст — создаётся на этом объекте в `Awake()` и маршрутизируется в AudioManager |
+| `_switchClip`   | AudioClip при переключении                                                                                   |
+| `_switchVolume` | Громкость (default: 0.8)                                                                                     |
 
+
+**Inspector — Interaction**
+
+
+| Поле           | Описание                                        |
+| -------------- | ----------------------------------------------- |
+| `_textWhenOff` | Подсказка при выключенном рычаге («Включить рычаг»)  |
+| `_textWhenOn`  | Подсказка при включённом рычаге («Выключить рычаг»)  |
+
+
+**Публичные свойства:** `IsOn`, `CurrentValue` (`OnValue` если ON, иначе `OffValue`), `OffValue`, `OnValue`.
+
+**Публичные методы**
+
+
+| Метод                                 | Описание                                                                                                                                |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `AssignValues(float off, float on)`   | Назначает вклад рычага в давление в обоих состояниях. Вызывается `PressurePuzzle` до `Start()`                                          |
+| `SetStateQuiet(bool on)`              | Устанавливает состояние мгновенно, без анимации и событий. Используется при инициализации и мгновенном сбросе                           |
+| `AnimateToState(bool on, float dur)`  | Плавно анимирует рычаг к целевому состоянию за `dur` секунд. Используется `TriggerReset` (сброс не «щелкает» мгновенно)                 |
+| `SnapVisual()`                        | Мгновенно приводит визуал к текущему `IsOn`. Вызывается в конце `PressurePuzzle.Start()` после рандомизации — страховка от порядка выполнения скриптов |
+| `CanInteract()`                       | Возвращает `false`, если загадка не активирована (`!IsActivated`), решена (`IsSolved`) или идёт сброс (`IsResetting`)                    |
+| `Interact()`                          | Переключает состояние, играет звук и уведомляет `_puzzle.OnLeverChanged()`                                                              |
+| `GetInteractText()`                   | Подсказка в зависимости от состояния                                                                                                    |
+
+
+Также реализует `IInteractable`: `IsPickable() => false`, `UseLMBClick => false`, `GetCrosshairMode() => CrosshairMode.Hand`.
 
 ### `PressurePuzzle`
 
-Placed on the root puzzle GameObject. Generates lever values, picks a random solution, drives the inertial pressure simulation, manages the danger zone and resets, and detects the solved state.
+Файл: `Assets/Scripts/Interaction/PressurePuzzle.cs`. Размещается на корневом объекте загадки. Реализует `ISaveable`. Генерирует значения рычагов, выбирает случайное решение, ведёт инерционную симуляцию давления, управляет активацией через дверь, лимитом действий, зоной опасности, сбросами и solved-кинематиком.
 
 **References**
 
 
-| Field     | Description                                              |
-| --------- | -------------------------------------------------------- |
-| `_arrow`  | Transform of the needle inside the dial (`screen/arrow`) |
-| `_saveId` | Unique save ID — never change after first save           |
+| Поле     | Описание                                                   |
+| -------- | ---------------------------------------------------------- |
+| `_arrow` | Transform стрелки внутри манометра (`screen/arrow`)        |
+
+
+**Activation Conditions**
+
+
+| Поле             | Описание                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `_entryDoor`     | `DoorInteraction` входной двери. Загадка активируется в момент перехода двери из открытой в полностью закрытую (`IsFullyClosed`) |
+| `_roomTrigger`   | `RoomTrigger` комнаты (опционально). Если назначен — игрок должен находиться внутри в момент закрытия двери               |
+| `_steamSupplied` | Активна ли подача пара (заглушка под будущий вентильный пазл; default: `true`)                                            |
+
+
+**Save**
+
+
+| Поле      | Описание                                                     |
+| --------- | ------------------------------------------------------------ |
+| `_saveId` | Уникальный ID сохранения (default: `"pressure_puzzle"`)      |
 
 
 **Dial Settings**
 
 
-| Field                  | Description                                                                        |
-| ---------------------- | ---------------------------------------------------------------------------------- |
-| `_arrowBaseAngle`      | Base X rotation added to all arrow positions. Set so 0° = start on the dial face   |
-| `_pressureSmoothSpeed` | How fast current pressure chases the target sum from levers. Lower = more inertial |
-| `_solveAngleTolerance` | Degrees from 180° that count as solved. Keep small (1–10°)                         |
+| Поле                    | Описание                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| `_arrowBaseAngle`       | Базовый X-поворот стрелки, добавляется ко всем позициям (default: 0)                  |
+| `_pressureSmoothSpeed`  | Скорость (SmoothDamp), с которой давление догоняет сумму рычагов. Ниже = инертивнее (default: 3) |
+| `_solveAngleTolerance`  | Допустимое отклонение от 180° в градусах (default: 10)                                 |
 
 
 **Target & Danger**
 
 
-| Field              | Description                                                                                 |
-| ------------------ | ------------------------------------------------------------------------------------------- |
-| `_solveAngle`      | Target angle the player must reach (default: 180°)                                          |
-| `_dangerAngle`     | Red zone threshold — reaching this triggers a reset (default: 300°)                         |
-| `_warningFraction` | Steam starts ramping up at this fraction of the danger angle (0–1, e.g. 0.8 = 240° at 300°) |
+| Поле                | Описание                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| `_solveAngle`       | Целевой угол (default: 180°)                                                                   |
+| `_dangerAngle`      | Порог красной зоны — достижение запускает сброс (default: 300°)                                 |
+| `_warningFraction`  | Доля опасного угла, на которой начинается пар (0–1; default: 0.8 → пар с 240°)                 |
+| `_maxActions`       | Максимум переключений рычагов на попытку (1–30, default: 5). Каждое включение И выключение — одно действие. Превышение → сброс и обнуление счётчика |
 
 
 **Solution**
 
 
-| Field                    | Description                                                                                                                                     |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `_minLeversOnInSolution` | Minimum levers ON in the randomly chosen solution. Same minimum applied to OFF levers. Requires at least `2 × value` total levers               |
-| `_minFlipsFromSolution`  | Minimum lever flips to reach **any** valid solution from the all-OFF start. Enforced against all winning combinations, not only the primary one |
-| `_minSolutionFraction`   | Minimum solution total as a fraction of max total. Prevents max angle from exceeding 360° (default: 0.5)                                        |
-| `_maxSolutionFraction`   | Maximum solution total as a fraction of max total. Ensures danger zone is reachable (default: 0.6)                                              |
+| Поле                      | Описание                                                                                                                    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `_minLeversOnInSolution`  | Минимум рычагов ON в случайном решении (1–5, default: 4). Односторонний минимум — верхняя граница жёстко `N − 1`, чтобы исключить тривиальное «все ON» |
+| `_minFlipsFromSolution`   | Минимум переключений от старта «все OFF» до ЛЮБОГО валидного решения (1–10, default: 4). Проверяется против всех выигрышных комбинаций |
+| `_minSolutionFraction`    | Минимальная сумма решения как доля максимума (default: 0.5) — не даёт углу вылезти за 360°                                   |
+| `_maxSolutionFraction`    | Максимальная сумма решения как доля максимума (default: 0.65) — гарантирует достижимость красной зоны                        |
 
 
-**Lever Value Generation**
+**Lever Value Generation** — двухъярусная схема
 
 
-| Field             | Description                                                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `_leverValueBase` | Magnitude of the smallest lever. Each lever gets `offValue = 0`, `onValue = +magnitude`                                         |
-| `_leverValueStep` | Spacing between consecutive magnitudes. With 6 levers, base=5 step=5 → magnitudes: 5, 10, 15, 20, 25, 30 (shuffled per session) |
+| Поле               | Описание                                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `_smallLeverCount` | Сколько рычагов получают МАЛЫЕ величины (1–5, default: 2) — для точной подстройки                             |
+| `_smallLeverBase`  | Величина наименьшего «малого» рычага (default: 5)                                                              |
+| `_smallLeverStep`  | Шаг между малыми величинами (default: 5) → малые: 5, 10                                                        |
+| `_largeLeverBase`  | Величина наименьшего «большого» рычага (default: 25) — большие рычаги дают резкий скачок стрелки               |
+| `_largeLeverStep`  | Шаг между большими величинами (default: 10) → при 4 больших: 25, 35, 45, 55                                    |
 
+Итоговый массив величин перемешивается Fisher-Yates и раздаётся рычагам в случайном порядке: `offValue = 0`, `onValue = +величина`.
 
 **Reset**
 
 
-| Field                 | Description                                                     |
-| --------------------- | --------------------------------------------------------------- |
-| `_resetCooldown`      | Minimum seconds levers stay blocked after a reset               |
-| `_resetPressureSpeed` | How slowly the arrow returns to 0° during reset. Lower = slower |
-| `_resetSound`         | AudioClip played when a reset is triggered                      |
-| `_resetSoundVolume`   | Volume of the reset sound                                       |
+| Поле                   | Описание                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `_resetCooldown`       | Минимум секунд, который рычаги остаются заблокированными после сброса (default: 3)     |
+| `_resetPressureSpeed`  | Скорость возврата стрелки к 0° во время сброса. Ниже = медленнее (default: 1)          |
+| `_resetLeverDuration`  | Длительность анимации рычагов в OFF при сбросе, сек (default: 1; 0 = мгновенный snap)  |
+| `_resetSound`          | AudioClip в момент сброса                                                             |
+| `_resetSoundVolume`    | Громкость (default: 0.8)                                                              |
 
 
 **Steam VFX**
 
 
-| Field                 | Description                                                           |
-| --------------------- | --------------------------------------------------------------------- |
-| `_steamEmitters`      | Particle systems that ramp up as pressure approaches the danger angle |
-| `_maxSteamEmission`   | Maximum emission rate when pressure is at the danger angle (e.g. 50)  |
-| `_resetSteamEmission` | Emission rate forced during a reset (e.g. 200)                        |
-| `_resetBurstCount`    | Instant particle burst on each emitter when a reset triggers          |
+| Поле                     | Описание                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| `_steamEmitters`         | Массив `ParticleSystem` — emission нарастает по мере приближения к опасному углу                   |
+| `_maxSteamEmission`      | Максимальный emission при достижении опасного угла (default: 100)                                  |
+| `_resetSteamEmission`    | Emission, форсируемый во время сброса (default: 400)                                               |
+| `_resetBurstCount`       | Мгновенный партикл-бёрст на каждом эмиттере в момент сброса (default: 200)                          |
+| `_distortionMeshes`      | `MeshRenderer` с материалом SteamDistortion — их свойство `_SteamIntensity` анимируется синхронно с паром через `MaterialPropertyBlock` |
+| `_distortionPeakFraction`| Доля emission, на которой дисторшн достигает максимума (0.2–1, default: 0.6) — искажение видно раньше пика пара |
 
 
-**Steam Audio**
+**Audio Sources**
 
 
-| Field                 | Description                                                         |
-| --------------------- | ------------------------------------------------------------------- |
-| `_steamLoopClip`      | Looping ambient steam sound — volume scales with emission intensity |
-| `_steamLoopMaxVolume` | Maximum volume of the steam loop at full emission                   |
-| `_steamFadeClip`      | One-shot sound played when steam dissipates after a reset ends      |
-| `_steamFadeVolume`    | Volume of the fade sound                                            |
+| Поле                 | Описание                                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| `_audioSource`       | AudioSource для one-shot звуков (сброс, затухание пара). Если пуст — создаётся в `Awake()`                 |
+| `_steamAudioSource`  | AudioSource для зацикленного амбиента пара. Если пуст — создаётся в `Awake()` (loop, volume 0)             |
+
+
+**Steam Audio Clips**
+
+
+| Поле                   | Описание                                                        |
+| ---------------------- | --------------------------------------------------------------- |
+| `_steamLoopClip`       | Зацикленный звук пара — громкость масштабируется от emission     |
+| `_steamLoopMaxVolume`  | Максимальная громкость лупа (default: 0.6)                      |
+| `_steamFadeClip`       | One-shot звук затухания пара после окончания сброса             |
+| `_steamFadeVolume`     | Громкость (default: 0.5)                                        |
 
 
 **Events & Reward**
 
 
-| Field            | Description                                          |
-| ---------------- | ---------------------------------------------------- |
-| `_onSolved`      | UnityEvent fired once on solve                       |
-| `_rewardObjects` | GameObjects activated on solve (doors, lights, etc.) |
+| Поле             | Описание                                                  |
+| ---------------- | --------------------------------------------------------- |
+| `_onSolved`      | UnityEvent — срабатывает ровно один раз при решении        |
+| `_rewardObjects` | GameObject'ы, активируемые при решении (двери, свет и т.д.) |
 
 
-**Public Properties**
+**Solved Cinematic**
 
 
-| Property      | Description                                            |
-| ------------- | ------------------------------------------------------ |
-| `IsSolved`    | `true` once the puzzle has been solved                 |
-| `IsResetting` | `true` while levers are locked during a pressure reset |
+| Поле                       | Описание                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `_cinematicCamera`         | `CinemachineCamera`, кадрирующая дверь. Должна стартовать неактивной (приоритет 3000 во время кинематика) |
+| `_cinematicDoor`           | Дверь, открывающаяся в кинематике (может отличаться от `_entryDoor`)                               |
+| `_cinematicDoorOpenAngle`  | На сколько градусов приоткрывается дверь (default: 20; 0 = полный `MaxOpenAngle`)                  |
+| `_cinematicDoorOpenDuration` | Длительность открытия двери, сек (default: 3)                                                    |
+| `_fadeDuration`            | Длительность фейдов экрана, сек (default: 1)                                                       |
+| `_cinematicDuration`       | Сколько секунд камера держит кадр, сек (default: 4)                                                |
+
+
+**Публичные свойства и методы**
+
+
+| Член               | Описание                                                                        |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `IsSolved`         | `true` после решения                                                            |
+| `IsResetting`      | `true`, пока рычаги заблокированы во время сброса                                |
+| `IsActivated`      | `true`, когда дверь закрыта и заперта, игрок внутри и пар подан                  |
+| `RemainingActions` | Остаток действий до сброса: `max(0, _maxActions − _actionCount)`                 |
+| `AutoSolve()`      | Мгновенно решает загадку из читов — в обход активации, запускает кинематик       |
+| `OnLeverChanged()` | Вызывается `PressureLever` при каждом переключении: счёт действий, пересчёт угла, сброс при переполнении |
 
 
 ### `PressureGauge`
 
-Placed on the gauge collider (`screen`). Now **purely visual** — the arrow tracks pressure in real-time. Kept for backward compatibility but no longer interactive. `CanInteract()` always returns `false`.
+Файл: `Assets/Scripts/Interaction/PressureGauge.cs`. Размещается на коллайдере манометра (`screen`). Теперь **чисто визуальный** — стрелка отслеживает давление в реальном времени. `CanInteract()` всегда возвращает `false`.
 
 ---
 
-## Scene Hierarchy
+## Активация загадки
+
+`CheckActivation()` выполняется каждый кадр до остальной логики:
+
+1. Входная дверь переходит из «не полностью закрыта» в `IsFullyClosed`.
+2. Если `_roomTrigger` назначен — игрок должен быть внутри (иначе активация откладывается).
+3. `_steamSupplied` = true.
+
+При выполнении условий: `_entryDoor.Lock()`, `IsActivated = true`, запускаются партиклы пара (`StartSteamEmitters`). Отдельная ветка обрабатывает случай «дверь уже была закрыта на момент загрузки сейва» — активация срабатывает сразу после входа игрока. Пока `!IsActivated`, вся симуляция (рычаги, опасная зона, решение) не работает.
+
+---
+
+## Иерархия сцены
 
 ```
-PreasurePuzzel              ← PressurePuzzle component
-  Panel1                    ← panel mesh
-    LiverHolder             ← lever base mesh
+PreasurePuzzel              ← PressurePuzzle
+  Panel1                    ← панель-меш
+    LiverHolder             ← основание рычага
     stick1                  ← PressureLever, Interactable Layer
-      Liver                 ← lever mesh + BoxCollider
+      Liver                 ← меш рычага + BoxCollider
   panel2 / stick2 / Liver
   ...
   panel6 / stick6 / Liver
-  screen                    ← PressureGauge (visual only)
+  screen                    ← PressureGauge (только визуал)
     MEDIDOR BASE2
       dialPreasure
         dialBody / dialCenter / DialGlass / tornilo
-    arrow                   ← assign to PressurePuzzle._arrow
+    arrow                   ← назначить в PressurePuzzle._arrow
       dialArrow
   VFX
-    steam                   ← ParticleSystem, assigned to _steamEmitters
+    steam                   ← ParticleSystem, в _steamEmitters
     steam (1)
     steam (2)
 ```
 
-The number of levers is determined by how many child GameObjects carry a `PressureLever` component. Add or remove sticks in the hierarchy — no code change needed.
+Количество рычагов определяется числом дочерних объектов с компонентом `PressureLever` — добавляйте/удаляйте `stick*` без правок кода.
 
 ---
 
-## Session Lifecycle
+## Жизненный цикл сессии
 
 ```
 Start()
   ├── Collect PressureLever children
-  ├── Cache arrow euler (gimbal lock prevention)
-  ├── Setup AudioSources
-  ├── [if save says solved] RestoreSolvedState() → done
+  ├── Кеш CinemachineBrain + деактивация _cinematicCamera
+  ├── Кеш эйлеров стрелки (защита от gimbal lock)
+  ├── [если сейв решён] RestoreSolvedState() → done
   │
   ├── GenerateAndAssignLeverValues()
-  │     Magnitudes = [base, base+step, ..., base+(N-1)·step]
-  │     Fisher-Yates shuffle → assigned in random order
-  │     Each lever: offValue = 0, onValue = +magnitude
+  │     smallCount = clamp(_smallLeverCount, 1, N−1)
+  │     малые:   _smallLeverBase + _smallLeverStep·i
+  │     большие: _largeLeverBase + _largeLeverStep·i
+  │     Fisher-Yates shuffle → случайная раздача рычагам
+  │     Каждый рычаг: offValue = 0, onValue = +величина
   │
-  ├── Compute _maxTotal (sum of all magnitudes)
+  ├── _maxTotal = сумма всех величин
   │
   ├── PickRandomSolution()
-  │     Random mask with minOn ≤ ON-count ≤ (N – minOn)
-  │     Total must be in [_minSolutionFraction, _maxSolutionFraction) × maxTotal
-  │     FindAllValidSolutions() → check minFlips ≥ _minFlipsFromSolution
-  │     Stores _solutionTotal, _solutionMask
+  │     Случайная маска: minOn ≤ ON-count ≤ N−1
+  │     Сумма в [_minSolutionFraction, _maxSolutionFraction) × maxTotal
+  │     FindAllValidSolutions() → MinFlipsToAnySolution(0) ≥ _minFlipsFromSolution
+  │     Иначе повтор (до 500 попыток), fallback: total = 0.55 × maxTotal
   │
-  ├── All levers OFF → arrow at 0° (start)
-  ├── Initialize pressure at 0° (no initial drift)
-  └── SnapVisual() on every lever
+  ├── Все рычаги OFF (SetStateQuiet) → стрелка на 0°
+  ├── _actionCount = 0, _wasInDanger = false
+  ├── Запоминается состояние двери (_wasDoorOpen)
+  └── SnapVisual() на каждом рычаге
 ```
 
 ---
 
-## Inertial Pressure
+## Инерционное давление
 
-`_currentArrowAngle` chases `_targetArrowAngle` (the live lever sum mapped to angle) via `SmoothDamp` at `_pressureSmoothSpeed`. The arrow angle is derived from the inertial pressure, not the instantaneous sum. This gives the player visual feedback as the needle creeps toward the danger zone — they can react and flip another lever before the threshold is crossed.
+`_currentArrowAngle` догоняет `_targetArrowAngle` (текущая сумма рычагов, отображённая в угол) через `SmoothDamp` с параметром `1 / _pressureSmoothSpeed`. Стрелка движется по инерции, а не мгновенно — игрок видит, как она ползёт к опасной зоне, и успевает среагировать.
 
----
-
-## Pressure-to-Angle Mapping
+## Отображение давления в угол
 
 ```csharp
 float angle = pressure * (_solveAngle / _solutionTotal);
 ```
 
-- `pressure = 0` (all OFF) → `0°` (start)
-- `pressure = _solutionTotal` → `180°` (target, exactly)
-- `pressure = _maxTotal` (all ON) → `maxTotal × 180 / solutionTotal`
+- `pressure = 0` (все OFF) → `0°`
+- `pressure = _solutionTotal` → `180°` (цель, точно)
+- `pressure = _maxTotal` (все ON) → `maxTotal × 180 / solutionTotal`
 
-The solution total is constrained to `[0.5 × maxTotal, 0.6 × maxTotal)` so that:
+Сумма решения ограничена `[0.5 × maxTotal, 0.65 × maxTotal)`, поэтому:
 
-- Max angle < 360° (no visual wrap)
-- Danger angle (300°) is reachable (player can overshoot)
+- Максимальный угол < 360° (нет визуального перехода через ноль)
+- Красная зона (300°) достижима (можно перестараться)
 
-No manual solvability check is needed. The Inspector HelpBox shows the magnitudes, solution range, and valid combination count.
+Ручная проверка решаемости не нужна — Inspector-валидация (`PressurePuzzleEditor`, `GetEditorValidation()`) показывает величины, диапазон решения и число валидных комбинаций.
+
+## Лимит действий
+
+Каждый тоггл рычага (ON или OFF) — одно действие. `OnLeverChanged()` инкрементирует `_actionCount`; при `_actionCount > _maxActions` система логирует превышение и вызывает `TriggerReset()`, счётчик обнуляется. Свойство `RemainingActions` отдаёт остаток для UI.
 
 ---
 
-## Danger Zone & Reset
+## Опасная зона и сброс
 
-A single danger threshold at `_dangerAngle` (300°):
+Единственный порог — `_dangerAngle` (300°):
 
 ```
-0°  ─── start (all OFF, safe)
+0°  ─── старт (все OFF, безопасно)
   │
-180° ─── target (solve here)
+180° ─── цель (решение здесь)
   │
-240° ─── steam starts (warningFraction × dangerAngle)
+240° ─── пар начинается (warningFraction × dangerAngle)
   │
-300° ─── danger threshold (reset triggers)
+~255° ─── дисторшн на максимуме (peakAngle: warningStart + warningRange × distortionPeakFraction)
   │
-~343° ─── max angle (all ON, past danger)
+300° ─── порог опасности (сброс на переходе)
+  │
+~370°+ ─── максимальный угол (все ON, за красной зоной)
 ```
 
-**Edge-crossing detection** prevents infinite reset loops. Reset fires only on the **transition** from safe to dangerous — not while already past the threshold.
+**Детекция перехода** (`CheckDanger`) предотвращает бесконечные сбросы: сброс срабатывает только на **переходе** из безопасного состояния в опасное (`_wasInDanger`).
 
-### Reset Sequence
+### Последовательность сброса
 
-1. `TriggerReset()` — all levers snap to OFF, `_targetArrowAngle = 0°`, reset sound plays
-2. `UpdateReset()` — arrow SmoothDamps from current (≥300°) **down** to 0°, passing through 180°
-3. Steam forced to maximum emission during reset, fading to zero over cooldown
-4. Levers stay locked (`CanInteract() → false`) until `_resetCooldown` elapses
-5. Unlocked — player starts over from 0° (all OFF)
+1. `TriggerReset()` — `IsResetting = true`, `_solveLocked = true`, `_actionCount = 0`
+2. Рычаги анимируются в OFF за `_resetLeverDuration` (`AnimateToState`) или мгновенно, если 0
+3. `_targetArrowAngle = 0°`, партикл-бёрст, звук сброса
+4. `UpdateReset()` — стрелка SmoothDamp от текущей (≥300°) **вниз** к 0°, проходя через 180°
+5. Пар форсирован до `_resetSteamEmission` и линейно затухает за кулдаун
+6. По истечении `_resetCooldown`: рычаги разблокируются, пар и дисторшн обнуляются, играет `_steamFadeClip`
+7. Игрок начинает заново с 0° (все OFF)
 
-### Reset Path
+### Путь стрелки при сбросе
 
-The arrow takes the **long descending path**: 300° → 250° → … → 180° → … → 0°. It does NOT wrap around (300° → 360° → 0°). This is the natural SmoothDamp behavior — the angle simply decreases toward 0.
-
-### Steam VFX Scaling
-
-Steam emission ramps linearly from 0 to `_maxSteamEmission` as the arrow approaches the danger angle. The ramp starts at `_warningFraction × _dangerAngle` (e.g. 240° at 0.8 × 300°) and reaches maximum at the threshold (300°). During a reset, steam is forced to maximum and fades over the cooldown. On solve, all steam stops.
+Стрелка идёт по **длинному нисходящему пути**: 300° → 250° → … → 180° → … → 0°. НЕ по дуге (300° → 360° → 0°). Это естественное поведение SmoothDamp — угол просто уменьшается к нулю.
 
 ---
 
-## Minimum Flips Guarantee
+## Гарантия минимума переключений
 
-`_minFlipsFromSolution` is enforced against **all** valid combinations found by `FindAllValidSolutions()`, preventing a 1-flip shortcut through a secondary winning combination. Since the start is always all-OFF (mask 0), the flips to a solution = number of ON levers in that solution.
-
----
-
-## Interaction Gating
-
-The system uses `IInteractable.CanInteract()`. `FPSController.HandleInteractionDetection()` checks it first: when `false`, the object is fully excluded from the interaction pipeline.
-
-
-| Component       | `CanInteract() = false` when              |
-| --------------- | ----------------------------------------- |
-| `PressureLever` | `puzzle.IsSolved` OR `puzzle.IsResetting` |
-| `PressureGauge` | Always (visual only)                      |
-
+`_minFlipsFromSolution` проверяется против **всех** валидных комбинаций из `FindAllValidSolutions()`, чтобы нельзя было обойти пазл коротким путём через альтернативную комбинацию. Старт всегда «все OFF» (маска 0), поэтому число переключений до решения = число ON-рычагов в нём.
 
 ---
 
-## Solve Detection
+## Блокировка взаимодействия
 
-Solve fires in `Update()` the moment both the current and target arrow angles are within `_solveAngleTolerance` of `_solveAngle` (180°) — no need to wait for full `SmoothDamp` convergence. The `_targetArrowAngle` condition prevents a false positive when the arrow merely passes through 180° en route to a different target. During reset, `_solveLocked` blocks solve detection even though the arrow passes through 180°.
-
----
-
-## Save System Integration
-
-On solve, lever states (the winning combination) are serialized alongside `isSolved`. On restore:
-
-- `LoadSaveData()` stores both flags before `Start()` runs
-- `RestoreSolvedState()` applies saved lever positions, snaps arrow to 180°, stops all steam, activates rewards — no events fired
-
-The player sees the exact lever combination they used to solve the puzzle.
-
----
-
-## Dial Design
-
-The dial face should be painted with zones:
+Система использует `IInteractable.CanInteract()`: `FPSController` при `false` полностью исключает объект из пайплайна взаимодействия.
 
 
-| Zone    | Angle range      | Color  | Meaning                    |
-| ------- | ---------------- | ------ | -------------------------- |
-| Safe    | 0° – 180°        | Green  | Start to target zone       |
-| Target  | 180° ± tolerance | Green  | Solve here                 |
-| Warning | 240° – 300°      | Yellow | Steam starts ramping up    |
-| Danger  | 300°+            | Red    | Reset triggers on crossing |
+| Компонент         | `CanInteract() = false` когда                          |
+| ----------------- | ------------------------------------------------------ |
+| `PressureLever`   | `!puzzle.IsActivated` ИЛИ `puzzle.IsSolved` ИЛИ `puzzle.IsResetting` |
+| `PressureGauge`   | Всегда (только визуал)                                 |
 
 
 ---
 
-## Setup Guide
+## Детекция решения
 
-1. Create a root GameObject → add `PressurePuzzle`
-2. Add child lever GameObjects with `PressureLever` on **Interactable Layer**
-3. Set `_angleOnDelta` per lever (typically –180°)
-4. Assign `arrow` Transform to `PressurePuzzle._arrow`
-5. Set `_arrowBaseAngle` so the arrow visually points to 0° at start
-6. Add steam `ParticleSystem` components to `_steamEmitters`
-7. Assign `_resetSound` AudioClip
-8. Add GameObjects to `_rewardObjects`
-9. Set `_solveAngle` = 180° and `_dangerAngle` = 300° to match the physical dial
-10. Tune `_pressureSmoothSpeed` — lower values make pressure more inertial (harder)
-11. Tune `_resetCooldown` and `_resetPressureSpeed` for desired reset feel
-12. Tune `_leverValueBase` and `_leverValueStep` — Inspector shows resulting magnitudes and range
-13. Set `_minLeversOnInSolution` (default: 2)
-14. Set `_minFlipsFromSolution` (default: 3)
-15. Keep `_solveAngleTolerance` small (1–10°)
-16. Adjust `_minSolutionFraction` / `_maxSolutionFraction` if using different magnitudes
-17. Set a unique `_saveId`
+Решение срабатывает в `Update()` в момент, когда и текущий, и целевой углы находятся в пределах `_solveAngleTolerance` от `_solveAngle` (180°) — не нужно ждать полной сходимости SmoothDamp. Условие по `_targetArrowAngle` исключает ложное срабатывание при пролёте через 180° по пути к другой цели. Во время сброса `_solveLocked` блокирует детекцию, даже если стрелка проходит через 180°.
 
 ---
 
-## Console Output
+## Интеграция с Save System
+
+При решении сериализуются состояния рычагов (выигрышная комбинация) вместе с `isSolved`. При загрузке:
+
+- `LoadSaveData()` сохраняет оба поля до `Start()`
+- `RestoreSolvedState()` применяет сохранённые позиции рычагов, ставит стрелку на 180°, останавливает пар, активирует награды и разблокирует `_entryDoor` — события не срабатывают
+
+Игрок видит точную комбинацию, которой решил загадку.
+
+---
+
+## Solved-кинематик (`SolvedCinematicRoutine`)
+
+После `_onSolved` и активации наград запускается корутина:
+
+1. Блокировка ввода (`InputManager.SetPlayerInputEnabled(false)`), скрытие HUD (`InteractionUI.SetVisible(false)`), курсор залочен
+2. Фейд в чёрный (`ScreenFader.FadeIn`, `_fadeDuration`)
+3. Мгновенный кат на `_cinematicCamera` (бленд CinemachineBrain обнуляется через `SetBlendDuration(0f)`, приоритет 3000)
+4. Фейд из чёрного — игрок видит дверь через кинематик-камеру
+5. `_cinematicDoor` разблокируется и открывается: скорость вычисляется из `_cinematicDoorOpenAngle / MaxOpenAngle / _cinematicDoorOpenDuration` (`SetUnlockAjarFraction` + `SetUnlockAjarSpeed` + `UnlockAndOpen`); `_entryDoor` тоже разблокируется
+6. Кадр держится `_cinematicDuration` секунд
+7. Фейд в чёрный, кат обратно на камеру игрока, восстановление исходного бленда
+8. Фейд из чёрного — возврат управления и HUD
+9. `SaveManager.Save()`
+
+Аварийная очистка в `OnDestroy()`: если корутина была прервана — камера гасится, бленд восстанавливается, фейд сбрасывается.
+
+---
+
+## Дизайн циферблата
+
+Циферблат размечается зонами:
+
+
+| Зона    | Диапазон         | Цвет   | Значение                     |
+| ------- | ---------------- | ------ | ---------------------------- |
+| Safe    | 0° – 180°        | Зелёный| От старта до цели            |
+| Target  | 180° ± tolerance | Зелёный| Решение здесь                |
+| Warning | 240° – 300°      | Жёлтый | Нарастает пар и дисторшн     |
+| Danger  | 300°+            | Красный| На переходе — сброс          |
+
+
+---
+
+## Руководство по настройке
+
+1. Создай корневой GameObject → добавь `PressurePuzzle`
+2. Назначь `_entryDoor` (и опционально `_roomTrigger`) — активация через закрытие двери
+3. Добавь дочерние рычаги с `PressureLever` на **Interactable Layer**
+4. Задай `_angleOnDelta` каждому рычагу (обычно −180°)
+5. Назначь `arrow` Transform в `PressurePuzzle._arrow`
+6. Настрой `_arrowBaseAngle`, чтобы стрелка визуально указывала на 0° на старте
+7. Добавь пар `ParticleSystem` в `_steamEmitters` и меши в `_distortionMeshes`
+8. Назначь `_resetSound`, `_steamLoopClip`, `_steamFadeClip` и AudioSource'ы (или оставь пустыми — создадутся автоматически)
+9. Добавь объекты в `_rewardObjects`
+10. Оставь `_solveAngle` = 180° и `_dangerAngle` = 300° под физический циферблат
+11. Настрой двухъярусные величины: `_smallLeverCount` / `_smallLeverBase` / `_smallLeverStep` и `_largeLeverBase` / `_largeLeverStep`
+12. Задай `_maxActions` (default: 5) — сколько тогглов даётся на попытку
+13. Задай `_minLeversOnInSolution` (default: 4) и `_minFlipsFromSolution` (default: 4)
+14. Держи `_solveAngleTolerance` небольшим (1–10°)
+15. При необходимости скорректируй `_minSolutionFraction` / `_maxSolutionFraction`
+16. Настрой solved-кинематик: `_cinematicCamera`, `_cinematicDoor`, углы и длительности
+17. Задай уникальный `_saveId`
+
+---
+
+## Вывод в консоль
 
 ```
-[PressurePuzzle] Lever magnitudes: [20, 5, 30, 10, 25, 15]
-[PressurePuzzle] 3 valid solution(s) found within ±10° of 180°.
-[PressurePuzzle] Solution: 3/6 ON, total=55, mask=011010
-[PressurePuzzle] 6 levers. MaxTotal=105. Solution total=55 → 180°. Danger at 300°. Max angle=343.6°. Valid solutions: 3.
+[PressurePuzzle] Activated — door locked, player inside, steam supplied.
+[PressurePuzzle] Action 1/5. 2 levers ON. Remaining: 4.
+[PressurePuzzle] Action limit exceeded! 6/5 actions used — triggering reset.
 [PressurePuzzle] Pressure reset triggered!
 [PressurePuzzle] Reset complete — levers unlocked.
-[PressurePuzzle] Solved!
+[PressurePuzzle] Solved — starting door cinematic.
+[PressurePuzzle] Cinematic door opening (20° over 3s).
+[PressurePuzzle] Cinematic complete — control returned to player.
 ```
+
+&nbsp;

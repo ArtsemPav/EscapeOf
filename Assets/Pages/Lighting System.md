@@ -74,6 +74,8 @@ To use: implement the interface in any `MonoBehaviour` and call `LightingSystem.
 | `ElevatorController`   | `Interaction/ElevatorController.cs`         | Blocks `MoveToFloor` and silences ambient music when power off. All 6 `ElevatorButton` components show "Нет электричества" and become non-interactive.     |
 | `LaptopOS`             | `Puzzle/LaptopScripts/LaptopOS.cs`          | Laptop becomes non-interactive when power off                                                                                                              |
 | `DecalSlideshow`       | `Decal/DecalSlideshow.cs`                   | Decal slideshow stops when power off                                                                                                                       |
+| `ReelSpinner`          | `Puzzle/Projector/ReelSpinner.cs`           | Film reel stops spinning when power off; resumes (if allowed via `SetSpinning`) when power on                                                              |
+| `DuckSoundZone`        | `Interaction/DuckSoundZone.cs`              | Duck lure sound fades out and stops entirely when power off                                                                                                |
 
 
 ---
@@ -110,6 +112,14 @@ LightingSystem.Instance.SetZoneSwitch("Room1", true);
 bool newState = LightingSystem.Instance.ToggleZoneSwitch("Corridor");
 bool isOn = LightingSystem.Instance.GetZoneSwitchState("Storage");
 bool isLit = LightingSystem.Instance.IsZoneLit("Room1"); // power AND switch both on
+
+// Initial switch state for a new game (no save). Called by LightSwitch.Start();
+// ignored if the zone already has a state (save was loaded).
+LightingSystem.Instance.InitializeZoneSwitch("Room1", true);
+
+// Performance suppression (used by RoomVisibilityManager, not persisted to saves)
+LightingSystem.Instance.SetZoneRenderSuppressed("Corridor", true);
+bool suppressed = LightingSystem.Instance.IsZoneRenderSuppressed("Corridor");
 
 // Power consumer registration
 LightingSystem.Instance.RegisterConsumer(myConsumer);
@@ -160,24 +170,29 @@ Flicker stops automatically when the light is turned off (switch or panel) and r
 ## EmergencyLamp
 
 **File:** `EmergencyLamp.cs`
-Implements `IPowerConsumer`. Red indicator lamp that signals power status.
+Implements `IPowerConsumer`. Lamp that signals power status. By default works in emergency mode (ON when power is OFF), but can also act as a normal light (`_activeWhenPowered = true`).
 
 
-| Power state                | Red Point Light | LampGlass emission      |
-| -------------------------- | --------------- | ----------------------- |
-| OFF (no electricity)       | ON — red glow   | ON — glass glows red    |
-| ON (electricity available) | OFF             | OFF — emission disabled |
+| Power state                | Emergency mode (`_activeWhenPowered = false`) | Normal mode (`_activeWhenPowered = true`) |
+| -------------------------- | --------------------------------------------- | ----------------------------------------- |
+| OFF (no electricity)       | Red light + glass emission ON — red glow      | OFF                                       |
+| ON (electricity available) | OFF — emission disabled                       | Red light + glass emission ON             |
 
 
-All lamps share a single material (`lightRed.mat`). Emission is toggled directly on the shared material via `_EMISSION` keyword and `_EmissionColor` — every lamp reacts simultaneously.
+All emergency lamps (`_activeWhenPowered = false`) share a single material (`lightRed.mat`). Emission is toggled directly on the shared material via `_EMISSION` keyword and `_EmissionColor` — every lamp reacts simultaneously. Lamps with `_activeWhenPowered = true` get an instantiated material to avoid conflicting with emergency lamps.
+
+The lamp doubles as a **door lock indicator**: `SetLocked()` (red) / `SetUnlocked()` (green) change both the light color and the glass emission color. Wire them to `DoorInteraction.OnLocked` / `OnUnlocked`.
 
 **Component placement:** on the lamp root GameObject. Auto-finds `Point Light` and `LampGlass` renderer in children.
 
 
-| Field                 | Description                                           |
-| --------------------- | ----------------------------------------------------- |
-| `Emergency Light`     | Red `Light` component. Auto-found in children.        |
-| `Lamp Glass Renderer` | `Renderer` on LampGlass mesh. Auto-found in children. |
+| Field                 | Description                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `Active When Powered` | `false` = emergency mode (ON when power OFF, default). `true` = normal light (ON when power ON). |
+| `Emergency Light`     | Red `Light` component. Auto-found in children.                                                   |
+| `Lamp Glass Renderer` | `Renderer` on LampGlass mesh. Auto-found in children (`LampGlass`).                              |
+| `Locked Color`        | Light color when the monitored door is locked. Default: red.                                     |
+| `Unlocked Color`      | Light color when the monitored door is unlocked. Default: green.                                 |
 
 
 **Scene setup:** `EmergencyLamp` is placed on all 7 room lamps:
@@ -216,7 +231,7 @@ Implements `IPowerConsumer` (in addition to `ISaveable`). The elevator cannot mo
 | ON          | `MoveToFloor` works normally; ambient loop restored |
 
 
-The `HasPower` property reflects the current master power state and is checked by every `ElevatorButton` via `CanInteract()`. When power is off, buttons show `_noPowerHint` ("Нет электричества") and are non-interactive (no crosshair, no hint, no press animation).
+The `HasPower` property reflects the current master power state. When power is off, the buttons remain **interactive** (`CanInteract()` always true, crosshair Hand) — pressing plays the interaction, but `MoveToFloor` does nothing because it checks `HasPower` internally. The prompt shows `_noPowerHint` («Нет электричества») via `GetInteractText()`.
 
 **Inspector field:**
 
@@ -246,18 +261,18 @@ The `HasPower` property reflects the current master power state and is checked b
 Implements `IInteractable`. Add to any GameObject with a Collider.
 
 
-| Field                    | Description                                                       |
-| ------------------------ | ----------------------------------------------------------------- |
-| `Zone Id`                | Zone this switch controls. Must match `LightZone.Zone Id`.        |
-| `Interact Hint`          | Text shown in the interaction prompt when power is on.            |
-| `No Power Hint`          | Text shown when master power is off.                              |
-| `Switch Handle`          | Optional Transform that rotates when toggled (lever/button mesh). |
-| `Handle Rotation On/Off` | Local Euler angles for each handle state.                         |
-| `Switch On/Off Clip`     | Audio clips played on toggle.                                     |
+| Field                    | Description                                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Zone Id`                | Zone this switch controls. Must match `LightZone.Zone Id`.                                                                                                   |
+| `Default Switch State`   | Switch state for a new game (no save). Pushed to `LightingSystem` via `InitializeZoneSwitch()` in `Start()`. Ignored when save data exists. Default: `true`. |
+| `Interact Hint`          | Text shown in the interaction prompt when power is on.                                                                                                       |
+| `No Power Hint`          | Text shown when master power is off. Default: «Нет питания».                                                                                                 |
+| `Switch Handle`          | Optional Transform that rotates when toggled (lever/button mesh).                                                                                            |
+| `Handle Rotation On/Off` | Local Euler angles for each handle state.                                                                                                                    |
+| `Switch On/Off Clip`     | Audio clips played on toggle.                                                                                                                                |
 
 
-When master power is off, `Interact()` returns early — the switch is blocked.
-The interaction prompt automatically shows current state: `Выключатель [ВКЛ]` / `Выключатель [ВЫКЛ]`.
+The switch is **never blocked** — `CanInteract()` is always `true`. Without master power the switch still flips physically (animation + click sound) and its state is still tracked: lights will turn on when power is restored if the switch is in the ON position. The prompt shows `No Power Hint` when power is off, and `Выключатель [ВКЛ]` / `Выключатель [ВЫКЛ]` when power is on.
 
 ---
 

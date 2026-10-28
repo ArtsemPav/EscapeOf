@@ -1,6 +1,8 @@
 ## Screwdriver Minigame System
 
-Мини-игра "Skill Check" в стиле Dead by Daylight. Стрелка вращается по кругу с постоянной скоростью. Игрок нажимает ЛКМ в момент, когда стрелка проходит над сектором попадания. Сектор состоит из белой (идеальной) зоны в центре и серой зоны по краям. Прогресс-бар заполняется при попаданиях. Белая зона даёт больше прогресса, серая — меньше. При превышении лимита промахов или полном обороте без клика — провал.
+Мини-игра "Skill Check" в стиле Dead by Daylight. Стрелка вращается по кругу с постоянной скоростью. Игрок нажимает **Space или ЛКМ** в момент, когда стрелка проходит над сектором попадания. Сектор состоит из белой (идеальной) зоны в центре и серой зоны по краям. Прогресс-бар заполняется при попаданиях. Белая зона даёт больше прогресса, серая — меньше. При превышении лимита промахов или полном обороте без клика — провал.
+
+Перед каждым новым чеком круг может скрываться и появляться в случайном месте экрана (`_randomizeCirclePosition`).
 
 ### Структура UI
 
@@ -9,13 +11,13 @@
 ```
 Canvas
 └── ScrewdriverMinigamePanel              # полноэкранная панель, inactive по умолчанию
-    ├── CircleContainer                   # контейнер круга, 260x260, по центру
+    ├── CircleContainer                   # контейнер круга; позиция рандомизируется между чеками
     │   ├── RingBackground                # Image (Filled, Radial360) — фон круга
     │   ├── GraySector                    # Image (Filled, Radial360) — серая зона
     │   ├── WhiteSector                   # Image (Filled, Radial360) — белая зона
     │   └── Arrow                         # Image, pivot (0.5, 0), 4x130px — стрелка
-    ├── ProgressBarBg                     # 300x18, тёмный фон, под кругом
-    │   └── ProgressFill                  # Image (Filled, Horizontal) — заполнение
+    ├── ProgressBarBg                     # фон прогресс-бара, под кругом
+    │   └── ProgressFill                  # Image (Simple, anchor stretch) — заполнение
     └── MissCounter                       # TextMeshProUGUI — счётчик промахов
 ```
 
@@ -28,26 +30,33 @@ Canvas
 ```
 Внешний контроллер вызывает StartMinigame()
   → Сброс прогресса и счётчика промахов
-  → StartNewCheck(): случайная позиция сектора, случайная стартовая позиция стрелки
-    (на расстоянии не менее _minStartGap от сектора)
-  → Случайное направление вращения (по/против часовой)
+  → StartNewCheck():
+      → если _randomizeCirclePosition: TransitionToNewPosition() —
+        CircleContainer скрывается на _circleHideDuration (0.15с),
+        переносится в случайное место экрана, затем SetupCheck()
+      → иначе SetupCheck() сразу
+  → SetupCheck(): случайная позиция сектора, случайное направление вращения,
+    случайная стартовая позиция стрелки (на расстоянии не менее _minStartGap от сектора)
 
 Каждый кадр (Update):
-  → Стрелка вращается с _arrowSpeed градусов/сек
+  → Стрелка вращается с _arrowSpeed градусов/сек в случайном направлении
   → Накапливается _totalRotation (пройденный угол)
   → При _totalRotation >= 360° (полный оборот без клика) → RegisterMiss()
-  → При ЛКМ → EvaluateHit()
+  → При Space или ЛКМ → EvaluateHit()
 
 EvaluateHit():
-  → Стрелка в белой зоне → RegisterHit(_whiteZoneProgress)
-  → Стрелка в серой зоне → RegisterHit(_grayZoneProgress)
-  → Стрелка вне сектора → RegisterMiss()
+  → Проверяется вся дуга, пройденная стрелкой за кадр (IsArcIntersectingZone),
+    чтобы стрелка не «перепрыгнула» зону при низком FPS
+  → Дуга пересекла белую зону → RegisterHit(_whiteZoneProgress, isWhiteZone: true)
+  → Дуга пересекла сектор     → RegisterHit(_grayZoneProgress)
+  → Мимо                      → RegisterMiss()
 
 RegisterHit():
-  → Прогресс += очки зоны
+  → Прогресс += очки зоны (не выше _progressGoal)
   → OnHit?.Invoke()
+  → Попадание в белую зону: прогресс-бар вспыхивает цветом белой зоны (0.15с)
   → Прогресс >= _progressGoal → OnCompleted?.Invoke(), остановка
-  → Иначе → StartNewCheck() (новый сектор, новая позиция стрелки)
+  → Иначе → StartNewCheck() (новый сектор, новая позиция круга и стрелки)
 
 RegisterMiss():
   → _misses++
@@ -59,21 +68,26 @@ RegisterMiss():
 
 ### События
 
+
 | Событие       | Когда срабатывает                              |
 | ------------- | ---------------------------------------------- |
 | `OnCompleted` | Прогресс-бар полностью заполнен (успех)        |
 | `OnHit`       | Попадание в сектор (белая или серая зона)      |
-| `OnMiss`      | Промах (вне сектора или полный оборот без ЛКМ) |
+| `OnMiss`      | Промах (вне сектора или полный оборот без клика) |
 | `OnFailed`    | Превышен лимит промахов (провал)               |
 
+
 ### Публичные методы
+
 
 | Метод             | Описание                                 |
 | ----------------- | ---------------------------------------- |
 | `StartMinigame()` | Запускает мини-игру, сбрасывает прогресс |
 | `StopMinigame()`  | Останавливает мини-игру, скрывает сектор |
 
+
 ### Публичные свойства
+
 
 | Свойство       | Тип     | Описание                        |
 | -------------- | ------- | ------------------------------- |
@@ -83,23 +97,29 @@ RegisterMiss():
 | `MaxMisses`    | `int`   | Лимит промахов (0 = без лимита) |
 | `IsRunning`    | `bool`  | Запущена ли мини-игра           |
 
+
 ### Параметры инспектора
 
 **Arrow Settings**
+
 
 | Поле           | Тип     | По умолчанию | Описание                                                   |
 | -------------- | ------- | ------------ | ---------------------------------------------------------- |
 | `_arrowSpeed`  | `float` | 200          | Скорость вращения стрелки (градусов в секунду)             |
 | `_minStartGap` | `float` | 90           | Мин. расстояние старта стрелки от сектора (градусы, 0–180) |
 
+
 **Sector Settings**
+
 
 | Поле             | Тип     | По умолчанию | Описание                                      |
 | ---------------- | ------- | ------------ | --------------------------------------------- |
 | `_sectorSize`    | `float` | 55           | Полный размер сектора (градусы, 10–360)       |
 | `_whiteZoneSize` | `float` | 16           | Размер белой зоны по центру сектора (градусы) |
 
+
 **Progress Settings**
+
 
 | Поле                 | Тип     | По умолчанию | Описание                           |
 | -------------------- | ------- | ------------ | ---------------------------------- |
@@ -107,14 +127,28 @@ RegisterMiss():
 | `_whiteZoneProgress` | `float` | 18           | Очки за попадание в белую зону     |
 | `_grayZoneProgress`  | `float` | 9            | Очки за попадание в серую зону     |
 
+
 **Penalty Settings**
+
 
 | Поле           | Тип     | По умолчанию | Описание                                                   |
 | -------------- | ------- | ------------ | ---------------------------------------------------------- |
 | `_maxMisses`   | `int`   | 3            | Лимит промахов (0 = без лимита). При превышении — OnFailed |
 | `_missPenalty` | `float` | 0            | Откат прогресса при промахе (0 = без отката)               |
 
+
+**Circle Position**
+
+
+| Поле                       | Тип       | По умолчанию | Описание                                                              |
+| -------------------------- | --------- | ------------ | --------------------------------------------------------------------- |
+| `_randomizeCirclePosition` | `bool`    | true         | CircleContainer появляется в случайном месте экрана при каждом новом чеке |
+| `_circleScreenMargin`      | `Vector2` | (150, 150)   | Отступ от краёв экрана (пиксели канваса) для случайной позиции         |
+| `_circleHideDuration`      | `float`   | 0.15         | Длительность скрытия круга между чеками (сек)                          |
+
+
 **UI References** (автоматически находятся по имени в Awake, можно переназначить)
+
 
 | Поле               | Что назначить                               |
 | ------------------ | ------------------------------------------- |
@@ -124,9 +158,12 @@ RegisterMiss():
 | `_whiteSector`     | `Image` на `CircleContainer/WhiteSector`    |
 | `_arrow`           | `RectTransform` на `CircleContainer/Arrow`  |
 | `_progressBarFill` | `Image` на `ProgressBarBg/ProgressFill`     |
+| `_progressBarBg`   | `RectTransform` на `ProgressBarBg`          |
 | `_missCounterText` | `TextMeshProUGUI` на `MissCounter`          |
 
+
 **Colors**
+
 
 | Поле                 | По умолчанию       | Описание        |
 | -------------------- | ------------------ | --------------- |
@@ -136,9 +173,10 @@ RegisterMiss():
 | `_arrowColor`        | (1.0, 0.25, 0.25)  | Цвет стрелки    |
 | `_progressFillColor` | (0.78, 0.25, 0.25) | Цвет заполнения |
 
+
 ### Как визуализируется сектор
 
-Все три Image (RingBackground, GraySector, WhiteSector) используют `Image.Type.Filled` с `FillMethod.Radial360`, `FillOrigin = Top` (0), `FillClockwise = true`.
+Все три Image (RingBackground, GraySector, WhiteSector) используют `Image.Type.Filled` с `FillMethod.Radial360`, `FillOrigin = Top` (2), `FillClockwise = true`.
 
 - **RingBackground**: `fillAmount = 1.0` — полный круг, цвет фона.
 - **GraySector**: `fillAmount = _sectorSize / 360`, поворот `localEulerAngles.z = -_sectorStart`.
@@ -146,7 +184,11 @@ RegisterMiss():
 
 Стрелка — Image с pivot `(0.5, 0)`, вращается через `localEulerAngles.z = -_arrowAngle`.
 
-Прогресс-бар — Image с `FillMethod.Horizontal`, `fillAmount = _progress / _progressGoal`.
+Прогресс-бар — `Image.Type.Simple`: `ProgressFill` растягивается по ширине (anchor left, pivot (0, 0.5), `sizeDelta` управляется кодом), `fillAmount = _progress / _progressGoal`. При попадании в белую зону кратковременно окрашивается в цвет белой зоны (`FlashProgressBarColor`, 0.15с).
+
+### Случайная позиция круга
+
+При `_randomizeCirclePosition = true` между чеками `CircleContainer` скрывается на `_circleHideDuration` (WaitForSecondsRealtime), переносится в случайное место родительского канваса (`RandomizeCirclePosition()` учитывает реальный радиус круга по RingBackground и `_circleScreenMargin`) и показывается снова с новым сектором.
 
 ### Авто-резолв ссылок
 
@@ -157,11 +199,12 @@ RegisterMiss():
 1. Панель `ScrewdriverMinigamePanel` уже создана в `/Canvas` сцены `Game.unity`.
 2. Деактивируйте панель в инспекторе (снимите галочку activeSelf).
 3. На компоненте `ScrewdriverMinigamePanel` настройте параметры:
-   - **Arrow Speed** — скорость стрелки.
-   - **Sector Size** / **White Zone Size** — размеры сектора и белой зоны.
-   - **Progress Goal** / **White Zone Progress** / **Gray Zone Progress** — настройка прогресса.
-   - **Max Misses** — лимит промахов (0 = без лимита).
-   - **Miss Penalty** — откат прогресса при промахе (0 = без отката).
+  - **Arrow Speed** — скорость стрелки.
+  - **Sector Size** / **White Zone Size** — размеры сектора и белой зоны.
+  - **Progress Goal** / **White Zone Progress** / **Gray Zone Progress** — настройка прогресса.
+  - **Max Misses** — лимит промахов (0 = без лимита).
+  - **Miss Penalty** — откат прогресса при промахе (0 = без отката).
+  - **Randomize Circle Position** / **Circle Screen Margin** / **Circle Hide Duration** — поведение случайной позиции.
 4. (Опционально) Назначьте спрайты на RingBackground, GraySector, WhiteSector для кастомного визуала.
 5. В вашем контроллере подписывайтесь на события `OnCompleted`, `OnHit`, `OnMiss`, `OnFailed` и вызывайте `StartMinigame()` / `StopMinigame()`.
 
@@ -170,7 +213,8 @@ RegisterMiss():
 - Стрелка всегда стартует на безопасном расстоянии от сектора (`_minStartGap`), чтобы у игрока было время среагировать.
 - Полный оборот стрелки (360° от стартовой позиции) без клика засчитывается как промах. Отсчёт ведётся по пройденному углу (`_totalRotation`), а не по переходу через 0° — это исключает ложные срабатывания.
 - Направление вращения случайно для каждой проверки (по часовой или против).
-- После каждого попадания или промаха (если не конец игры) запускается новый чек — сектор и стрелка перегенерируются.
+- После каждого попадания или промаха (если не конец игры) запускается новый чек — сектор, позиция круга и стрелка перегенерируются.
+- Попадание проверяется по **всей дуге, пройденной за кадр** (`IsArcIntersectingZone`), — стрелка не может перепрыгнуть зону при низком FPS или скачке deltaTime.
 - Все углы внутренне считаются в градусах, 0° = верх круга, направление по часовой.
 - Используется `Time.unscaledDeltaTime` — мини-игра не зависит от `Time.timeScale`.
-- Ввод считывается через `Mouse.current.leftButton.wasPressedThisFrame` (Input System).
+- Ввод: `Keyboard.current.spaceKey.wasPressedThisFrame` или `Mouse.current.leftButton.wasPressedThisFrame` (Input System).

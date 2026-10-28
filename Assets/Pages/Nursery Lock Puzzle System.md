@@ -47,8 +47,9 @@ Idle ──[InsertLockpick]──> Inserting ──[Has Exit Time]──> LockPi
   → Ghost не подвластен Animator
 
 Игрок отпускает отмычку на замке (рейкаст по коллайдеру)
-  → HandleDrop() возвращает true
+  → HandleDrop() возвращает true (Save() с lockpickInserted=true)
   → Ghost скрывается
+  → PuzzleInventoryBar скрывается
   → _forceLockpickVisible = true (LateUpdate держит отмычку видимой)
   → Animator.SetTrigger("InsertLockpick")
   → Wait Until Animator reaches Inserting state
@@ -69,17 +70,19 @@ Idle ──[InsertLockpick]──> Inserting ──[Has Exit Time]──> LockPi
 
 OnCompleted → OpeningSequence()
   → _forceLockpickVisible = false (opening.anim сама управляет видимостью)
+  → StopMinigame() + панель скрывается
+  → AudioManager.PlaySFX(_openClip)
   → Animator.SetTrigger("OpenLock")
   → Wait Until Animator reaches "opening" state
   → Wait Until opening animation finishes (normalizedTime >= 1)
   → Расходуется отмычка (InventorySystem.RemoveItem)
   → DoorInteraction.UnlockAndOpen() на обеих дверях
-  → SetSolved() — возврат управления игроку
+  → _isSolved = true → SaveManager.Save() → SetSolved() — возврат управления игроку
 ```
 
 ### Мини-игра: кольца
 
-3 концентрических кольца вращаются с разной скоростью. Задача — остановить каждое кольцо нажатием Space или ЛКМ, когда его засечка совпадает со стрелкой-ориентиром наверху.
+3 концентрических кольца вращаются с разной скоростью. Задача — остановить каждое кольцо нажатием Space или ЛКМ, когда его засечка совпадает со стрелкой-ориентиром наверху (внешнее статичное кольцо `gearMain`).
 
 
 | Кольцо | Скорость | Направление    |
@@ -89,7 +92,7 @@ OnCompleted → OpeningSequence()
 | R3     | 140 °/с  | по часовой     |
 
 
-Допустимая погрешность — 8°. Промах вызывает откат на 1 кольцо назад (кроме первого). Отмычка расходуется только при победе.
+Допустимая погрешность — 8°. Промах вызывает откат на 1 кольцо назад (кроме первого). Отмычка расходуется только при победе. Ввод: `Space` или ЛКМ (`Keyboard.current.spaceKey.wasPressedThisFrame` / `Mouse.current.leftButton.wasPressedThisFrame`).
 
 ### Веерные анимации
 
@@ -123,7 +126,7 @@ OnCompleted → OpeningSequence()
 
 | Поле             | Описание                                              |
 | ---------------- | ----------------------------------------------------- |
-| `Save ID`        | Уникальный ID для системы сохранений                  |
+| `Save ID`        | Уникальный ID для системы сохранений (default: `"nursery_lock_puzzle"`) |
 | `Required Item`  | `ItemData` отмычки, которую нужно перетащить на замок |
 | `Minigame Panel` | Панель UI мини-игры в Canvas сцены                    |
 
@@ -136,7 +139,8 @@ OnCompleted → OpeningSequence()
 | `Lock Collider`     | Collider замка — цель рейкаста при дропе |
 | `Lock Animator`     | Animator замка                           |
 | `Lockpick Renderer` | MeshRenderer 3D-модели отмычки           |
-| `Ghost Material`    | Material для ghost-превью отмычки        |
+| `Ghost Material`    | Material для ghost-превью отмычки (если null — создаётся программно) |
+| `Minigame`          | Компонент `LockPickMinigame` на панели (если null — берётся с `_minigamePanel`) |
 | `Door Left/Right`   | DoorInteraction дверей шкафа             |
 
 
@@ -153,25 +157,40 @@ OnCompleted → OpeningSequence()
 
 **Minigame — Ring Configuration**
 
-Каждое кольцо настраивается отдельно:
+Каждое кольцо настраивается отдельно (`RingConfig`, массив `_ringConfigs`; default — 3 кольца):
 
 
-| Поле           | Описание                               |
-| -------------- | -------------------------------------- |
-| `Speed`        | Скорость вращения в градусах в секунду |
-| `Clockwise`    | Направление: true — по часовой         |
-| `Ring Color`   | Цвет вращающегося кольца               |
-| `Notch Color`  | Цвет засечки                           |
-| `Locked Color` | Цвет кольца после успешной блокировки  |
+| Поле            | Описание                                                            |
+| --------------- | ------------------------------------------------------------------- |
+| `Speed`         | Скорость вращения в градусах в секунду (default: 80 / 110 / 140)    |
+| `Clockwise`     | Направление: true — по часовой (default: по часовой, против, по часовой) |
+| `Sprite`        | Спрайт кольца с засечкой в верхней части                            |
+| `Relative Size` | Размер кольца относительно контейнера (0.05–2; default: 0.72 / 0.52 / 0.35) |
+| `Locked Color`  | Тинт кольца после успешной блокировки (default: светло-зелёный)     |
 
+
+**Minigame — Decorative Gears**
+
+Декоративные шестерёнки по бокам панели вращаются для атмосферы (`DecorGearConfig`, массив `_decorGears`, default — 3 шт): `Sprite`, `Speed` (40/55/70 °/с), `Clockwise`, `Anchored Position` (пиксели относительно центра) и `Relative Size`. Создаются/анимируются автоматически.
 
 **Minigame — Settings**
 
 
 | Поле             | Описание                                   |
 | ---------------- | ------------------------------------------ |
-| `Tolerance`      | Допустимая погрешность попадания (градусы) |
-| `Container Size` | Размер области колец (пиксели)             |
+| `Tolerance`      | Допустимая погрешность попадания (default: 8°) |
+| `Container Size` | Размер области колец (пиксели, default: 400) |
+| `Active Color`   | Тинт активного кольца (default: тёплый жёлтый) |
+
+
+**Minigame — Static Sprites / Visuals (автосоздание)**
+
+
+| Поле                            | Описание                                                        |
+| ------------------------------- | --------------------------------------------------------------- |
+| `Gear Main Sprite`              | Внешнее статичное кольцо со стрелкой-ориентиром (default size 0.95) |
+| `Center Sprite`                 | Центральный статичный элемент (default size 0.18)               |
+| `Ring Container` / `Gear Main` / `Center` / `Ring Transforms` / `Images` | RectTransform'ы и Image'и. Если не назначены — создаются автоматически в рантайме |
 
 
 **Minigame — Miss Feedback**
@@ -207,7 +226,7 @@ OnCompleted → OpeningSequence()
 
 ### Быстрая настройка в сцене
 
-1. Перетащите префаб `Assets/Prefabs/puzzle/NurseryLock/NurseryLock.prefab` в сцену.
+1. Перетащите префаб `Assets/Prefabs/puzzle/NurseryLock/PRF_NurseryLock.prefab` в сцену.
 2. На корневом объекте в `NurseryLockController` назначьте:
   - **Required Item** — `ItemData` отмычки.
   - **Minigame Panel** — панель `LockPickMinigamePanel` из Canvas сцены.
@@ -220,11 +239,13 @@ OnCompleted → OpeningSequence()
 
 ### Важные детали
 
-- Отмычка **не расходуется** до победы — `HandleDrop` возвращает её через `replacement`.
+- Отмычка **не расходуется** до победы — `HandleDrop` возвращает её через `replacement` (и только при успехе удаляется в `OpeningSequence`).
+- Дроп отклоняется, если мини-игра недоступна (`_minigame == null || _minigamePanel == null`) — защита от софтлока; в этом же случае `CanExitPuzzle` принудительно возвращает `true`.
+- При загрузке сейва со вставленной отмычкой (`lockpickInserted = true`, не решено): аниматор перематывается в `LockPickIdle`, при входе в режим загадки мини-игра запускается сразу.
 - Ghost-превью — отдельный клонированный GameObject `LockpickGhost`, не подвластный Animator. Создаётся в `CreateGhostObject()`, деактивируется при отпускании.
 - `Idle.anim` выключает GameObject отмычки через `m_IsActive = 0`. `LateUpdate` с флагом `_forceLockpickVisible` перебивает это значение, поскольку выполняется после `Animator.Update`.
 - `opening.anim` сама управляет `m_IsActive` (1 → 0) — флаг `_forceLockpickVisible` снимается перед триггером `OpenLock`.
-- Панель мини-игры не создаётся и не уничтожается — она живёт в Canvas сцены и активируется/деактивируется через `SetActive`.
+- Панель мини-игры не создаётся и не уничтожается — она живёт в Canvas сцены и активируется/деактивируется через `SetActive`. Если ссылка на панель потеряна — ищется единственная `LockPickMinigame` в сцене (включая неактивные) с предупреждением в консоль.
 - Контроллер реализует `IPuzzleDropHandler`, `IPuzzleExitGuard`, `ISaveable`.
 - Сохраняются: `_isSolved` и `_isLockpickInserted`. При загрузке решённой загадки аниматор перематывается в конец `opening`, двери открываются. При загрузке с вставленной отмычкой — мини-игра запускается сразу.
 - Выход из режима загадки заблокирован во время анимации вставки и мини-игры (`CanExitPuzzle` возвращает `!_isProcessing`).
