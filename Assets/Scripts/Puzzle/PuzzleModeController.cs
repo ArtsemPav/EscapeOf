@@ -314,7 +314,15 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         OnPuzzleModeEntered?.Invoke();
         OnEntered?.Invoke();
+
+        PuzzleModeStarted?.Invoke();
     }
+
+    /// <summary>Raised when the player enters any puzzle mode (started solving).</summary>
+    public static event Action PuzzleModeStarted;
+
+    /// <summary>Raised when the player leaves a puzzle mode (solved or gave up).</summary>
+    public static event Action PuzzleModeEnded;
 
     /// <summary>
     /// Deactivates the puzzle mode: restores camera, player input, and hides cursor.
@@ -326,6 +334,8 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
         _isActive = false;
         if (!_isSolved)
             ProgressLogger.Log("puzzle_exit_unsolved", _saveId);
+
+        PuzzleModeEnded?.Invoke();
         RestoreLensDistortion();
 
         // Disable child interactables when exiting puzzle mode.

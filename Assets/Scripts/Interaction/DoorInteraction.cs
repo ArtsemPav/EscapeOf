@@ -97,6 +97,13 @@ namespace Escape.Core {
 
         // ── Runtime state ────────────────────────────────────────────────────────
 
+        /// <summary>Raised once when a closed door becomes open (any open path: drag,
+        /// click, key, code lock). Systems that track gameplay progress (e.g. the
+        /// idle music cue) subscribe here instead of polling every door.</summary>
+        public static event Action DoorOpened;
+
+        private bool _doorOpenedRaised; // one raise per door until it is closed again
+
         private float   _closedAngle;         // initial euler angle along the chosen axis
         private Vector3 _closedEulerAngles;   // initial full euler angles — preserved to avoid gimbal lock drift
         private float   _openFraction;        // 0 = closed, 1 = fully open
@@ -249,10 +256,12 @@ namespace Escape.Core {
         private void Update() {
             if (_isDragging) return;
 
+            float previousOpenFraction = _openFraction;
             // ── Smooth unlock ajar ───────────────────────────────────────────────
             if (_isUnlockAnimating) {
                 _openFraction = Mathf.MoveTowards(_openFraction, _unlockAjarTarget, _unlockAjarSpeed * Time.deltaTime);
                 ApplyAngle();
+                CheckOpened(previousOpenFraction);
                 if (Mathf.Approximately(_openFraction, _unlockAjarTarget)) {
                     _isUnlockAnimating = false;
                     _dragActive        = false;
@@ -269,6 +278,7 @@ namespace Escape.Core {
                 _velocity = _clickTarget > prev ? speed : -speed;
                 UpdateMotionLoop();
                 CheckLatch(prev, _openFraction);
+                CheckOpened(prev);
                 ApplyAngle();
                 if (Mathf.Approximately(_openFraction, _clickTarget)) {
                     _openFraction     = _clickTarget;
@@ -286,6 +296,7 @@ namespace Escape.Core {
                 _openFraction = Mathf.MoveTowards(_openFraction, _flingTarget, _flingSpeed * Time.deltaTime);
                 UpdateMotionLoop();
                 CheckLatch(prev, _openFraction);
+                CheckOpened(prev);
                 ApplyAngle();
                 if (Mathf.Approximately(_openFraction, _flingTarget)) {
                     _openFraction = _flingTarget;
@@ -313,6 +324,22 @@ namespace Escape.Core {
                 _velocity   = 0f;
                 _dragActive = false;
                 StopMotionLoops();
+            }
+
+            CheckOpened(previousOpenFraction);
+        }
+
+        /// <summary>Fires DoorOpened once when a door crosses into the open state
+        /// (any motion path: drag, click, fling, key unlock). The flag resets when
+        /// the door returns fully closed, so reopening raises the event again.</summary>
+        private void CheckOpened(float previousOpenFraction) {
+            if (_doorOpenedRaised) {
+                if (_openFraction <= 0.001f && !_isOpen) _doorOpenedRaised = false; // closed again — rearm
+                return;
+            }
+            if (previousOpenFraction <= 0.001f && _openFraction > 0.001f) {
+                _doorOpenedRaised = true;
+                DoorOpened?.Invoke();
             }
         }
 
@@ -399,6 +426,8 @@ namespace Escape.Core {
 
             UpdateMotionLoop();
             CheckLatch(prev, _openFraction);
+            CheckOpened(prev);
+
 
             ApplyAngle();
         }

@@ -2,6 +2,16 @@
 
 Система аудио: SFX, 3D-звуки, фоновые слои и музыка с кроссфейдами. Музыка полностью управляется `MusicDirector`, SFX — `AudioManager`.
 
+### IdleMusicTrigger.cs (`Assets/Scripts/Core/IdleMusicTrigger.cs`)
+
+На `GameManager` в Game.unity. Если игрок `_idleThreshold` секунд (120, меняется в инспекторе) не решил ни одной загадки и не открыл ни одной двери — просит `MusicDirector` включить трек `Idle_Hint` (`S_Abbys.aif`); первый же прогресс возвращает прежний трек. Источники прогресса: `ProgressLogger.PuzzleSolved` и `DoorInteraction.DoorOpened`. Таймер на unscaled-времени, на паузе не тикает.
+
+Правила приоритета:
+- cue включается **только поверх дефолтного трека** (`MusicDirector.IsDefaultTrackActive`) — зонную музыку не перебивает, ждёт её окончания (fallback вернёт дефолт);
+- первый прогресс (решённый паззл / открытая дверь) уводит cue назад в дефолт (`ClearTrack`);
+- вход в режим паззла (`PuzzleModeController.PuzzleModeStarted`) тоже уводит cue и замораживает таймер, выход (`PuzzleModeEnded`) обнуляет отсчёт;
+- сохранение с активным cue не запоминает его как доминантный трек (`RequestIdleCueTrack` + `_idleCueTrack` в `MusicDirector`) — после загрузки сейва играет дефолт.
+
 ## Core Components
 
 ### AudioManager.cs (`Assets/Scripts/Core/AudioManager.cs`)

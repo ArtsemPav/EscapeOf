@@ -45,6 +45,10 @@ public class ProgressLogger : MonoBehaviour
     private Thread _writerThread;
     private readonly StringBuilder _lineBuffer = new(256);
 
+    /// <summary>Raised whenever the player solves a puzzle (any SaveId). Systems that track
+    /// gameplay progress (e.g. the idle music cue) subscribe here instead of string matching.</summary>
+    public static event Action PuzzleSolved;
+
     private RoomVisibilityManager _trackedRoomManager;
     private InventorySystem _trackedInventory;
     private string _lastRoomName;
@@ -216,7 +220,12 @@ public class ProgressLogger : MonoBehaviour
     {
         if (Instance != null)
             Instance.Write(eventName, detail);
+
+        if (eventName == PuzzleSolvedEventName)
+            PuzzleSolved?.Invoke();
     }
+
+    private const string PuzzleSolvedEventName = "puzzle_solved";
 
     // ── Event Sources ─────────────────────────────────────────────────────────
 

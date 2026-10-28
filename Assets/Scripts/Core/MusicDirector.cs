@@ -58,6 +58,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private float _resumeTime; // playback position the next created source starts from
     private Coroutine _duckCoroutine;
     private float _preDuckVolume = -1f; // volume the active source played at before the last duck
+    private MusicTrack _idleCueTrack; // last track requested by the idle (anti-stuck) cue — never saved as dominant
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -77,6 +78,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             dominant = _activeTrack != _pauseMenuTrack ? _activeTrack : null;
             dominantTime = dominant != null && _activeSource != null && _activeSource.clip == dominant.Clip ? _activeSource.time : 0f;
         }
+        // A session saved while the idle (anti-stuck) cue was dominant must not
+        // reload into it — the cue is an in-the-moment hint, the loaded session
+        // falls back to the scene default and its own idle timer.
+        if (dominant == _idleCueTrack) dominant = null;
         if (dominant == null) dominant = _defaultGameTrack;
 
         return JsonUtility.ToJson(new MusicDirectorSaveData
@@ -116,6 +121,17 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     /// The track that is currently playing (or pending fade-in).
     /// </summary>
     public MusicTrack ActiveTrack => _activeTrack;
+
+    /// <summary>
+    /// True while the scene's default game track is the dominant one — no zone
+    /// request, no menu music, no event mute owns the soundscape right now.
+    /// Systems that only ever want to sit on top of the default ambience
+    /// (e.g. the idle music cue) check this before requesting a track.
+    /// </summary>
+    public bool IsDefaultTrackActive => !_menuMusicActive
+        && _muteOwnerCount == 0
+        && _activeTrack != null
+        && _activeTrack == _defaultGameTrack;
 
     // Menu (pause) music state — the director owns ALL music, including the menu.
     private bool _menuMusicActive;
@@ -316,6 +332,17 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             return false;
         }
         return Instance.RequestTrackInternal(track, playOnce);
+    }
+
+    /// <summary>
+    /// Requests the idle (anti-stuck) cue track. Behaves like RequestTrack but
+    /// remembers the cue: a session saved while the cue plays reloads into the
+    /// default game track instead, and ClearTrack restores the previous track.
+    /// </summary>
+    public static bool RequestIdleCueTrack(MusicTrack track) {
+        if (Instance == null) return false;
+        Instance._idleCueTrack = track;
+        return RequestTrack(track, playOnce: false);
     }
 
     /// <summary>
