@@ -316,7 +316,7 @@ public class ScrewdriverRepairController : MonoBehaviour,
 
     public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData replacement)
     {
-        replacement = item; // отвёртка — инструмент, не расходуется
+        replacement = item; // отвёртка нужна на время мини-игры; удаляется из инвентаря только при успехе (CompletionSequence)
 
         if (_isProcessing || _isSolved)
             return false;
@@ -476,6 +476,10 @@ public class ScrewdriverRepairController : MonoBehaviour,
         _isSolved = true;
         _isProcessing = false;
         _isCompleting = false;
+
+        // Отвёртка израсходована при ремонте — удаляем её из инвентаря
+        if (_requiredItem != null)
+            InventorySystem.Instance?.RemoveItem(_requiredItem);
 
         Debug.Log("Пазл решен");
 
