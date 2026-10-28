@@ -221,6 +221,19 @@ public class SaveManager : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        // Не мешаем дублю-инстансу (он сам себя уничтожает в Awake)
+        if (Instance != this) return;
+
+        // Выход в меню (MainMenuItemBtn) и debug-загрузка (LoadSaveBtn) уничтожают
+        // SaveManager через Destroy(), что минует OnApplicationQuit. Без этого
+        // снимок, ожидающий записи в дебаунс-окне (saveDebounceDelay), теряется —
+        // например, "пройденная" паутина возвращается при следующей загрузке.
+        if (_pendingSave)
+            FlushPendingSave(synchronous: true);
+    }
+
     private void OnApplicationQuit()
     {
         // Flush any pending debounced save synchronously so no data is lost on exit.
