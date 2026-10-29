@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering.Universal;
@@ -98,6 +99,19 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
     [Tooltip("Final opacity range of the blood decals (min, max). Every decal gets its own value in this range, so the blood looks duller and uneven.")]
     [SerializeField] private Vector2 _decalOpacityRange = new Vector2(0.65f, 0.95f);
 
+    [Header("Blood growth")]
+    [Tooltip("Decals that grow after they appear (the wall and door blood). Each one grows by its own random factor.")]
+    [SerializeField] private DecalProjector[] _growingDecals;
+
+    [Tooltip("Growth factor range (min, max): how many times larger a stain becomes.")]
+    [SerializeField] private Vector2 _decalGrowRange = new Vector2(2f, 3f);
+
+    [Tooltip("Seconds a stain needs to reach its full size (short = almost instant pop, it still eases out).")]
+    [SerializeField, Min(0.1f)] private float _decalGrowDuration = 0.3f;
+
+    [Tooltip("A stain never grows beyond this size in metres (the factor is reduced for already big stains).")]
+    [SerializeField, Min(0.5f)] private float _decalMaxGrownSize = 3.5f;
+
     [SerializeField] private GameObject _bodyBag;
 
     [Tooltip("The body bag appears in the dark gap before this UV pulse (0 = first).")]
@@ -107,6 +121,34 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
 
     [Tooltip("The rubber duck appears in the dark gap before this UV pulse.")]
     [SerializeField, Min(0)] private int _duckPulse = 4;
+
+    [Header("Maid")]
+    [Tooltip("The maid apparition. Shown only inside the light flashes; she vanishes in every dark blink.")]
+    [SerializeField] private MaidApparition _maid;
+
+    [Tooltip("UV pulse in which she stands at the body bag with her hands on it.")]
+    [SerializeField, Min(0)] private int _maidBagPulse = 3;
+
+    [Tooltip("Seconds from her appearance at the bag until she turns her head to the player (the hands need about a second to reach the bag).")]
+    [SerializeField, Min(0f)] private float _maidBagLookDelay = 1.2f;
+
+    [Tooltip("Seconds she stares at the player before the light blinks and she vanishes.")]
+    [SerializeField, Min(0.2f)] private float _maidBagLookDuration = 1.4f;
+
+    [Tooltip("UV pulse in which she appears at the glass, hands on it, and screams.")]
+    [SerializeField, Min(0)] private int _maidGlassPulse = 5;
+
+    [Tooltip("How long the glass flash lasts (the scream length).")]
+    [SerializeField, Min(0.3f)] private float _maidGlassDuration = 2f;
+
+    [Tooltip("Dull double thump of her hands hitting the glass.")]
+    [SerializeField] private AudioClip _glassThumpClip;
+
+    [Tooltip("The scream.")]
+    [SerializeField] private AudioClip _screamClip;
+
+    [Tooltip("Faint whisper / breath when she turns to the player (optional).")]
+    [SerializeField] private AudioClip _maidLookClip;
 
     [Header("Audio (optional)")]
     [Tooltip("Fallback source, used only when there is no AudioManager in the scene.")]
@@ -162,6 +204,9 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
     /// <summary>True once the cutscene has been started in this save.</summary>
     public bool HasPlayed => _played;
 
+    /// <summary>The body bag object (the maid puts her hands on it).</summary>
+    public GameObject BodyBag => _bodyBag;
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => _saveId;
@@ -190,6 +235,8 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
     {
         _block = new MaterialPropertyBlock();
 
+        PrepareGrowth();
+
         // Everything revealed by the cutscene starts hidden. The prefab keeps these
         // objects active so they can be positioned in the editor.
         SetRevealObjectsActive(false);
@@ -211,6 +258,7 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         if (!_playing) return;
 
         StopAllCoroutines();
+        _maid?.Hide();
         SetSignsVisible(false);
         RestoreLamps();
         ApplyFinalState();
@@ -268,8 +316,9 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         {
             bool last = i == _pulseCount - 1;
 
-            // Dark gap - objects pop in while the player cannot see them
+            // Dark gap - objects pop in (and the maid vanishes) while the player cannot see
             SetLampsDark();
+            _maid?.Hide();
             if (i == _bodyBagPulse && _bodyBag != null)
             {
                 _bodyBag.SetActive(true);
@@ -290,8 +339,30 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
             if (last) PlayClip(_humClip);
             RevealDecals(i * decalsPerPulse, decalsPerPulse);
 
-            float onTime = last ? _finalHoldDuration : RandomRange(_pulseOnRange);
-            yield return new WaitForSeconds(onTime);
+            if (_maid != null && i == _maidBagPulse)
+            {
+                // Hands on the bag, then she looks over her shoulder at the player
+                _maid.Show(MaidApparition.SpotId.Bag, _bodyBag);
+                yield return new WaitForSeconds(_maidBagLookDelay);
+
+                _maid.LookAtPlayer(true);
+                PlayClip(_maidLookClip);
+                yield return new WaitForSeconds(_maidBagLookDuration);
+            }
+            else if (_maid != null && i == _maidGlassPulse)
+            {
+                // Hands slam onto the glass and she screams
+                _maid.Show(MaidApparition.SpotId.Glass);
+                _maid.Scream(_maidGlassDuration);
+                PlayClip(_glassThumpClip);
+                PlayClip(_screamClip);
+                yield return new WaitForSeconds(_maidGlassDuration);
+            }
+            else
+            {
+                float onTime = last ? _finalHoldDuration : RandomRange(_pulseOnRange);
+                yield return new WaitForSeconds(onTime);
+            }
 
             if (!last)
                 SetSignsVisible(false);
@@ -302,6 +373,7 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         if (_rubberDuck != null) _rubberDuck.SetActive(true);
 
         // Back to normal
+        _maid?.Hide();
         SetSignsVisible(false);
         PlayClip(_flickerClip);
         yield return FlickerRestore(_restoreFlickerDuration);
@@ -538,6 +610,8 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
             decal.fadeFactor = 0f;
             decal.gameObject.SetActive(true);
             StartCoroutine(FadeDecalIn(decal, DecalOpacity(i)));
+            if (_growFactor.ContainsKey(decal))
+                StartCoroutine(GrowDecal(decal));
         }
     }
 
@@ -553,6 +627,61 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
 
         if (decal != null)
             decal.fadeFactor = targetOpacity;
+    }
+
+    // ── Blood growth ──────────────────────────────────────────────────────────
+
+    private readonly Dictionary<DecalProjector, Vector3> _baseSize = new Dictionary<DecalProjector, Vector3>();
+    private readonly Dictionary<DecalProjector, float> _growFactor = new Dictionary<DecalProjector, float>();
+
+    /// <summary>Remembers the authored size of every growing decal and picks its (stable) growth factor.</summary>
+    private void PrepareGrowth()
+    {
+        _baseSize.Clear();
+        _growFactor.Clear();
+        if (_growingDecals == null) return;
+
+        float min = Mathf.Min(_decalGrowRange.x, _decalGrowRange.y);
+        float max = Mathf.Max(_decalGrowRange.x, _decalGrowRange.y);
+
+        for (int i = 0; i < _growingDecals.Length; i++)
+        {
+            DecalProjector decal = _growingDecals[i];
+            if (decal == null || _baseSize.ContainsKey(decal)) continue;
+
+            Vector3 size = decal.size;
+            float k = (i * 0.7548777f + 0.31f) % 1f;
+            float factor = Mathf.Lerp(min, max, k);
+            float biggest = Mathf.Max(size.x, size.y);
+            if (biggest > 0.01f)
+                factor = Mathf.Min(factor, _decalMaxGrownSize / biggest);
+
+            _baseSize[decal] = size;
+            _growFactor[decal] = Mathf.Max(1f, factor);
+        }
+    }
+
+    private Vector3 GrownSize(DecalProjector decal, float amount)
+    {
+        Vector3 size = _baseSize[decal];
+        float f = Mathf.Lerp(1f, _growFactor[decal], amount);
+        // Only the width and height grow, the projection depth stays (no paint on far objects)
+        return new Vector3(size.x * f, size.y * f, size.z);
+    }
+
+    private IEnumerator GrowDecal(DecalProjector decal)
+    {
+        float t = 0f;
+        while (t < _decalGrowDuration && decal != null)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / _decalGrowDuration);
+            decal.size = GrownSize(decal, 1f - (1f - k) * (1f - k)); // ease-out
+            yield return null;
+        }
+
+        if (decal != null)
+            decal.size = GrownSize(decal, 1f);
     }
 
     /// <summary>Stable pseudo-random opacity per decal (golden-ratio sequence), inside the configured range.</summary>
@@ -571,6 +700,8 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
                 DecalProjector decal = _bloodDecals[i];
                 if (decal == null) continue;
                 decal.fadeFactor = DecalOpacity(i);
+                if (_growFactor.ContainsKey(decal))
+                    decal.size = GrownSize(decal, active ? 1f : 0f);
                 decal.gameObject.SetActive(active);
             }
 
