@@ -1,11 +1,10 @@
 using UnityEngine;
 
 /// <summary>
-/// Spider horror effect with three phases:
+/// Spider horror effect with two phases:
 ///   1. Leap — plays the leap animation and lunges toward the leap target
 ///      (a scene object, or the player's camera if none assigned).
-///   2. Eat — plays the eating animation, standing still at the target.
-///   3. Escape — turns toward the flee point (or away from the player) and
+///   2. Escape — turns toward the flee point (or away from the player) and
 ///      crawls there, then disappears.
 /// Attach to a spider GameObject that is initially inactive.
 /// A HorrorEvent activates the GameObject; this script handles all phases
@@ -33,13 +32,6 @@ public class SpiderLeapScare : MonoBehaviour
              "Пусто = прежнее поведение (прыжок к камере игрока).")]
     [SerializeField] private Transform _leapTarget;
 
-    [Header("Eat (at the target)")]
-    [Tooltip("Name of the eating animation state (played at the leap target before fleeing).")]
-    [SerializeField] private string _eatStateName = "rig|eating";
-
-    [Tooltip("How long the spider eats before crawling to the flee point (seconds).")]
-    [SerializeField] private float _eatDuration = 2f;
-
     [Header("Escape (to the flee point)")]
     [Tooltip("Name of the run/walk animation state in the Animator Controller.")]
     [SerializeField] private string _fleeStateName = "rig|walk";
@@ -62,7 +54,7 @@ public class SpiderLeapScare : MonoBehaviour
 
     private const string PlayerTag = "Player";
 
-    private enum Phase { Leap, Eat, Escape }
+    private enum Phase { Leap, Escape }
 
     private const float LeapStartTimeout = 0.5f; // fallback if the leap state never plays
 
@@ -131,12 +123,11 @@ public class SpiderLeapScare : MonoBehaviour
         switch (_phase)
         {
             case Phase.Leap:   LeapPhase();   break;
-            case Phase.Eat:    EatPhase();    break;
             case Phase.Escape: EscapePhase(); break;
         }
     }
 
-    /// <summary>Lunges toward the leap target (or the player's camera); switches to eating when close or out of time.</summary>
+    /// <summary>Lunges toward the leap target (or the player's camera); switches to the escape phase when close or out of time.</summary>
     private void LeapPhase()
     {
         // Цель прыжка: назначенный объект, иначе камера игрока (прежнее поведение).
@@ -160,34 +151,12 @@ public class SpiderLeapScare : MonoBehaviour
             float dist = Vector3.Distance(transform.position, target.position);
             if (_phaseTimer >= _leapDuration || dist <= _leapStopDistance + 0.05f)
             {
-                StartEating();
+                StartEscape();
                 return;
             }
         }
 
         _phaseTimer += Time.deltaTime;
-    }
-
-    /// <summary>Spider lands at the target and eats for _eatDuration seconds.</summary>
-    private void StartEating()
-    {
-        _phase      = Phase.Eat;
-        _phaseTimer = 0f;
-        Debug.Log($"[SpiderLeapScare '{name}'] StartEating at pos={transform.position}", this);
-        if (_animator != null)
-        {
-            // Перезапуск компонента сбрасывает culling-кэш и гарантирует проигрыш eating.
-            _animator.enabled = false;
-            _animator.enabled = true;
-            _animator.Play(_eatStateName, 0, 0f);
-        }
-    }
-
-    private void EatPhase()
-    {
-        _phaseTimer += Time.deltaTime;
-        if (_phaseTimer >= _eatDuration)
-            StartEscape();
     }
 
     /// <summary>Turns toward the flee point (or away from the player) and crawls until arrival or timeout.</summary>
@@ -236,7 +205,7 @@ public class SpiderLeapScare : MonoBehaviour
         }
     }
 
-    /// <summary>Switches from eating to the escape phase and swaps the animation.</summary>
+    /// <summary>Switches to the escape phase and swaps the animation.</summary>
     private void StartEscape()
     {
         _phase      = Phase.Escape;
