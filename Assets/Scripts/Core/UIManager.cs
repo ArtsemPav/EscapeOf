@@ -64,7 +64,8 @@ public class UIManager : MonoBehaviour
             _playerController.ResetInteractionCache();
         }
 
-        InteractionUI.Instance?.SetHint(false);
+        // Скрываем весь HUD взаимодействия (кружок + подсказку), пока открыта любая панель.
+        InteractionUI.Instance?.SetVisible(false);
     }
 
     /// <summary>
@@ -87,6 +88,9 @@ public class UIManager : MonoBehaviour
             // Сбрасываем кеш — следующий кадр Update() переопределит объект под прицелом
             // и снова покажет подсказку если нужно.
             _playerController?.ResetInteractionCache();
+
+            // Все панели закрыты — возвращаем HUD взаимодействия.
+            InteractionUI.Instance?.SetVisible(true);
         }
     }
 
@@ -100,6 +104,7 @@ public class UIManager : MonoBehaviour
         GameManager.Instance?.UpdateCursorState();
         _playerController?.SetPlayerInputEnabled(true);
         _playerController?.ResetInteractionCache();
+        InteractionUI.Instance?.SetVisible(true);
     }
 
     /// <summary>
@@ -131,6 +136,9 @@ public class UIManager : MonoBehaviour
         {
             _playerController?.SetPlayerInputEnabled(true);
             _playerController?.ResetInteractionCache();
+
+            // Все модальные состояния закрыты — возвращаем HUD взаимодействия.
+            InteractionUI.Instance?.SetVisible(true);
         }
     }
 }
