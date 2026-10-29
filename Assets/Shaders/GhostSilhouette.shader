@@ -60,6 +60,10 @@ Shader "Custom/GhostSilhouette"
                 half4 _MistColor;
                 half _DistortStrength;
                 half _WarpVisibility;
+                half _DISSOLVE_ON;
+                half _Dissolve;
+                half _DissolveEdgeWidth;
+                half4 _DissolveEdgeColor;
             CBUFFER_END
             #include "GhostSilhouetteNoise.hlsl"
 
@@ -107,6 +111,10 @@ Shader "Custom/GhostSilhouette"
                 half4 _MistColor;
                 half _DistortStrength;
                 half _WarpVisibility;
+                half _DISSOLVE_ON;
+                half _Dissolve;
+                half _DissolveEdgeWidth;
+                half4 _DissolveEdgeColor;
             CBUFFER_END
             #include "GhostSilhouetteNoise.hlsl"
 
@@ -173,6 +181,10 @@ Shader "Custom/GhostSilhouette"
                 half4 _MistColor;
                 half _DistortStrength;
                 half _WarpVisibility;
+                half _DISSOLVE_ON;
+                half _Dissolve;
+                half _DissolveEdgeWidth;
+                half4 _DissolveEdgeColor;
                 half4 _SparkleColor;
                 half _SparkleIntensity;
                 half _SparkleDensity;

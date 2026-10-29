@@ -1,11 +1,10 @@
 #ifndef GHOST_SILHOUETTE_NOISE_INCLUDED
 #define GHOST_SILHOUETTE_NOISE_INCLUDED
 
-// Optional dissolve controls; defaults keep it fully off.
-float _DISSOLVE_ON;
-half _Dissolve;
-half _DissolveEdgeWidth;
-half4 _DissolveEdgeColor;
+// Dissolve uniforms (_DISSOLVE_ON, _Dissolve, _DissolveEdgeWidth,
+// _DissolveEdgeColor) are declared in the material's UnityPerMaterial
+// CBUFFER in the .shader file — the SRP Batcher only uploads per-material
+// values for CBUFFER members, so they must live there.
 
 float2 GhostHash2(float2 p)
 {

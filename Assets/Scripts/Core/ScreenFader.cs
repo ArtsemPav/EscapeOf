@@ -28,6 +28,9 @@ public class ScreenFader : MonoBehaviour
         _canvasGroup.blocksRaycasts = false;
     }
 
+    /// <summary>Current fade overlay alpha (0 = clear, 1 = black).</summary>
+    public float CurrentAlpha => _canvasGroup != null ? _canvasGroup.alpha : 0f;
+
     /// <summary>Fades the screen to black over the default duration.</summary>
     public Coroutine FadeIn() => FadeIn(_defaultFadeDuration);
 

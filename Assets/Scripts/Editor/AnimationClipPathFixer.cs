@@ -149,8 +149,11 @@ public static class AnimationClipPathFixer
                 // and rebase onto the prefix ("maidMain/Armature").
                 var sourcePath = b.path;
                 var mixamoIndex = sourcePath.IndexOf("mixamorig:");
-                var restPath = mixamoIndex > 0 ? sourcePath.Substring(mixamoIndex) : "";
-                rebased.path = restPath.Length > 0 ? prefix + "/" + restPath : prefix;
+                // Bones may already start AT the Animator root (paths begin with
+                // "mixamorig:", index 0) — there is nothing to cut, keep the path
+                // as is. Only strip root segments when the skeleton sits deeper.
+                var restPath = mixamoIndex > 0 ? sourcePath.Substring(mixamoIndex) : sourcePath;
+                rebased.path = prefix.Length > 0 ? prefix + "/" + restPath : restPath;
                 AnimationUtility.SetEditorCurve(clip, rebased, curve);
                 changedCurves++;
             }

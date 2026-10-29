@@ -52,6 +52,10 @@ public class MainMenuItemBtn : BaseButton
         Time.timeScale = 1f;
         AudioListener.pause = false;
 
+        // The interaction panel renders above the loading screen — hide the
+        // crosshair and hint HUD for the duration of the transition.
+        InteractionUI.Instance?.SetVisible(false);
+
         if (_loadingScreen == null)
         {
             Debug.LogWarning("MainMenuItemBtn: Loading screen is not assigned, loading scene directly.", this);
