@@ -5601,10 +5601,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2558556392371781558}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -5674,6 +5670,10 @@ PrefabInstance:
       value: PRF_PaperNoteRoom5 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -6421,10 +6421,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8030864556830515540}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: 7635ca297a3838a4fba82d42e460b421, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -6494,6 +6490,10 @@ PrefabInstance:
       value: PRF_PaperNoteRoom5 2
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 7635ca297a3838a4fba82d42e460b421, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -6906,6 +6906,9 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 5014919055487519320}
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9155267830336754690}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7763760545248229845}
@@ -6972,6 +6975,27 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+--- !u!1 &4607107038221133208 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+  m_PrefabInstance: {fileID: 4606013632078596906}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &9155267830336754690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4607107038221133208}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e187649f7277f574683a82102746b633, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
+  _zoneId: Room5
+  _renderers: []
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &4781006694502376132
 PrefabInstance:
   m_ObjectHideFlags: 0
