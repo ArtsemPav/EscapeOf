@@ -47,9 +47,11 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
     private readonly HashSet<string> _playedOnceTrackNames = new HashSet<string>();
     private readonly Dictionary<MusicTrack, AudioSource> _sourcePool = new Dictionary<MusicTrack, AudioSource>();
-    // Zone requests rejected while a horror mute held the soundscape. Stacked:
-    // on restore only the LAST pending zone fires — the others are stale.
-    private readonly List<(MusicTrack track, bool playOnce)> _pendingMutedRequests = new List<(MusicTrack, bool)>();
+    // Zone requests that could not fire immediately: rejected by the horror
+    // mute or by the min-switch-interval anti-flicker window. Stacked — on
+    // replay only the LAST pending zone fires, the others are stale.
+    private readonly List<(MusicTrack track, bool playOnce)> _pendingZoneRequests = new List<(MusicTrack, bool)>();
+    private Coroutine _pendingZoneCoroutine;
     // All MusicTrack assets seen this session (registered by zones and Start).
     // Static so zones can register in Awake() before the director's Instance exists.
     private static readonly Dictionary<string, MusicTrack> KnownTracks = new Dictionary<string, MusicTrack>();
@@ -313,7 +315,8 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
     /// <summary>
     /// Requests a track to play. If the same track is already active the request is ignored;
-    /// otherwise the director crossfades to it and remembers the previous track for ClearTrack.
+    /// otherwise the director IMMEDIATELY crossfades to it — the playing track fades out
+    /// while the new one fades in. The newest request always wins.
     /// Tracks already played with playOnce are skipped.
     /// While a horror mute is held the request is not lost — it is queued and replayed
     /// when the last mute owner releases.
@@ -326,12 +329,34 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (MusicDirector.MutedForEvent) {
             // The horror event owns the soundscape — remember which zone the
             // player walked into and fire it once the mute lifts.
-            if (!Instance._pendingMutedRequests.Exists(p => p.track == track))
-                Instance._pendingMutedRequests.Add((track, playOnce));
+            if (!Instance._pendingZoneRequests.Exists(p => p.track == track))
+                Instance._pendingZoneRequests.Add((track, playOnce));
             Debug.Log($"[Music] RequestTrack '{track.name}' QUEUED: muted for horror event, will replay on restore");
+            if (Instance._pendingZoneCoroutine == null)
+                Instance._pendingZoneCoroutine = Instance.StartCoroutine(Instance.PendingZoneRoutine());
             return false;
         }
         return Instance.RequestTrackInternal(track, playOnce);
+    }
+
+    /// <summary>
+    /// Waits for the horror mute to lift, then fires the newest queued zone.
+    /// </summary>
+    private IEnumerator PendingZoneRoutine() {
+        while (_pendingZoneRequests.Count > 0) {
+            yield return null;
+
+            if (MutedForEvent) continue;
+            if (GameManager.Instance != null && GameManager.Instance.IsPaused) continue;
+
+            (MusicTrack pending, bool pendingPlayOnce) = _pendingZoneRequests[_pendingZoneRequests.Count - 1];
+            _pendingZoneRequests.Clear();
+            _pendingZoneCoroutine = null;
+            Debug.Log($"[Music] Pending zone request '{pending.name}' -> replaying after mute");
+            RequestTrackInternal(pending, pendingPlayOnce);
+            yield break;
+        }
+        _pendingZoneCoroutine = null;
     }
 
     /// <summary>
@@ -384,7 +409,9 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private bool RequestTrackInternal(MusicTrack track, bool playOnce) {
         if (MutedForEvent) { Debug.Log($"[Music] RequestTrack '{track.name}' REJECTED: muted for horror event"); return false; } // horror event owns the music — requests are queued out
         if (_activeTrack == track) return true;
-        if (Time.unscaledTime - _lastSwitchTime < _minSwitchInterval) { Debug.Log($"[Music] RequestTrack '{track.name}' REJECTED: min switch interval ({_minSwitchInterval}s)"); return false; }
+
+        // No anti-flicker interval here anymore: the newest request always
+        // wins immediately — the old track fades out under the new one.
 
         if (playOnce) _playedOnceTrackNames.Add(track.name);
 
@@ -492,16 +519,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         Instance._preDuckVolume = -1f; // a duck interrupted by the event must not restore a stale level
 
         // The menu owns the music — nothing to restore until the menu closes.
+        // A zone queued during the mute is replayed by PendingZoneRoutine —
+        // it waits out the menu too, and until then the pre-event track
+        // refades below as usual.
         if (Instance._menuMusicActive) return;
-
-        // A zone the player walked into during the mute wins over the old
-        // track — it fires now (the queued list collapses to its last entry).
-        if (Instance._pendingMutedRequests.Count > 0) {
-            (MusicTrack pending, bool pendingPlayOnce) = Instance._pendingMutedRequests[Instance._pendingMutedRequests.Count - 1];
-            Instance._pendingMutedRequests.Clear();
-            Debug.Log($"[Music] RestoreAfterEvent — replaying queued zone track '{pending.name}'");
-            if (Instance.RequestTrackInternal(pending, pendingPlayOnce)) return;
-        }
 
         // Refade the track that was active before the event; FadeRoutine
         // un-pauses the pooled source and brings its volume back up.

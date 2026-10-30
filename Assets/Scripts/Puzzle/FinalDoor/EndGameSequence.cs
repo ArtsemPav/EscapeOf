@@ -700,10 +700,12 @@ public class EndGameSequence : MonoBehaviour
     /// <summary>
     /// The ending's last beats, driven by the MUSIC's own clock (the track's
     /// remaining time to the final chord):
-    ///   remaining <= 6s   - the screen dims (not to full black);
-    ///   remaining <= 4.5s - the crowd bursts into sparks and dissolves;
-    ///   remaining <= 1.5s - the final dip to full black;
+    ///   remaining <= 3.5s - the screen dims (not to full black);
+    ///   remaining <= 2.5s - the crowd bursts into sparks and dissolves;
+    ///   remaining <= 1s   - the final dip to full black;
     ///   0                 - the final chord lands on the black screen.
+    /// Without music the beats run on a nominal 10 s countdown instead of
+    /// collapsing into one frame.
     /// </summary>
     private IEnumerator MusicSyncFinaleRoutine()
     {
@@ -712,13 +714,39 @@ public class EndGameSequence : MonoBehaviour
         bool blackStarted = false;
         float guard = 0f;
 
+        // The beats run on the music's clock (seconds to the final chord).
+        // When the music is unavailable (-1) or the sequence already overran
+        // the chord, a NOMINAL countdown keeps the beats in ORDER instead of
+        // firing dim/burst/black in the same frame - the doctor's departure
+        // stays visible either way.
+        float chordRemaining = GetChordTimeRemaining();
+        bool musicClock = chordRemaining > 0f; // 0 means the chord already passed
+        if (chordRemaining < MinFinaleWindowSeconds)
+            chordRemaining = MinFinaleWindowSeconds;
+        if (_debugLogging)
+            Debug.Log($"[EndGameSequence] Finale beats: musicClock={musicClock}, " +
+                      $"chordWindow={chordRemaining:F1}s");
+
+        float lastKnownRemaining = -1f; // the music clock's last live reading
+        float noMusicElapsed = 0f;      // seconds since the music clock died
         while (guard < 180f)
         {
             if (_skipRequested) yield break;
             guard += Time.deltaTime;
 
-            float remaining = GetChordTimeRemaining();
-            if (remaining < 0f) remaining = 0f; // the music is over - run the beats now
+            float remaining = musicClock ? GetChordTimeRemaining() : -1f;
+            if (remaining < 0f)
+            {
+                // The music is over (or never played) - count down the
+                // nominal window from where the music clock left off.
+                if (lastKnownRemaining < 0f) lastKnownRemaining = chordRemaining;
+                noMusicElapsed += Time.deltaTime;
+                remaining = Mathf.Max(0f, lastKnownRemaining - noMusicElapsed);
+            }
+            else
+            {
+                lastKnownRemaining = remaining;
+            }
 
             if (!dimStarted && remaining <= 3.5f)
             {
@@ -739,6 +767,11 @@ public class EndGameSequence : MonoBehaviour
             yield return null;
         }
     }
+
+    /// <summary>The shortest stretch the farewell beats spread over when the
+    /// music's clock is missing or exhausted - keeps the doctor's departure
+    /// on screen instead of collapsing the whole finale into one frame.</summary>
+    private const float MinFinaleWindowSeconds = 10f;
 
     /// <summary>Fades the screen to the partial dim level (not full black).</summary>
     private IEnumerator FadeToDimRoutine(float duration)
@@ -788,9 +821,10 @@ public class EndGameSequence : MonoBehaviour
         flat.y = 0f;
         float distance = flat.magnitude;
 
-        // The time budget: everything left until the final chord.
+        // The time budget: everything left until the final chord. Without the
+        // music this is the walk's own budget - the departure still plays out.
         float timeToChord = GetChordTimeRemaining();
-        if (timeToChord < 0f) timeToChord = 8f;
+        if (timeToChord < 0f) timeToChord = MinFinaleWindowSeconds;
 
         // The walk clip's loop must carry him the whole distance in that time.
         // WalkPace = clip playback multiplier (the authored stride speed is
@@ -828,9 +862,10 @@ public class EndGameSequence : MonoBehaviour
 
             // The music's clock rules: when the chord lands, the walk is over
             // no matter the distance - the dark screen and the credits are up.
-            // Without music the fallback budget (timeToChord) caps the walk,
-            // so the credits never wait out the full 30 s timeout.
-            if (GetChordTimeRemaining() <= 0f || elapsed >= timeToChord)
+            // GetChordTimeRemaining() < 0 means NO music - never a reason to
+            // cut the walk; the budget (timeToChord) caps it instead.
+            float remaining = GetChordTimeRemaining();
+            if (remaining >= 0f && (remaining <= 0f || elapsed >= timeToChord))
                 break;
 
             Vector3 toTarget = _portalWalkTarget.position - _shadow.position;
