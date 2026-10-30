@@ -53,8 +53,12 @@ public class MainMenuController : MonoBehaviour
 
     private readonly List<Button> _soundWiredButtons = new List<Button>();
 
+    private GraphicRaycaster _canvasRaycaster;
+    private bool _inputLocked;
+
     private void Awake()
     {
+        _canvasRaycaster = GetComponent<GraphicRaycaster>();
         WireMenuSounds();
     }
 
@@ -119,6 +123,8 @@ public class MainMenuController : MonoBehaviour
     /// requests the intro — a single decision point for all entry paths.</remarks>
     public void OnNewGame()
     {
+        if (_inputLocked) return;
+
         SaveManager.StartNewGame(DefaultSaveSlot);
         BeginGameTransition();
     }
@@ -128,6 +134,8 @@ public class MainMenuController : MonoBehaviour
     /// loadable, even if the button was still visible for a frame.</remarks>
     public void OnLoadGame()
     {
+        if (_inputLocked) return;
+
         if (!SaveManager.SlotHasSave(DefaultSaveSlot))
         {
             Debug.LogWarning("MainMenuController: Load skipped — no save file found.", this);
@@ -145,6 +153,13 @@ public class MainMenuController : MonoBehaviour
     /// </summary>
     private void BeginGameTransition()
     {
+        if (_inputLocked) return;
+        _inputLocked = true;
+
+        // Block all pointer input on the canvas for the whole transition
+        // (camera push + fades): no more hovers or clicks on menu buttons.
+        if (_canvasRaycaster != null) _canvasRaycaster.enabled = false;
+
         // The loading screen takes over: menu music fades to silence while the
         // bar fills, so the gameplay scene starts from a clean soundscape
         // (GameManager.SetPause → PlayGameMusic starts Explore_Main from zero).
@@ -178,6 +193,8 @@ public class MainMenuController : MonoBehaviour
     /// <summary>Opens the settings panel and hides the main menu block.</summary>
     public void OnSettings()
     {
+        if (_inputLocked) return;
+
         if (_settingsPanel == null)
         {
             Debug.LogWarning("MainMenuController: Settings panel is not assigned.", this);
@@ -191,6 +208,8 @@ public class MainMenuController : MonoBehaviour
     /// <summary>Closes the settings panel and shows the main menu block again.</summary>
     public void OnSettingsClosed()
     {
+        if (_inputLocked) return;
+
         if (_settingsPanel != null) _settingsPanel.SetActive(false);
         if (_menuRoot != null) _menuRoot.SetActive(true);
     }
@@ -198,6 +217,8 @@ public class MainMenuController : MonoBehaviour
     /// <summary>Quits the application. In Editor exits Play mode instead.</summary>
     public void OnExit()
     {
+        if (_inputLocked) return;
+
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
