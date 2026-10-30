@@ -19,6 +19,15 @@ public class FootstepZone : MonoBehaviour
     private Collider _collider;
     private FootstepController _controller;
 
+    // Capsule overlap test: sample points along the player's vertical axis and require
+    // each to be within capsule radius of the zone collider. Mirrors the condition Unity
+    // uses for OnTriggerEnter (CharacterController capsule overlap), so a zone that fired
+    // the event always survives the staleness check, and one the player truly left is dropped.
+    private const float CapsuleSampleBottom = 0.2f;
+    private const float CapsuleSampleTop = 1.8f;
+    private const float CapsuleSampleStep = 0.4f;
+    private const float PlayerRadiusTolerance = 0.3f;
+
     public FootstepProfile Profile => profile;
     public int Priority => priority;
 
@@ -57,11 +66,30 @@ public class FootstepZone : MonoBehaviour
     }
 
     /// <summary>
-    /// True when the zone's collider is enabled and contains the world point.
-    /// Used by FootstepController to drop stale zones that never received OnTriggerExit.
+    /// True when the zone's collider is enabled and overlaps the player's capsule volume.
+    /// Samples points along the player's vertical axis and measures their distance to the
+    /// collider with a capsule-radius tolerance — this mirrors the condition Unity uses for
+    /// OnTriggerEnter/OnTriggerExit (CharacterController capsule overlap), so the staleness
+    /// check in FootstepController.ResolveCurrentProfile stays consistent with the physics
+    /// events and never drops a zone the player is actually standing in.
     /// </summary>
     public bool ContainsPoint(Vector3 point)
     {
-        return _collider != null && _collider.enabled && _collider.bounds.Contains(point);
+        if (_collider == null || !_collider.enabled)
+            return false;
+
+        for (float height = CapsuleSampleBottom; height <= CapsuleSampleTop; height += CapsuleSampleStep)
+        {
+            Vector3 sample = point + Vector3.up * height;
+            if (_collider.bounds.Contains(sample))
+                return true;
+
+            // Outside the AABB — allow samples within the player capsule radius of the collider.
+            Vector3 closest = _collider.ClosestPoint(sample);
+            if ((closest - sample).sqrMagnitude <= PlayerRadiusTolerance * PlayerRadiusTolerance)
+                return true;
+        }
+
+        return false;
     }
 }

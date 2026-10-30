@@ -177,6 +177,7 @@ public class FootstepController : MonoBehaviour
     {
         if (zone == null || _activeZones.Contains(zone)) return;
         _activeZones.Add(zone);
+        Debug.Log($"[FootstepDebug] RegisterZone: {zone.name} (profile={zone.Profile?.name}, priority={zone.Priority}), activeZones={_activeZones.Count}");
     }
 
     /// <summary>Removes a zone from the active set. Called by FootstepZone.OnTriggerExit.</summary>
@@ -184,6 +185,7 @@ public class FootstepController : MonoBehaviour
     {
         if (zone == null) return;
         _activeZones.Remove(zone);
+        Debug.Log($"[FootstepDebug] UnregisterZone: {zone.name}, activeZones={_activeZones.Count}");
     }
 
     /// <summary>
@@ -198,7 +200,9 @@ public class FootstepController : MonoBehaviour
         // Drop stale zones whose collider no longer contains the player
         // (teleport, save load, or a disabled collider never fired OnTriggerExit).
         Vector3 playerPos = transform.position;
-        _activeZones.RemoveAll(zone => zone == null || !zone.ContainsPoint(playerPos));
+        int removedCount = _activeZones.RemoveAll(zone => zone == null || !zone.ContainsPoint(playerPos));
+        if (removedCount > 0)
+            Debug.Log($"[FootstepDebug] ResolveCurrentProfile dropped {removedCount} stale zone(s), playerPos={playerPos}");
 
         if (_activeZones.Count == 0)
             return defaultProfile;
@@ -210,7 +214,11 @@ public class FootstepController : MonoBehaviour
             if (best == null || z.Priority >= best.Priority)
                 best = z;
         }
-        return best != null ? best.Profile : defaultProfile;
+
+        FootstepProfile resolved = best != null ? best.Profile : defaultProfile;
+        if (resolved != _currentProfile)
+            Debug.Log($"[FootstepDebug] Resolved profile changed: {_currentProfile?.name ?? "null"} -> {resolved?.name} (zone={best?.name})");
+        return resolved;
     }
 
     /// <summary>
@@ -262,6 +270,8 @@ public class FootstepController : MonoBehaviour
 
         bool  isLeft      = (_stepCount % 2) == 0;
         float baseVolume  = _fps.IsCrouching ? crouchVolume : _fps.IsRunning ? runVolume : walkVolume;
+
+        Debug.Log($"[FootstepDebug] PlayStep: profile={_currentProfile.name}, mode={_currentProfile.Mode}, foot={(isLeft ? "L" : "R")}, baseVolume={baseVolume:F2}, transitioning={_isTransitioning}");
 
         if (_currentProfile.Mode == FootstepProfile.BlendMode.Additive)
         {
