@@ -20,7 +20,7 @@ public class EndGameCreditsView : MonoBehaviour
     [SerializeField] private CanvasGroup _canvasGroup;
 
     [Tooltip("Fade-in duration of the credits overlay background.")]
-    [SerializeField, Min(0.1f)] private float _fadeInDuration = 2f;
+    [SerializeField, Min(0.1f)] private float _fadeInDuration = 1.2f;
 
     [Header("Credits Entries")]
     [Tooltip("Credits lines shown one by one before the final thanks text.")]
@@ -50,6 +50,8 @@ public class EndGameCreditsView : MonoBehaviour
     [SerializeField] private bool _deleteSaveOnFinish = true;
 
     private const int DefaultSaveSlot = 0;
+
+    private bool _overlayFadedIn;
 
     private void Awake()
     {
@@ -86,17 +88,40 @@ public class EndGameCreditsView : MonoBehaviour
         return StartCoroutine(CreditsRoutine());
     }
 
-    private IEnumerator CreditsRoutine()
+    /// <summary>
+    /// Fades the black overlay in ONCE, on unscaled time, and returns when it
+    /// is fully opaque. Call this BEFORE releasing the game's cameras - under
+    /// the ScreenFader's black it is invisible, and it guarantees the credits
+    /// never appear over the 3D scene while cameras are still blending.
+    /// </summary>
+    public Coroutine FadeOverlayIn()
     {
-        if (_canvasGroup == null) yield break;
+        if (_overlayFadedIn || _canvasGroup == null) return null;
+        _overlayFadedIn = true;
+        return StartCoroutine(FadeOverlayRoutine());
+    }
 
-        // 1. Fade the black overlay in.
+    private IEnumerator FadeOverlayRoutine()
+    {
         float elapsed = 0f;
         while (elapsed < _fadeInDuration)
         {
             elapsed += Time.unscaledDeltaTime;
             _canvasGroup.alpha = Mathf.Clamp01(elapsed / _fadeInDuration);
             yield return null;
+        }
+        _canvasGroup.alpha = 1f;
+    }
+
+    private IEnumerator CreditsRoutine()
+    {
+        if (_canvasGroup == null) yield break;
+
+        // 1. Fade the black overlay in (skip if FadeOverlayIn already did it).
+        if (!_overlayFadedIn)
+        {
+            _overlayFadedIn = true;
+            yield return FadeOverlayRoutine();
         }
         _canvasGroup.alpha = 1f;
         _canvasGroup.blocksRaycasts = true;
