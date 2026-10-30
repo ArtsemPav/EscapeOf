@@ -31,6 +31,7 @@ namespace Escape.Core {
 
         private float _lastProgressTime;
         private bool _idleTrackRequested;
+        private bool _idleCuePlayedOnce; // the hint fires only ONCE per session — never repeats
         private bool _puzzleModeActive;
 
         private void OnEnable() {
@@ -53,7 +54,7 @@ namespace Escape.Core {
 
         private void Update() {
             if (_puzzleModeActive) return; // solving counts as progress — the timer holds
-            if (_idleTrack == null || _idleTrackRequested) return;
+            if (_idleTrack == null || _idleTrackRequested || _idleCuePlayedOnce) return;
             if (GameManager.Instance != null && GameManager.Instance.IsPaused) return; // pause menu owns the music
 
             if (Time.unscaledTime - _lastProgressTime < _idleThreshold) return;
@@ -64,8 +65,9 @@ namespace Escape.Core {
             if (MusicDirector.Instance == null || !MusicDirector.Instance.IsDefaultTrackActive) return;
 
             _idleTrackRequested = true;
+            _idleCuePlayedOnce = true;
             MusicDirector.RequestIdleCueTrack(_idleTrack);
-            Debug.Log($"[IdleMusic] {Time.unscaledTime - _lastProgressTime:0}s without progress -> idle track '{_idleTrack.name}'");
+            Debug.Log($"[IdleMusic] {Time.unscaledTime - _lastProgressTime:0}s without progress -> idle track '{_idleTrack.name}' (one-shot for this session)");
         }
 
         /// <summary>A solved puzzle resets the idle timer and restores the default track.</summary>

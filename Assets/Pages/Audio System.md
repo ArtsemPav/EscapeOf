@@ -7,6 +7,7 @@
 На `GameManager` в Game.unity. Если игрок `_idleThreshold` секунд (120, меняется в инспекторе) не решил ни одной загадки и не открыл ни одной двери — просит `MusicDirector` включить трек `Idle_Hint` (`S_Abbys.aif`); первый же прогресс возвращает прежний трек. Источники прогресса: `ProgressLogger.PuzzleSolved` и `DoorInteraction.DoorOpened`. Таймер на unscaled-времени, на паузе не тикает.
 
 Правила приоритета:
+- cue срабатывает **один раз за сессию** (`_idleCuePlayedOnce`) — после первого включения больше не повторяется;
 - cue включается **только поверх дефолтного трека** (`MusicDirector.IsDefaultTrackActive`) — зонную музыку не перебивает, ждёт её окончания (fallback вернёт дефолт);
 - первый прогресс (решённый паззл / открытая дверь) уводит cue назад в дефолт (`ClearTrack`);
 - вход в режим паззла (`PuzzleModeController.PuzzleModeStarted`) тоже уводит cue и замораживает таймер, выход (`PuzzleModeEnded`) обнуляет отсчёт;
