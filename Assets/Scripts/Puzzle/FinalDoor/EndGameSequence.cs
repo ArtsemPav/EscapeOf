@@ -70,14 +70,11 @@ public class EndGameSequence : MonoBehaviour
     [SerializeField, Min(0f)] private float _shadowStartDelay = 1.2f;
     [SerializeField] private string _shadowIdleStateName = "Idle";
     [SerializeField] private string _shadowTurnStateName = "Turn";
-    [SerializeField] private string _shadowSadStateName = "Sad";
     [SerializeField] private string _shadowWalkStateName = "Walk";
-    [SerializeField, Min(0.1f)] private float _shadowWalkSpeed = 0.3f;
+    [SerializeField, Min(0.1f)] private float _shadowWalkSpeed = 1.45f;
     [SerializeField] private Transform _portalWalkTarget;
     [SerializeField, Min(0.05f)] private float _shadowArrivalDistance = 0.5f;
     [SerializeField, Min(2f)] private float _shadowMaxWalkDuration = 30f;
-    [SerializeField, Min(1)] private int _sadCycles = 1;
-    [SerializeField, Min(0f)] private float _sadSettleDelay = 1.5f;
     [SerializeField, Min(0f)] private float _walkFaceTurnDuration = 0.6f;
 
     [Header("Crowd Dissolve (the world's farewell)")]
@@ -93,6 +90,10 @@ public class EndGameSequence : MonoBehaviour
              "finale is paced backwards from this moment.")]
     [SerializeField, Min(1f)] private float _finalChordTime = 53f;
 
+    [Tooltip("How many seconds BEFORE the final chord the doctor starts his turn. " +
+             "The walk then fills the rest of the time (its pace adapts automatically).")]
+    [SerializeField, Min(2f)] private float _turnLeadTime = 12f;
+
     [Header("Portal")]
     [SerializeField] private PortalFunnelController _portal;
 
@@ -104,7 +105,8 @@ public class EndGameSequence : MonoBehaviour
 
     [Header("Fade & Credits")]
     [SerializeField, Min(0f)] private float _startDelay = 2f;
-    [SerializeField, Min(0.1f)] private float _fadeDuration = 2.5f;
+    [Tooltip("Duration of the final dip to black before the credits.")]
+    [SerializeField, Min(0.1f)] private float _fadeDuration = 1.2f;
     [SerializeField] private EndGameCreditsView _creditsView;
 
     [Header("Post Processing (temporary, ending only)")]
@@ -148,6 +150,17 @@ public class EndGameSequence : MonoBehaviour
 
         if (_creditsView == null)
             _creditsView = FindFirstObjectByType<EndGameCreditsView>(FindObjectsInactive.Include);
+
+        // Fallback: the credits canvas may be deleted/recreated - find by name.
+        if (_creditsView == null)
+        {
+            var canvasRoot = GameObject.Find("Canvas");
+            if (canvasRoot != null)
+            {
+                var child = canvasRoot.transform.Find("EndGameCredits");
+                if (child != null) _creditsView = child.GetComponent<EndGameCreditsView>();
+            }
+        }
 
         if (_portal == null)
             _portal = FindFirstObjectByType<PortalFunnelController>(FindObjectsInactive.Include);
@@ -620,30 +633,29 @@ public class EndGameSequence : MonoBehaviour
         StartCoroutine(MusicSyncFinaleRoutine());
 
         // The doctor's beats, all on the chord's clock:
-        //   first a short idle (he just stands there, watching the patients),
-        //   then the grief (one Sad cycle),
-        //   then the turn to the portal,
-        //   then the slow walk - the arrival lands on the final chord.
-        float idleBudget = Mathf.Min(_shadowStartDelay, Mathf.Max(GetChordTimeRemainingSafe() - 20f, 0.4f));
-        yield return HoldWithSkip(idleBudget);
+        //   he STANDS (idle) watching the patients until _turnLeadTime
+        //   seconds before the chord - then turns and walks, the arrival
+        //   lands right on the chord.
+        float chordRemainingNow = GetChordTimeRemainingSafe();
+        float waitToTurn = Mathf.Max(chordRemainingNow - _turnLeadTime, 0.3f);
+        yield return HoldWithSkip(waitToTurn);
         if (_skipRequested) yield break;
 
-        // THE GRIEF: one cycle of the Sad facing the patients.
-        _shadowAnimator.SetTrigger(_shadowSadStateName);
-        yield return WaitForSadCycles(_sadCycles, _sadSettleDelay);
-        if (_skipRequested) yield break;
-
-        // THE CHORD: fire the turn (Sad->Turn crossfade).
+        // THE CHORD APPROACH: fire the turn - the CLIP itself rotates the
+        // skeleton through the half-turn. The ROOT's job is to keep the
+        // RENDERED orientation seamless: while the Turn->Walk crossfade
+        // un-blends the clip's hip rotation, the root tweens by the same
+        // offset, so the figure's world yaw never jumps and the walk starts
+        // already facing the walk direction.
         _shadowAnimator.SetTrigger("Turn");
-        yield return WaitForStateFinish(_shadowAnimator, _shadowTurnStateName, _shadowMaxWalkDuration);
+        yield return WaitForStateFinish(_shadowAnimator, _shadowTurnStateName);
         if (_skipRequested) yield break;
 
-        // Same-frame handoff: the root flips onto the hips' yaw AND the Walk
-        // state starts (zero crossfade) - the rendered direction stays
-        // exactly constant. A tweened flip would desync from the instant
-        // state switch and make the figure visibly spin.
-        FlipShadowRootOntoHips();
+        // The crossfade Turn->Walk un-winds the hips' clip rotation; move the
+        // same amount into the root IN SYNC so the visual direction is fixed.
         _shadowAnimator.SetTrigger(_shadowWalkStateName);
+        yield return FlipRootDuringWalkRoutine(0.4f);
+        if (_skipRequested) yield break;
 
         yield return ShadowWalkRoutine();
     }
@@ -663,6 +675,15 @@ public class EndGameSequence : MonoBehaviour
         }
 
         float rigYaw = _shadow.eulerAngles.y;
+        // CRITICAL: the offset must be in [0..360) form, NOT the shortest
+        // DeltaAngle! The crossfade unwinds the hips from +186 to 0 (a
+        // -186 sweep), so the root must rise by +186 in the SAME direction -
+        // DeltaAngle would return -174 and the figure would visibly spin
+        // back around before walking.
+        // The crossfade blends the hips' rotation by the quaternion's SHORTEST
+        // path: from -174 to 0 (RISING +174), NOT from +186 down. So the root
+        // must FALL by DeltaAngle (-174) in sync - the sum stays constant.
+        // Repeat (+186) would add to the rise and spin the figure a full 360.
         float rel = Mathf.DeltaAngle(rigYaw, hips.eulerAngles.y);
 
         float t = 0f;
@@ -699,17 +720,17 @@ public class EndGameSequence : MonoBehaviour
             float remaining = GetChordTimeRemaining();
             if (remaining < 0f) remaining = 0f; // the music is over - run the beats now
 
-            if (!dimStarted && remaining <= 6f)
+            if (!dimStarted && remaining <= 3.5f)
             {
                 dimStarted = true;
-                StartCoroutine(FadeToDimRoutine(_fadeDuration * 0.8f));
+                StartCoroutine(FadeToDimRoutine(_fadeDuration));
             }
-            if (!burstStarted && remaining <= 4.5f)
+            if (!burstStarted && remaining <= 2.5f)
             {
                 burstStarted = true;
                 StartCoroutine(CrowdDissolveRoutine());
             }
-            if (!blackStarted && remaining <= 1.5f)
+            if (!blackStarted && remaining <= 1f)
             {
                 blackStarted = true;
                 StartCoroutine(FadeOutRoutine());
@@ -772,9 +793,9 @@ public class EndGameSequence : MonoBehaviour
         if (timeToChord < 0f) timeToChord = 8f;
 
         // The walk clip's loop must carry him the whole distance in that time.
-        // WalkPace = clip playback multiplier (the authored stride is ~1.45 m/s
-        // of movement at pace 1).
-        float strideSpeed = 1.45f;
+        // WalkPace = clip playback multiplier (the authored stride speed is
+        // the serialized _shadowWalkSpeed).
+        float strideSpeed = _shadowWalkSpeed;
         float pace = Mathf.Clamp(distance / timeToChord / strideSpeed, 0.15f, 1.2f);
         _shadowAnimator.SetFloat("WalkPace", pace);
 
@@ -805,6 +826,13 @@ public class EndGameSequence : MonoBehaviour
             if (_skipRequested) yield break;
             elapsed += Time.deltaTime;
 
+            // The music's clock rules: when the chord lands, the walk is over
+            // no matter the distance - the dark screen and the credits are up.
+            // Without music the fallback budget (timeToChord) caps the walk,
+            // so the credits never wait out the full 30 s timeout.
+            if (GetChordTimeRemaining() <= 0f || elapsed >= timeToChord)
+                break;
+
             Vector3 toTarget = _portalWalkTarget.position - _shadow.position;
             toTarget.y = 0f;
             float distNow = toTarget.magnitude;
@@ -816,36 +844,6 @@ public class EndGameSequence : MonoBehaviour
             _shadow.position += step;
             yield return null;
         }
-    }
-
-    /// <summary>Waits out the Sad clip's cycle plus a settle pause.</summary>
-    private IEnumerator WaitForSadCycles(int cycles, float settleDelay)
-    {
-        // Let the Sad state land (cross-fade window), then time it.
-        float land = 0f;
-        while (land < 1.5f &&
-               !_shadowAnimator.GetCurrentAnimatorStateInfo(0).IsName(_shadowSadStateName))
-        {
-            land += Time.deltaTime;
-            yield return null;
-        }
-
-        float timeout = _shadowMaxWalkDuration;
-        float elapsed = 0f;
-        while (elapsed < timeout)
-        {
-            if (_skipRequested) yield break;
-            elapsed += Time.deltaTime;
-
-            var state = _shadowAnimator.GetCurrentAnimatorStateInfo(0);
-            if (state.IsName(_shadowSadStateName) && state.normalizedTime >= cycles)
-                break;
-
-            yield return null;
-        }
-
-        // A settling pause on the last sad pose before the walk.
-        yield return HoldWithSkip(settleDelay);
     }
 
     /// <summary>
@@ -955,6 +953,8 @@ public class EndGameSequence : MonoBehaviour
     /// <summary>Waits out the final fade (it may already run) and shows the credits.</summary>
     private IEnumerator FinalFadeAndCreditsRoutine()
     {
+        // 1. Full black FIRST - never launch the credits while the scene is
+        //    still visible and the cameras are blending.
         if (ScreenFader.Instance != null)
         {
             if (ScreenFader.Instance.CurrentAlpha < 0.95f)
@@ -963,6 +963,19 @@ public class EndGameSequence : MonoBehaviour
         else
             yield return new WaitForSeconds(_fadeDuration);
 
+        // 2. Under the black ScreenFader, fade in the credits' OWN black
+        //    background. It must be fully opaque BEFORE the cameras are
+        //    released - otherwise the 3D scene shows through mid-fade.
+        Coroutine overlayFade = _creditsView != null ? _creditsView.FadeOverlayIn() : null;
+        if (overlayFade != null)
+            yield return overlayFade;
+        if (_creditsView != null)
+            _creditsView.Show();
+        else
+            Debug.LogWarning("[EndGameSequence] Credits view not found - credits skipped.");
+
+        // 3. Only now release the crowd camera (Cinemachine blends back to the
+        //    player camera - hidden under the opaque credits background).
         RestoreBrainBlend();
         if (_pullBack != null)
         {
@@ -971,10 +984,9 @@ public class EndGameSequence : MonoBehaviour
         }
         ReleaseCrowdCamera();
 
-        if (_creditsView != null)
-            yield return _creditsView.Show();
-        else if (_debugLogging)
-            Debug.LogWarning("[EndGameSequence] EndGameCreditsView not found in scene.");
+        // 4. Clear the game's black fader - the credits' own black is up.
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeOut(0.5f);
     }
 
     /// <summary>
@@ -1014,15 +1026,6 @@ public class EndGameSequence : MonoBehaviour
 
         _doctor.gameObject.SetActive(true);
         ActivateShadowOnDoctor();
-    }
-
-    /// <summary>Fades the doctor's renderers in.</summary>
-    private IEnumerator FadeDoctorInRoutine()
-    {
-        if (_doctor == null) yield break;
-
-        yield return FadeRenderersRoutine(
-            _doctor.GetComponentsInChildren<Renderer>(true), _doctorFadeInDuration);
     }
 
     /// <summary>
