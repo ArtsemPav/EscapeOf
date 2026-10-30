@@ -15,7 +15,7 @@ GameObject:
   - component: {fileID: 8782257436027944661}
   - component: {fileID: 5152450514432487583}
   m_Layer: 6
-  m_Name: RubberDuck
+  m_Name: PRF_RubberDuck
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -51,7 +51,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7690406062267652904}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -110,7 +110,7 @@ BoxCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Size: {x: 0.6101119, y: 0.7052165, z: 0.62138915}
   m_Center: {x: -0.00060394406, y: -0.025339756, z: -0.3079207}
@@ -155,3 +155,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
   dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
+  _maxDragDistance: 0
+  _holdDistance: 0
+  _scrapeClips: []
+  _scrapeVolume: 0.7
+  _scrapeFullVolumeSpeed: 3
+  _scrapeFadeSpeed: 6
+  _scrapeStartSpeed: 0.05
+  _impactClips: []
+  _impactVolumeAtMin: 0.15
+  _impactVolumeAtMax: 1
+  _impactMaxSpeed: 5
+  _impactMinSpeed: 0.5
+  _impactCooldown: 0.1
+  _impactPitchVariation: 0.05
+  _fallReturnDepth: 10
+  _fallReturnLift: 0.5
