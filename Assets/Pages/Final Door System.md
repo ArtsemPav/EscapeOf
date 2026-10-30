@@ -160,10 +160,10 @@ FadeIn (чёрный экран)
 | `_coinItems` | Принимаемые монеты (Coin 1, Coin 2) — любая в любую глазницу |
 | `_serumColbaItem` | `ItemData` колбы с сывороткой |
 | `_colbaTransform` / `_colbaReadTransform` | Transforms колбы: исходный и финальный (`colbaRead`) для анимации переворота |
-| `_liquidWobble` | `ChemicalPuzzle.LiquidWobble` жидкость — `fillFraction` анимируется до 0 при выливании |
+| `_liquidWobble` | `ChemicalPuzzle.LiquidWobble` жидкость — при выливании меш жидкости сжимается по локальной оси до нуля (шейдер клипует по мировой горизонтали, поэтому `fillFraction` в наклонной позе даёт эффект наполнения) |
 | `_liquidRenderer` | Рендерер жидкости |
 | `_pourDuration` / `_flipDuration` | Длительности анимаций выливания и переворота в сек (default: 2 / 1) |
-| `_scullDropCollider` / `_scullDropLayer` | Коллайдер черепа для приёма колбы (default layer bit 7, Interactable); включается после открытия челюсти |
+| `_scullDropCollider` / `_scullDropLayer` | Коллайдер черепа для приёма колбы (default layer bit 7, Interactable); попадание проверяется через `RaycastAll` — геометрия перед черепом (челюсть, стены) не перекрывает зону дропа |
 | `_coinPrefab` / `_coinRenderingLayerMask` | Ghost-префаб монеты и URP rendering layer mask (default: биты 22 `CoridorFDoor` + 9 `flashLight`) |
 | `_dropHeight` / `_dropDuration` | Анимация вставки монеты (default: 0.05 / 0.3) |
 | `_fadeDuration` | Фейды финального кинематика (default: 1) |
@@ -181,8 +181,12 @@ Activate()  ← вызывается из FinalDoorPuzzleInteraction после 
   → Обе глазницы заполнены → OpenJawRoutine:
       пауза 0.3с → звук → Play("ScullOpen") → _jawOpen = true
       → коллайдеры глазниц off, коллайдер приёма сыворотки on → Save
-  → SerumColba: HandleDrop → рейкаст по коллайдеру черепа → PourRoutine:
-      активировать colbaRead → переворот (SmoothStep) + fillFraction → 0
+  → SerumColba: HandleDrop → RaycastAll по коллайдеру черепа → ClearGhost → PourRoutine:
+      колба сразу в авторской наклонной позе colbaRead (без анимации поворота);
+      меш жидкости сжимается по локальной оси до нуля И сползает к горлышку
+      (bounds.max.y → +Y) за _pourDuration — колба перевёрнута, горлышко в +Y
+      (fillFraction не используется — в наклонной позе мировая клип-плоскость
+      шейдера даёт визуальное наполнение)
       → пауза 0.5с → скрыть колбу → FadeIn
       → _serumPoured = true → ExitPuzzleModeInstant → SetSolved() → FadeOut → Save
 ```

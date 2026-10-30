@@ -393,14 +393,32 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
 
     private bool HandleSerumDrop(Vector2 screenPosition)
     {
+        if (IsOverSkullDropZone(screenPosition))
+        {
+            ClearGhost();
+            StartCoroutine(PourRoutine());
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when the ray hits the skull drop collider, even if geometry in front
+    /// of it (jaw, walls) intercepts the first hit — without this the drop zone
+    /// is patchy: release works in some spots and the ghost flickers in others.
+    /// </summary>
+    private bool IsOverSkullDropZone(Vector2 screenPosition)
+    {
+        if (_scullDropCollider == null || Camera.main == null) return false;
+
         var ray = Camera.main.ScreenPointToRay(screenPosition);
-        if (!Physics.Raycast(ray, out var hit, 50f, _scullDropLayer, QueryTriggerInteraction.Collide))
-            return false;
+        var hits = Physics.RaycastAll(ray, 50f, _scullDropLayer, QueryTriggerInteraction.Collide);
+        foreach (var hit in hits)
+            if (hit.collider == _scullDropCollider)
+                return true;
 
-        if (_scullDropCollider != null && hit.collider != _scullDropCollider) return false;
-
-        StartCoroutine(PourRoutine());
-        return true;
+        return false;
     }
 
     // ── Jaw Opening ──────────────────────────────────────────────────────────────
@@ -443,55 +461,54 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
             foreach (var rend in _colbaReadTransform.GetComponentsInChildren<Renderer>(true))
                 rend.renderingLayerMask = _coinRenderingLayerMask;
 
-            // Keep LiquidWobble ENABLED during the flip — it pushes _PivotWS
-            // to the shader every frame, which is needed for correct liquid
-            // level calculation as the flask rotates. We only animate
-            // fillFraction to 0; the wobble physics is harmless during the pour.
-            // LiquidWobble is disabled AFTER the animation completes.
+            // The colba appears immediately in its authored tilted pour pose —
+            // no flip animation (the upright→tilt lerp read as a strange wobble).
 
-            // Animate colbaRead itself so mesh + liquid move together.
-            Vector3 finalPos = _colbaReadTransform.position;
-            Quaternion finalRot = _colbaReadTransform.rotation;
-            Vector3 startPos = _colbaReadTransform.position;
-            Quaternion startRot = _colbaReadTransform.rotation;
+            // The LiquidFlask shader clips against a world-space horizontal plane
+            // anchored by the local fill amount — in the tilted pose draining
+            // fillFraction visually RAISES the surface (the flask looks like it
+            // fills up). So instead of animating fill, squeeze the liquid mesh
+            // away along the flask axis.
+            Transform liquidTransform = _liquidWobble != null ? _liquidWobble.transform
+                                      : (_liquidRenderer != null ? _liquidRenderer.transform : null);
+            Vector3 liquidStartScale = liquidTransform != null ? liquidTransform.localScale : Vector3.zero;
+            Vector3 liquidEndScale = liquidTransform != null ? new Vector3(liquidStartScale.x, 0.001f, liquidStartScale.z) : Vector3.zero;
 
-            float liquidStartFill = _liquidWobble != null ? _liquidWobble.fillFraction : 0f;
+            // The flask is authored flipped, so the neck sits at the local +Y end
+            // of the liquid mesh. While squeezing, slide the mesh toward the neck
+            // so the liquid drains out of the mouth instead of floating mid-flask.
+            Vector3 liquidStartPos = Vector3.zero;
+            Vector3 liquidEndPos = Vector3.zero;
+            if (liquidTransform != null)
+            {
+                liquidStartPos = liquidTransform.localPosition;
+                var liquidMeshFilter = _liquidRenderer != null ? _liquidRenderer.GetComponent<MeshFilter>() : null;
+                float meshTopY = (liquidMeshFilter != null && liquidMeshFilter.sharedMesh != null)
+                    ? liquidMeshFilter.sharedMesh.bounds.max.y : 0f;
+                liquidEndPos = liquidStartPos + new Vector3(0f, meshTopY, 0f);
+            }
+
             float elapsed = 0f;
-            float totalDuration = Mathf.Max(_pourDuration, _flipDuration);
 
-            while (elapsed < totalDuration)
+            while (elapsed < _pourDuration)
             {
                 elapsed += Time.deltaTime;
 
-                // Flip animation (ease-in-out) on colbaRead.
-                if (elapsed < _flipDuration)
+                // Squeeze the liquid mesh away along the flask axis, sliding it
+                // toward the neck.
+                if (liquidTransform != null)
                 {
-                    float flipT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / _flipDuration));
-                    _colbaReadTransform.position = Vector3.Lerp(startPos, finalPos, flipT);
-                    _colbaReadTransform.rotation = Quaternion.Slerp(startRot, finalRot, flipT);
-                }
-                else
-                {
-                    _colbaReadTransform.position = finalPos;
-                    _colbaReadTransform.rotation = finalRot;
-                }
-
-                // Drain liquid via fillFraction — LiquidWobble pushes it to the shader.
-                if (_liquidWobble != null)
-                {
-                    float drainT = Mathf.Clamp01(elapsed / _pourDuration);
-                    _liquidWobble.fillFraction = Mathf.Lerp(liquidStartFill, 0f, drainT);
+                    float pourT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / _pourDuration));
+                    liquidTransform.localScale = Vector3.Lerp(liquidStartScale, liquidEndScale, pourT);
+                    liquidTransform.localPosition = Vector3.Lerp(liquidStartPos, liquidEndPos, pourT);
                 }
 
                 yield return null;
             }
 
-            // Ensure final state.
-            _colbaReadTransform.position = finalPos;
-            _colbaReadTransform.rotation = finalRot;
-
             if (_liquidWobble != null)
             {
+                _liquidWobble.transform.localScale = liquidEndScale;
                 _liquidWobble.fillFraction = 0f;
                 _liquidWobble.enabled = false;
             }
@@ -623,15 +640,9 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
             return;
         }
 
-        // Check if the cursor is over the skull drop collider.
-        var ray = Camera.main.ScreenPointToRay(mousePos);
-        if (!Physics.Raycast(ray, out var hit, 50f, _scullDropLayer, QueryTriggerInteraction.Collide))
-        {
-            ClearGhost();
-            return;
-        }
-
-        if (_scullDropCollider != null && hit.collider != _scullDropCollider)
+        // Check if the cursor is over the skull drop collider — accept any hit
+        // along the ray so geometry in front of the skull doesn't break the zone.
+        if (!IsOverSkullDropZone(mousePos))
         {
             ClearGhost();
             return;

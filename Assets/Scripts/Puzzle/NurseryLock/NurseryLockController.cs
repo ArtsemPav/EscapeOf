@@ -81,6 +81,9 @@ public class NurseryLockController : MonoBehaviour,
     private bool _isLockpickInserted;
     private bool _isProcessing;
 
+    /// <summary>True во время анимации вставки отмычки (InsertSequence) — в этой фазе Esc блокируется.</summary>
+    private bool _insertAnimationRunning;
+
     /// <summary>True пока отмычка должна быть видна (фазы Inserting/LockPickIdle/мини-игра).
     /// LateUpdate принудительно активирует GameObject и MeshRenderer, перебивая Idle.anim.</summary>
     private bool _forceLockpickVisible;
@@ -335,8 +338,11 @@ public class NurseryLockController : MonoBehaviour,
         if (_isProcessing && (_minigame == null || _minigamePanel == null))
             return true;
 
-        // Блокируем выход во время анимации вставки и мини-игры
-        return !_isProcessing;
+        // Блокируем выход только на время анимации вставки отмычки.
+        // Во время самой мини-игры Esc разрешён: HandlePuzzleExited корректно
+        // останавливает мини-игру и снимает processing, а отмычка остаётся
+        // вставленной — при следующем входе мини-игра запустится заново.
+        return !_insertAnimationRunning;
     }
 
     // ── Puzzle Flow ─────────────────────────────────────────────────────────────
@@ -374,6 +380,8 @@ public class NurseryLockController : MonoBehaviour,
 
     private IEnumerator InsertSequence()
     {
+        _insertAnimationRunning = true;
+
         // Скрываем ghost перед началом анимации
         SetGhostVisible(false);
 
@@ -412,6 +420,7 @@ public class NurseryLockController : MonoBehaviour,
         }
 
         // Запускаем мини-игру
+        _insertAnimationRunning = false;
         yield return StartMinigameAfterFrame();
     }
 
