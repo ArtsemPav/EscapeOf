@@ -26,8 +26,10 @@ namespace Escape.Core {
         [Tooltip("Track played when the player is idle too long (the hint music).")]
         [SerializeField] private MusicTrack _idleTrack;
 
-        [Tooltip("Seconds without a solved puzzle or an opened door before the idle track fades in.")]
-        [SerializeField] private float _idleThreshold = 120f;
+        [Tooltip("Seconds without a solved puzzle or an opened door before the idle track fades in (480 = 8 minutes).")]
+        [SerializeField] private float _idleThreshold = EightMinutesInSeconds;
+
+        private const float EightMinutesInSeconds = 480f;
 
         private float _lastProgressTime;
         private bool _idleTrackRequested;
@@ -59,10 +61,14 @@ namespace Escape.Core {
 
             if (Time.unscaledTime - _lastProgressTime < _idleThreshold) return;
 
-            // A zone's own track is playing — the cue never overrides it. The
-            // timer keeps running and retries every frame until the default
-            // track is back (zone tracks end into the default via fallback).
-            if (MusicDirector.Instance == null || !MusicDirector.Instance.IsDefaultTrackActive) return;
+            // Something else owns the soundscape right now (a zone track, an
+            // event, the menu): restarting the countdown is cheaper and calmer
+            // than fighting the playing music — the cue waits a full period.
+            if (MusicDirector.Instance == null || !MusicDirector.Instance.IsDefaultTrackActive) {
+                _lastProgressTime = Time.unscaledTime;
+                Debug.Log("[IdleMusic] idle threshold reached while other music is playing -> timer restarted");
+                return;
+            }
 
             _idleTrackRequested = true;
             _idleCuePlayedOnce = true;

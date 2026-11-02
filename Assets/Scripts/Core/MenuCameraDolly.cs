@@ -30,6 +30,12 @@ public class MenuCameraDolly : MonoBehaviour
     [Tooltip("Push-forward duration in seconds, tuned to end under the fade to black.")]
     [SerializeField, Min(0.1f)] private float _loadingPushDurationSeconds = 1.2f;
 
+    [Tooltip("Exit retreat duration in seconds: the camera slowly pulls back into its arrival start pose while the app quits.")]
+    [SerializeField, Min(0.1f)] private float _exitRetreatDurationSeconds = 4f;
+
+    /// <summary>Duration of the exit retreat beat; MainMenuController keeps its fade in sync with it.</summary>
+    public float ExitRetreatDurationSeconds => _exitRetreatDurationSeconds;
+
     private Vector3 _restingPosition;
     private Quaternion _restingRotation;
     private Coroutine _activeRoutine;
@@ -73,6 +79,22 @@ public class MenuCameraDolly : MonoBehaviour
         _activeRoutine = StartCoroutine(PushRoutine(target, _loadingPushDurationSeconds));
     }
 
+    /// <summary>
+    /// Exit retreat: drifts the camera back out of the scene — into the same
+    /// offset pose the arrival beat starts from (pulled back along the view
+    /// direction, slightly lowered) — as if it reverses its entry. The caller
+    /// covers the end with the fade to black and quits after it.
+    /// </summary>
+    public void BeginExitRetreat()
+    {
+        if (_exitRetreatDurationSeconds <= 0f) return;
+        if (_activeRoutine != null) StopCoroutine(_activeRoutine);
+
+        Vector3 back = -transform.forward * _arrivalBackDistance + Vector3.down * _arrivalDropHeight;
+        Vector3 target = _restingPosition + back;
+        _activeRoutine = StartCoroutine(RetreatRoutine(target, _exitRetreatDurationSeconds));
+    }
+
     private void OnDisable()
     {
         // A disabled component must not leave the camera stranded off its pose.
@@ -113,6 +135,25 @@ public class MenuCameraDolly : MonoBehaviour
             float linear = Mathf.Clamp01(elapsed / duration);
             // Ease-in quad: slow lean forward that accelerates into the fade.
             float eased = linear * linear;
+            transform.position = Vector3.LerpUnclamped(start, target, eased);
+            yield return null;
+        }
+
+        transform.position = target;
+        _activeRoutine = null;
+    }
+
+    private IEnumerator RetreatRoutine(Vector3 target, float duration)
+    {
+        Vector3 start = transform.position;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Mathf.Min(Time.unscaledDeltaTime, MaxFrameDeltaSeconds);
+            float linear = Mathf.Clamp01(elapsed / duration);
+            // Ease-in cubic: slow departure that keeps accelerating into the fade —
+            // the mirror of the arrival's ease-out, "the camera leaves the room".
+            float eased = linear * linear * linear;
             transform.position = Vector3.LerpUnclamped(start, target, eased);
             yield return null;
         }

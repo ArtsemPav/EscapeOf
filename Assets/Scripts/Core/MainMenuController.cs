@@ -51,6 +51,12 @@ public class MainMenuController : MonoBehaviour
     [Tooltip("Click sound volume on the SFX bus.")]
     [SerializeField] [Range(0f, 1f)] private float _clickVolume = 0.7f;
 
+    [Tooltip("Cinematic boom played when a game transition starts (New Game / Load Game).")]
+    [SerializeField] private AudioClip _transitionClip;
+
+    [Tooltip("Transition boom volume on the SFX bus.")]
+    [SerializeField] [Range(0f, 1f)] private float _transitionVolume = 1f;
+
     private readonly List<Button> _soundWiredButtons = new List<Button>();
 
     private GraphicRaycaster _canvasRaycaster;
@@ -160,6 +166,10 @@ public class MainMenuController : MonoBehaviour
         // (camera push + fades): no more hovers or clicks on menu buttons.
         if (_canvasRaycaster != null) _canvasRaycaster.enabled = false;
 
+        // Cinematic boom: underscores that the menu action took effect.
+        if (_transitionClip != null && AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX(_transitionClip, _transitionVolume);
+
         // The loading screen takes over: menu music fades to silence while the
         // bar fills, so the gameplay scene starts from a clean soundscape
         // (GameManager.SetPause → PlayGameMusic starts Explore_Main from zero).
@@ -214,10 +224,40 @@ public class MainMenuController : MonoBehaviour
         if (_menuRoot != null) _menuRoot.SetActive(true);
     }
 
-    /// <summary>Quits the application. In Editor exits Play mode instead.</summary>
+    /// <summary>
+    /// Quits the application — but not immediately: the camera retreats out of
+    /// the scene (the reverse of its entry move) under a matching fade to
+    /// black, and the app closes once the screen is fully black.
+    /// </summary>
     public void OnExit()
     {
         if (_inputLocked) return;
+        _inputLocked = true;
+
+        // Block all pointer input for the whole exit sequence.
+        if (_canvasRaycaster != null) _canvasRaycaster.enabled = false;
+
+        StartCoroutine(ExitRoutine());
+    }
+
+    [Header("Exit")]
+    [Tooltip("Fade-to-black duration for the exit sequence. Shorter than the retreat: the screen must go dark before the camera finishes its slow retreat, hiding the unfinished scene parts.")]
+    [SerializeField, Min(0.1f)] private float _exitFadeSeconds = 2f;
+
+    private IEnumerator ExitRoutine()
+    {
+        // Fast fade first: the screen is fully black long before the retreat ends,
+        // so the camera never exposes the unfinished parts of the scene.
+        float retreatSeconds = _cameraDolly != null ? _cameraDolly.ExitRetreatDurationSeconds : _exitFadeSeconds;
+        if (_cameraDolly != null) _cameraDolly.BeginExitRetreat();
+
+        if (ScreenFader.Instance != null)
+            yield return ScreenFader.Instance.FadeIn(_exitFadeSeconds);
+
+        // Hold black until the slow retreat fully completes, then close.
+        float remaining = retreatSeconds - _exitFadeSeconds;
+        if (remaining > 0f)
+            yield return new WaitForSecondsRealtime(remaining);
 
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;

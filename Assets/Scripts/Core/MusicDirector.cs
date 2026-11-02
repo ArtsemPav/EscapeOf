@@ -65,6 +65,13 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     // ── Focus-loss silence state ──────────────────────────────────────────────
     private bool _appFocused = true;             // current window focus state (OnApplicationFocus/OnApplicationPause)
     private bool _silencedWhileUnfocused;        // the focus loss muted the menu track — refocus must refade it
+    private bool _frozeSourcesWhileUnfocused;    // the focus loss paused one-shot sources — refocus must unfreeze them
+    private readonly List<AudioSource> _frozenWhileUnfocused = new List<AudioSource>();
+
+    /// <summary>True while the ESC pause (or its auto focus-loss variant) owns the game.
+    /// Frozen sources must not unfreeze while the player sits in the menu.</summary>
+    private bool GameManagerPausedSafe =>
+        GameManager.Instance != null && GameManager.Instance.IsPaused;
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -355,6 +362,32 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             if (_activeSource.isPlaying) _activeSource.Pause();
             if (_activeSource.volume > 0f) _activeSource.volume = 0f;
             _silencedWhileUnfocused = true;
+        }
+
+        // ── Focus-loss freeze (one-shot tracks) ───────────────────────────────
+        // The GameManager's Alt-Tab pause only mutes the world while the app
+        // still runs - and AudioListener.pause does NOT hold a one-shot
+        // source's playback position against the audio clock racing ahead of
+        // the frozen game loop. A track playing through while unfocused then
+        // "finished" behind the player's back: the director restored the
+        // fallback mid-finale, and a mid-crossfade source restarted from zero
+        // silently. While unfocused, freeze every non-menu source in place.
+        if (!_appFocused && !_frozeSourcesWhileUnfocused && !_menuMusicActive) {
+            _frozeSourcesWhileUnfocused = true;
+            foreach (KeyValuePair<MusicTrack, AudioSource> pooled in _sourcePool) {
+                if (pooled.Value == null || pooled.Key == _pauseMenuTrack) continue;
+                if (pooled.Value.isPlaying) {
+                    pooled.Value.Pause();
+                    _frozenWhileUnfocused.Add(pooled.Value);
+                }
+            }
+        }
+        if (_appFocused && _frozeSourcesWhileUnfocused) {
+            _frozeSourcesWhileUnfocused = false;
+            foreach (AudioSource source in _frozenWhileUnfocused) {
+                if (source != null && !source.isPlaying && !GameManagerPausedSafe) source.UnPause();
+            }
+            _frozenWhileUnfocused.Clear();
         }
 
         // Alt-Tab / device-loss watchdog: a streaming source can die silently

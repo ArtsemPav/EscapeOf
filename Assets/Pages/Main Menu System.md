@@ -34,7 +34,7 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera) + MainMenuCo
 | `OnLoadGame()`       | Проверяет `SaveManager.SlotHasSave(0)`, ставит `RequestLoadFromSlot(0)` → переход в игру |
 | `OnSettings()`       | Скрывает `_menuRoot`, показывает `_settingsPanel`                                        |
 | `OnSettingsClosed()` | Обратно: скрывает настройки, показывает меню                                             |
-| `OnExit()`           | Выход из приложения (в Editor — выход из Play)                                           |
+| `OnExit()`           | Синематический выход: отъезд камеры под фейд в чёрное, затем `Application.Quit`          |
 
 
 
@@ -65,9 +65,22 @@ OnNewGame / OnLoadGame
 
 Wake-up intro триггерится самим `SaveManager`: после очистки слота `SaveManager.Start()` в игровой сцене не находит сейва и запрашивает интро — единая точка решения для всех путей входа.
 
+### Выход из игры (`OnExit`)
+
+```
+OnExit
+  ├─ _inputLocked + GraphicRaycaster.enabled = false — ввод заблокирован до конца
+  ├─ _cameraDolly.BeginExitRetreat() — медленный отъезд (4 с) в позу старта приезда
+  └─ ExitRoutine:
+       ├─ ScreenFader.FadeIn(_exitFadeSeconds) — фейд (2 с), экран чёрный
+       │   задолго до конца отъезда — недоделанные части сцены не видны
+       ├─ hold black до завершения отъезда
+       └─ Application.Quit (в Editor — выход из Play)
+```
+
 ### `MenuCameraDolly` — `Assets/Scripts/Core/MenuCameraDolly.cs`
 
-На камере меню. «Прибытие» в сцену: камера стартует со смещением назад (по view-направлению, чуть ниже) и плавно дрейфует в rest-позу с ease-out, пока стартовый фейд открывает сцену. Также проигрывает короткий push-forward при переходе к экрану загрузки (`BeginLoadingPush`, ease-in quad).
+На камере меню. «Прибытие» в сцену: камера стартует со смещением назад (по view-направлению, чуть ниже) и плавно дрейфует в rest-позу с ease-out, пока стартовый фейд открывает сцену. Также проигрывает короткий push-forward при переходе к экрану загрузки (`BeginLoadingPush`, ease-in quad) и бит отъезда при выходе (`BeginExitRetreat`, ease-in cubic — камера уезжает в ту же стартовую позу приезда).
 
 
 | Поле                          | По умолчанию | Описание                                                   |
@@ -77,6 +90,7 @@ Wake-up intro триггерится самим `SaveManager`: после очи
 | `_arrivalDurationSeconds`     | `4`          | Длительность дрейфа (синхронизирована со стартовым фейдом) |
 | `_loadingPushDistance`        | `1.2`        | Дистанция push-forward при переходе (м)                    |
 | `_loadingPushDurationSeconds` | `1.2`        | Длительность push (должна закончиться под фейдом)          |
+| `_exitRetreatDurationSeconds` | `4`          | Медленный отъезд при выходе (фейд короче — 1 с)            |
 
 
 При `OnDisable` камера мгновенно возвращается в rest-позу. Всё на `Time.unscaledDeltaTime` (с ограничением кадра 0.05 с против хичей).

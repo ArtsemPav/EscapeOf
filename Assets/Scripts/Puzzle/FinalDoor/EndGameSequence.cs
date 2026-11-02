@@ -636,6 +636,7 @@ public class EndGameSequence : MonoBehaviour
         //   he STANDS (idle) watching the patients until _turnLeadTime
         //   seconds before the chord - then turns and walks, the arrival
         //   lands right on the chord.
+        _lastChordReading = float.PositiveInfinity; // fresh clock for this finale
         float chordRemainingNow = GetChordTimeRemainingSafe();
         float waitToTurn = Mathf.Max(chordRemainingNow - _turnLeadTime, 0.3f);
         yield return HoldWithSkip(waitToTurn);
@@ -784,14 +785,38 @@ public class EndGameSequence : MonoBehaviour
     /// Seconds left until the track's FINAL CHORD (the loudness peak in the
     /// track's envelope, _finalChordTime). Returns -1 when the music is
     /// unavailable or already past the chord.
+    /// The clock is only valid while the ENDING track is the live dominant
+    /// one: after an Alt-Tab the director may sit on the fallback/menu track
+    /// (or the ending source restarted from zero) - reading those positions
+    /// produced garbage timings (the doctor waiting ~54 s for a phantom
+    /// chord). Readings are also clamped monotonically: the chord can only
+    /// get closer, never further.
     /// </summary>
+    private float _lastChordReading = float.PositiveInfinity;
+
     private float GetChordTimeRemaining()
-    {        if (MusicDirector.Instance == null || MusicDirector.Instance.ActiveTrack == null) return -1f;
+    {
+        if (MusicDirector.Instance == null || MusicDirector.Instance.ActiveTrack == null) return -1f;
+        if (_endingTrack == null || MusicDirector.Instance.ActiveTrack != _endingTrack) return -1f;
         var directorType = MusicDirector.Instance.GetType();
         var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
         var source = directorType.GetField("_activeSource", flags)?.GetValue(MusicDirector.Instance) as AudioSource;
-        if (source == null || source.clip == null || !source.isPlaying) return -1f;
-        return Mathf.Max(0f, _finalChordTime - source.time);
+        if (source == null || source.clip == null || source.clip != _endingTrack.Clip || !source.isPlaying) return -1f;
+        float remaining = Mathf.Max(0f, _finalChordTime - source.time);
+        // Cross-check against the GAME's clock: the track was requested at
+        // _musicStartTime, so the chord can be at most _finalChordTime - elapsed
+        // away. An Alt-Tab freeze lets the audio race ahead of the frozen game
+        // loop (or a revived source restart from zero, "playing" silently) -
+        // the audio position alone then reports a phantom full-length window
+        // and the doctor stands waiting ~54 s for a chord that already passed.
+        if (_musicStartTime > 0f)
+        {
+            float wallClockRemaining = Mathf.Max(0f, _finalChordTime - (Time.time - _musicStartTime));
+            remaining = Mathf.Min(remaining, wallClockRemaining);
+        }
+        if (remaining > _lastChordReading) remaining = _lastChordReading; // a restarted source must not rewind the clock
+        _lastChordReading = remaining;
+        return remaining;
     }
 
     /// <summary>Safe variant: falls back to the nominal lead time when the
