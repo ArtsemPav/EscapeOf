@@ -327,7 +327,6 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// </summary>
     public void AutoOpen()
     {
-        Unlock();
         if (_openClip != null && _audioSource != null)
             _audioSource.PlayOneShot(_openClip, _openVolume);
         SetOpenTarget(1f);
@@ -340,25 +339,25 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// </summary>
     public void AutoOpen(float duration)
     {
-        Unlock();
         if (_openClip != null && _audioSource != null)
             _audioSource.PlayOneShot(_openClip, _openVolume);
         SetOpenTarget(1f, duration);
     }
 
     /// <summary>
-    /// Sets the drawer's target open fraction (0 = closed, 1 = fully open)
-    /// and smoothly slides it there over the default snap duration.
+    /// Unlocks the drawer and smoothly slides it to the target open fraction
+    /// (0 = closed, 1 = fully open) over the default snap duration.
     /// Usable from UnityEvents and puzzle logic.
     /// </summary>
     public void SetOpenTarget(float fraction) => SetOpenTarget(fraction, null);
 
     /// <summary>
-    /// Sets the drawer's target open fraction (0 = closed, 1 = fully open)
-    /// and smoothly slides it there over the specified duration in seconds.
+    /// Unlocks the drawer and smoothly slides it to the target open fraction
+    /// (0 = closed, 1 = fully open) over the specified duration in seconds.
     /// </summary>
     public void SetOpenTarget(float fraction, float? duration)
     {
+        Unlock();
         EnsureClosedPosition();
         _targetOpenAmount = Mathf.Clamp01(fraction);
 

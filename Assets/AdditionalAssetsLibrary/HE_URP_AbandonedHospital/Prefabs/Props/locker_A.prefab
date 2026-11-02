@@ -105,23 +105,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_top_right
   _isOpen: 0
   _isLocked: 1
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u044C
-    \u0437\u0430\u043C\u043E\u043A"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _showBlockedHint: 0
+  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintCooldown: 2
   _pivot: {fileID: 5070416116353435448}
   _rotationAxis: 1
   _maxOpenAngle: -90
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
   _flingThreshold: 0.9
   _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
@@ -132,8 +133,14 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_top_right
+  _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &100002
@@ -262,23 +269,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_top_left
   _isOpen: 0
   _isLocked: 1
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: "\u041D\u0443\u0436\u043D\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u044C
-    \u0437\u0430\u043C\u043E\u043A"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _showBlockedHint: 0
+  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintCooldown: 2
   _pivot: {fileID: 2031843944830404020}
   _rotationAxis: 1
   _maxOpenAngle: 90
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
   _flingThreshold: 0.9
   _flingSpeed: 2
   _openLoopClip: {fileID: 0}
@@ -289,8 +297,14 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_top_left
+  _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &100004
@@ -418,23 +432,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_bot_right
   _isOpen: 0
   _isLocked: 0
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
-    \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _showBlockedHint: 0
+  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintCooldown: 2
   _pivot: {fileID: 4840610516258689395}
   _rotationAxis: 1
   _maxOpenAngle: -90
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
   _flingThreshold: 0.9
   _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: 99ae8bef623bc1a49a8fbf43a2925118, type: 3}
@@ -445,8 +460,14 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_bot_right
+  _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &100006
@@ -574,23 +595,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+  _saveId: door_locker_bot_left
   _isOpen: 0
   _isLocked: 0
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: "\u044F \u0441 \u043B\u0435\u0433\u043A\u043E\u0441\u0442\u044C\u044E
-    \u0435\u0435 \u043E\u0442\u043A\u0440\u043E\u044E"
-  _lockedJiggleFraction: 0.02
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _showBlockedHint: 0
+  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintCooldown: 2
   _pivot: {fileID: 7559439754867678001}
   _rotationAxis: 1
   _maxOpenAngle: 90
   _dragSensitivity: 1
   _friction: 5
   _maxVelocity: 1.2
-  _lockedSnapBackSpeed: 8
   _flingThreshold: 0.9
   _flingSpeed: 2
   _openLoopClip: {fileID: 8300000, guid: a111e6603bdd0564db0de000cd7910db, type: 3}
@@ -601,8 +623,14 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
-  _saveId: door_locker_bot_left
+  _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &100008
@@ -617,7 +645,6 @@ GameObject:
   - component: {fileID: 3300008}
   - component: {fileID: 2300008}
   - component: {fileID: 6400008}
-  - component: {fileID: 533593734477672840}
   m_Layer: 0
   m_Name: locker_A
   m_TagString: Untagged
@@ -724,31 +751,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300024, guid: 83b684afbafb1cf45af22ab74134ca50, type: 3}
---- !u!205 &533593734477672840
-LODGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100008}
-  serializedVersion: 2
-  m_LocalReferencePoint: {x: -0.0000009536743, y: 1.6383003, z: -0.038611546}
-  m_Size: 3.2766006
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
-  m_LastLODIsBillboard: 0
-  m_LODs:
-  - screenRelativeHeight: 0.2458074
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 2300008}
-    - renderer: {fileID: 2300004}
-    - renderer: {fileID: 2300006}
-    - renderer: {fileID: 2300002}
-    - renderer: {fileID: 852133065672651974}
-    - renderer: {fileID: 2300000}
-    - renderer: {fileID: 6229480944346011543}
-  m_Enabled: 1
 --- !u!1 &1422290636639311151
 GameObject:
   m_ObjectHideFlags: 0
