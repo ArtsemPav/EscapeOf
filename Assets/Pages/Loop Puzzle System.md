@@ -1,6 +1,6 @@
 ## Обзор
 
-Головоломка «Комната с картинами» (`PaintPuzzle`). Игрок стоит в комнате управления и через глазок наблюдает за комнатой с четырьмя нишами (Q1–Q4). Задача — настроить высоту картин, цвет линз прожекторов и схему питания так, чтобы на всех четырёх полотнах одновременно проявились скрытые символы. Когда все символы видны, открывается скрытая дверь.
+Головоломка «Комната с картинами» (`PaintPuzzle`). Игрок осматривает панель `ControlPanel` (слой `Interactable Layer`) — через `PuzzleInteractable` + `PuzzleModeController` включается режим загадки с камерой `MainPuzzleCamera`, показывающей комнату управления. В режиме загадки управление мышью: `PuzzleCursor` рейкастит коллайдеры кнопок на слое `PuzzleInteractable`. Задача — настроить высоту картин, цвет линз прожекторов и схему питания так, чтобы на всех четырёх полотнах одновременно проявились скрытые символы. Когда все символы видны, проигрывается кинематик (общий `PuzzleSolvedCinematic`) с открытием обоих ящиков стола, и игрок автоматически выходит из режима загадки.
 
 ---
 
@@ -9,25 +9,30 @@
 `Assets/Prefabs/puzzle/paint/PRF_PaintPuzzle.prefab`
 
 ```
-PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (IPowerConsumer)
-├── Peephole                  ← PeepholeInteractable (+ BoxCollider, слой Interactable Layer)
-│   ├── PeepholeCamera        ← CinemachineCamera (вид через глазок)
-│   ├── Cube                  ← визуальная заглушка глазка
-│   ├── TVCamera              ← Camera (чистая, без скриптов)
-│   ├── TVCamera2..6          ← Camera (чистые, без скриптов)
+PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (IPowerConsumer),
+                                PuzzleSolvedCinematic, CinematicAudioController,
+                                Animator (PaintPuzzleCinematic.controller), PaintCinematicSignals
+├── CameraSolved
+│   └── PaintSolved           ← CinemachineCamera — камера solved-кинематика (приоритет 3000, start inactive)
+├── SolvedLight
+│   └── Point Light           ← SolvedLightFade — свет решённой комнаты
+├── Maincamera
+│   └── MainPuzzleCamera      ← CinemachineCamera — камера режима загадки (приоритет 2000)
+├── ControlPanel              ← PuzzleModeController, PuzzleInteractable, BoxCollider (слой Interactable Layer)
+│                                 — вход в загадку; коллайдер отключается при входе и при решении
 ├── tv
 │   └── TV_CCTV_01            ← PeepholeTVCamera, TVGlitchEffect
-│       ├── PositionSwitch    ← TVChannelButton, ButtonPressAnimation, слой Interactable Layer
+│       ├── PositionSwitch    ← TVChannelButton, ButtonPressAnimation (коллайдер: слой PuzzleInteractable)
 │       │   └── buttonPosition ← Transform — физически нажимается
 │       ├── pPlane1           ← экран; получает runtime-материал TVGlitch (slot 0)
 │       └── TV_CCTV_02        ← корпус телевизора
 ├── ControlRoom
 │   ├── PowerButtons
-│   │   └── Button_S1..S6    ← LoopPuzzleButton, слой Interactable Layer
+│   │   └── Button_S1..S6    ← LoopPuzzleButton, ButtonPressAnimation (S1–S5 — PRF_ChainButton, S6 — PRF_Pwerbutton)
 │   ├── ColumnButtons
-│   │   └── Button_Q1..Q4    ← PaintingColumnTrigger, слой Interactable Layer
+│   │   └── Button_Q1..Q4    ← PaintingColumnTrigger, ButtonPressAnimation
 │   ├── LensButtons
-│   │   └── Button_L1..L4*   ← SpotlightLensButton, слой Interactable Layer
+│   │   └── Button_L1..L4*   ← SpotlightLensButton (без ButtonPressAnimation — призму поворачивает своя логика)
 │   └── HiddenDoor            ← LoopPuzzleHiddenDoor
 └── PaintingRoom
     ├── Spotlights
@@ -39,6 +44,7 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (
 ```
 
 - `LensButtons` для L3 не нужна — синтетический прожектор.
+- Ящики-награда живут **вне префаба**, в сцене: `directorsTable/Table Drawer_01 (3)` (верхний) и `Table Drawer_01 (5)` (нижний). На каждом: `DrawerDrag` (`_isLocked = true`, `_lockedClip = S_DoorLocked.aif`) + `DrawerAutoOpen`. Оба открываются кинематиком через `PaintCinematicSignals.OnOpenDrawer` и snap-открываются при загрузке решённого сейва (`LoopPuzzleController._rewardDrawer` / `_rewardDrawerLower`).
 
 ---
 
@@ -59,9 +65,10 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (
 | `PaintingColumnTrigger.cs`   | Кнопка смены высоты: glow во время движения, два независимых флага блокировки (питание / решение). `CanInteract() => enabled` — отключается `LoopPuzzleController` при отсутствии общего питания |
 | `PaintingRoomLightSwitch.cs` | Выключатель света, блокируется при решении                                                                                                                                                       |
 | `SymbolFader.cs`             | Плавное появление символа с настраиваемым HDR-цветом свечения                                                                                                                                    |
-| `LightsOutPanel.cs`          | Кастомный Inspector для `LoopPuzzlePowerCircuit` — визуальный редактор матрицы смежности Lights Out (файл в `Assets/Scripts/Editor/`)                                                            |
-| `SolvedLightFade.cs`         | Плавный фейд света решённой комнаты (`SolvedLight`): FadeIn по `OnEnable`, `FadeOut()` перед деактивацией                                                                                        |
-| `ButtonPressAnimation.cs`    | Физическое нажатие кнопки (используется на TV-кнопке и кнопках устройств)                                                                                                                        |
+| `SolvedLightFade.cs`         | Плавный фейд света решённой комнаты (`SolvedLight`): FadeIn по `OnEnable`, `FadeOut()` перед деактивацию                                                                                        |
+| `PaintCinematicSignals.cs`   | Мост Animation Events кинематика: открывает ящики (`_drawers[]`), включает/гасит свет (`_solvedLight`), выходит из puzzle mode (`OnExitPuzzleMode` → `_puzzleMode.SetSolved()`)                  |
+| `DrawerAutoOpen.cs`          | Обёртка над `DrawerDrag.AutoOpen(duration)` — висит на каждом ящике-награде, вызывается Animation Event'ом `OnOpenDrawer`                                                                        |
+| `ButtonPressAnimation.cs`    | Физическое нажатие кнопки + звук клика. Вызывается и `FPSController`, и `PuzzleCursor` (см. раздел про мышь)                                                                                     |
 | `PeepholeTVCamera.cs`        | Создаёт RenderTexture, циклически активирует одну из N камер, назначает TVGlitch-материал на экран. `OnDisable` заменяет материал на чёрный без эмиссии, `OnEnable` восстанавливает              |
 | `TVGlitchEffect.cs`          | Случайные глитч-события: анимирует `_GlitchAmount` на материале экрана                                                                                                                           |
 | `TVChannelButton.cs`         | `IInteractable` на кнопке ТВ; вызывает `PeepholeTVCamera.NextCamera()`. `CanInteract()` проверяет `enabled` — отключается при отсутствии питания                                                 |
@@ -299,57 +306,50 @@ Emission работает поверх текстуры — нет плоско�
 
 ---
 
-## Cinematic при решении (SolvedCinematicRoutine)
+## Cinematic при решении (общий PuzzleSolvedCinematic)
 
-Когда все 4 символа проявились, `OnPuzzleSolved()` (через `CheckWinCondition`) вызывает `LockAllInteractions()` и запускает корутину `SolvedCinematicRoutine()`. Последовательность:
+Когда все 4 символа проявились, `OnPuzzleSolved()` (через `CheckWinCondition`) вызывает `LockAllInteractions()` и запускает кинематик: `_solvedCinematic.PlayCinematic()`. Играет **общий компонент `PuzzleSolvedCinematic`** (на корне `PaintPuzzle`) — тот же конвейер, что у Fifteen/Board/Metamorf-загадок. **Нельзя** вызывать `_puzzleMode.SetSolved()` при решении (до кинематика): паззл-камера мгновенно отключится и Cinemachine улетит к камере игрока ещё до фейда — выход из puzzle mode делает Animation Event `OnExitPuzzleMode` (см. таймлайн).
 
-1. **Блокировка ввода и HUD** — `InputManager.SetPlayerInputEnabled(false)`, `InteractionUI.SetVisible(false)` (скрывает crosshair и подсказку), курсор залочен.
-2. **Затемнение экрана** — `ScreenFader.Instance.FadeIn(_fadeDuration)`. Переиспользует общий синглтон `ScreenFader` (тот же, что в `PuzzleSolvedCinematic` и `DocumentUI`).
-3. **Мгновенное переключение камеры** — `CinemachineBrain.DefaultBlend.Time` временно обнуляется, `_solvedCamera` (CinemachineCamera на объекте `PaintSolved`) активируется с приоритетом 3000. Одновременно активируется `_solvedLight` (`SolvedLight` — свет решённой комнаты), который плавно разгорается через `SolvedLightFade`. Cut происходит пока экран чёрный — без плавного бленда.
-4. **Осветление экрана** — `ScreenFader.Instance.FadeOut(_fadeDuration)`. Игрок видит комнату с картинами через cinematic-камеру.
-5. **Звук + ящик** — проигрывается `_solvedClip` через `AudioManager`, вызывается `_rewardDrawer.AutoOpen(_drawerOpenDuration)` — плавная анимация выезда полки.
-6. **Удержание кадра** — `_solvedCameraDuration` секунд (default 3 с) — игрок видит как выезжает полка.
-7. **Затемнение экрана** — `_solvedLight.FadeOut()` стартует одновременно с `ScreenFader.Instance.FadeIn(_fadeDuration)`.
-8. **Мгновенный возврат камеры** — `_solvedCamera.Priority = 0`, `SetActive(false)`, `_solvedLight` деактивируется. Затем `_puzzleMode?.SetSolved()` — выход из режима загадки (камера/ввод) происходит пока экран чёрный. Cut происходит пока экран чёрный.
-9. **Восстановление бленда** — `CinemachineBrain.DefaultBlend.Time` возвращается к оригинальному значению.
-10. **Осветление экрана** — `ScreenFader.Instance.FadeOut(_fadeDuration)`.
-11. **Возврат управления и HUD** — `InputManager.SetPlayerInputEnabled(true)`, `InteractionUI.SetVisible(true)`.
-12. **Сохранение** — `SaveManager.Instance.Save()`.
+### Компоненты и объекты
 
-### Поля Inspector (Solved Cinematic)
+| Объект | Компонент | Роль |
+| --- | --- | --- |
+| `PaintPuzzle` (корень) | `PuzzleSolvedCinematic` (`_saveId = "loop_puzzle_cinematic"`) | Управляет fade/камерой через Animation Events; `_cinematicCamera` → `CameraSolved/PaintSolved`, `_animator` → собственный Animator на корне, `_audioController` → `CinematicAudioController` там же |
+| `PaintPuzzle` (корень) | `Animator` (`PaintPuzzleCinematic.controller`) + `PaintCinematicSignals` |Animator и мост событий — на **том же объекте**, что `PuzzleSolvedCinematic` (Animation Events ищут приёмник на GameObject аниматора). Idle-состояние по умолчанию, клип запускается переходом по триггеру `PlayCinematic`. **Не делайте** cinematic-клип дефолтным состоянием — он проиграется сразу при загрузке сцены (ящики откроются без разгадки) |
+| `PaintPuzzle` (корень) | `CinematicAudioController` | Клип `S_CardboardBoxOpen.aif` (index 0) — играет через Animation Event `PlayByIndex(0)` |
+| ящики `Table Drawer_01 (3)` и `(5)` (в комнате, вне префаба) | `DrawerDrag` + `DrawerAutoOpen` | Animation Event `OnOpenDrawer` → `DrawerAutoOpen.OpenDrawer()` → `DrawerDrag.AutoOpen(2 c)` на каждом |
+
+### Таймлайн Animation Events (`PaintPuzzleSolvedCinematic.anim`, длина 10 с)
+
+| Время | Событие | Эффект |
+| --- | --- | --- |
+| 0.0 | `OnFadeIn(1)` | Экран уходит в чёрный |
+| 1.0 | `OnCinematicCameraActivate(0)` | Cut на `PaintSolved` **на пике чёрного** |
+| 1.1 | `OnFadeOut(1)` + `OnShowSolvedLight` | Игрок видит комнату, свет разгорается |
+| 1.3 | `OnOpenDrawer` | **Оба** ящика выезжают |
+| 1.6 | `PlayByIndex(0)` | Звук открытия ящика |
+| 4.0 | `OnHideSolvedLight` + `OnFadeIn(1)` | Свет гаснет, экран темнеет |
+| 4.9 | `OnExitPuzzleMode` | Exit puzzle mode, пока PaintSolved ещё активен (визуально ничего не меняется) |
+| 5.0 | `OnCinematicCameraDeactivate(0)` | Cut к игроку **на пике чёрного**, blend = 0 — резкий cut, без «плывущего» бленда |
+| 5.1 | `OnFadeOut(1)` | Проявляется вид от первого лица |
+| 6.0 | `OnCinematicEnd` | Ввод восстановлен |
+
+Порядок t=4.9 → t=5.0 важен: `ExitPuzzleMode` восстанавливает бленд 0.75 с, поэтому он должен отработать **до** cut'а (PaintSolved с приоритетом 3000 всё ещё активен — переход «в никуда» не виден), а cut к игроку идёт уже с blend = 0.
+
+### Поля Inspector (LoopPuzzleController → Solved Cinematic)
 
 
-| Поле                    | Тип                 | Default | Описание                                              |
-| ----------------------- | ------------------- | ------- | ----------------------------------------------------- |
-| `_solvedCamera`         | `CinemachineCamera` | —       | Камера cinematic-кадра (PaintSolved). Start inactive. |
-| `_solvedLight`          | `SolvedLightFade`   | —       | Свет решённой комнаты: активируется в фазе 3, `FadeOut()` в фазе 7 |
-| `_fadeDuration`         | `float`             | 1 с     | Длительность fade to/from black                       |
-| `_solvedCameraDuration` | `float`             | 3 с     | Сколько секунд камера удерживает кадр                 |
-| `_drawerOpenDuration`   | `float`             | 2 с     | Длительность анимации выезда полки                    |
+| Поле                 | Тип                     | Описание                                                             |
+| -------------------- | ----------------------- | -------------------------------------------------------------------- |
+| `_solvedCinematic`   | `PuzzleSolvedCinematic` | Общий кинематик-компонент на корне, запускается из `OnPuzzleSolved()` |
+| `_solvedLight`       | `SolvedLightFade`       | Свет решённой комнаты: включается/выключается через `PaintCinematicSignals` (Animation Events `OnShowSolvedLight` / `OnHideSolvedLight`) |
+| `_rewardDrawer`      | `DrawerDrag`            | Верхний ящик-награда (snap-open при загрузке решённого сейва)         |
+| `_rewardDrawerLower` | `DrawerDrag`            | Нижний ящик-награда (опционально; snap-open при загрузке решённого сейва) |
 
-
-### Мгновенное переключение камеры
-
-Cinemachine по умолчанию делает плавный бленд между камерами. Чтобы переключение было мгновенным (пока экран чёрный):
-
-- В `Awake` кешируется `CinemachineBrain` с Main Camera и сохраняется `_originalBlendTime`
-- Перед переключением вызывается `SetBlendDuration(0f)` — обнуляет `DefaultBlend.Time`
-- После переключения — `yield return null` (один кадр) чтобы brain обработал cut
-- Перед осветлением экрана оригинальный бленд восстанавливается через `SetBlendDuration(_originalBlendTime)`
-
-### Аварийная очистка
-
-В `OnDestroy()` — если корутина прервана (смена сцены и т.д.):
-
-- `_solvedCamera.Priority = 0`, `SetActive(false)`
-- `SetBlendDuration(_originalBlendTime)` — восстановить бленд
-- `InputManager.SetPlayerInputEnabled(true)`
-- `InteractionUI.SetVisible(true)` — восстановить HUD
-- `ScreenFader.Instance.FadeOut(0f)` — мгновенно убрать затемнение
 
 ### Восстановление из сейва
 
-При загрузке решённой загадки (`RestoreSolvedState`) cinematic **не** проигрывается — полка мгновенно открывается через `SnapOpen()`, символы показываются через `ShowAllSymbols()`.
+При загрузке решённой загадки (`RestoreSolvedState`) cinematic **не** проигрывается — оба ящика мгновенно открываются через `SnapOpen()`, символы показываются через `ShowAllSymbols()`. `PuzzleSolvedCinematic` восстанавливает своё `wasAlreadySolved` из собственного `ISaveable` (тот же механизм, что у всех загадок).
 
 ---
 
@@ -461,14 +461,7 @@ Cinemachine по умолчанию делает плавный бленд ме�
 
 ## Глазок (Peephole)
 
-Глазок на `PaintPuzzle` открывает вид через `PeepholeCamera` (CinemachineCamera):
-
-- Вызывает `UIManager.PushModalState()` (блокирует движение игрока)
-- Курсор остаётся залочен
-- Выход: LMB, WASD (новое нажатие), Esc
-- Выход работает через **собственные `InputAction`** (не из Player action map), так как `PushModalState()` отключает весь Player map
-
-> Скрипт `PeepholeInteractable.cs` в `Assets/Scripts/Puzzle/LoopPuzzle/` отсутствует — вход в осмотр глазка обрабатывается интерактиблом + `PuzzleModeController`/UIManager напрямую.
+> Раздел устарел и удалён: глазок (`Peephole`, `PeepholeInteractable.cs`) полностью убран из загадки — телевизор работает напрямую от камер `tv/TVCamera`, `tv/TVCamera2` (список `_cameras` на `PeepholeTVCamera`).
 
 ---
 
@@ -493,7 +486,7 @@ Cinemachine по умолчанию делает плавный бленд ме�
 
 ### PeepholeTVCamera
 
-Находится на `TV_CCTV_01`. Управляет списком камер `_cameras` (TVCamera1–6): в любой момент только одна камера активна и рендерит в shared `RenderTexture`. Остальные отключены (`camera.enabled = false`, `targetTexture = null`).
+Находится на `TV_CCTV_01`. Управляет списком камер `_cameras` (теперь это `tv/TVCamera`, `tv/TVCamera2` — глазок удалён): в любой момент только одна камера активна и рендерит в shared `RenderTexture`. Остальные отключены (`camera.enabled = false`, `targetTexture = null`).
 
 При старте создаёт RT, инстанцирует runtime-материал `Custom/TVGlitch` и назначает его на `pPlane1` (slot `_materialIndex`). `TVGlitchEffect` получает `ScreenMaterial` с того же `TV_CCTV_01`.
 
@@ -543,6 +536,14 @@ Cinemachine по умолчанию делает плавный бленд ме�
 - Если изображение **чёрное** — RT назначается автоматически в `Awake`; убедись что активная TVCamera смотрит на освещённую сцену.
 - Для **свечения экрана** — выставь `_emissionColor` в HDR с `Intensity > 1`.
 - `_noiseAmount` держи в `0.03–0.15`; выше 0.5 — экран превращается в статик.
+
+---
+
+## Мышиный ввод в паззл-режиме (PuzzleCursor)
+
+Кнопки кликаются мышью через `PuzzleCursor` (`Assets/Scripts/UI/PuzzleCursor.cs`): рейкаст из активной камеры только по слою `PuzzleInteractable`, дистанция 2.5 м. По `GetComponentInParent<IInteractable>` от коллайдера находится скрипт кнопки (`LoopPuzzleButton`, `PaintingColumnTrigger`, `SpotlightLensButton`, `TVChannelButton`).
+
+**Нажатие кнопки**: по ЛКМ `PuzzleCursor` вызывает `Interact()` **и** `GetComponent<ButtonPressAnimation>()?.Play()` — тот же вызов, что и в `FPSController`. `ButtonPressAnimation` лежит рядом с `IInteractable`-скриптом на корневом объекте кнопки (`Button_S1..S6`, `Button_Q1..Q4`, `PositionSwitch`) и проигрывает продавливание + звук (`S_SwitchClick` для рубильников, `S_MechanicalButtonPush` для S6). У `SpotlightLensButton` (L1/L2/L4) анимации нажатия нет — призму поворачивает собственная логика линз.
 
 ---
 
@@ -633,16 +634,18 @@ bool roomLightOk = !cond.requireRoomLightOff || _roomLightOff;
 
 ## Что нужно сделать вручную (pending)
 
-- [x] Добавить `BoxCollider` на `Peephole`
 - [x] Создать объекты `LensButtons/Button_L1`, `Button_L2`, `Button_L4` в префабе, назначить `SpotlightLensButton` с уникальными `_saveId`
 - [x] На `Spotlight_L3` → `PaintingSpotlight._synthesisInputs` назначить `Spotlight_L2` и `Spotlight_L4`
 - [x] В `LoopPuzzleController._conditions` выставить `requiredColor`: Q1=Red, Q2=Yellow, Q3=Green, Q4=Blue
 - [x] `Global Volume` выставить `Is Global = true`, включить `Post Processing` на `Main Camera`
 - [x] `SymbolFader` добавлен на `Symbol_Omega`, `Symbol_Psi`, `Symbol_Sigma`, `Symbol_Delta` в префабе
 - [x] Расставить кнопки `Button_L1`, `Button_L2`, `Button_L4` физически в сцене (позиция в ControlRoom)
-- [x] **Cinematic**: `CinemachineCamera` добавлена на `PaintSolved`, объект деактивирован, назначен в `LoopPuzzleController._solvedCamera`
+- [x] **Cinematic**: переход на общий `PuzzleSolvedCinematic` (`_saveId = "loop_puzzle_cinematic"`) + `CinematicAudioController` + `Animator` (`PaintPuzzleCinematic.controller`) + `PaintCinematicSignals` на корне. Клип `PaintPuzzleSolvedCinematic.anim` с Animation Events; дефолтное состояние контроллера — **Idle** (не cinematic-клип!), запуск по триггеру `PlayCinematic`. Оба ящика (`Table Drawer_01 (3)` и `(5)`) с `DrawerAutoOpen` открываются событием `OnOpenDrawer`. Выход из puzzle mode — событие `OnExitPuzzleMode` (t=4.9), cut к игроку — t=5.0 с blend 0 (оба на пике чёрного)
 - [x] **ScreenFader**: объект `/Canvas/ScreenFader` активен в сцене (`activeSelf = true`)
 - [x] **SolvedLight**: `SolvedLightFade` на `SolvedLight`, назначен в `LoopPuzzleController._solvedLight`
+- [x] **Мышь в паззл-режиме**: `PuzzleCursor` после `Interact()` вызывает `ButtonPressAnimation.Play()` — кнопки продавливаются и щёлкают (`S_SwitchClick` / `S_MechanicalButtonPush`), как в первом лице
+- [x] **Запертые ящики**: оба ящика `_isLocked = true`, `_lockedClip = S_DoorLocked.aif`; `DrawerDrag` повторяет звук при каждом рывке в запертом состоянии (кулдаун 0.4 c)
+- [x] **Чистка рудиментов**: удалены `LightsOutPanel.cs` + `LightsOutPanelEditor.cs` (пустые заглушки), `_masterUnlockSequence` из `LoopPuzzlePowerCircuit` и мёртвый `DrawSequenceSection()` из его Editor; рефлексия в `AutoSolve()` заменена на `LoopPuzzlePowerCircuit.SetSwitchSilent()`
 - [ ] Добавить `PaintingRoomLightSwitch` на объект выключателя в сцене, назначить его в `LoopPuzzleController._roomLightSwitch`
 - [ ] На объекты освещения в PaintingRoom добавить компонент **Light Zone** (`LightGroup.cs`) с `Zone Id = "painting_room"`
 - [ ] Настроить высоты `_lowY / _midY / _highY` в `PaintingColumn` под реальную геометрию сцены

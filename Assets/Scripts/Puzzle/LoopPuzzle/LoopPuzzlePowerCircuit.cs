@@ -51,9 +51,6 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
     [Tooltip("Настраивается через матрицу в Инспекторе.")]
     [SerializeField] private SwitchAdjacency[] _adjacency;
 
-    // Оставлено для совместимости с редактором, в рантайме не используется.
-    [HideInInspector] [SerializeField] private int[] _masterUnlockSequence;
-
     /// <summary>Срабатывает при любом изменении питания прожекторов.</summary>
     public event Action OnPowerChanged;
 
@@ -188,6 +185,13 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
         EvaluateAndApply();
     }
 
+    /// <summary>Устанавливает состояние рубильника по индексу без событий и каскада (для читов).</summary>
+    public void SetSwitchSilent(int index, bool state)
+    {
+        if (index < 0 || index >= _switches.Length) return;
+        _switches[index]?.SetStateSilent(state);
+    }
+
     // ── Editor utilities ───────────────────────────────────────────────────────
 
     /// <summary>Locks all switches including the master S6. Called when the puzzle is solved.</summary>
@@ -212,7 +216,6 @@ public class LoopPuzzlePowerCircuit : MonoBehaviour
     public int SwitchCount          => _switches != null ? _switches.Length : 0;
     public int SpotlightConfigCount => _spotlightConfigs != null ? _spotlightConfigs.Length : 0;
     public SwitchAdjacency[] Adjacency            => _adjacency;
-    public int[]             MasterUnlockSequence => _masterUnlockSequence;
 
     public SpotlightPowerConfig GetSpotlightConfig(int i) => _spotlightConfigs[i];
 

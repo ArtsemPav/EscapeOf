@@ -117,6 +117,7 @@ namespace Escape.Interaction
         public string NoPowerHint => _noPowerHint;
 
         private bool _isBusy;
+        private bool _playerInside;
         private Transform _playerTransform;
         private CharacterController _playerCharacterController;
         private FPSController _playerFPSController;
@@ -166,13 +167,28 @@ namespace Escape.Interaction
         public void OnPowerStateChanged(bool isPowered)
         {
             HasPower = isPowered;
+            UpdateAmbientState();
+        }
 
-            if (_ambientLoopSource != null)
+        /// <summary>
+        /// Starts the cabin ambient loop only while the player is inside and
+        /// power is on; stops it in every other case.
+        /// </summary>
+        private void UpdateAmbientState()
+        {
+            if (_ambientLoopSource == null) return;
+
+            if (_playerInside && HasPower)
             {
-                if (isPowered)
-                    _ambientLoopSource.volume = _ambientVolume;
-                else
-                    _ambientLoopSource.volume = 0f;
+                _ambientLoopSource.volume = _ambientVolume;
+                if (!_ambientLoopSource.isPlaying)
+                    _ambientLoopSource.Play();
+            }
+            else
+            {
+                _ambientLoopSource.volume = 0f;
+                if (_ambientLoopSource.isPlaying)
+                    _ambientLoopSource.Stop();
             }
         }
 
@@ -207,9 +223,11 @@ namespace Escape.Interaction
             _ambientLoopSource.reverbZoneMix = 0f;
             _ambientLoopSource.bypassReverbZones = true;
             _ambientLoopSource.spread = 0f;
-            _ambientLoopSource.volume = _ambientVolume;
+            _ambientLoopSource.volume = 0f;
             _ambientLoopSource.playOnAwake = false;
-            _ambientLoopSource.Play();
+            // Plays only while the player is inside the cabin (see UpdateAmbientState).
+            if (_playerInside && HasPower)
+                _ambientLoopSource.Play();
 
             // Register in AudioManager so it is controlled by MuteBackground / UnmuteBackground
             AudioManager.Instance?.RegisterLoopSource(_ambientLoopSource, _ambientVolume);
@@ -485,7 +503,9 @@ namespace Escape.Interaction
                 _playerCharacterController = fps.GetComponent<CharacterController>();
                 _playerFPSController = fps;
 
-                // Player entered — cancel auto-close, duck game music
+                // Player entered — cancel auto-close, duck game music, start cabin music
+                _playerInside = true;
+                UpdateAmbientState();
                 CancelAutoClose();
                 MusicDirector.DuckActiveTrack(0f, _musicFadeDuration);
                 return;
@@ -507,7 +527,9 @@ namespace Escape.Interaction
                 _playerCharacterController = null;
                 _playerFPSController = null;
 
-                // Player left — restore game music, start auto-close timer
+                // Player left — restore game music, stop cabin music, start auto-close timer
+                _playerInside = false;
+                UpdateAmbientState();
                 MusicDirector.DuckActiveTrack(1f, _musicFadeDuration);
                 StartAutoCloseTimer();
                 return;

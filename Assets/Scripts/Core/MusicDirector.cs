@@ -62,6 +62,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private float _preDuckVolume = -1f; // volume the active source played at before the last duck
     private MusicTrack _idleCueTrack; // last track requested by the idle (anti-stuck) cue — never saved as dominant
 
+    // ── Focus-loss silence state ──────────────────────────────────────────────
+    private bool _appFocused = true;             // current window focus state (OnApplicationFocus/OnApplicationPause)
+    private bool _silencedWhileUnfocused;        // the focus loss muted the menu track — refocus must refade it
+
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
     public string SaveId => "music_director";
@@ -244,6 +248,47 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (Instance == this && _registeredWithSaveManager) SaveManager.Instance?.Unregister(this);
     }
 
+    // ── Focus-loss silence (pause-menu track must not leak into other apps) ───
+
+    /// <summary>
+    /// Window focus lost or regained (and build-level application pause).
+    /// While unfocused, Update() keeps the pause-menu track silent; on focus
+    /// regain it refades the menu track in from its paused position.
+    /// </summary>
+    private void OnApplicationFocus(bool hasFocus) {
+        if (Instance != this) return; // scene duplicate awaiting destruction
+        SetAppFocused(hasFocus);
+    }
+
+    private void OnApplicationPause(bool paused) {
+        if (Instance != this) return; // builds fire this on minimize/device loss
+        SetAppFocused(!paused);
+    }
+
+    private void SetAppFocused(bool focused) {
+        if (_appFocused == focused) return;
+        _appFocused = focused;
+
+        if (!focused) {
+            // Immediate cut — the callback may arrive before/after GameManager's
+            // own focus handler, Update() enforces the state every frame anyway.
+            if (_menuMusicActive && _activeSource != null) {
+                _silencedWhileUnfocused = true;
+                _activeSource.Pause();
+                _activeSource.volume = 0f;
+            }
+            return;
+        }
+
+        // Focus regained: refade the menu track in if the focus loss had
+        // silenced it. A still-running menu fade targets zero — replace it.
+        if (!_silencedWhileUnfocused) return;
+        _silencedWhileUnfocused = false;
+        if (!_menuMusicActive || _pauseMenuTrack == null) return;
+        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        _fadeCoroutine = StartCoroutine(FadeRoutine(_pauseMenuTrack));
+    }
+
     private bool _registeredWithSaveManager;
 
     private void Start() {
@@ -299,6 +344,46 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     }
 
     private void Update() {
+        // ── Focus-loss silence ────────────────────────────────────────────────
+        // While the game window is unfocused (Alt-Tab) the pause-menu track must
+        // stay silent — the focus-loss pause (GameManager) muting the world via
+        // AudioListener.pause does not cover this ignoreListenerPause source.
+        // Enforced in Update (not in the focus callback) because the callback
+        // order between GameManager and the director is undefined: SetPause may
+        // start the menu fade AFTER this component saw the focus loss.
+        if (!_appFocused && _menuMusicActive && _activeSource != null) {
+            if (_activeSource.isPlaying) _activeSource.Pause();
+            if (_activeSource.volume > 0f) _activeSource.volume = 0f;
+            _silencedWhileUnfocused = true;
+        }
+
+        // Alt-Tab / device-loss watchdog: a streaming source can die silently
+        // after the app loses and regains focus (runInBackground was off, or
+        // the audio device reset mid-frame). Unity keeps the source alive but
+        // it stops reporting isPlaying forever — revive it in place.
+        if (_activeSource != null && _activeTrack != null && _activeTrack.Loop
+            && _fadeCoroutine == null && !MutedForEvent
+            && (GameManager.Instance == null || !GameManager.Instance.IsPaused)
+            && !_activeSource.isPlaying) {
+            Debug.LogWarning($"[Music] Active loop track '{_activeTrack.name}' is not playing outside pause/mute — reviving its source.");
+            _activeSource.UnPause();
+            if (!_activeSource.isPlaying) {
+                _activeSource.time = 0f;
+                _activeSource.Play();
+            }
+            if (!_activeSource.isPlaying && AudioManager.Instance != null) {
+                // Full device loss: the pooled source is unusable — rebuild it.
+                _sourcePool.Remove(_activeTrack);
+                AudioSource rebuilt = AudioManager.Instance.PlayNewMusicSource(_activeTrack.Clip, true, _activeTrack.name);
+                if (_musicGroup != null) rebuilt.outputAudioMixerGroup = _musicGroup;
+                rebuilt.ignoreListenerPause = _activeTrack == _pauseMenuTrack;
+                rebuilt.volume = _activeTrack.Volume;
+                _activeSource = rebuilt;
+                _sourcePool[_activeTrack] = rebuilt;
+                Debug.LogWarning($"[Music] Source for '{_activeTrack.name}' was unusable — rebuilt a fresh one.");
+            }
+        }
+
         // A non-looping track that stopped playing has finished — restore the
         // previous track, or the scene default when nothing was playing before.
         // Explicitly skip the paused-for-menu and muted-for-event states: a
