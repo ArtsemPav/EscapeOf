@@ -14,7 +14,7 @@ namespace EscapeOf.Puzzle.Laptop
         {
             if (!(file is LaptopTextFile textFile)) return;
 
-            _contentText.text = textFile.content;
+            _contentText.text = textFile.Content;
 
             if (_scrollRect != null)
                 _scrollRect.normalizedPosition = new Vector2(0f, 1f);
