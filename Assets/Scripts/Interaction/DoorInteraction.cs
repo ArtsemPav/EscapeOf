@@ -42,6 +42,14 @@ namespace Escape.Core {
         [SerializeField] private string _openText = "Открыть дверь";
         [SerializeField] private string _closeText = "Закрыть дверь";
 
+        [Header("Blocked Interaction Hint")]
+        [Tooltip("Показывать popup-подсказку, когда игрок пытается взаимодействовать с запертой закрытой дверью.")]
+        [SerializeField] private bool _showBlockedHint = false;
+        [Tooltip("Текст подсказки при попытке открыть запертую дверь.")]
+        [SerializeField] private string _lockedHintText = "Дверь заперта. Нужен ключ.";
+        [Tooltip("Минимальная пауза между повторными подсказками (в секундах), чтобы спам кликов не заваливал экран попапами.")]
+        [SerializeField] [Min(0f)] private float _lockedHintCooldown = 2f;
+
         [Header("Pivot")]
         [Tooltip("Transform двери, который физически вращается. Обычно — родительский объект с петлёй.")]
         [SerializeField] private Transform _pivot;
@@ -119,6 +127,7 @@ namespace Escape.Core {
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
         private Camera  _dragCamera;
+        private float   _lastLockedHintTime = -999f; // время последней подсказки о запертой двери
 
         // Pending load state: applied in Start() after _closedLocalEulerY is initialized
         private bool    _hasPendingLoad;
@@ -360,6 +369,7 @@ namespace Escape.Core {
             if (_isLocked && !_isOpen) {
                 ProgressLogger.Log("drag_locked", $"дверь {name}: заперта");
                 AudioManager.Instance.PlaySFX(_lockedClip);
+                ShowLockedHint();
                 _isDragging = true;
                 return;
             }
@@ -493,6 +503,11 @@ namespace Escape.Core {
                     // save captures the correct state: key gone + door unlocked simultaneously.
                     SaveManager.Instance?.Save();
                 }
+                else {
+                    // Заперта, ключа нет — вместо молчания показываем подсказку.
+                    AudioManager.Instance.PlaySFX(_lockedClip);
+                    ShowLockedHint();
+                }
             }
         }
 
@@ -510,6 +525,16 @@ namespace Escape.Core {
         public string GetBlockedHint() => string.Empty;
 
         // ── Public API ───────────────────────────────────────────────────────────
+
+        /// <summary>Shows the locked-door hint popup if enabled, respecting the cooldown
+        /// so repeated clicks do not flood the screen with popups.</summary>
+        private void ShowLockedHint() {
+            if (!_showBlockedHint) return;
+            if (Time.unscaledTime - _lastLockedHintTime < _lockedHintCooldown) return;
+
+            _lastLockedHintTime = Time.unscaledTime;
+            PopupMessageSystem.Instance?.Show(_lockedHintText);
+        }
 
         /// <summary>Unlocks the door programmatically without opening it.</summary>
         public void Unlock()

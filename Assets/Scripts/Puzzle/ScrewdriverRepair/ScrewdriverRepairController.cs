@@ -3,7 +3,6 @@ using System.Collections;
 using ChemicalPuzzle;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
 /// <summary>
 /// Загадка "Ремонт отвёрткой". Игрок перетаскивает отвёртку из инвентаря на объект →
@@ -447,6 +446,9 @@ public class ScrewdriverRepairController : MonoBehaviour,
         if (_minigame != null)
             _minigame.StopMinigame();
 
+        // Даём игроку увидеть заполненный прогресс-бар перед скрытием панели
+        yield return new WaitForSecondsRealtime(0.5f);
+
         if (_minigamePanel != null)
             _minigamePanel.SetActive(false);
 
@@ -505,7 +507,7 @@ public class ScrewdriverRepairController : MonoBehaviour,
         if (Camera.main == null || _targetCollider == null) return false;
 
         Ray ray = Camera.main.ScreenPointToRay(screenPos);
-        if (Physics.Raycast(ray, out RaycastHit hit, 20f, ~0, QueryTriggerInteraction.Ignore))
+        if (Physics.Raycast(ray, out RaycastHit hit, RaycastDistance, ~0, QueryTriggerInteraction.Ignore))
         {
             return hit.collider == _targetCollider ||
                    (hit.collider.transform != null && hit.collider.transform.IsChildOf(_targetCollider.transform));

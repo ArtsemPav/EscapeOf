@@ -46,7 +46,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     [Tooltip("Максимальное количество допустимых промахов. 0 = без лимита. При превышении вызывается OnFailed.")]
     [SerializeField, Min(0)] private int _maxMisses = 3;
 
-    [Tooltip("Откат прогресса при промахе в очках. 0 = без отката.")]
+    [Tooltip("Откат прогресса при промахе в очках. 0 = без отката (по умолчанию: штраф только счётчиком промахов).")]
     [SerializeField, Min(0f)] private float _missPenalty = 0f;
 
     [Header("UI References")]
@@ -103,6 +103,8 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
     private float _totalRotation;
     private float _progress;
     private int _misses;
+    private Coroutine _flashRoutine;
+    private Color _activeFlashRestoreColor;
 
     private void Awake()
     {
@@ -185,6 +187,7 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         _isRunning = false;
         _isTransitioning = false;
         StopAllCoroutines();
+        _flashRoutine = null;
         HideSectorVisuals();
     }
 
@@ -379,12 +382,25 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
 
         if (isWhiteZone && _progressBarFill != null)
         {
-            StartCoroutine(FlashProgressBarColor());
+            if (_flashRoutine != null)
+                StopCoroutine(_flashRoutine);
+            _flashRoutine = StartCoroutine(FlashProgressBarColor());
         }
 
         if (_progress >= _progressGoal)
         {
             _isRunning = false;
+
+            // Останавливаем вспышку и сразу возвращаем исходный цвет бара,
+            // чтобы он не остался белым на время задержки перед скрытием панели
+            if (_flashRoutine != null)
+            {
+                StopCoroutine(_flashRoutine);
+                _flashRoutine = null;
+            }
+            if (_progressBarFill != null)
+                _progressBarFill.color = _progressFillColor;
+
             HideSectorVisuals();
             OnCompleted?.Invoke();
         }
@@ -394,14 +410,20 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         }
     }
 
-    /// <summary>Кратковременно окрашивает прогресс-бар в цвет белой зоны, затем возвращает исходный цвет.</summary>
+    /// <summary>Кратковременно окрашивает прогресс-бар в цвет белой зоны, затем возвращает исходный цвет. Защищено от наложения — исходный цвет запоминается только при первом запуске.</summary>
     private IEnumerator FlashProgressBarColor()
     {
-        Color original = _progressFillColor;
+        // Первый запуск запоминает настоящий исходный цвет
+        if (_flashRoutine == null)
+            _activeFlashRestoreColor = _progressFillColor;
+
         _progressBarFill.color = _whiteZoneColor;
+
         yield return new WaitForSecondsRealtime(0.15f);
+
         if (_progressBarFill != null)
-            _progressBarFill.color = original;
+            _progressBarFill.color = _activeFlashRestoreColor;
+        _flashRoutine = null;
     }
 
     private void RegisterMiss()
