@@ -494,6 +494,9 @@ Env/2ndFloor/Corridor2stF/Horror
                  └─ Эффекты обрезаются за _effectsCutoffBeforeEnd (код-дефолт 1.5 с) до конца музыки
 ```
 
+- **Авто-подключение ссылок:** `CanTriggerZone._sequence` и `_canRigidbody` не хранятся в сериализации (компонент живёт в префабе комнаты, а цель — объект сцены; ссылка сбрасывалась при обновлении префаба). Оба резолвятся в рантайме в `Awake()`: секвенция через `FindFirstObjectByType<UVPentagramSequence>()`, банка — через `UVPentagramSequence.CatCanObject`. Если что-то не нашлось — Warning в консоль. Заполненные в инспекторе поля используются как есть.
+- **Дверь комнаты:** `_doorSaveId` на `UVPentagramSequence` (по умолчанию `door_pantry_main` — дверь кладовой `/Env/1stFloor/Pantry 2/Walls/doorLab/door`). При старте музыки дверь закрывается и запирается (`CloseAndLock()`), по завершении трека — отпирается и открывается (`Open()`). Дверь ищется по `SaveId`, а не ссылкой — по той же причине: триггер и дверь в разных префабах.
+
 - **Содержимое префаба `CatHorror`:** 13 котов (`uiiafixed`), «разрезанный» кот (`CatAnimation/uiiaCuted`), 4 световых столпа (`LightPilars/Pilar1-4`), партиклы `vfx_Hyperdrive_01`, спот-лайты.
 - `_onMusicStarted` / `_onMusicFinished` — UnityEvent для доп. реакций (пост-процесс, звуки). Плюс `_timeline` — массив `TimelineEntry { time, onTime }`: UnityEvent срабатывают на заданных секундах трека для эскалации странности.
 - Статическое событие `OnBeat` — стреляет на каждый бит музыки (BPM-синхронизация).

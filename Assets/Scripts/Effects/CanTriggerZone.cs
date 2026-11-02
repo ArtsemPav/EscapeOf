@@ -26,16 +26,37 @@ public class CanTriggerZone : MonoBehaviour
     private bool _hasFired;
     private float _elapsed;
 
+    private void Awake()
+    {
+        // The serialized references live in the room prefab and can only point at
+        // scene objects via fragile prefab-instance overrides — resolve them at
+        // runtime so the trigger survives prefab reverts and room re-placements.
+        if (_sequence == null)
+            _sequence = FindFirstObjectByType<UVPentagramSequence>();
+        if (_sequence == null)
+        {
+            Debug.LogWarning($"[{name}] No UVPentagramSequence found in the scene — the trigger can never fire.", this);
+            return;
+        }
+
+        if (_canRigidbody == null)
+        {
+            GameObject canObject = _sequence.CatCanObject;
+            if (canObject != null)
+                _canRigidbody = canObject.GetComponentInParent<Rigidbody>();
+            if (_canRigidbody == null)
+                Debug.LogWarning($"[{name}] Cat can Rigidbody not resolved — the trigger can never fire.", this);
+        }
+    }
+
     private void Update() => _elapsed += Time.deltaTime;
 
     private void OnTriggerEnter(Collider other)
     {
         if (_hasFired) return;
         if (_elapsed < _startGracePeriod) return;
-        if (_canRigidbody == null || _sequence == null || _sequence.HasFired) return;
-
-        // The can may enter with any of its child colliders — check the rigidbody
-        if (other.attachedRigidbody != _canRigidbody) return;
+        if (_sequence == null || _sequence.HasFired) return;
+        if (_canRigidbody == null || other.attachedRigidbody != _canRigidbody) return;
 
         _hasFired = true;
         Debug.Log($"[CanTriggerZone] Can accepted: {_canRigidbody.name}; CanPosition={_canRigidbody.position}; ZonePosition={transform.position}; Delay={_triggerDelay:F2}s", this);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Escape.Core;
 using UnityEngine;
 using UnityEngine.Events;
 #if UNITY_EDITOR
@@ -94,6 +95,11 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
     [Tooltip("Fired when the track finishes. Restore room colors/lighting here if the timeline changed them.")]
     [SerializeField] private UnityEvent _onMusicFinished;
 
+    [Header("Room Door")]
+    [Tooltip("SaveId of the DoorInteraction to trap the player with. The door is closed and locked " +
+             "when the music starts and opened when the track ends. Empty = no door control.")]
+    [SerializeField] private string _doorSaveId = "door_pantry_main";
+
 #if UNITY_EDITOR
     [Header("Editor Debug Only")]
     [Tooltip("Opt-in test shortcut for Editor Play Mode only. Never available in a player build; blocked while UI is open.")]
@@ -142,6 +148,9 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
     private bool _particlesStarted;
     private bool _effectsCutoffDone;
     private float _debugLogTimer;
+    private DoorInteraction _door;
+
+    // ── ISaveable ─────────────────────────────────────────────────────────────
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
@@ -151,6 +160,9 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
 
     /// <summary>True once the sequence has played — persisted, never replays after load.</summary>
     public bool HasFired { get; private set; }
+
+    /// <summary>The cat can object this sequence will consume — used by CanTriggerZone to resolve its Rigidbody reference.</summary>
+    public GameObject CatCanObject => _catCanObject;
 
     private bool _restoreFired;
 
@@ -187,6 +199,29 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
     {
         Debug.Log($"[UVPentagramSequence] Start. HasFired={HasFired}", this);
         SpawnInstance();
+        ResolveDoor();
+    }
+
+    /// <summary>
+    /// Finds the room door by its save id so the event can trap the player inside
+    /// while the sequence plays and release them when it ends. Resolved via
+    /// ISaveable.SaveId instead of an object reference — the trigger and the door
+    /// live in different prefabs, so a direct reference cannot be serialized safely.
+    /// </summary>
+    private void ResolveDoor()
+    {
+        _door = null;
+        if (string.IsNullOrEmpty(_doorSaveId)) return;
+        foreach (DoorInteraction door in FindObjectsByType<DoorInteraction>(FindObjectsSortMode.None))
+        {
+            if (door.SaveId == _doorSaveId)
+            {
+                _door = door;
+                break;
+            }
+        }
+        if (_door == null)
+            Debug.LogWarning($"[{name}] Door with SaveId '{_doorSaveId}' not found — the player will not be trapped.", this);
     }
 
     private void Update()
@@ -414,6 +449,13 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
             Debug.Log($"[UVPentagramSequence] Music started. Clip length: {(_audio.clip != null ? _audio.clip.length.ToString("F1") + "s" : "NULL")}", this);
         }
 
+        // Trap the player inside for the duration of the show
+        if (_door != null)
+        {
+            _door.CloseAndLock();
+            Debug.Log($"[UVPentagramSequence] Door '{_door.SaveId}' closed and locked for the sequence.", this);
+        }
+
         InstanceMusicSource = _audio;
 
         _onMusicStarted?.Invoke();
@@ -496,6 +538,13 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
         if (AudioManager.Instance != null)
             AudioManager.Instance.UnmuteBackground();
         MusicDirector.RestoreAfterEvent();
+
+        // Release the player — the door unlocks and opens
+        if (_door != null)
+        {
+            _door.Open();
+            Debug.Log($"[UVPentagramSequence] Door '{_door.SaveId}' unlocked and opened after the sequence.", this);
+        }
 
         _onMusicFinished?.Invoke();
 
