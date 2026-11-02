@@ -27,7 +27,6 @@ public class ItemInspector : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private GameObject inspectionPanel;
-    [SerializeField] private RectTransform previewFrame;
     [SerializeField] private RawImage previewImage;
     [SerializeField] private TextMeshProUGUI itemNameText;
     [SerializeField] private TextMeshProUGUI descriptionText;
@@ -532,7 +531,10 @@ private bool _ignoreInputThisFrame;
         if (worldObj != null && worldObj.TryGetComponent(out PickableItem pickable))
             pickable.NotifyPickedUp();
         if (worldObj != null) Destroy(worldObj);
-        AudioManager.Instance?.PlaySFX(pickupClip);
+
+        // Per-item override wins; fall back to the global pickup clip.
+        var clipToPlay = item.pickupClip != null ? item.pickupClip : pickupClip;
+        AudioManager.Instance?.PlaySFX(clipToPlay);
     }
 
     /// <summary>Closes the inspection without picking up the item.</summary>

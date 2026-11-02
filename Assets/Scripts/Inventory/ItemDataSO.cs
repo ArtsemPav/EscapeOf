@@ -21,6 +21,16 @@ public class ItemData : ScriptableObject
     [Header("Visual")]
     public Sprite icon;
 
+    [Header("Sound")]
+    [Tooltip("Звук-превью, который проигрывается в момент клика по предмету в мире (до открытия инспекции/подбора).")]
+    public AudioClip previewClip;
+
+    [Tooltip("Громкость звука-превью.")]
+    [Range(0f, 1f)] public float previewVolume = 1f;
+
+    [Tooltip("Звук взятия предмета в превью. Если пусто — используется глобальный pickupClip из ItemInspector.")]
+    public AudioClip pickupClip;
+
     [Header("Usage")]
     [Tooltip("Если включено — предмет удаляется из инвентаря после использования (например, ключ открыл дверь).")]
     public bool consumeOnUse = true;
@@ -48,9 +58,6 @@ public class ItemData : ScriptableObject
 
     [Tooltip("Запретить ручное вращение по оси Y (поворот влево/вправо) во время превью и осмотра.")]
     public bool lockRotationY;
-
-    [Tooltip("Запретить ручное вращение по оси Z (наклон вбок) во время превью и осмотра.")]
-    public bool lockRotationZ;
 
     [Tooltip("Если включено — предмет не будет привлекать внимание мерцанием (shimmer).")]
     public bool disableShimmer;

@@ -125,3 +125,22 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 - **Mute для событий:** `AudioManager.MuteBackground/UnmuteBackground` или напрямую `MusicDirector.MuteForEvent/RestoreAfterEvent` — глушится музыка и tracked-лупы, one-shot SFX продолжают звучать.
 - **Слои:** `PlayBackgroundLayer`/`StopBackgroundLayer` для независимых 2D-слоёв с фейдами.
 - **Громкости:** `SystemSettings` пишет в exposed-параметры микшера (`SFXVolume` / `MusicVolume`), изменения применяются мгновенно к играющему звуку.
+
+## Звуки предметов (унифицированная система)
+
+Звуки подбора задаются **только в `ItemData`-ассетах** — в сцене и префабах их нет:
+
+```
+Клик по предмету в мире   →  ItemData.previewClip (громкость previewVolume)
+                             Пусто → тишина
+Взятие в окне осмотра     →  ItemData.pickupClip
+                             Пусто → общий pickupClip с /InspectionSetup (ItemInspector)
+Крафт                     →  InventoryAudio._craftClip (слушает InventorySystem.OnCrafted)
+```
+
+- `PickableItem` больше не хранит звуков (поля `_previewSound`/`_previewSoundVolume` удалены).
+- `ItemInspector` (`/InspectionSetup`) держит `pickupClip` = `S_GrabItem` — дефолтный звук взятия на все предметы.
+- Приоритет: `ItemData.pickupClip` → общий `ItemInspector.pickupClip`.
+- Стандартный звук клика — `S_GrabbinForItem` (`/Assets/sound/pickItem/`), вписан в `previewClip` всех существующих ассетов. Кастомы: `Data_KeyPantry` и `Data_Сanister` — `GasCan`.
+- Viewable-предметы (`inspectOnly`, например бутылки) идут через тот же `PickableItem.Interact()` → тот же `previewClip`.
+- Правило: новый звук предмета = поле в его `ItemData`-ассете. Не вешать звуки на объекты в сцене.

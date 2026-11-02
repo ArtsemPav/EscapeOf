@@ -11,12 +11,6 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
 {
     [SerializeField] private ItemData itemData;
 
-    [Header("Sound")]
-    [Tooltip("Звук-превью, который проигрывается в момент клика по предмету (до открытия инспекции/подбора).")]
-    [SerializeField] private AudioClip _previewSound;
-
-    [SerializeField] private float _previewSoundVolume = 1f;
-
     [Header("Inspect-Only")]
     [Tooltip("Если включено — предмет можно только осмотреть в 3D-превью. Он не попадает в инвентарь и не удаляется из сцены.")]
     [SerializeField] private bool inspectOnly;
@@ -195,11 +189,12 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
         }
     }
 
-    /// <summary>Plays the preview sound clip when the player clicks the item.</summary>
+    /// <summary>Plays the preview sound clip when the player clicks the item.
+    /// The clip is defined per-item on the item's ItemData asset.</summary>
     private void PlayPreviewSound()
     {
-        if (_previewSound != null)
-            AudioManager.Instance?.PlaySFX(_previewSound, _previewSoundVolume);
+        if (itemData != null && itemData.previewClip != null)
+            AudioManager.Instance?.PlaySFX(itemData.previewClip, itemData.previewVolume);
     }
 
     /// <summary>Returns the interaction prompt shown to the player.</summary>
