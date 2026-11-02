@@ -39,6 +39,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     // -999 so the very first track request is never rejected by _minSwitchInterval
     private float _lastSwitchTime = -999f;
     private AudioSource _activeSource;
+    // The outgoing source of the current crossfade (fading to 0, paused at the
+    // end). Tracked separately so an INTERRUPTED fade never leaves it orphaned
+    // mid-volume: whoever stops the fade coroutine finishes it via this slot.
+    private AudioSource _fadingOutSource;
     private int _muteOwnerCount; // nested horror events — restore fires only when the last owner releases
     private Coroutine _muteCoroutine;
 
@@ -67,6 +71,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private bool _silencedWhileUnfocused;        // the focus loss muted the menu track — refocus must refade it
     private bool _frozeSourcesWhileUnfocused;    // the focus loss paused one-shot sources — refocus must unfreeze them
     private readonly List<AudioSource> _frozenWhileUnfocused = new List<AudioSource>();
+    private float _lastReviveAttempt = -999f;    // rate-limits the never-started-track restart
 
     /// <summary>True while the ESC pause (or its auto focus-loss variant) owns the game.
     /// Frozen sources must not unfreeze while the player sits in the menu.</summary>
@@ -153,6 +158,24 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     private Coroutine _menuResumeCoroutine;
 
     /// <summary>
+    /// Stops a running crossfade and finalizes its outgoing source (the one on
+    /// its way down) so an interrupted fade never leaves a source orphaned
+    /// mid-volume: the player's pause/horror event/load takes over the audio
+    /// cleanly. Returns true when a fade was stopped.
+    /// </summary>
+    private bool StopActiveFade() {
+        if (_fadeCoroutine == null) return false;
+        StopCoroutine(_fadeCoroutine);
+        _fadeCoroutine = null;
+        if (_fadingOutSource != null) {
+            _fadingOutSource.volume = 0f;
+            _fadingOutSource.Pause();
+            _fadingOutSource = null;
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Switches to the pause menu track, remembering the gameplay track's
     /// playback position. Replaces the legacy AudioManager.PlayMenuMusic.
     /// </summary>
@@ -163,18 +186,15 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
         Instance._menuMusicActive = true;
 
-        // Remember where the gameplay track stopped so it resumes from the same spot.
-        if (Instance._activeSource != null && Instance._activeTrack != null
-            && Instance._activeTrack != Instance._pauseMenuTrack
-            && Instance._activeSource.clip == Instance._activeTrack.Clip) {
-            Instance._menuResumeTime = Instance._activeSource.time;
-            Instance._preMenuTrack = Instance._activeTrack;
-        } else if (Instance._preMenuTrack == null) {
+        // Remember where the gameplay track stopped so it resumes from the same
+        // spot. Only a source that played through to its end is not remembered
+        // — resuming it would restart a played-out zone track.
+        if (!Instance.TryRememberPreMenuTrack() && Instance._preMenuTrack == null) {
             // Menu opened with no gameplay music (main menu) — nothing to restore.
             Instance._preMenuTrack = null;
         }
 
-        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        Instance.StopActiveFade();
         if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
         Instance._preDuckVolume = -1f; // the duck is abandoned — the restored track plays at its own level
         Instance._activeTrack = Instance._pauseMenuTrack;
@@ -195,16 +215,36 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         // the soundscape — stay silent until RestoreAfterEvent refades the track.
         if (MutedForEvent) return;
 
+        // Restore chain: the track the menu remembered (the source that was
+        // actually sounding — the incoming source of a mid-crossfade included,
+        // because the crossfade switches the bookkeeping at its START), then
+        // the last requested track, then the scene default.
         MusicTrack gameplayTrack = Instance._preMenuTrack != null
             ? Instance._preMenuTrack
             : (Instance._previousTrack != null && Instance._previousTrack != Instance._pauseMenuTrack
                 ? Instance._previousTrack
                 : Instance._defaultGameTrack);
         if (gameplayTrack == null) return;
+        // A finished one-shot must not be resurrected by the restore chain: if
+        // the remembered/previous track's source sat through to the clip end,
+        // the zone music is over — the default track takes over instead.
+        // NOTE: a source PAUSED BY THE MENU FADE is not stale — pausing is its
+        // normal state after the menu took over; only the clip end means the
+        // track is over.
+        if (gameplayTrack != null && gameplayTrack != Instance._defaultGameTrack
+            && Instance._sourcePool.TryGetValue(gameplayTrack, out AudioSource candSrc)
+            && candSrc != null && !candSrc.isPlaying
+            && gameplayTrack.Clip != null && candSrc.time >= gameplayTrack.Clip.length - 0.05f) {
+            Debug.Log($"[Music] PlayGameMusic: '{gameplayTrack.name}' already played through — falling back to the default track.");
+            gameplayTrack = Instance._defaultGameTrack;
+        }
 
         if (Instance._menuResumeCoroutine != null) Instance.StopCoroutine(Instance._menuResumeCoroutine);
-        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        // Finalizes the menu fade's outgoing source (the pre-menu track's
+        // source keeps its position for the resume below).
+        Instance.StopActiveFade();
         Instance._activeTrack = gameplayTrack;
+        // ResumeGameplayRoutine consumes _menuResumeTime and _preMenuTrack itself.
         Instance._menuResumeCoroutine = Instance.StartCoroutine(Instance.ResumeGameplayRoutine(gameplayTrack));
     }
 
@@ -292,8 +332,36 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (!_silencedWhileUnfocused) return;
         _silencedWhileUnfocused = false;
         if (!_menuMusicActive || _pauseMenuTrack == null) return;
-        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        StopActiveFade();
         _fadeCoroutine = StartCoroutine(FadeRoutine(_pauseMenuTrack));
+    }
+
+    /// <summary>
+    /// Remembers the currently active gameplay track for a later menu restore,
+    /// but only when its source actually carries that clip AND is still alive.
+    /// The incoming source of a mid-crossfade QUALIFIES: the crossfade switched
+    /// _activeSource to it at fade start, and its position is meaningful.
+    /// Only a source that played through to the clip end is stale — resuming
+    /// it would restart a played-out zone track.
+    /// </summary>
+    private bool TryRememberPreMenuTrack() {
+        if (_activeSource == null || _activeTrack == null || _activeTrack == _pauseMenuTrack) return false;
+        if (_activeSource.clip != _activeTrack.Clip) return false;
+
+        // SetPause(true) has already raised AudioListener.pause by the time
+        // PlayMenuMusic runs — a listener-paused source reports isPlaying ==
+        // false, so the pause alone must not disqualify it. Only a source that
+        // finished naturally (sitting at the clip end) is stale and must not
+        // be remembered: resuming it would restart a played-out zone track.
+        float clipLength = _activeTrack.Clip != null ? _activeTrack.Clip.length : 0f;
+        bool finished = clipLength > 0f && _activeSource.time >= clipLength - 0.05f;
+        bool alive = !finished
+            && (_activeSource.isPlaying || AudioListener.pause || _activeSource.time > 0f);
+        if (!alive) return false;
+
+        _menuResumeTime = _activeSource.time;
+        _preMenuTrack = _activeTrack;
+        return true;
     }
 
     private bool _registeredWithSaveManager;
@@ -390,14 +458,25 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             _frozenWhileUnfocused.Clear();
         }
 
-        // Alt-Tab / device-loss watchdog: a streaming source can die silently
-        // after the app loses and regains focus (runInBackground was off, or
-        // the audio device reset mid-frame). Unity keeps the source alive but
-        // it stops reporting isPlaying forever — revive it in place.
-        if (_activeSource != null && _activeTrack != null && _activeTrack.Loop
-            && _fadeCoroutine == null && !MutedForEvent
-            && (GameManager.Instance == null || !GameManager.Instance.IsPaused)
-            && !_activeSource.isPlaying) {
+        // ── Track-life guard: the source is the single source of truth ───────
+        // If the ACTIVE source stopped without a request, find out WHY and
+        // react. All source death paths funnel through this state machine:
+        // - a pause took over (menu/autoplay pause)  -> the pause owns audio,
+        //   its FadeRoutine will restart the source on resume;
+        // - a mute is held (horror event)            -> RestoreAfterEvent will;
+        // - a fade is running                        -> it manages both sources;
+        // - a non-loop clip reached its end          -> RestoreFallbackTrack;
+        // - anything else (streaming source died after alt-tab / device loss,
+        //   play() failed while the clip was still loading) -> the source is
+        //   restarted from the clip start — a stopped non-loop source mid-fade
+        //   (e.g. killed and unpaused by a pause/restore cycle) is also revived
+        //   here instead of being misreported as finished.
+        if (_activeSource == null || _activeTrack == null || _fadeCoroutine != null || MutedForEvent) return;
+        if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
+
+        if (_activeSource.isPlaying) return;
+
+        if (_activeTrack.Loop) {
             Debug.LogWarning($"[Music] Active loop track '{_activeTrack.name}' is not playing outside pause/mute — reviving its source.");
             _activeSource.UnPause();
             if (!_activeSource.isPlaying) {
@@ -415,20 +494,28 @@ public class MusicDirector : MonoBehaviour, ISaveable {
                 _sourcePool[_activeTrack] = rebuilt;
                 Debug.LogWarning($"[Music] Source for '{_activeTrack.name}' was unusable — rebuilt a fresh one.");
             }
+            return;
         }
 
-        // A non-looping track that stopped playing has finished — restore the
-        // previous track, or the scene default when nothing was playing before.
-        // Explicitly skip the paused-for-menu and muted-for-event states: a
-        // paused source also reports isPlaying == false.
-        if (_activeSource == null || _activeTrack == null || _activeTrack.Loop) return;
-        if (_fadeCoroutine != null || MutedForEvent) return;
-        if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
-
-        if (!_activeSource.isPlaying) {
+        // Non-looping track, not playing, no fade/mute/pause owns the audio.
+        // A freshly requested track that never started (play() raced the
+        // streaming load, or a pause/restore cycle stopped it) is revived:
+        // the player walked into its zone and must hear it.
+        // Rate-limited: if Play() keeps failing (e.g. AudioListener.pause
+        // desync — source can never start while the listener is paused),
+        // logging/Play() every frame would spam the console. Retry at most
+        // twice a second; the source-life guard above still catches the
+        // recovery the moment the cause is gone.
+        if (_activeSource.time > 0f) {
             Debug.Log($"[Music] Track '{_activeTrack.name}' finished playing -> restoring fallback (isPlaying=false detected)");
             RestoreFallbackTrack();
+            return;
         }
+
+        if (Time.unscaledTime - _lastReviveAttempt < 0.5f) return;
+        _lastReviveAttempt = Time.unscaledTime;
+        Debug.LogWarning($"[Music] Non-loop track '{_activeTrack.name}' never started (source stopped at 0:00) — restarting.");
+        _activeSource.Play();
     }
 
     /// <summary>
@@ -511,7 +598,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         _activeTrack = fallback;
         _lastSwitchTime = Time.unscaledTime;
 
-        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        StopActiveFade();
         if (_duckCoroutine != null) StopCoroutine(_duckCoroutine); // its volume writes would fight FadeRoutine
         _duckCoroutine = null; // track switch cancels any active duck
         if (fallback != null) {
@@ -538,7 +625,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         _activeTrack = track;
         _lastSwitchTime = Time.unscaledTime;
 
-        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        StopActiveFade();
         if (_duckCoroutine != null) StopCoroutine(_duckCoroutine); // its volume writes would fight FadeRoutine
         _duckCoroutine = null; // track switch cancels any active duck
         _fadeCoroutine = StartCoroutine(FadeRoutine(track));
@@ -563,7 +650,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         Instance._muteOwnerCount++; // nested events stack — each owner must release individually
         Debug.Log($"[Music] MuteForEvent (fade {fadeDuration}s) from '{(caller ?? "unknown")}' — owners now: {Instance._muteOwnerCount}");
 
-        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        Instance.StopActiveFade();
         if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
         Instance._preDuckVolume = -1f; // the duck is abandoned — restore plays at full level
 
@@ -716,7 +803,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         Debug.Log($"[Music] FadeOutForLoadingScreen ({fadeDuration}s) from '{(caller ?? "unknown")}'");
 
         // A fade still in progress: stop its bookkeeping, sources re-snapshot below.
-        if (Instance._fadeCoroutine != null) Instance.StopCoroutine(Instance._fadeCoroutine);
+        Instance.StopActiveFade();
         if (Instance._duckCoroutine != null) { Instance.StopCoroutine(Instance._duckCoroutine); Instance._duckCoroutine = null; }
         Instance._preDuckVolume = -1f;
 
@@ -770,7 +857,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         _activeTrack = restoreTo;
         _lastSwitchTime = Time.unscaledTime;
 
-        if (_fadeCoroutine != null) StopCoroutine(_fadeCoroutine);
+        StopActiveFade();
         if (_duckCoroutine != null) StopCoroutine(_duckCoroutine); // its volume writes would fight FadeRoutine
         _duckCoroutine = null; // track switch cancels any active duck
         if (restoreTo != null) {
@@ -821,6 +908,24 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             newSource.volume = 0f;
         }
 
+        // Switch the bookkeeping NOW, not at fade end: any interruption during
+        // the crossfade (pause menu, horror mute, focus loss) must see the
+        // INCOMING source as active, and a fade interrupted before it killed
+        // the previous outgoing source must not leave that source orphaned
+        // mid-volume. Without this, a menu opened mid-crossfade remembered the
+        // OLD track as the restore target and the player's newest zone request
+        // was lost (its source kept playing half-faded, unowned).
+        if (oldSource != newSource) {
+            if (_fadingOutSource != null && _fadingOutSource != oldSource) {
+                // The previous fade was interrupted before it finished — finish
+                // its outgoing source here (it is already on its way down).
+                _fadingOutSource.volume = 0f;
+                _fadingOutSource.Pause();
+            }
+            _fadingOutSource = oldSource;
+        }
+        _activeSource = newSource;
+
         // Fade old source out and pause it so it can resume from the same spot later.
         float startOldVolume = oldSource != null && oldSource != newSource ? oldSource.volume : 0f;
         float startNewVolume = newSource.volume;
@@ -838,10 +943,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (oldSource != null && oldSource != newSource) {
             oldSource.Pause();
             oldSource.volume = 0f;
+            if (_fadingOutSource == oldSource) _fadingOutSource = null;
         }
         newSource.volume = targetVolume;
 
-        _activeSource = newSource;
         _fadeCoroutine = null;
     }
 
@@ -856,9 +961,13 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
             // A paused source resumes where it faded out — its position must not
             // be touched here (the menu/resume logic manages positions itself).
-            // A stopped source (one-shot that played through) restarts from zero,
-            // or from the saved session position if it was just restored from a save.
-            if (!pooled.loop && !pooled.isPlaying) pooled.time = 0f;
+            // Only a source that played through to the end restarts from zero
+            // (or from the saved session position if just restored from a save).
+            if (!pooled.loop && !pooled.isPlaying) {
+                float clipLength = track.Clip != null ? track.Clip.length : 0f;
+                bool finished = clipLength > 0f && pooled.time >= clipLength - 0.05f;
+                if (finished) pooled.time = 0f;
+            }
             if (_resumeTime > 0f && track.name == _loadedDominantTrackName) {
                 pooled.time = _resumeTime;
             }

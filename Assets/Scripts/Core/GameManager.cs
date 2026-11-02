@@ -16,7 +16,12 @@ public class GameManager : MonoBehaviour
     [Tooltip("Automatically enter the ESC pause (pause menu + muted world) when the game window loses focus (Alt-Tab). The player resumes manually.")]
     [SerializeField] private bool _pauseOnFocusLoss = true;
 
-    private bool _isPaused;
+    // Serialized so a mid-play domain reload (script recompile while playing)
+    // restores the pause state instead of resetting it: the native
+    // AudioListener.pause / Time.timeScale survive the reload, a managed bool
+    // would not — a desync there mutes every AudioSource while the game
+    // believes it is unpaused, and Play() silently fails on new sources.
+    [SerializeField] private bool _isPaused;
 
     public bool IsPaused => _isPaused;
 
@@ -124,5 +129,20 @@ public class GameManager : MonoBehaviour
         
         Cursor.lockState = shouldUnlock ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = shouldUnlock;
+    }
+
+    private void Update()
+    {
+        // Self-heal a state desync: the native audio pause must always follow
+        // the managed pause flag. If they ever diverge (a domain reload
+        // mid-play, external code touching AudioListener.pause), realign to
+        // the managed state — otherwise the whole world stays muted (or
+        // unmutes) behind the director's back and new sources cannot start.
+        if (AudioListener.pause != _isPaused)
+        {
+            Debug.LogWarning($"[GameManager] Audio pause desync (AudioListener.pause={AudioListener.pause}, IsPaused={_isPaused}) — realigned.");
+            AudioListener.pause = _isPaused;
+            Time.timeScale = _isPaused ? 0f : 1f;
+        }
     }
 }

@@ -181,7 +181,12 @@ public class WakeUpIntroController : MonoBehaviour
         if (_ambientSource != null && _ambientSource.outputAudioMixerGroup == null)
             AudioManager.Instance?.RouteSourceToSfxGroup(_ambientSource);
 
-        if (!SaveManager.ConsumeWakeUpIntroRequest())
+        // TEMP DIAGNOSTIC (intro startup hang): timestamp every step of the chain.
+        Debug.Log($"[WakeUpIntro][diag] Start at {Time.realtimeSinceStartup:F2}s (frame {Time.frameCount})");
+
+        bool requested = SaveManager.ConsumeWakeUpIntroRequest();
+        Debug.Log($"[WakeUpIntro][diag] ConsumeWakeUpIntroRequest -> {requested}");
+        if (!requested)
         {
             enabled = false;
             return;
@@ -207,6 +212,8 @@ public class WakeUpIntroController : MonoBehaviour
 
     private void BeginIntro()
     {
+        // TEMP DIAGNOSTIC (intro startup hang): time from scene Start to BeginIntro.
+        Debug.Log($"[WakeUpIntro][diag] BeginIntro at {Time.realtimeSinceStartup:F2}s (frame {Time.frameCount})");
         _fps = FindFirstObjectByType<FPSController>();
         if (_fps == null)
         {
@@ -312,7 +319,13 @@ public class WakeUpIntroController : MonoBehaviour
             _ambientSource.Play();
         }
 
-        yield return new WaitForSeconds(_startDelay);
+        // Unscaled time: the intro must keep running while the game is paused
+        // (focus-loss auto-pause sets Time.timeScale = 0 — a scaled wait would
+        // freeze the intro on a black screen until the pause is lifted).
+        yield return new WaitForSecondsRealtime(_startDelay);
+        // TEMP DIAGNOSTIC (intro startup hang): the delay is realtime, so any
+        // gap between the two timestamps below is a real hitch, not scaled time.
+        Debug.Log($"[WakeUpIntro][diag] startDelay elapsed at {Time.realtimeSinceStartup:F2}s (frame {Time.frameCount}) — eyes opening begins");
 
         // ── Phase 2: wake — lids part, blur fades down the FOCUS LADDER ────────
         // Each blink hides one ladder step: the blur drops WHILE the eyelids
@@ -346,7 +359,7 @@ public class WakeUpIntroController : MonoBehaviour
             if (_skipRequested) break;
             if (_eyelids != null) yield return _eyelids.Blink(_postOpenBlinkDuration, 1f);
             SetVolumeWeight(ladder[i]);
-            yield return new WaitForSeconds(i == ladder.Length - 1 ? _lampSharpHoldTime : _lampFocusHoldTime);
+            yield return new WaitForSecondsRealtime(i == ladder.Length - 1 ? _lampSharpHoldTime : _lampFocusHoldTime);
         }
         SetVolumeWeight(0f); // skip-safety: the lamp is sharp when moving on
 
@@ -518,7 +531,9 @@ public class WakeUpIntroController : MonoBehaviour
         while (t < duration)
         {
             if (_skipRequested) yield break;
-            t += Time.deltaTime;
+            // Unscaled time: the intro survives a pause (Time.timeScale = 0
+            // from the focus-loss auto-pause must not freeze the cinematic).
+            t += Time.unscaledDeltaTime;
             float p = Mathf.SmoothStep(0f, 1f, t / duration);
             if (_eyelids != null)
                 _eyelids.SetEyeOpen(Mathf.Lerp(alreadyOpen, targetAmount, p));
@@ -587,7 +602,7 @@ public class WakeUpIntroController : MonoBehaviour
         while (t < turnDuration)
         {
             if (_skipRequested) yield break;
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             float p = Mathf.Clamp01(t / turnDuration);
             camera.rotation = Quaternion.Slerp(fromRot, toRot, DrowsyEase(p));
 
@@ -615,7 +630,7 @@ public class WakeUpIntroController : MonoBehaviour
         while (swayT < restTime)
         {
             if (_skipRequested) yield break;
-            swayT += Time.deltaTime;
+            swayT += Time.unscaledDeltaTime;
             float fadeIn = Mathf.Clamp01(swayT / 0.8f);
             float fadeOut = Mathf.Clamp01((restTime - swayT) / Mathf.Max(restTime * 0.3f, 0.01f));
             float amp = _headSwayDegrees * 0.5f * fadeIn * fadeOut;
@@ -720,7 +735,7 @@ public class WakeUpIntroController : MonoBehaviour
         while (t < _standUpDuration)
         {
             if (_skipRequested) break;
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / _standUpDuration));
             float dip = Mathf.Sin(p * Mathf.PI) * _standLookDownWeight; // 0 → peak → 0
 
@@ -860,7 +875,7 @@ public class WakeUpIntroController : MonoBehaviour
         while (t < duration)
         {
             if (_skipRequested) yield break;
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             float p = DrowsyEase(Mathf.Clamp01(t / duration));
 
             player.rotation = Quaternion.Slerp(startBody, endBody, p);
@@ -872,7 +887,7 @@ public class WakeUpIntroController : MonoBehaviour
         camera.localRotation = Quaternion.Euler(targetPitch, 0f, 0f);
 
         // A short hold on the book before control is handed over.
-        yield return new WaitForSeconds(_gazeHoldTime);
+        yield return new WaitForSecondsRealtime(_gazeHoldTime);
     }
 
     private void OnMenuPressed()
