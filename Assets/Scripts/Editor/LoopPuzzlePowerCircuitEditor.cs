@@ -16,7 +16,6 @@ public class LoopPuzzlePowerCircuitEditor : Editor
     private SerializedProperty _switchesProp;
     private SerializedProperty _spotlightConfigsProp;
     private SerializedProperty _adjacencyProp;
-    private SerializedProperty _sequenceProp;
 
     // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -43,7 +42,6 @@ public class LoopPuzzlePowerCircuitEditor : Editor
         _switchesProp         = serializedObject.FindProperty("_switches");
         _spotlightConfigsProp = serializedObject.FindProperty("_spotlightConfigs");
         _adjacencyProp        = serializedObject.FindProperty("_adjacency");
-        _sequenceProp         = serializedObject.FindProperty("_masterUnlockSequence");
     }
 
     // ── Inspector GUI ──────────────────────────────────────────────────────────
@@ -360,49 +358,6 @@ public class LoopPuzzlePowerCircuitEditor : Editor
                 for (int j = 0; j < n; j++)
                     if (i != j && adj[i, j]) { nbProp.InsertArrayElementAtIndex(nbProp.arraySize); nbProp.GetArrayElementAtIndex(nbProp.arraySize - 1).intValue = j; }
             }
-        }
-    }
-
-    // ── Unlock sequence ────────────────────────────────────────────────────────
-
-    private void DrawSequenceSection()
-    {
-        EditorGUILayout.LabelField("Код разблокировки S6", _headerStyle);
-        EditorGUILayout.HelpBox("Рубильники в нужном порядке. Неверное нажатие сбрасывает прогресс.", MessageType.None);
-
-        int n = _switchesProp.arraySize - 1;
-        string[] names = GetNonMasterNames(n);
-
-        int count = _sequenceProp.arraySize;
-        for (int k = 0; k < count; k++)
-        {
-            using (new EditorGUILayout.HorizontalScope())
-            {
-                EditorGUILayout.LabelField($"Шаг {k + 1}", GUILayout.Width(50f));
-                var elem = _sequenceProp.GetArrayElementAtIndex(k);
-                int cur  = Mathf.Clamp(elem.intValue, 0, Mathf.Max(0, n - 1));
-                int next = EditorGUILayout.Popup(cur, names, GUILayout.Width(80f));
-                if (next != cur) elem.intValue = next;
-                if (GUILayout.Button("✕", GUILayout.Width(22f))) { _sequenceProp.DeleteArrayElementAtIndex(k); break; }
-            }
-        }
-
-        if (GUILayout.Button("+ Шаг", GUILayout.Width(80f)) && n > 0)
-        {
-            _sequenceProp.InsertArrayElementAtIndex(count);
-            _sequenceProp.GetArrayElementAtIndex(count).intValue = 0;
-        }
-
-        if (count > 0)
-        {
-            var sb = new StringBuilder("Код: ");
-            for (int k = 0; k < count; k++)
-            {
-                int idx = _sequenceProp.GetArrayElementAtIndex(k).intValue;
-                if (k > 0) sb.Append(" → ");
-                sb.Append(idx >= 0 && idx < names.Length ? names[idx] : "?");
-            }
-            EditorGUILayout.LabelField(sb.ToString(), EditorStyles.helpBox);
         }
     }
 

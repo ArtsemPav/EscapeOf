@@ -2922,10 +2922,10 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3542249403799936000}
-  - component: {fileID: 8792655740812080360}
   - component: {fileID: 3147916580290794970}
+  - component: {fileID: 7030334665398355566}
   m_Layer: 0
-  m_Name: PaintPuzzle
+  m_Name: PRF_PaintPuzzle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2953,7 +2953,67 @@ Transform:
   - {fileID: 1123117450592521147}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &8792655740812080360
+--- !u!114 &3147916580290794970
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9003559680963951439}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfbefae3caf397743970eb6958a2a1a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleController
+  _saveId: loop_puzzle_controller
+  _powerCircuit: {fileID: 0}
+  _rewardDrawer: {fileID: 0}
+  _roomLightSwitch: {fileID: 0}
+  _solvedLight: {fileID: 0}
+  _puzzleMode: {fileID: 0}
+  _tvCamera: {fileID: 75542066808570568}
+  _tvChannelButton: {fileID: 4403978522338703688}
+  _spotlightsParent: {fileID: 3524115967246586784}
+  _columnButtons:
+  - {fileID: 4247005917646115488}
+  - {fileID: 1232137208912988754}
+  - {fileID: 5921794972367911824}
+  - {fileID: 6530191629759556075}
+  _powerButtons:
+  - {fileID: 4314488219611226966}
+  - {fileID: 7183655110666155923}
+  - {fileID: 1033431494287666360}
+  - {fileID: 1453712758635715956}
+  - {fileID: 8245568899672544675}
+  - {fileID: 4800968154175604420}
+  _roomLightZoneId: painting_room
+  _conditions:
+  - column: {fileID: 7390986345540793785}
+    requiredHeight: 2
+    spotlight: {fileID: 7064839951918518178}
+    requiredColor: 1
+    requireRoomLightOff: 0
+    symbolObject: {fileID: 1141698470113856794}
+  - column: {fileID: 683056081512729685}
+    requiredHeight: 0
+    spotlight: {fileID: 4936152466462621151}
+    requiredColor: 3
+    requireRoomLightOff: 0
+    symbolObject: {fileID: 1131615060902562575}
+  - column: {fileID: 7687367833783525825}
+    requiredHeight: 1
+    spotlight: {fileID: 5245477616140063485}
+    requiredColor: 4
+    requireRoomLightOff: 0
+    symbolObject: {fileID: 4856819416871844096}
+  - column: {fileID: 7086194405999201919}
+    requiredHeight: 0
+    spotlight: {fileID: 7128994473844723188}
+    requiredColor: 2
+    requireRoomLightOff: 0
+    symbolObject: {fileID: 5473818330524573140}
+  _solvedCinematic: {fileID: 0}
+--- !u!114 &7030334665398355566
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3017,72 +3077,6 @@ MonoBehaviour:
   - neighborIndices: 0000000003000000
   - neighborIndices: 000000000200000000000000
   - neighborIndices: 0100000003000000
-  _masterUnlockSequence: 
---- !u!114 &3147916580290794970
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9003559680963951439}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dfbefae3caf397743970eb6958a2a1a7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LoopPuzzleController
-  _saveId: loop_puzzle_controller
-  _powerCircuit: {fileID: 8792655740812080360}
-  _rewardDrawer: {fileID: 0}
-  _roomLightSwitch: {fileID: 0}
-  _puzzleMode: {fileID: 0}
-  _tvCamera: {fileID: 75542066808570568}
-  _tvChannelButton: {fileID: 4403978522338703688}
-  _spotlightsParent: {fileID: 3524115967246586784}
-  _columnButtons:
-  - {fileID: 4247005917646115488}
-  - {fileID: 1232137208912988754}
-  - {fileID: 5921794972367911824}
-  - {fileID: 6530191629759556075}
-  _powerButtons:
-  - {fileID: 4314488219611226966}
-  - {fileID: 7183655110666155923}
-  - {fileID: 1033431494287666360}
-  - {fileID: 1453712758635715956}
-  - {fileID: 8245568899672544675}
-  - {fileID: 4800968154175604420}
-  _roomLightZoneId: painting_room
-  _conditions:
-  - column: {fileID: 7390986345540793785}
-    requiredHeight: 2
-    spotlight: {fileID: 7064839951918518178}
-    requiredColor: 1
-    requireRoomLightOff: 0
-    symbolObject: {fileID: 1141698470113856794}
-  - column: {fileID: 683056081512729685}
-    requiredHeight: 0
-    spotlight: {fileID: 4936152466462621151}
-    requiredColor: 3
-    requireRoomLightOff: 0
-    symbolObject: {fileID: 1131615060902562575}
-  - column: {fileID: 7687367833783525825}
-    requiredHeight: 1
-    spotlight: {fileID: 5245477616140063485}
-    requiredColor: 4
-    requireRoomLightOff: 0
-    symbolObject: {fileID: 4856819416871844096}
-  - column: {fileID: 7086194405999201919}
-    requiredHeight: 0
-    spotlight: {fileID: 7128994473844723188}
-    requiredColor: 2
-    requireRoomLightOff: 0
-    symbolObject: {fileID: 5473818330524573140}
-  _solvedClip: {fileID: 0}
-  _solvedVolume: 1
-  _solvedCamera: {fileID: 1240405376040616386}
-  _fadeDuration: 1
-  _solvedCameraDuration: 3
-  _drawerOpenDuration: 2
-  _solvedLight: {fileID: 0}
 --- !u!1 &9104130705074052008
 GameObject:
   m_ObjectHideFlags: 0

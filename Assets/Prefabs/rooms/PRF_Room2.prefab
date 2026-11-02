@@ -14343,6 +14343,14 @@ PrefabInstance:
       propertyPath: _rewardDrawer
       value: 
       objectReference: {fileID: 7504706324067353086}
+    - target: {fileID: 3147916580290794970, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      propertyPath: _solvedCinematic
+      value: 
+      objectReference: {fileID: 4300592381377529427}
+    - target: {fileID: 3147916580290794970, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      propertyPath: _rewardDrawerLower
+      value: 
+      objectReference: {fileID: 8061245247637304628}
     - target: {fileID: 3499711776798036685, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       propertyPath: m_Range
       value: 2.79
@@ -15197,6 +15205,18 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1216714718792543537}
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9003559680963951439, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4300592381377529427}
+    - targetCorrespondingSourceObject: {fileID: 9003559680963951439, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3188930628389776289}
+    - targetCorrespondingSourceObject: {fileID: 9003559680963951439, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 812222062710532172}
+    - targetCorrespondingSourceObject: {fileID: 9003559680963951439, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 45997341219003840}
     - targetCorrespondingSourceObject: {fileID: 4031916982068813670, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5402129668441465914}
@@ -15253,7 +15273,19 @@ MonoBehaviour:
       m_Calls: []
   OnPuzzleSolved:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 4300592381377529427}
+        m_TargetAssemblyTypeName: 
+        m_MethodName: PlayCinematic
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: 
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   OnPuzzleSolvedRestored:
     m_PersistentCalls:
       m_Calls: []
@@ -15272,6 +15304,17 @@ MonoBehaviour:
   _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C"
   _crosshairMode: 1
   _controller: {fileID: 5402129668441465914}
+--- !u!114 &4066731557802550606 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1240405376040616386, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+  m_PrefabInstance: {fileID: 2979448707077104780}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9dfa5b682dcd46bda6128250e975f58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineCamera
 --- !u!114 &4830113651521476395 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 7660941920434140071, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
@@ -15288,6 +15331,84 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8921161326587456058, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
   m_PrefabInstance: {fileID: 2979448707077104780}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6172800130403622851 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9003559680963951439, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
+  m_PrefabInstance: {fileID: 2979448707077104780}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4300592381377529427
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172800130403622851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a56e89c14834ee4493196c6727ece53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PuzzleSolvedCinematic
+  _saveId: loop_puzzle_cinematic
+  _cinematicCamera: {fileID: 4066731557802550606}
+  _animator: {fileID: 812222062710532172}
+  _animationTrigger: PlayCinematic
+  _puzzleSolvedParam: PuzzleSolved
+  _audioController: {fileID: 3188930628389776289}
+  _fadeDuration: 1
+--- !u!114 &3188930628389776289
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172800130403622851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6811fef0143b4948bc99575722f7cfe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CinematicAudioController
+  _clips:
+  - Clip: {fileID: 8300000, guid: 497b05a0002e3704facb39c3493e508a, type: 3}
+    Volume: 1
+--- !u!95 &812222062710532172
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172800130403622851}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: eaaa8a7c5eaa21a4bba90cad1b333ab6, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &45997341219003840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6172800130403622851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce27d0ea71d684949b35df74a219cee2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PaintCinematicSignals
+  _drawers:
+  - {fileID: 3298374072480128054}
+  - {fileID: 1981885255364749164}
+  _solvedLight: {fileID: 8452196365222507659}
+  _puzzleMode: {fileID: 5402129668441465914}
 --- !u!1 &8016600996341170143 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5051227825443887955, guid: 413aedc96837db440b8a6cfee3167ac2, type: 3}
@@ -15766,9 +15887,17 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6520098779595469680, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+      propertyPath: _isLocked
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6520098779595469680, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
       propertyPath: _snapSpeed
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 6520098779595469680, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+      propertyPath: _lockedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: c40f82dd819ee134c9acc7537eddb1dd, type: 3}
     - target: {fileID: 6520098779595469680, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
       propertyPath: _openDistance
       value: 0.03
@@ -15789,6 +15918,10 @@ PrefabInstance:
       propertyPath: _snapSpeed
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 6738882852247390138, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+      propertyPath: _lockedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: c40f82dd819ee134c9acc7537eddb1dd, type: 3}
     - target: {fileID: 6738882852247390138, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
       propertyPath: _openDistance
       value: 0.035
@@ -15860,7 +15993,13 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8704909995356679226, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 909380605834853957}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 788499685089188241, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3298374072480128054}
+    - targetCorrespondingSourceObject: {fileID: 8805605636653253336, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1981885255364749164}
   m_SourcePrefab: {fileID: 100100000, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
 --- !u!4 &1083865015197392450 stripped
 Transform:
@@ -15877,6 +16016,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2057064644641295109, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
   m_PrefabInstance: {fileID: 3865003944552220228}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4562727879791304661 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 788499685089188241, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+  m_PrefabInstance: {fileID: 3865003944552220228}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3298374072480128054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4562727879791304661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f46c45580bc076740aae9e529b8a5ddc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DrawerAutoOpen
+  _drawer: {fileID: 7504706324067353086}
+  _openDuration: 2
 --- !u!4 &5231101872167818606 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 9024048118461977386, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
@@ -15892,6 +16050,25 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8930139511971777080, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
   m_PrefabInstance: {fileID: 3865003944552220228}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5733235364024403100 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8805605636653253336, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+  m_PrefabInstance: {fileID: 3865003944552220228}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1981885255364749164
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5733235364024403100}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f46c45580bc076740aae9e529b8a5ddc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DrawerAutoOpen
+  _drawer: {fileID: 8061245247637304628}
+  _openDuration: 2
 --- !u!4 &6902932263980465529 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7669459527395687229, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
@@ -15902,7 +16079,18 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6738882852247390138, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
   m_PrefabInstance: {fileID: 3865003944552220228}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
+  m_GameObject: {fileID: 4562727879791304661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe43e7c0bb69d4046afa6aff0ff4e5fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DrawerDrag
+--- !u!114 &8061245247637304628 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6520098779595469680, guid: 380480a0c07de2b4a832ff241cc722a2, type: 3}
+  m_PrefabInstance: {fileID: 3865003944552220228}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5733235364024403100}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe43e7c0bb69d4046afa6aff0ff4e5fd, type: 3}

@@ -65,7 +65,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     /// <summary>
     /// Toggles the button and updates the visual without firing OnToggled.
-    /// Used by LightsOutPanel for cascade neighbor toggling.
+    /// Used by LoopPuzzlePowerCircuit for Lights Out cascade neighbor toggling.
     /// </summary>
     public void ToggleSilent()
     {

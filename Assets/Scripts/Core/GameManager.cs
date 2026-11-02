@@ -12,6 +12,10 @@ public class GameManager : MonoBehaviour
     [Header("Menu UI")]
     [SerializeField] private GameObject menuUI;
 
+    [Header("Focus Handling")]
+    [Tooltip("Automatically enter the ESC pause (pause menu + muted world) when the game window loses focus (Alt-Tab). The player resumes manually.")]
+    [SerializeField] private bool _pauseOnFocusLoss = true;
+
     private bool _isPaused;
 
     public bool IsPaused => _isPaused;
@@ -93,6 +97,22 @@ public class GameManager : MonoBehaviour
 
         UpdateCursorState();
         OnPauseStateChanged?.Invoke(_isPaused);
+    }
+
+    /// <summary>
+    /// Alt-Tab / window focus loss: enter the same pause as ESC so the game and
+    /// its music do not keep running while the player is in another application.
+    /// The world is muted by AudioListener.pause; MusicDirector silences the
+    /// pause-menu track itself while the window is unfocused, so the pause is
+    /// fully silent in the background. The player resumes manually (ESC / Resume).
+    /// </summary>
+    private void OnApplicationFocus(bool hasFocus) {
+        if (hasFocus || !_pauseOnFocusLoss || _isPaused) return;
+        // A puzzle/inventory panel already occupies the screen — its own state
+        // governs audio; do not stack the pause menu on top of it.
+        if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen) return;
+        SetPause(true);
+        Debug.Log("[GameManager] Focus lost — auto-paused (ESC pause).");
     }
 
     /// <summary>

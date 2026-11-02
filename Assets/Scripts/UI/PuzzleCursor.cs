@@ -218,10 +218,15 @@ namespace UI
                     string text = interactable.GetInteractText();
                     CrosshairMode mode = interactable.GetCrosshairMode();
                     InteractionUI.Instance?.SetHint(true, text, interactable.IsPickable(), mode);
-                    
+
                     if (Mouse.current.leftButton.wasPressedThisFrame)
                     {
                         interactable.Interact();
+                        // Same as FPSController: press animation + click sound.
+                        // The ButtonPressAnimation sits next to the interactable script
+                        // on the button root (the raycast hits a child collider).
+                        (interactable as MonoBehaviour)
+                            ?.GetComponent<ButtonPressAnimation>()?.Play();
                     }
                     return;
                 }

@@ -221,8 +221,16 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             int currentSign = input > 0f ? 1 : -1;
             if (_lastDragSign != 0 && currentSign != _lastDragSign && _directionChangeCooldown <= 0f)
             {
-                if (!_isLockedDrag && _openClip != null)
+                if (_isLockedDrag)
+                {
+                    // Locked drawer rattle — replay the locked sound on each jerk.
+                    if (_lockedClip != null)
+                        _audioSource.PlayOneShot(_lockedClip, _openVolume);
+                }
+                else if (_openClip != null)
+                {
                     _audioSource.PlayOneShot(_openClip, _openVolume);
+                }
                 _directionChangeCooldown = DirectionChangeCooldownDuration;
             }
             _lastDragSign = currentSign;
