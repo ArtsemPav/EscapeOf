@@ -63,7 +63,6 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     private float _openAmount;
     private float _targetOpenAmount;
     private bool _isDragging;
-    private bool _wasOpen;
 
     // Locked-drag state
     private bool _isLockedDrag;
@@ -94,11 +93,15 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         EnsureClosedPosition();
         _parentAnimator = GetComponentInParent<Animator>();
 
-        _audioSource = gameObject.AddComponent<AudioSource>();
-        _audioSource.playOnAwake  = false;
-        _audioSource.spatialBlend = 1f;
-        _audioSource.loop         = false;
-        AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
+        _audioSource = GetComponent<AudioSource>();
+        if (_audioSource == null)
+        {
+            _audioSource = gameObject.AddComponent<AudioSource>();
+            _audioSource.playOnAwake  = false;
+            _audioSource.spatialBlend = 1f;
+            _audioSource.loop         = false;
+            AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
+        }
     }
 
     private void EnsureClosedPosition()
@@ -129,6 +132,8 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             return;
         }
 
+        if (Mathf.Approximately(_openAmount, _targetOpenAmount)) return;
+
         // Smoothly snap to fully open or closed after the player releases LMB.
         _openAmount = Mathf.Lerp(_openAmount, _targetOpenAmount, _snapSpeed * Time.deltaTime);
         ApplyPosition();
@@ -143,6 +148,13 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         _lastDragSign = 0;
         _directionChangeCooldown = 0f;
         _snappingBack = false;
+
+        // Stop any auto-open/set-target coroutine so it does not fight the manual drag.
+        if (_autoOpenCoroutine != null)
+        {
+            StopCoroutine(_autoOpenCoroutine);
+            _autoOpenCoroutine = null;
+        }
 
         // Locked drawer: play locked sound and allow only a small jiggle.
         _isLockedDrag = _isLocked;
@@ -248,7 +260,6 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             _targetOpenAmount = _openAmount >= _snapThreshold ? 1f : 0f;
         else
             _targetOpenAmount = _openAmount;
-        _wasOpen = _targetOpenAmount >= 1f;
 
         string result = _targetOpenAmount >= 1f ? "открыт"
                       : _targetOpenAmount <= 0f ? "закрыт"
@@ -308,15 +319,10 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// </summary>
     public void AutoOpen()
     {
-        EnsureClosedPosition();
-        _isLocked = false;
-        _targetOpenAmount = 1f;
-
+        Unlock();
         if (_openClip != null && _audioSource != null)
             _audioSource.PlayOneShot(_openClip, _openVolume);
-
-        if (_autoOpenCoroutine != null) StopCoroutine(_autoOpenCoroutine);
-        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine(1f / _snapSpeed));
+        SetOpenTarget(1f);
     }
 
     /// <summary>
@@ -326,15 +332,30 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// </summary>
     public void AutoOpen(float duration)
     {
-        EnsureClosedPosition();
-        _isLocked = false;
-        _targetOpenAmount = 1f;
-
+        Unlock();
         if (_openClip != null && _audioSource != null)
             _audioSource.PlayOneShot(_openClip, _openVolume);
+        SetOpenTarget(1f, duration);
+    }
+
+    /// <summary>
+    /// Sets the drawer's target open fraction (0 = closed, 1 = fully open)
+    /// and smoothly slides it there over the default snap duration.
+    /// Usable from UnityEvents and puzzle logic.
+    /// </summary>
+    public void SetOpenTarget(float fraction) => SetOpenTarget(fraction, null);
+
+    /// <summary>
+    /// Sets the drawer's target open fraction (0 = closed, 1 = fully open)
+    /// and smoothly slides it there over the specified duration in seconds.
+    /// </summary>
+    public void SetOpenTarget(float fraction, float? duration)
+    {
+        EnsureClosedPosition();
+        _targetOpenAmount = Mathf.Clamp01(fraction);
 
         if (_autoOpenCoroutine != null) StopCoroutine(_autoOpenCoroutine);
-        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine(duration));
+        _autoOpenCoroutine = StartCoroutine(AutoOpenRoutine(duration ?? (1f / Mathf.Max(0.01f, _snapSpeed))));
     }
 
     /// <summary>
