@@ -30,6 +30,12 @@ public class EndGameSequence : MonoBehaviour
     [SerializeField] private string _doorOpenStateName = "doorOpen";
     [SerializeField, Min(0.5f)] private float _doorOpenFallbackDuration = 4.5f;
 
+    [Header("Door Sound")]
+    [SerializeField] private AudioClip _doorOpenClip;
+    [SerializeField, Range(0f, 1f)] private float _doorOpenVolume = 1f;
+    [SerializeField, Tooltip("Delay before the door sound, so it matches the moment the doors actually start moving in the doorOpen clip.")]
+    [Min(0f)] private float _doorOpenSoundDelay = 1.67f;
+
     [Header("Start Position")]
     [SerializeField] private Transform _playerStartPoint;
 
@@ -346,6 +352,8 @@ public class EndGameSequence : MonoBehaviour
         if (_doorAnimator != null && !string.IsNullOrEmpty(_doorOpenStateName))
         {
             _doorAnimator.Play(_doorOpenStateName, 0, 0f);
+            if (_doorOpenClip != null)
+                StartCoroutine(PlayDoorSoundDelayed());
             yield return WaitForStateFinish(_doorAnimator, _doorOpenStateName);
             doorOpened = true;
         }
@@ -1351,6 +1359,15 @@ public class EndGameSequence : MonoBehaviour
     /// <summary>
     /// Waits until the animator has finished playing the given state.
     /// </summary>
+    /// <summary>Plays the door-open sound after a delay so it matches the moment
+    /// the doors actually start moving inside the doorOpen animation clip.</summary>
+    private IEnumerator PlayDoorSoundDelayed()
+    {
+        if (_doorOpenSoundDelay > 0f)
+            yield return new WaitForSeconds(_doorOpenSoundDelay);
+        AudioManager.Instance?.PlaySFX(_doorOpenClip, _doorOpenVolume);
+    }
+
     private IEnumerator WaitForStateFinish(Animator animator, string stateName, float timeout = 20f)
     {
         // Let the state machine land on the new state: while the trigger is
