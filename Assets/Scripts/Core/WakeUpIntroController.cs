@@ -181,11 +181,7 @@ public class WakeUpIntroController : MonoBehaviour
         if (_ambientSource != null && _ambientSource.outputAudioMixerGroup == null)
             AudioManager.Instance?.RouteSourceToSfxGroup(_ambientSource);
 
-        // TEMP DIAGNOSTIC (intro startup hang): timestamp every step of the chain.
-        Debug.Log($"[WakeUpIntro][diag] Start at {Time.realtimeSinceStartup:F2}s (frame {Time.frameCount})");
-
         bool requested = SaveManager.ConsumeWakeUpIntroRequest();
-        Debug.Log($"[WakeUpIntro][diag] ConsumeWakeUpIntroRequest -> {requested}");
         if (!requested)
         {
             enabled = false;
@@ -212,8 +208,6 @@ public class WakeUpIntroController : MonoBehaviour
 
     private void BeginIntro()
     {
-        // TEMP DIAGNOSTIC (intro startup hang): time from scene Start to BeginIntro.
-        Debug.Log($"[WakeUpIntro][diag] BeginIntro at {Time.realtimeSinceStartup:F2}s (frame {Time.frameCount})");
         _fps = FindFirstObjectByType<FPSController>();
         if (_fps == null)
         {
@@ -323,9 +317,6 @@ public class WakeUpIntroController : MonoBehaviour
         // (focus-loss auto-pause sets Time.timeScale = 0 — a scaled wait would
         // freeze the intro on a black screen until the pause is lifted).
         yield return new WaitForSecondsRealtime(_startDelay);
-        // TEMP DIAGNOSTIC (intro startup hang): the delay is realtime, so any
-        // gap between the two timestamps below is a real hitch, not scaled time.
-        Debug.Log($"[WakeUpIntro][diag] startDelay elapsed at {Time.realtimeSinceStartup:F2}s (frame {Time.frameCount}) — eyes opening begins");
 
         // ── Phase 2: wake — lids part, blur fades down the FOCUS LADDER ────────
         // Each blink hides one ladder step: the blur drops WHILE the eyelids
