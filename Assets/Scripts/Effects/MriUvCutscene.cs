@@ -135,16 +135,26 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
     [Tooltip("Seconds she stares at the player before the light blinks and she vanishes.")]
     [SerializeField, Min(0.2f)] private float _maidBagLookDuration = 1.4f;
 
-    [Tooltip("UV pulse in which she appears at the glass, hands on it, and screams.")]
-    [SerializeField, Min(0)] private int _maidGlassPulse = 5;
+    [Header("Jumpscare (the very end)")]
+    [Tooltip("After the last UV flash (the sign) the light goes dark, then she appears at the glass for a split second and screams.")]
+    [SerializeField] private bool _endJumpscare = true;
 
-    [Tooltip("How long the glass flash lasts (the scream length).")]
-    [SerializeField, Min(0.3f)] private float _maidGlassDuration = 2f;
+    [Tooltip("Darkness before the scare. Long enough for the player to relax, short enough to stay tense.")]
+    [SerializeField, Min(0.05f)] private float _scareDarkGap = 0.55f;
 
-    [Tooltip("Dull double thump of her hands hitting the glass.")]
+    [Tooltip("How long she stays visible at the glass. Keep it short.")]
+    [SerializeField, Min(0.1f)] private float _scareDuration = 0.5f;
+
+    [Tooltip("How far the head is thrown back while she screams: 0 = she keeps staring at the player, 1 = full scream pose.")]
+    [SerializeField, Range(0f, 1f)] private float _scareHeadBack = 0.15f;
+
+    [Tooltip("Head shake while she screams: 0 = still, 1 = full shake.")]
+    [SerializeField, Range(0f, 1f)] private float _scareShake = 0.4f;
+
+    [Tooltip("Hard knock of her hands hitting the glass.")]
     [SerializeField] private AudioClip _glassThumpClip;
 
-    [Tooltip("The scream.")]
+    [Tooltip("Short sharp scream.")]
     [SerializeField] private AudioClip _screamClip;
 
     [Tooltip("Faint whisper / breath when she turns to the player (optional).")]
@@ -349,15 +359,6 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
                 PlayClip(_maidLookClip);
                 yield return new WaitForSeconds(_maidBagLookDuration);
             }
-            else if (_maid != null && i == _maidGlassPulse)
-            {
-                // Hands slam onto the glass and she screams
-                _maid.Show(MaidApparition.SpotId.Glass);
-                _maid.Scream(_maidGlassDuration);
-                PlayClip(_glassThumpClip);
-                PlayClip(_screamClip);
-                yield return new WaitForSeconds(_maidGlassDuration);
-            }
             else
             {
                 float onTime = last ? _finalHoldDuration : RandomRange(_pulseOnRange);
@@ -371,6 +372,26 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         // Safety: anything whose pulse index is out of range still appears
         if (_bodyBag != null) _bodyBag.SetActive(true);
         if (_rubberDuck != null) _rubberDuck.SetActive(true);
+
+        // The very end: darkness, then she is suddenly at the glass for a moment
+        if (_endJumpscare && _maid != null)
+        {
+            SetSignsVisible(false);
+            SetLampsDark();
+            yield return new WaitForSeconds(_scareDarkGap);
+
+            SetLampsUv();
+            _maid.Show(MaidApparition.SpotId.Glass);
+            _maid.Scream(_scareDuration, _scareHeadBack, _scareShake);
+            PlayClip(_glassThumpClip);
+            PlayClip(_screamClip);
+            yield return new WaitForSeconds(_scareDuration);
+
+            // Cut: dark and gone in the same frame
+            SetLampsDark();
+            _maid.Hide();
+            yield return new WaitForSeconds(0.35f);
+        }
 
         // Back to normal
         _maid?.Hide();

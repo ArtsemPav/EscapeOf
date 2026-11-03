@@ -6318,10 +6318,13 @@ MonoBehaviour:
   _maidBagPulse: 3
   _maidBagLookDelay: 1.2
   _maidBagLookDuration: 1.4
-  _maidGlassPulse: 5
-  _maidGlassDuration: 2
-  _glassThumpClip: {fileID: 8300000, guid: 0b13a023af11bab1240f16a76490fd4a, type: 3}
-  _screamClip: {fileID: 8300000, guid: c393fd0e1cc62be5783646bf0324aac3, type: 3}
+  _endJumpscare: 1
+  _scareDarkGap: 0.55
+  _scareDuration: 0.5
+  _scareHeadBack: 0.15
+  _scareShake: 0.4
+  _glassThumpClip: {fileID: 8300000, guid: f08db22fd293056a3170fab23d90fbac, type: 3}
+  _screamClip: {fileID: 8300000, guid: 940eee3cba6f875c2e84496e7857dd86, type: 3}
   _maidLookClip: {fileID: 8300000, guid: 8903a9c81cc919f6f344bafb23813fa9, type: 3}
   _audioSource: {fileID: 0}
   _pulseClips:
@@ -10291,7 +10294,10 @@ MonoBehaviour:
     spineLean: 25
     handsDelay: 0.3
     handsReachTime: 0.7
+    leanTime: 0.6
     lookAtPlayerOnShow: 0
+    exactGaze: 0
+    alignToPlayer: 0
     leftHandOffset: {x: 0, y: 0, z: 0}
     rightHandOffset: {x: 0, y: 0, z: 0}
   _glassSpot:
@@ -10299,9 +10305,12 @@ MonoBehaviour:
     leftHand: {fileID: 3648636148835419175}
     rightHand: {fileID: 6817415628162514909}
     spineLean: 18
-    handsDelay: 0.15
-    handsReachTime: 0.35
+    handsDelay: 0
+    handsReachTime: 0.05
+    leanTime: 0.05
     lookAtPlayerOnShow: 1
+    exactGaze: 1
+    alignToPlayer: 1
     leftHandOffset: {x: 0, y: 0, z: 0}
     rightHandOffset: {x: 0, y: 0, z: 0}
   _glassDistance: 0.765
@@ -10317,6 +10326,8 @@ MonoBehaviour:
   _maxLookYaw: 175
   _screamHeadBack: 39.5
   _screamShake: 6
+  _maxGazeAngle: 75
+  _maxSideShift: 1.5
 --- !u!1 &6320120303772109681
 GameObject:
   m_ObjectHideFlags: 0

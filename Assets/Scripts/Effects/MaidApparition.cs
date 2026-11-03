@@ -41,10 +41,19 @@ public class MaidApparition : MonoBehaviour
         [Min(0f)] public float handsDelay = 0.3f;
 
         [Tooltip("Seconds the hands need to reach the surface.")]
-        [Min(0.05f)] public float handsReachTime = 0.7f;
+        [Min(0.01f)] public float handsReachTime = 0.7f;
+
+        [Tooltip("Seconds the torso needs to lean forward (a jumpscare uses a tiny value).")]
+        [Min(0.01f)] public float leanTime = 0.6f;
 
         [Tooltip("Look at the player right from the moment she appears.")]
         public bool lookAtPlayerOnShow;
+
+        [Tooltip("The face points exactly at the player's eyes (instead of just turning the head). Use for the glass.")]
+        public bool exactGaze;
+
+        [Tooltip("Glass: she steps sideways along the glass so she stands directly opposite the player.")]
+        public bool alignToPlayer;
 
         [Header("Hand fine tuning (metres, in her own frame: X = her right, Y = up, Z = forward)")]
         [Tooltip("Moves the contact point of the LEFT hand. Use Preview in the inspector to see the result.")]
@@ -67,7 +76,7 @@ public class MaidApparition : MonoBehaviour
 
     [Header("Spots")]
     [SerializeField] private Spot _bagSpot = new Spot();
-    [SerializeField] private Spot _glassSpot = new Spot { spineLean = 18f, handsDelay = 0.15f, handsReachTime = 0.35f, lookAtPlayerOnShow = true };
+    [SerializeField] private Spot _glassSpot = new Spot { spineLean = 18f, handsDelay = 0f, handsReachTime = 0.05f, leanTime = 0.05f, lookAtPlayerOnShow = true, exactGaze = true, alignToPlayer = true };
 
     [Tooltip("Glass spot: how far her shoulders stand from the glass, as a part of her arm length (smaller = closer).")]
     [SerializeField, Range(0.3f, 1.2f)] private float _glassDistance = 0.7f;
@@ -111,6 +120,13 @@ public class MaidApparition : MonoBehaviour
     [Tooltip("Shake of the head and hands while screaming, degrees.")]
     [SerializeField, Range(0f, 15f)] private float _screamShake = 6f;
 
+    [Header("Gaze")]
+    [Tooltip("Largest angle the neck + head may turn to look at the player (exact gaze).")]
+    [SerializeField, Range(20f, 120f)] private float _maxGazeAngle = 75f;
+
+    [Tooltip("Glass spot: the largest sideways step along the glass to stand opposite the player, metres.")]
+    [SerializeField, Range(0f, 3f)] private float _maxSideShift = 1.5f;
+
     // bones
     private Transform _spine, _spine1, _spine2, _neck, _head;
     private Transform _lArm, _lFore, _lHand, _rArm, _rFore, _rHand;
@@ -132,6 +148,9 @@ public class MaidApparition : MonoBehaviour
     private float _lookWeight;
     private float _screamTime = -1f;
     private float _screamDuration;
+    private float _screamHeadBackScale = 1f;
+    private float _screamShakeScale = 1f;
+    private Vector3 _headForwardLocal;
     private Transform _cameraTransform;
 
     public bool IsVisible => _visible;
@@ -155,6 +174,10 @@ public class MaidApparition : MonoBehaviour
 
         _placedLocalPosition = _maidRoot.localPosition;
         _placedLocalRotation = _maidRoot.localRotation;
+
+        // Which axis of the head bone is "forward" (the face): at rest it points the way she faces
+        if (_head != null)
+            _headForwardLocal = Quaternion.Inverse(_head.rotation) * MeasureFacing();
     }
 
     private void Awake()
@@ -197,7 +220,7 @@ public class MaidApparition : MonoBehaviour
         float screamEnv = ScreamEnvelope();
 
         // 1. Lean forward (the spine bones carry the arms and head with them)
-        float lean = _lean * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_time / 0.6f)) - screamEnv * 12f;
+        float lean = _lean * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_time / _spot.leanTime)) - screamEnv * 12f;
         ApplyLean(lean, right);
 
         // 2. Look at the player: the upper spine takes part of the turn, so the head does not twist off
@@ -235,14 +258,20 @@ public class MaidApparition : MonoBehaviour
         Yaw(_head, _headYaw * 0.45f);
 
         Vector3 headRight = Vector3.Cross(Vector3.up, Quaternion.AngleAxis(_headYaw, Vector3.up) * facing);
-        float pitch = pitchGoal * 0.7f * _lookWeight;
+        // Exact gaze: the head looks straight at the player's eyes whatever the lean of the body is
+        bool exactGaze = _spot.exactGaze && _lookOn && target != null && _head != null && _headForwardLocal.sqrMagnitude > 0.5f;
+        float pitch = exactGaze ? 0f : pitchGoal * 0.7f * _lookWeight;
+        if (exactGaze)
+            AimHead(target, _lookWeight);
+
         if (screamEnv > 0f)
         {
-            pitch = Mathf.Lerp(pitch, -_screamHeadBack, screamEnv);
+            pitch = Mathf.Lerp(pitch, -_screamHeadBack * _screamHeadBackScale, screamEnv);
 
+            float shake = _screamShake * _screamShakeScale;
             float n = Time.time * 38f;
-            float shakeYaw = (Mathf.PerlinNoise(n, 0.3f) - 0.5f) * 2f * _screamShake * screamEnv;
-            float shakeRoll = (Mathf.PerlinNoise(0.7f, n) - 0.5f) * 2f * _screamShake * screamEnv;
+            float shakeYaw = (Mathf.PerlinNoise(n, 0.3f) - 0.5f) * 2f * shake * screamEnv;
+            float shakeRoll = (Mathf.PerlinNoise(0.7f, n) - 0.5f) * 2f * shake * screamEnv;
             Yaw(_head, shakeYaw);
             Roll(_head, shakeRoll, Quaternion.AngleAxis(_headYaw, Vector3.up) * facing);
         }
@@ -285,8 +314,8 @@ public class MaidApparition : MonoBehaviour
         _time = 0f;
         _headYaw = 0f;
         _headYawVelocity = 0f;
-        _lookWeight = 0f;
         _lookOn = _spot.lookAtPlayerOnShow;
+        _lookWeight = _lookOn ? 1f : 0f;     // already staring at the player in the very first frame
         _screamTime = -1f;
         _visible = true;
     }
@@ -303,10 +332,12 @@ public class MaidApparition : MonoBehaviour
     public void LookAtPlayer(bool on) => _lookOn = on;
 
     /// <summary>Throws the head back and shakes for the given time.</summary>
-    public void Scream(float duration)
+    public void Scream(float duration, float headBackScale = 1f, float shakeScale = 1f)
     {
         _screamTime = 0f;
         _screamDuration = Mathf.Max(0.2f, duration);
+        _screamHeadBackScale = Mathf.Clamp01(headBackScale);
+        _screamShakeScale = Mathf.Clamp01(shakeScale);
     }
 
     // ── Placement ─────────────────────────────────────────────────────────────
@@ -332,6 +363,15 @@ public class MaidApparition : MonoBehaviour
         pos.x = spot.anchor.position.x;
         pos.z = spot.anchor.position.z;
         _maidRoot.position = pos;
+
+        // Stand directly opposite the player: step sideways along the glass until she is in front of him
+        Transform viewer = ResolveLookTarget();
+        if (spot.alignToPlayer && viewer != null)
+        {
+            Vector3 along = Vector3.Cross(Vector3.up, _facing);
+            float offset = Vector3.Dot(viewer.position - _maidRoot.position, along);
+            _maidRoot.position += along * Mathf.Clamp(offset, -_maxSideShift, _maxSideShift);
+        }
 
         // Step to the right distance from the glass plane, so the arms really reach it
         if (spot.leftHand != null && _lArm != null && _rArm != null)
@@ -448,6 +488,33 @@ public class MaidApparition : MonoBehaviour
         Lean(_spine, degrees * 0.25f, right);
         Lean(_spine1, degrees * 0.35f, right);
         Lean(_spine2, degrees * 0.40f, right);
+    }
+
+    // ── Gaze ──────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Turns the neck and the head so that the face points at the target (the player's eyes).
+    /// Uses the head's own forward axis, measured at rest, so it also works when the body is leaning.
+    /// </summary>
+    private void AimHead(Transform target, float weight)
+    {
+        if (weight <= 0.001f) return;
+
+        TurnToward(_neck, 0.35f * weight, target);
+        TurnToward(_head, weight, target);
+    }
+
+    private void TurnToward(Transform bone, float weight, Transform target)
+    {
+        if (bone == null) return;
+
+        Vector3 dir = target.position - _head.position;
+        if (dir.sqrMagnitude < 1e-4f) return;
+
+        Vector3 forward = _head.rotation * _headForwardLocal;
+        Quaternion turn = Quaternion.FromToRotation(forward, dir.normalized);
+        turn = Quaternion.RotateTowards(Quaternion.identity, turn, _maxGazeAngle);
+        bone.rotation = Quaternion.Slerp(Quaternion.identity, turn, weight) * bone.rotation;
     }
 
     // ── Relaxed start pose ────────────────────────────────────────────────────
@@ -585,7 +652,7 @@ public class MaidApparition : MonoBehaviour
             return 0f;
         }
 
-        float attack = Mathf.Clamp01(_screamTime / 0.08f);
+        float attack = Mathf.Clamp01(_screamTime / 0.03f);
         float release = Mathf.Clamp01((_screamDuration + 0.2f - _screamTime) / 0.2f);
         return Mathf.Min(attack, release);
     }
