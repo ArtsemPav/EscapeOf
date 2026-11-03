@@ -35,8 +35,8 @@ public class EndGameCreditsView : MonoBehaviour
     [Tooltip("Text component used for the entries and the final thanks text.")]
     [SerializeField] private TMPro.TextMeshProUGUI _creditsLabel;
 
-    [Tooltip("Text shown after all entries have played. Stays on screen until the scene switch.")]
-    [SerializeField] private string _thanksText = "Спасибо за игру";
+    [Tooltip("Credits entry asset shown after all entries have played. Stays on screen until the scene switch. Create via Create > EscapeOf > Credits Entry.")]
+    [SerializeField] private CreditsEntry _thanksEntry;
 
     [Tooltip("Seconds the thanks text stays visible before returning to the start scene.")]
     [SerializeField, Min(1f)] private float _thanksHoldDuration = 5f;
@@ -140,9 +140,12 @@ public class EndGameCreditsView : MonoBehaviour
                 yield return FadeLabelRoutine(1f, 0f, _entryFadeDuration);
             }
 
-            // 3. Final thanks text — stays visible for the hold duration.
-            _creditsLabel.text = _thanksText;
-            yield return FadeLabelRoutine(0f, 1f, _entryFadeDuration);
+            // 3. Final thanks entry — stays visible for the hold duration.
+            if (_thanksEntry != null)
+            {
+                _creditsLabel.text = ComposeEntryText(_thanksEntry);
+                yield return FadeLabelRoutine(0f, 1f, _entryFadeDuration);
+            }
         }
 
         yield return new WaitForSeconds(_thanksHoldDuration);
