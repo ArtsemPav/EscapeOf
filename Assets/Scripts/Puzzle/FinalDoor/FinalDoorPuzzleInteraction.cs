@@ -196,7 +196,10 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         // Nothing to clean up — the controller handles camera and input.
     }
 
-    private void HandleSolved() { }
+    private void HandleSolved()
+    {
+        PlaySFX(_solvedClip, _solvedVolume);
+    }
 
     // ── Puzzle Solved (from UI) ───────────────────────────────────────────────
 
@@ -211,8 +214,6 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
         _isActivating = true;
 
         ProgressLogger.Log("puzzle_solved", "final_door_phase1_medallions");
-
-        PlaySFX(_activationClip, _activationVolume);
 
         // Lock UI — no more drops or retrieval.
         var ui = GetUI();
@@ -263,6 +264,8 @@ public class FinalDoorPuzzleInteraction : MonoBehaviour, ISaveable, IPuzzleDropH
 
         if (_scullAnimator != null)
             _scullAnimator.Play(_scullMoveStateName);
+
+        PlaySFX(_activationClip, _activationVolume);
 
         // ── Phase 5: Wait for the scullMove animation to finish ─────────────────
         yield return WaitForAnimationFinish(_scullAnimator, _scullMoveStateName);
