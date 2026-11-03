@@ -104,18 +104,20 @@ public class EyelidOverlay : MonoBehaviour
 
     private IEnumerator BlinkRoutine(float duration, float fromOpenAmount)
     {
+        // Unscaled time: blinks must not freeze while the game is paused
+        // (the intro plays under Time.timeScale = 0 during a focus-loss pause).
         float half = Mathf.Max(0.01f, duration * 0.5f);
         float t = 0f;
         while (t < half)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             SetEyeOpen(Mathf.Lerp(fromOpenAmount, 0f, t / half));
             yield return null;
         }
         t = 0f;
         while (t < half)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             SetEyeOpen(Mathf.Lerp(0f, fromOpenAmount, t / half));
             yield return null;
         }
