@@ -506,7 +506,14 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         // logging/Play() every frame would spam the console. Retry at most
         // twice a second; the source-life guard above still catches the
         // recovery the moment the cause is gone.
-        if (_activeSource.time > 0f) {
+        float clipLength = _activeTrack.Clip != null ? _activeTrack.Clip.length : 0f;
+        // "Finished" = the clip is over. A source at time 0 with the clip at
+        // its end (or paused right before it) still counts: some platforms
+        // clamp a finished non-loop source's time back to ~0 once it stops.
+        bool finished = clipLength > 0f
+            && (_activeSource.time > 0f || _activeSource.time >= clipLength - 0.05f)
+            && Time.unscaledTime - _lastSwitchTime > clipLength;
+        if (finished) {
             Debug.Log($"[Music] Track '{_activeTrack.name}' finished playing -> restoring fallback (isPlaying=false detected)");
             RestoreFallbackTrack();
             return;

@@ -323,6 +323,7 @@ public class WakeUpIntroController : MonoBehaviour
         // cover the screen, so the step itself is never seen — the player only
         // perceives that every blink leaves the world a bit sharper.
         // First: a sleepy half-open (still fully asleep — full blur).
+        yield return StartSequenceAudioSync();
         if (_wakeSound != null) _wakeSound.Play();
         if (_ambientSource != null) StartCoroutine(AmbientFadeInRoutine());
         yield return OpenEyesRoutine(_firstPartOpenDuration, _firstPartOpenAmount, volumeTarget);
@@ -409,6 +410,45 @@ public class WakeUpIntroController : MonoBehaviour
     private IEnumerator AmbientFadeInRoutine()
     {
         yield return AudioFades.Volume(_ambientSource, _ambientTargetVolume, _ambientFadeInDuration);
+    }
+
+    /// <summary>
+    /// Blocks the sequence audio until the render loop has settled after the
+    /// scene load, so the soundtrack stays in sync with the scripted phases.
+    /// Both the clip and the phase timers count real time, but the clip runs
+    /// on the audio DSP clock (independent of frames), while the coroutine
+    /// phases advance per RENDERED frame: a clip started during the first
+    /// heavy frames after scene activation (deserialization, shader warmup,
+    /// asset streaming) keeps playing through the hitches while the visuals
+    /// stall — the soundtrack ends up ahead of the picture. Two consecutive
+    /// fast frames mean frames are being delivered in step with real time
+    /// again; a listener paused by the menu transition would also eat the
+    /// first seconds of the track, so it is waited out too (bounded guards
+    /// so a pathological machine can never stall the intro forever).
+    /// The intro source itself ignores listener pause from here on: like the
+    /// pause-menu music, it is part of the cinematic, not the mutable world.
+    /// </summary>
+    private IEnumerator StartSequenceAudioSync()
+    {
+        if (_wakeSound != null) _wakeSound.ignoreListenerPause = true;
+
+        const float stableFrameSeconds = 0.08f; // ~12 fps — frames back in step with real time
+
+        float guard = 0f;
+        int stableFrames = 0;
+        while (stableFrames < 2 && guard < 5f)
+        {
+            guard += Time.unscaledDeltaTime;
+            stableFrames = Time.unscaledDeltaTime < stableFrameSeconds ? stableFrames + 1 : 0;
+            yield return null;
+        }
+
+        guard = 0f;
+        while (AudioListener.pause && guard < 3f)
+        {
+            guard += Time.unscaledDeltaTime;
+            yield return null;
+        }
     }
 
     private void PoseLying()
