@@ -300,6 +300,9 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         SaveManager.Instance?.Unregister(this);
         HorrorSystem.Instance?.Unregister(this);
         UnsubscribeFromTriggerSource();
+        // Release the music mute if the event dies mid-play (scene unload,
+        // return to menu) — otherwise the owner count leaks into the next session.
+        EndMusicOwnership();
     }
 
     // ── Trigger source subscription ───────────────────────────────────────────
@@ -550,7 +553,14 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         // Запускаем AudioSource на объекте из поля Sound Object.
         // Обычно это дочерний объект SoundSource с клипом (звонок, стук, шёпот).
         if (_soundObject != null && _soundObject.TryGetComponent(out AudioSource soundAudio))
+        {
             soundAudio.Play();
+
+            // Нет интерактива — некому вызвать StopSoundObject: музыка возвращается,
+            // когда звук доиграет (страховочный таймаут ниже остаётся на случай сбоя).
+            if (_interactableObject == null)
+                StartCoroutine(ReleaseMusicWhenSoundEnds(soundAudio));
+        }
 
         // ── Шаг 4: Активируем интерактивный объект ────────────────────────────
         // «Включаем» объект из поля Interactable Object (телефон, картина, радио).
@@ -653,6 +663,19 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         // Полностью выключаем объект.
         if (_target != null)
             _target.SetActive(false);
+    }
+
+    /// <summary>
+    /// Releases the music mute as soon as the horror sound finishes playing.
+    /// Used for events without an interactable — nothing else would end the
+    /// music ownership until the failsafe timeout.
+    /// </summary>
+    private IEnumerator ReleaseMusicWhenSoundEnds(AudioSource source)
+    {
+        while (source != null && source.isPlaying)
+            yield return null;
+
+        EndMusicOwnership();
     }
 
     /// <summary>
