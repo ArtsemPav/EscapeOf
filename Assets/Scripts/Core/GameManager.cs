@@ -23,6 +23,11 @@ public class GameManager : MonoBehaviour
     // believes it is unpaused, and Play() silently fails on new sources.
     [SerializeField] private bool _isPaused;
 
+    // Audio muted by a focus loss while a UI panel (note, inventory, puzzle)
+    // was open: the pause menu is not stacked on top of the panel, but the
+    // game audio must not keep playing while the window is unfocused.
+    private bool _backgroundAudioPaused;
+
     public bool IsPaused => _isPaused;
 
     public event Action<bool> OnPauseStateChanged;
@@ -112,10 +117,22 @@ public class GameManager : MonoBehaviour
     /// fully silent in the background. The player resumes manually (ESC / Resume).
     /// </summary>
     private void OnApplicationFocus(bool hasFocus) {
-        if (hasFocus || !_pauseOnFocusLoss || _isPaused) return;
+        if (hasFocus) {
+            // Focus regained — restore audio muted by a previous focus loss.
+            _backgroundAudioPaused = false;
+            AudioListener.pause = _isPaused;
+            return;
+        }
+        if (!_pauseOnFocusLoss || _isPaused) return;
         // A puzzle/inventory panel already occupies the screen — its own state
-        // governs audio; do not stack the pause menu on top of it.
-        if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen) return;
+        // governs the UI, so the pause menu is not stacked on top of it. But
+        // the audio must still not keep playing outside the game window.
+        if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen) {
+            _backgroundAudioPaused = true;
+            AudioListener.pause = true;
+            Debug.Log("[GameManager] Focus lost with an open panel — audio muted.");
+            return;
+        }
         SetPause(true);
         Debug.Log("[GameManager] Focus lost — auto-paused (ESC pause).");
     }
@@ -138,11 +155,12 @@ public class GameManager : MonoBehaviour
         // mid-play, external code touching AudioListener.pause), realign to
         // the managed state — otherwise the whole world stays muted (or
         // unmutes) behind the director's back and new sources cannot start.
-        if (AudioListener.pause != _isPaused)
+        bool expectedAudioPause = _isPaused || _backgroundAudioPaused;
+        if (AudioListener.pause != expectedAudioPause)
         {
-            Debug.LogWarning($"[GameManager] Audio pause desync (AudioListener.pause={AudioListener.pause}, IsPaused={_isPaused}) — realigned.");
-            AudioListener.pause = _isPaused;
-            Time.timeScale = _isPaused ? 0f : 1f;
+            Debug.LogWarning($"[GameManager] Audio pause desync (AudioListener.pause={AudioListener.pause}, IsPaused={_isPaused}, BackgroundAudioPaused={_backgroundAudioPaused}) — realigned.");
+            AudioListener.pause = expectedAudioPause;
+            if (!_backgroundAudioPaused) Time.timeScale = _isPaused ? 0f : 1f;
         }
     }
 }

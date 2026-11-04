@@ -1794,6 +1794,14 @@ PrefabInstance:
       propertyPath: _maxOpenAngle
       value: -90
       objectReference: {fileID: 0}
+    - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 54f01322b5201e642a1595d73c1c698f, type: 3}
+    - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2232,7 +2240,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3495039751302272961, guid: a36667f3f3fe486439c799a7d3c342d8, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.8282
+      value: 1.8207
       objectReference: {fileID: 0}
     - target: {fileID: 3495039751302272961, guid: a36667f3f3fe486439c799a7d3c342d8, type: 3}
       propertyPath: m_LocalPosition.z
@@ -6296,7 +6304,7 @@ MonoBehaviour:
   _isOpen: 0
   _isLocked: 0
   _openMode: 1
-  _openDuration: 1
+  _openDuration: 0.5
   _requiredKey: {fileID: 0}
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u0440\u044B\u0448\u043A\u0443"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043A\u0440\u0443\u0448\u043A\u0443"
@@ -6312,8 +6320,8 @@ MonoBehaviour:
   _maxVelocity: 1.2
   _flingThreshold: 0.5
   _flingSpeed: 2
-  _openLoopClip: {fileID: 0}
-  _closeLoopClip: {fileID: 0}
+  _openLoopClip: {fileID: 8300000, guid: 78248eedcaa70a644802e6b8f0cc02fb, type: 3}
+  _closeLoopClip: {fileID: 8300000, guid: 78248eedcaa70a644802e6b8f0cc02fb, type: 3}
   _latchClip: {fileID: 0}
   _lockedClip: {fileID: 0}
   _unlockClip: {fileID: 0}
@@ -8416,10 +8424,34 @@ PrefabInstance:
       propertyPath: _saveId
       value: door_bathroom_2nd_case2_right
       objectReference: {fileID: 0}
+    - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 8211ced50b80ae447b10b8b333a93580, type: 3}
+    - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: a127fcc59c3007f4c8c8585c124def34, type: 3}
     - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
       propertyPath: _saveId
       value: door_bathroom_2nd_case2_left
       objectReference: {fileID: 0}
+    - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 8211ced50b80ae447b10b8b333a93580, type: 3}
+    - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: a127fcc59c3007f4c8c8585c124def34, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -8593,6 +8625,14 @@ PrefabInstance:
       propertyPath: _maxOpenAngle
       value: -90
       objectReference: {fileID: 0}
+    - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 54f01322b5201e642a1595d73c1c698f, type: 3}
+    - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: d5fd6a09060cffa48bc18a2297ff35ca, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -9289,10 +9329,34 @@ PrefabInstance:
       propertyPath: _saveId
       value: door_bathroom_2nd_case1_right
       objectReference: {fileID: 0}
+    - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 8211ced50b80ae447b10b8b333a93580, type: 3}
+    - target: {fileID: 3765125032607848360, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: a127fcc59c3007f4c8c8585c124def34, type: 3}
     - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
       propertyPath: _saveId
       value: door_bathroom_2nd_case1_left
       objectReference: {fileID: 0}
+    - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 8211ced50b80ae447b10b8b333a93580, type: 3}
+    - target: {fileID: 7573741917599106168, guid: 04ae48206d5646c44a99cb799d328299, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: a127fcc59c3007f4c8c8585c124def34, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
