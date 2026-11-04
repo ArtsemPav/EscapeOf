@@ -541,6 +541,17 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
         if (Time.unscaledTime - _lastReviveAttempt < 0.5f) return;
         _lastReviveAttempt = Time.unscaledTime;
+        // A finished non-loop source can clamp its time back to ~0 once it
+        // stops (platform-dependent), which makes a played-out track look
+        // identical to a never-started one here. The request timestamp
+        // disambiguates: if the track was requested longer ago than the clip
+        // is long, it had its full chance to play — it is FINISHED, not dead.
+        // Restarting it would replay a spent play-once track from zero.
+        if (clipLength > 0f && Time.unscaledTime - _lastSwitchTime > clipLength) {
+            Debug.Log($"[Music] Track '{_activeTrack.name}' stopped with its request older than the clip — treating as finished.");
+            RestoreFallbackTrack();
+            return;
+        }
         Debug.LogWarning($"[Music] Non-loop track '{_activeTrack.name}' never started (source stopped at 0:00) — restarting.");
         _activeSource.Play();
     }
