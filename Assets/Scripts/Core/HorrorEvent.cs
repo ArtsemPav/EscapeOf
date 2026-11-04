@@ -305,6 +305,18 @@ public class HorrorEvent : MonoBehaviour, ISaveable
         EndMusicOwnership();
     }
 
+    private void OnDisable()
+    {
+        // A disabled GameObject's coroutines freeze: the _musicMuteTimeout
+        // failsafe (MusicTimeoutRoutine) can never fire while the event is
+        // culled by room visibility or deactivated mid-play. A disabled event
+        // can also never call Deactivate() on itself — so release the mute
+        // here, or the owner count leaks and the game (and finale) goes
+        // silent forever. Idempotent: OnDisable always precedes OnDestroy.
+        if (_holdsMusicMute)
+            EndMusicOwnership();
+    }
+
     // ── Trigger source subscription ───────────────────────────────────────────
 
     /// <summary>
@@ -703,7 +715,14 @@ public class HorrorEvent : MonoBehaviour, ISaveable
     /// over _musicMuteFadeDuration seconds, so this horror event owns the soundscape.
     /// Wire it to On Activated. Pair with RestoreBackgroundMusic().
     /// </summary>
-    public void MuteBackgroundMusic() => MusicDirector.MuteForEvent(_musicMuteFadeDuration);
+    public void MuteBackgroundMusic()
+    {
+        // A manual mute has NO failsafe: the director cannot know this owner,
+        // so only a paired RestoreBackgroundMusic (or the 2-minute leak
+        // watchdog) returns the music. Prefer _ownsBackgroundMusic.
+        Debug.LogWarning($"[{nameof(HorrorEvent)} '{_eventId}'] Manual MuteBackgroundMusic — pair it with RestoreBackgroundMusic, or use _ownsBackgroundMusic instead.", this);
+        MusicDirector.MuteForEvent(_musicMuteFadeDuration);
+    }
 
     /// <summary>
     /// Restores the background music paused earlier by MuteBackgroundMusic(),

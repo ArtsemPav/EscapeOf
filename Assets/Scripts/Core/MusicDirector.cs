@@ -59,6 +59,15 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     // All MusicTrack assets seen this session (registered by zones and Start).
     // Static so zones can register in Awake() before the director's Instance exists.
     private static readonly Dictionary<string, MusicTrack> KnownTracks = new Dictionary<string, MusicTrack>();
+
+    // Hard cap on how long a single mute session may own the soundscape.
+    // Healthy HorrorEvents release via Deactivate/StopSoundObject or the 30s
+    // per-event failsafe (nested events stack, hence the generous cap); a
+    // leaked owner (a manual MuteBackgroundMusic without a restore, an event
+    // disabled mid-play freezing its failsafe coroutine) must not silence the
+    // game — including the finale — forever. Enforced by the Update watchdog.
+    private const float MuteMaxHoldSeconds = 120f;
+    private float _muteHoldStart = -1f;
     private string _loadedDominantTrackName; // set by LoadSaveData, applied in Start
     private float _pendingResumeTime; // set by LoadSaveData, moved to _resumeTime in Start
     private float _resumeTime; // playback position the next created source starts from
@@ -471,6 +480,17 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         //   restarted from the clip start — a stopped non-loop source mid-fade
         //   (e.g. killed and unpaused by a pause/restore cycle) is also revived
         //   here instead of being misreported as finished.
+        // ── Mute-leak watchdog (runs BEFORE the MutedForEvent early-return):
+        // A mute owner that never releases (a manual MuteBackgroundMusic left
+        // without a restore, or an event disabled mid-play whose failsafe
+        // coroutine is frozen) must not silence the game — and the finale —
+        // forever. Past the hard cap the count is zeroed and the pre-mute
+        // track (plus any queued zone requests) comes back.
+        if (_muteOwnerCount > 0 && Time.unscaledTime - _muteHoldStart > MuteMaxHoldSeconds) {
+            Debug.LogWarning($"[Music] A mute owner never released for over {MuteMaxHoldSeconds}s — forcing restore (leaked HorrorEvent mute or manual MuteBackgroundMusic without a restore).");
+            ForceReleaseMute();
+            return;
+        }
         if (_activeSource == null || _activeTrack == null || _fadeCoroutine != null || MutedForEvent) return;
         if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
 
@@ -655,6 +675,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     public static void MuteForEvent(float fadeDuration, string caller = null) {
         if (Instance == null) return;
         Instance._muteOwnerCount++; // nested events stack — each owner must release individually
+        if (Instance._muteOwnerCount == 1) Instance._muteHoldStart = Time.unscaledTime; // watchdog clock
         Debug.Log($"[Music] MuteForEvent (fade {fadeDuration}s) from '{(caller ?? "unknown")}' — owners now: {Instance._muteOwnerCount}");
 
         Instance.StopActiveFade();
@@ -722,25 +743,44 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         Instance._muteOwnerCount--;
         Debug.Log($"[Music] RestoreAfterEvent — owners remaining: {Instance._muteOwnerCount}");
         if (Instance._muteOwnerCount > 0) return; // another horror event still owns the soundscape
+        Instance.RestoreAfterLastOwner(fadeDurationOverride);
+    }
 
+    /// <summary>
+    /// Watchdog helper: zeroes a leaked mute count and refades the pre-mute
+    /// track. Never called while a healthy event still owns the mute — the
+    /// hold time already exceeded MuteMaxHoldSeconds.
+    /// </summary>
+    private static void ForceReleaseMute() {
+        Instance._muteOwnerCount = 0;
+        Instance.RestoreAfterLastOwner(-1f);
+    }
+
+    /// <summary>
+    /// The shared tail of every restore path (owner released normally, or the
+    /// watchdog force-released a leak): stop the mute fade, drop the duck and
+    /// refade the pre-mute track. Queued zone requests are replayed by
+    /// PendingZoneRoutine once MutedForEvent turns false.
+    /// </summary>
+    private void RestoreAfterLastOwner(float fadeDurationOverride) {
         // An unfinished mute fade must stop — its volume writes would fight the restore fade
-        if (Instance._muteCoroutine != null) {
-            Instance.StopCoroutine(Instance._muteCoroutine);
-            Instance._muteCoroutine = null;
+        if (_muteCoroutine != null) {
+            StopCoroutine(_muteCoroutine);
+            _muteCoroutine = null;
         }
-        Instance._preDuckVolume = -1f; // a duck interrupted by the event must not restore a stale level
+        _preDuckVolume = -1f; // a duck interrupted by the event must not restore a stale level
 
         // The menu owns the music — nothing to restore until the menu closes.
         // A zone queued during the mute is replayed by PendingZoneRoutine —
         // it waits out the menu too, and until then the pre-event track
         // refades below as usual.
-        if (Instance._menuMusicActive) return;
+        if (_menuMusicActive) return;
 
         // Refade the track that was active before the event; FadeRoutine
         // un-pauses the pooled source and brings its volume back up.
-        MusicTrack track = Instance._activeTrack;
+        MusicTrack track = _activeTrack;
         if (track != null)
-            Instance._fadeCoroutine = Instance.StartCoroutine(Instance.FadeRoutine(track, fadeDurationOverride));
+            _fadeCoroutine = StartCoroutine(FadeRoutine(track, fadeDurationOverride));
     }
 
     /// <summary>
