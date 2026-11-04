@@ -437,6 +437,13 @@ public class HorrorEvent : MonoBehaviour, ISaveable
             _prerequisiteMet = _puzzleToWatch.IsSolved;
         if (!_prerequisiteMet) { Debug.Log($"[HorrorEvent] Zone '{_eventId}' blocked: prerequisite not met", this); return; }
         if (!other.CompareTag(_playerTag)) return;
+        // Power gate: the zone only fires if the master power state matches
+        // the desired Required Power State.
+        if (LightingSystem.Instance == null || LightingSystem.Instance.IsPowered != _requiredPowerState)
+        {
+            Debug.Log($"[HorrorEvent] Zone '{_eventId}' blocked: power state mismatch (isPowered={LightingSystem.Instance?.IsPowered})", this);
+            return;
+        }
         Activate();
     }
 
