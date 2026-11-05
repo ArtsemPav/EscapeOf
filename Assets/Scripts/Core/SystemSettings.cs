@@ -10,6 +10,11 @@ public static class SystemSettings
 {
     public const string MusicVolumePref = "Settings_MusicVolume";
     public const string SfxVolumePref = "Settings_SfxVolume";
+
+    /// <summary>Default music loudness for players who have not touched the slider (below unity to keep the mix comfortable).</summary>
+    public const float DefaultMusicVolume = 0.7f;
+    /// <summary>Default sound-effects loudness for players who have not touched the slider.</summary>
+    public const float DefaultSfxVolume = 1f;
     public const string QualityPref = "Settings_QualityLevel";
     public const string ResolutionWidthPref = "Settings_ResolutionWidth";
     public const string ResolutionHeightPref = "Settings_ResolutionHeight";
@@ -24,10 +29,30 @@ public static class SystemSettings
     public const FullScreenMode DefaultFullScreenMode = FullScreenMode.FullScreenWindow;
 
     /// <summary>Music loudness (0–1) as written to the mixer's Music bus.</summary>
-    public static float MusicVolume => PlayerPrefs.GetFloat(MusicVolumePref, 1f);
+    public static float MusicVolume => PlayerPrefs.GetFloat(MusicVolumePref, DefaultMusicVolume);
 
     /// <summary>Saved sound-effects loudness (0–1 normalized).</summary>
-    public static float SfxVolume => PlayerPrefs.GetFloat(SfxVolumePref, 1f);
+    public static float SfxVolume => PlayerPrefs.GetFloat(SfxVolumePref, DefaultSfxVolume);
+
+    /// <summary>True while the music volume was never changed by the player (the default is active).</summary>
+    public static bool IsMusicVolumeDefault => !PlayerPrefs.HasKey(MusicVolumePref);
+
+    /// <summary>True while the sound-effects volume was never changed by the player (the default is active).</summary>
+    public static bool IsSfxVolumeDefault => !PlayerPrefs.HasKey(SfxVolumePref);
+
+    /// <summary>
+    /// Resets both volumes to their defaults: deletes the saved preferences so
+    /// the code defaults apply again (the sliders did not write anything yet).
+    /// Returns the reset volumes so the caller can refresh its sliders.
+    /// </summary>
+    public static (float music, float sfx) ResetVolumesToDefaults()
+    {
+        PlayerPrefs.DeleteKey(MusicVolumePref);
+        PlayerPrefs.DeleteKey(SfxVolumePref);
+        ApplyMusicVolume();
+        ApplySfxVolume();
+        return (MusicVolume, SfxVolume);
+    }
 
     /// <summary>Converts a normalized loudness (0–1) to AudioMixer decibels.</summary>
     public static float ToDecibels(float normalized)

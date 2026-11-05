@@ -14,6 +14,10 @@ public class SettingsPanelController : MonoBehaviour
 {
     [SerializeField] private Slider _musicSlider;
     [SerializeField] private Slider _sfxSlider;
+    [SerializeField] private TMP_Text _musicLabel;
+    [SerializeField] private TMP_Text _sfxLabel;
+    [Tooltip("Optional button that resets both volumes to their defaults (clears the saved preferences).")]
+    [SerializeField] private Button _resetSoundButton;
     [SerializeField] private Button _resolutionButton;
     [SerializeField] private TMP_Text _resolutionLabel;
     [SerializeField] private Button _frameRateButton;
@@ -28,16 +32,23 @@ public class SettingsPanelController : MonoBehaviour
 
     private void OnEnable()
     {
+        if (_musicLabel != null && string.IsNullOrEmpty(_musicBaseText)) _musicBaseText = _musicLabel.text;
+        if (_sfxLabel != null && string.IsNullOrEmpty(_sfxBaseText)) _sfxBaseText = _sfxLabel.text;
         if (_musicSlider != null)
         {
             _musicSlider.SetValueWithoutNotify(SystemSettings.MusicVolume);
             _musicSlider.onValueChanged.AddListener(SystemSettings.SetMusicVolume);
+            _musicSlider.onValueChanged.AddListener(_ => RefreshVolumeLabels());
         }
         if (_sfxSlider != null)
         {
             _sfxSlider.SetValueWithoutNotify(SystemSettings.SfxVolume);
             _sfxSlider.onValueChanged.AddListener(SystemSettings.SetSfxVolume);
+            _sfxSlider.onValueChanged.AddListener(_ => RefreshVolumeLabels());
         }
+        if (_resetSoundButton != null)
+            _resetSoundButton.onClick.AddListener(ResetSoundToDefaults);
+        RefreshVolumeLabels();
         // Cycle buttons (resolution/fps/window mode) are wired via persistent onClick
         // calls in the scene — do NOT add code listeners too, or every click
         // fires twice and two-step cycles return to the same value.
@@ -50,7 +61,30 @@ public class SettingsPanelController : MonoBehaviour
     {
         if (_musicSlider != null) _musicSlider.onValueChanged.RemoveListener(SystemSettings.SetMusicVolume);
         if (_sfxSlider != null) _sfxSlider.onValueChanged.RemoveListener(SystemSettings.SetSfxVolume);
+        if (_resetSoundButton != null) _resetSoundButton.onClick.RemoveListener(ResetSoundToDefaults);
     }
+
+    /// <summary>Clears both saved volume preferences and refreshes the sliders to the defaults.</summary>
+    public void ResetSoundToDefaults()
+    {
+        (float music, float sfx) = SystemSettings.ResetVolumesToDefaults();
+        if (_musicSlider != null) _musicSlider.SetValueWithoutNotify(music);
+        if (_sfxSlider != null) _sfxSlider.SetValueWithoutNotify(sfx);
+        RefreshVolumeLabels();
+    }
+
+    /// <summary>Marks untouched volume labels with a "(default)" hint so the player sees which values are defaults.</summary>
+    private void RefreshVolumeLabels()
+    {
+        if (_musicLabel != null)
+            _musicLabel.text = (SystemSettings.IsMusicVolumeDefault ? _musicBaseText + DEFAULT_SUFFIX : _musicBaseText);
+        if (_sfxLabel != null)
+            _sfxLabel.text = (SystemSettings.IsSfxVolumeDefault ? _sfxBaseText + DEFAULT_SUFFIX : _sfxBaseText);
+    }
+
+    private const string DEFAULT_SUFFIX = " (по умолчанию)";
+    private string _musicBaseText;
+    private string _sfxBaseText;
 
     /// <summary>Switches to the next selectable resolution and applies it immediately.</summary>
     public void CycleResolution()
