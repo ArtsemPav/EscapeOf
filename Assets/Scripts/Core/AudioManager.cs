@@ -42,6 +42,11 @@ public class AudioManager : MonoBehaviour {
         if (Instance == null) {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            // The audio stack boots fresh here — clear any AudioListener.pause
+            // inherited from a scene transition (e.g. the pause menu's exit to
+            // the main menu, where the dying gameplay scene must stay silent
+            // under the loading screen until this Awake unpauses the listener).
+            AudioListener.pause = false;
             BackgroundTracking.ResetForNewSession();
             ApplySavedVolumes();
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;

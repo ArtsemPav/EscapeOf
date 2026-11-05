@@ -49,8 +49,16 @@ public class MainMenuItemBtn : BaseButton
         // it is already scheduled for destruction, and closing the menuUI
         // panel here would deactivate this button's GameObject and kill
         // this very coroutine.
+        // Time scale must return to 1 — the Start scene has no GameManager
+        // to unpause its scaled-time UI.
         Time.timeScale = 1f;
-        AudioListener.pause = false;
+
+        // AudioListener.pause deliberately STAYS true here. The gameplay scene
+        // keeps existing underneath the loading screen until the Start scene
+        // activates, and unpausing now would resurrect every ambience loop,
+        // one-shot and stinger of the dying scene for the whole fake load.
+        // The freshly booted AudioManager in the Start scene clears the pause
+        // in Awake (fresh audio stack = fresh listener state).
 
         // The interaction panel renders above the loading screen — hide the
         // crosshair and hint HUD for the duration of the transition.
