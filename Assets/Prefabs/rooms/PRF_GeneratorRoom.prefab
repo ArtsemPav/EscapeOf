@@ -6838,10 +6838,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 4492372440869039146, guid: 32a9416018706304da993bb57f4e7f86, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2097664
@@ -6911,6 +6907,10 @@ PrefabInstance:
       value: 520
       objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -8626,7 +8626,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Range
-      value: 4.22
+      value: 4.86
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Intensity
@@ -8750,6 +8750,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: GeneratorRoom
   _renderers: []
+  _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
 --- !u!4 &954093813925607344 stripped
@@ -9447,7 +9448,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 400002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -7.02
+      value: -6.338
       objectReference: {fileID: 0}
     - target: {fileID: 400002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       propertyPath: m_LocalPosition.y
@@ -9517,14 +9518,41 @@ PrefabInstance:
       propertyPath: m_RenderingLayersMask.m_Bits
       value: 2097153
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 6400000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 100002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8587238487333748998}
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6263372793672780048}
   m_SourcePrefab: {fileID: 100100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+--- !u!1 &1635101861643082752 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 100002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+  m_PrefabInstance: {fileID: 1635101861643115170}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8587238487333748998
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1635101861643082752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e187649f7277f574683a82102746b633, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
+  _zoneId: GeneratorRoom
+  _renderers:
+  - {fileID: 1635101861645271746}
+  _materialIndices: 01000000
+  _emissionColor: {r: 0.7490196, g: 0.3019608, b: 0.07450981, a: 1}
+  _emissionIntensity: 4
 --- !u!1 &1635101861643082754 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
@@ -9553,6 +9581,11 @@ MonoBehaviour:
 --- !u!4 &1635101861643501600 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
+  m_PrefabInstance: {fileID: 1635101861643115170}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1635101861645271746 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2300000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
   m_PrefabInstance: {fileID: 1635101861643115170}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1722195547807811451
@@ -10120,6 +10153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: GeneratorRoom
   _renderers: []
+  _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
 --- !u!1 &1913596345794155281 stripped
@@ -17332,6 +17366,30 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2426034196023318138}
     m_Modifications:
+    - target: {fileID: 7483569351371789647, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 2097664
+      objectReference: {fileID: 0}
+    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.1599946
+      objectReference: {fileID: 0}
+    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.000006610827
+      objectReference: {fileID: 0}
+    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.9468658
+      objectReference: {fileID: 0}
+    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_Name
+      value: PRF_HalfWall1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 4294967279
+      objectReference: {fileID: 0}
     - target: {fileID: 4008090468313799915, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -17383,30 +17441,6 @@ PrefabInstance:
     - target: {fileID: 4008090468313799915, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7483569351371789647, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 2097664
-      objectReference: {fileID: 0}
-    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -2.1599946
-      objectReference: {fileID: 0}
-    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.000006610827
-      objectReference: {fileID: 0}
-    - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 1.9468658
-      objectReference: {fileID: 0}
-    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_Name
-      value: PRF_HalfWall1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8321323153847195007, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
-      propertyPath: m_StaticEditorFlags
-      value: 4294967279
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -17870,10 +17904,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -17947,6 +17977,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
