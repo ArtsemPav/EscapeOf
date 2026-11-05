@@ -43,6 +43,13 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     // end). Tracked separately so an INTERRUPTED fade never leaves it orphaned
     // mid-volume: whoever stops the fade coroutine finishes it via this slot.
     private AudioSource _fadingOutSource;
+    // Observed-playing flag for the ACTIVE source: set the moment Update sees
+    // it playing, cleared whenever the active track switches. The track-life
+    // guard uses it to tell a FINISHED non-loop track (played, then stopped —
+    // including a pooled source that resumed mid-clip and therefore stopped
+    // before the clip length elapsed) from a NEVER-STARTED one (Play() raced
+    // a streaming load) — source.time and clock math cannot tell them apart.
+    private bool _activeSourcePlayed;
     private int _muteOwnerCount; // nested horror events — restore fires only when the last owner releases
     private Coroutine _muteCoroutine;
 
@@ -494,7 +501,10 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         if (_activeSource == null || _activeTrack == null || _fadeCoroutine != null || MutedForEvent) return;
         if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
 
-        if (_activeSource.isPlaying) return;
+        if (_activeSource.isPlaying) {
+            _activeSourcePlayed = true; // observed live — the track did start
+            return;
+        }
 
         if (_activeTrack.Loop) {
             Debug.LogWarning($"[Music] Active loop track '{_activeTrack.name}' is not playing outside pause/mute — reviving its source.");
@@ -511,6 +521,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
                 rebuilt.ignoreListenerPause = _activeTrack == _pauseMenuTrack;
                 rebuilt.volume = _activeTrack.Volume;
                 _activeSource = rebuilt;
+                _activeSourcePlayed = false;
                 _sourcePool[_activeTrack] = rebuilt;
                 Debug.LogWarning($"[Music] Source for '{_activeTrack.name}' was unusable — rebuilt a fresh one.");
             }
@@ -518,37 +529,32 @@ public class MusicDirector : MonoBehaviour, ISaveable {
         }
 
         // Non-looping track, not playing, no fade/mute/pause owns the audio.
-        // A freshly requested track that never started (play() raced the
-        // streaming load, or a pause/restore cycle stopped it) is revived:
-        // the player walked into its zone and must hear it.
-        // Rate-limited: if Play() keeps failing (e.g. AudioListener.pause
-        // desync — source can never start while the listener is paused),
-        // logging/Play() every frame would spam the console. Retry at most
-        // twice a second; the source-life guard above still catches the
-        // recovery the moment the cause is gone.
+        // The observed-playing flag is the ONLY reliable finished/never-started
+        // discriminator: source.time clamps to ~0 on a finished source on some
+        // platforms, and clock math misses a pooled source that RESUMED
+        // mid-clip (Room1/Room7 both restarted from zero that way). If Update
+        // ever saw this source playing, it is a spent track — fall back; if
+        // not, Play() never took (streaming load race, pause/restore cycle) —
+        // revive it: the player walked into its zone and must hear it.
         float clipLength = _activeTrack.Clip != null ? _activeTrack.Clip.length : 0f;
-        // "Finished" = the clip is over. A source at time 0 with the clip at
-        // its end (or paused right before it) still counts: some platforms
-        // clamp a finished non-loop source's time back to ~0 once it stops.
-        bool finished = clipLength > 0f
-            && (_activeSource.time > 0f || _activeSource.time >= clipLength - 0.05f)
-            && Time.unscaledTime - _lastSwitchTime > clipLength;
-        if (finished) {
+        if (_activeSourcePlayed) {
             Debug.Log($"[Music] Track '{_activeTrack.name}' finished playing -> restoring fallback (isPlaying=false detected)");
             RestoreFallbackTrack();
             return;
         }
 
+        // Rate-limited: if Play() keeps failing (e.g. AudioListener.pause
+        // desync — source can never start while the listener is paused),
+        // logging/Play() every frame would spam the console. Retry at most
+        // twice a second; the source-life guard above still catches the
+        // recovery the moment the cause is gone.
         if (Time.unscaledTime - _lastReviveAttempt < 0.5f) return;
         _lastReviveAttempt = Time.unscaledTime;
-        // A finished non-loop source can clamp its time back to ~0 once it
-        // stops (platform-dependent), which makes a played-out track look
-        // identical to a never-started one here. The request timestamp
-        // disambiguates: if the track was requested longer ago than the clip
-        // is long, it had its full chance to play — it is FINISHED, not dead.
-        // Restarting it would replay a spent play-once track from zero.
-        if (clipLength > 0f && Time.unscaledTime - _lastSwitchTime > clipLength) {
-            Debug.Log($"[Music] Track '{_activeTrack.name}' stopped with its request older than the clip — treating as finished.");
+        // A source parked at the clip end is spent by definition (a resume
+        // started there immediately stops again, so it is never "observed
+        // playing") — restarting it would loop restarts forever.
+        if (clipLength > 0f && _activeSource.time >= clipLength - 0.05f) {
+            Debug.Log($"[Music] Track '{_activeTrack.name}' parked at the clip end -> restoring fallback.");
             RestoreFallbackTrack();
             return;
         }
@@ -983,6 +989,7 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             _fadingOutSource = oldSource;
         }
         _activeSource = newSource;
+        _activeSourcePlayed = false; // fresh start — the guard must re-observe playback
 
         // Fade old source out and pause it so it can resume from the same spot later.
         float startOldVolume = oldSource != null && oldSource != newSource ? oldSource.volume : 0f;

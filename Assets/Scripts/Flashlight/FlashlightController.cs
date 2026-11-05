@@ -55,6 +55,22 @@ public class FlashlightController : MonoBehaviour, ISaveable
     [Tooltip("Layers checked by the proximity cast. Default = everything.")]
     [SerializeField] private LayerMask proximityMask = ~0;
 
+    [Header("Close Range Compensation")]
+    [Tooltip("Caps the surface brightness when the beam hits a wall up close. Illuminance on a surface " +
+             "grows like 1/d², so point-blank walls blow out (and Bloom flares). When enabled, intensity is " +
+             "additionally scaled down by (distance / reference)² for hit distances below the reference.")]
+    [SerializeField] private bool closeRangeCompensation = true;
+
+    [Tooltip("Distance at which the flashlight brightness is considered 'correct'. Surfaces hit closer than " +
+             "this receive quadratically less intensity so their illumination never exceeds the reference level.")]
+    [SerializeField] [Min(0.3f)] private float closeRangeReferenceDistance = 1.5f;
+
+    /// <summary>Lower bound for the close-range compensation so the light never fully blacks out at zero distance.</summary>
+    private const float MinCompensation = 0.05f;
+
+    /// <summary>How much faster the flashlight dims than brightens (see Update()).</summary>
+    private const float DimSpeedMultiplier = 4f;
+
     /// <summary>Fired whenever the active mode changes. Passes the new mode.</summary>
     public event Action<FlashlightMode> OnModeChanged;
 
@@ -76,6 +92,7 @@ public class FlashlightController : MonoBehaviour, ISaveable
     private float _targetIntensity;
     private float _proximityScale = 1f;
     private float _proximityScaleVelocity;
+    private float _closeRangeComp = 1f; // inverse-square compensation applied on top of proximity dimming
     private int _modeIndex;
 
     private float _webDimScale = 1f; // external dimming (e.g. spider web touch), multiplies final intensity
@@ -200,11 +217,19 @@ public class FlashlightController : MonoBehaviour, ISaveable
         if (_flickering) return; // flicker coroutine owns intensity right now
 
         UpdateProximityScale();
+        UpdateCloseRangeCompensation();
 
+        float targetIntensity = _targetIntensity * _proximityScale * _webDimScale * _closeRangeComp;
+        // Dimming must react as fast as the close-range compensation drop does —
+        // otherwise a fast approach to a wall shows full brightness first and only
+        // then fades down. Brightening keeps the normal (slower) transition speed.
+        float speed = _light.intensity > targetIntensity
+            ? config.transitionSpeed * DimSpeedMultiplier
+            : config.transitionSpeed;
         _light.intensity = Mathf.MoveTowards(
             _light.intensity,
-            _targetIntensity * _proximityScale * _webDimScale,
-            config.transitionSpeed * Time.deltaTime
+            targetIntensity,
+            speed * Time.deltaTime
         );
     }
 
@@ -263,6 +288,49 @@ public class FlashlightController : MonoBehaviour, ISaveable
             ref _proximityScaleVelocity,
             1f / proximitySmoothSpeed
         );
+    }
+
+    private const int CloseCompProbes = 3;
+
+    /// <summary>
+    /// Inverse-square compensation: illuminance on a surface grows like intensity / d²,
+    /// so point-blank walls receive far more light than distant ones and blow out
+    /// (with Bloom flaring on top). For hit distances below closeRangeReferenceDistance
+    /// intensity is scaled by (d / reference)², capped by MinCompensation, so a surface
+    /// never receives more illumination than it would at the reference distance.
+    /// Uses the closest of the center probes (no fan — walls matter most straight ahead).
+    /// </summary>
+    private void UpdateCloseRangeCompensation()
+    {
+        if (!_isOn || !closeRangeCompensation)
+        {
+            _closeRangeComp = 1f;
+            return;
+        }
+
+        Vector3 origin = proximityRayOrigin != null ? proximityRayOrigin.position : transform.position;
+        Vector3 fwd    = proximityRayOrigin != null ? proximityRayOrigin.forward  : transform.forward;
+        Vector3 right  = proximityRayOrigin != null ? proximityRayOrigin.right    : transform.right;
+
+        float comp = 1f;
+        for (int i = 0; i < CloseCompProbes; i++)
+        {
+            // Slight vertical spread to catch the floor and low props without a full fan.
+            Vector3 dir = i == 0 ? fwd
+                        : i == 1 ? Quaternion.AngleAxis( 5f, right) * fwd
+                                 : Quaternion.AngleAxis(-5f, right) * fwd;
+
+            if (Physics.Raycast(origin, dir, out RaycastHit hit, closeRangeReferenceDistance, proximityMask, QueryTriggerInteraction.Ignore))
+            {
+                // Illumination relative to the reference: saturate((d/ref)²).
+                float d = Mathf.Max(hit.distance, 0.05f);
+                float t = Mathf.Clamp01((d / closeRangeReferenceDistance) * (d / closeRangeReferenceDistance));
+                comp = Mathf.Min(comp, Mathf.Max(t, MinCompensation));
+            }
+        }
+
+        // Applied instantly — the outer MoveTowards on intensity already smooths the result.
+        _closeRangeComp = comp;
     }
 
     /// <summary>
