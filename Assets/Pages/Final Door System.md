@@ -28,6 +28,7 @@ FinalDoorPuzzle (root)
 │   ├── FinalDoorSideInteractable       # вход в puzzle mode с камерой статуи
 │   └── CinemachineCamera               # close-up камеры статуй
 ├── Гнёзда MedallionHole × 6            # компоненты гнёзд двери
+├── Prizm                              # ObjectSpinner: медленное вращение вокруг Y
 └── Scull
     ├── ScullPuzzlePhase        # фаза 2: монеты, челюсть, сыворотка, сейв
     ├── CinemachineCamera       # close-up черепа
