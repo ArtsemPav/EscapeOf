@@ -30,6 +30,7 @@ public class ScrewdriverRepairController : MonoBehaviour,
     private const string StateRepaired = "Repaired";
     private const string GhostMaterialPath = "Materials/CardLock/CardLamp_Ghost.mat";
     private const float RaycastDistance = 20f;
+    private const float LoopFadeOutDuration = 0.4f;
 
     // ── Inspector ────────────────────────────────────────────────────────────────
 
@@ -71,15 +72,26 @@ public class ScrewdriverRepairController : MonoBehaviour,
 
     [Header("Audio")]
     [SerializeField] private AudioClip _repairStartClip;
+    [SerializeField] private AudioClip _repairLoopClip;
     [SerializeField] private AudioClip _repairCompleteClip;
     [SerializeField, Range(0f, 1f)] private float _repairStartVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float _repairLoopVolume = 0.8f;
     [SerializeField, Range(0f, 1f)] private float _repairCompleteVolume = 1f;
+
+    [Header("Audio (3D loop)")]
+    [Tooltip("Внутри этого расстояния громкость лупа полная.")]
+    [SerializeField, Min(0.1f)] private float _loopMinDistance = 1f;
+    [Tooltip("На этом расстоянии луп затухает до тишины.")]
+    [SerializeField, Min(1f)] private float _loopMaxDistance = 10f;
 
     // ── State ────────────────────────────────────────────────────────────────────
 
     private bool _isSolved;
     private bool _isProcessing;
     private bool _isCompleting;
+
+    private AudioSource _repairLoopSource;
+    private Coroutine _repairLoopFadeRoutine;
 
     private PuzzleModeController _puzzleMode;
 
@@ -178,6 +190,8 @@ public class ScrewdriverRepairController : MonoBehaviour,
         }
 
         SaveManager.Instance?.Unregister(this);
+
+        StopRepairLoopImmediate();
 
         if (_ghostPreview != null)
             Destroy(_ghostPreview);
@@ -358,6 +372,9 @@ public class ScrewdriverRepairController : MonoBehaviour,
         // Останавливаем все корутины контроллера (на случай прерывания во время ремонта)
         StopAllCoroutines();
 
+        // Корутина фейда могла быть убита StopAllCoroutines — гасим луп мгновенно
+        StopRepairLoopImmediate();
+
         if (_ghostVisible) SetGhostVisible(false);
 
         if (_minigame != null)
@@ -379,11 +396,68 @@ public class ScrewdriverRepairController : MonoBehaviour,
     {
         AudioManager.Instance?.PlaySFX(_repairStartClip, _repairStartVolume);
 
+        StartRepairLoop();
+
         // Запускаем цикл анимации ремонта — проигрывается непрерывно во время мини-игры
         if (_targetAnimator != null)
             _targetAnimator.SetBool(ParamIsRepairing, true);
 
         yield return StartMinigameAfterFrame();
+    }
+
+    /// <summary>Запускает зацикленный 3D-звук ремонта на ремонтируемом объекте.</summary>
+    private void StartRepairLoop()
+    {
+        if (_repairLoopClip == null) return;
+
+        // Предыдущий источник ещё затухает после провала — гасим мгновенно и запускаем заново
+        if (_repairLoopSource != null)
+            StopRepairLoopImmediate();
+
+        Transform loopTarget = _targetCollider != null ? _targetCollider.transform : transform;
+        _repairLoopSource = AudioManager.Instance?.Play3DLoop(
+            _repairLoopClip, loopTarget, _repairLoopVolume, _loopMinDistance, _loopMaxDistance);
+    }
+
+    /// <summary>Мгновенно останавливает и уничтожает зацикленный звук ремонта.</summary>
+    private void StopRepairLoopImmediate()
+    {
+        if (_repairLoopFadeRoutine != null)
+        {
+            StopCoroutine(_repairLoopFadeRoutine);
+            _repairLoopFadeRoutine = null;
+        }
+
+        if (_repairLoopSource == null) return;
+
+        AudioManager.Instance?.UnregisterLoopSource(_repairLoopSource); // снимает с tracking + Stop
+        Destroy(_repairLoopSource.gameObject);                          // Play3DLoop создал дочерний объект — убираем
+        _repairLoopSource = null;
+    }
+
+    /// <summary>Плавно затухает звук ремонта и затем уничтожает источник.</summary>
+    private void StopRepairLoopWithFade()
+    {
+        if (_repairLoopSource == null) return;
+
+        if (_repairLoopFadeRoutine != null)
+            StopCoroutine(_repairLoopFadeRoutine);
+
+        _repairLoopFadeRoutine = StartCoroutine(FadeOutAndRelease(_repairLoopSource, LoopFadeOutDuration));
+    }
+
+    private IEnumerator FadeOutAndRelease(AudioSource source, float duration)
+    {
+        yield return AudioFades.Volume(source, 0f, duration);
+
+        if (source != null)
+        {
+            AudioManager.Instance?.UnregisterLoopSource(source);
+            Destroy(source.gameObject);
+        }
+
+        _repairLoopSource = null;
+        _repairLoopFadeRoutine = null;
     }
 
     private IEnumerator StartMinigameAfterFrame()
@@ -424,6 +498,8 @@ public class ScrewdriverRepairController : MonoBehaviour,
 
     private IEnumerator FailureSequence()
     {
+        StopRepairLoopImmediate();
+
         if (_minigame != null)
             _minigame.StopMinigame();
 
@@ -451,6 +527,8 @@ public class ScrewdriverRepairController : MonoBehaviour,
 
         if (_minigamePanel != null)
             _minigamePanel.SetActive(false);
+
+        StopRepairLoopWithFade();
 
         AudioManager.Instance?.PlaySFX(_repairCompleteClip, _repairCompleteVolume);
 
