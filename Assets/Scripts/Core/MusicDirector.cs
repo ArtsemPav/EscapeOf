@@ -563,6 +563,19 @@ public class MusicDirector : MonoBehaviour, ISaveable {
     }
 
     /// <summary>
+    /// True when the given AudioSource belongs to the director (a pooled
+    /// source or the current crossfade target). The ambience mute must never
+    /// sweep the director's music away — only world ambience.
+    /// </summary>
+    public bool OwnsSource(AudioSource source) {
+        if (source == null) return false;
+        if (_activeSource == source) return true;
+        foreach (KeyValuePair<MusicTrack, AudioSource> pooled in _sourcePool)
+            if (pooled.Value == source) return true;
+        return false;
+    }
+
+    /// <summary>
     /// Requests a track to play. If the same track is already active the request is ignored;
     /// otherwise the director IMMEDIATELY crossfades to it — the playing track fades out
     /// while the new one fades in. The newest request always wins.

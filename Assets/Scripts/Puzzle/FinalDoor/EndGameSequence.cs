@@ -320,6 +320,12 @@ public class EndGameSequence : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
+        // The world goes quiet for the ending: the torches and the fire wall
+        // near the door must not talk over the ending track (and the credits).
+        // The mute keeps re-scanning, so fires ignited DURING the cinematic
+        // stay silent too. One-way - the credits flow destroys the manager.
+        AudioManager.Instance?.MuteAmbience();
+
         var fps = _characterController != null
             ? _characterController.GetComponent<FPSController>()
             : null;

@@ -262,6 +262,85 @@ public class AudioManager : MonoBehaviour {
         _layerCoroutine = StartCoroutine(routine);
     }
 
+    // ── Ambience mute (ending cutscene: the world goes quiet, the music speaks) ──
+
+    [Tooltip("How often the ambience mute re-scans for world sources that appeared after the mute started (e.g. fires the ending ignites).")]
+    [SerializeField, Range(0.2f, 5f)] private float _ambienceRescanInterval = 0.5f;
+
+    private readonly List<AudioSource> _mutedAmbience = new List<AudioSource>();
+    private readonly List<float> _mutedAmbienceVolumes = new List<float>();
+    private Coroutine _ambienceMuteCoroutine;
+    private bool _ambienceMuted;
+
+    /// <summary>
+    /// Silences the world's ambient soundscape for a cinematic: fades out and
+    /// pauses every scene AudioSource EXCEPT the MusicDirector's sources and
+    /// the shared SFX source. Unlike MuteBackground this does not require
+    /// sources to be registered — it sweeps the whole scene, and keeps
+    /// re-scanning while held, so ambience that APPEARS during the cinematic
+    /// (e.g. fires the ending ignites near the portal) is silenced too.
+    /// Intentionally one-way for the ending: the credits flow destroys this
+    /// singleton on the way back to the main menu, so nothing needs restoring.
+    /// </summary>
+    public void MuteAmbience(float fadeDuration = 1.5f) {
+        if (_ambienceMuted) return;
+        _ambienceMuted = true;
+        if (_ambienceMuteCoroutine != null) StopCoroutine(_ambienceMuteCoroutine);
+        _ambienceMuteCoroutine = StartCoroutine(AmbienceMuteRoutine(fadeDuration));
+    }
+
+    /// <summary>Releases the ambience mute (unpauses and restores the swept sources).</summary>
+    public void UnmuteAmbience() {
+        if (!_ambienceMuted) return;
+        _ambienceMuted = false;
+        if (_ambienceMuteCoroutine != null) { StopCoroutine(_ambienceMuteCoroutine); _ambienceMuteCoroutine = null; }
+
+        for (int i = 0; i < _mutedAmbience.Count; i++) {
+            AudioSource source = _mutedAmbience[i];
+            if (source == null) continue;
+            source.volume = _mutedAmbienceVolumes[i];
+            source.UnPause();
+        }
+        _mutedAmbience.Clear();
+        _mutedAmbienceVolumes.Clear();
+    }
+
+    private IEnumerator AmbienceMuteRoutine(float fadeDuration) {
+        // First sweep: fade out whatever is playing right now.
+        SweepAmbience(fadeDuration);
+
+        // Hold: the ending keeps igniting new fires (zones near the portal) —
+        // re-scan periodically and cut any newcomer instantly.
+        float rescan = 0f;
+        while (_ambienceMuted) {
+            rescan += Time.unscaledDeltaTime;
+            if (rescan >= _ambienceRescanInterval) {
+                rescan = 0f;
+                SweepAmbience(0f);
+            }
+            yield return null;
+        }
+    }
+
+    private void SweepAmbience(float fadeDuration) {
+        foreach (AudioSource source in FindObjectsOfType<AudioSource>()) {
+            if (source == null || source == _sfxSource || _mutedAmbience.Contains(source)) continue;
+            if (MusicDirector.Instance != null && MusicDirector.Instance.OwnsSource(source)) continue;
+            if (source.clip == null) continue;
+
+            _mutedAmbience.Add(source);
+            _mutedAmbienceVolumes.Add(source.volume);
+            if (fadeDuration <= 0f) {
+                source.volume = 0f;
+                source.Pause();
+            } else {
+                StartCoroutine(AudioFades.Volume(source, 0f, fadeDuration, () => {
+                    if (source != null && _ambienceMuted) source.Pause();
+                }));
+            }
+        }
+    }
+
     // ── Background mute (music + tracked loops) ────────────────────────────────
 
     /// <summary>Fades the music and all tracked 3D loops to silence, leaving one-shot SFX intact.</summary>
