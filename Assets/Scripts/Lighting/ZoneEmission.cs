@@ -10,6 +10,8 @@ using UnityEngine;
 ///
 /// Each assigned renderer gets an instantiated material so lamps sharing
 /// NeonLamp.mat (or any other shared material) react independently.
+/// Use <see cref="_materialIndices"/> to pick which material slot of each
+/// renderer is toggled (e.g. the emissive slot on multi-material lamps).
 /// Registers as an <see cref="IPowerConsumer"/> with <see cref="LightingSystem"/>,
 /// so it also survives save-load and power restoration automatically.
 /// </summary>
@@ -24,6 +26,11 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
     [Tooltip("Renderers whose emission follows the zone state. " +
              "Auto-found on this GameObject if not assigned.")]
     [SerializeField] private Renderer[] _renderers;
+
+    [Tooltip("Index of the material slot on each renderer to control. " +
+             "Element i corresponds to _renderers[i]. If omitted or out of " +
+             "range, slot 0 is used.")]
+    [SerializeField] private int[] _materialIndices;
 
     [Header("Emission")]
     [Tooltip("Emission color multiplied into the emissive map.")]
@@ -103,14 +110,34 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
         for (int i = 0; i < _renderers.Length; i++)
         {
             var renderer = _renderers[i];
-            if (renderer == null || renderer.sharedMaterial == null) continue;
+            if (renderer == null) continue;
 
-            // Instance the material so shared assets (NeonLamp.mat) stay untouched
+            int slotIndex = GetMaterialIndex(i, renderer);
+            var sourceMaterial = renderer.sharedMaterials[slotIndex];
+            if (sourceMaterial == null) continue;
+
+            // Instance the material so shared assets (lamps_emit.mat) stay untouched
             // and lamps glow independently of each other.
-            var instance = new Material(renderer.sharedMaterial);
-            renderer.sharedMaterial = instance;
+            var instance = new Material(sourceMaterial);
+            var materials = renderer.sharedMaterials;
+            materials[slotIndex] = instance;
+            renderer.sharedMaterials = materials;
             _materials[i] = instance;
         }
+    }
+
+    /// <summary>
+    /// Resolved material slot for renderer i (clamped to the renderer's valid range).
+    /// </summary>
+    private int GetMaterialIndex(int rendererIndex, Renderer renderer)
+    {
+        if (_materialIndices != null &&
+            rendererIndex < _materialIndices.Length &&
+            _materialIndices[rendererIndex] >= 0)
+        {
+            return Mathf.Min(_materialIndices[rendererIndex], renderer.sharedMaterials.Length - 1);
+        }
+        return 0;
     }
 
     private void UpdateEmission(bool lit)

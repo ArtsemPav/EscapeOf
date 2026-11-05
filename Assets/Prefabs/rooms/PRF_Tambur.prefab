@@ -674,7 +674,7 @@ GameObject:
   - component: {fileID: 3080717217916578980}
   - component: {fileID: 1307788262326198872}
   m_Layer: 0
-  m_Name: Tambur
+  m_Name: PRF_Tambur
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1673,9 +1673,12 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: 
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _showBlockedHint: 0
+  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintCooldown: 2
   _pivot: {fileID: 2295246163308396730}
   _rotationAxis: 1
   _maxOpenAngle: -90
@@ -1694,6 +1697,12 @@ MonoBehaviour:
   _motionVolume: 0.7
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &2295246163308502172 stripped
@@ -1719,9 +1728,12 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _requirementHint: 
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
+  _showBlockedHint: 0
+  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
+    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintCooldown: 2
   _pivot: {fileID: 2295246163308396732}
   _rotationAxis: 1
   _maxOpenAngle: 90
@@ -1740,6 +1752,12 @@ MonoBehaviour:
   _motionVolume: 0.7
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
+    m_PersistentCalls:
+      m_Calls: []
+  _onLocked:
+    m_PersistentCalls:
+      m_Calls: []
+  _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1001 &2369650811857329883
