@@ -124,6 +124,7 @@ namespace Escape.Core {
         private float   _flingTarget;         // 0 = fully closed, 1 = fully open
         private bool    _isClickAnimating;    // true while smoothly opening/closing after a single click (Click mode)
         private float   _clickTarget;         // 0 = fully closed, 1 = fully open — target for the click animation
+        private float   _overrideOpenDuration;// >0 — replaces _openDuration for the current click animation (ghost pranks)
         private Vector3 _grabOffsetWorld;
         private float   _dragStartFraction;
         private Camera  _dragCamera;
@@ -281,7 +282,8 @@ namespace Escape.Core {
             // ── Click-driven open/close ──────────────────────────────────────────
             if (_isClickAnimating) {
                 float prev  = _openFraction;
-                float speed = _openDuration > 0.0001f ? 1f / _openDuration : 1000f;
+                float duration = _overrideOpenDuration > 0.0001f ? _overrideOpenDuration : _openDuration;
+                float speed = duration > 0.0001f ? 1f / duration : 1000f;
                 _openFraction = Mathf.MoveTowards(_openFraction, _clickTarget, speed * Time.deltaTime);
                 // Drive the motion loop by signalling direction through velocity.
                 _velocity = _clickTarget > prev ? speed : -speed;
@@ -292,6 +294,7 @@ namespace Escape.Core {
                 if (Mathf.Approximately(_openFraction, _clickTarget)) {
                     _openFraction     = _clickTarget;
                     _isClickAnimating = false;
+                    _overrideOpenDuration = 0f;
                     _dragActive       = _clickTarget > 0.5f;
                     _velocity         = 0f;
                     StopMotionLoops();
@@ -368,7 +371,8 @@ namespace Escape.Core {
             // Locked door: play locked sound and prevent any movement.
             if (_isLocked && !_isOpen) {
                 ProgressLogger.Log("drag_locked", $"дверь {name}: заперта");
-                AudioManager.Instance.PlaySFX(_lockedClip);
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
                 ShowLockedHint();
                 _isDragging = true;
                 return;
@@ -378,6 +382,8 @@ namespace Escape.Core {
             _dragActive        = true;
             _dragCamera        = cam;
             _flinging          = false;
+            _isClickAnimating  = false;
+            _overrideOpenDuration = 0f;
             _isUnlockAnimating = false;
             _dragStartFraction = _openFraction;
 
@@ -571,7 +577,7 @@ namespace Escape.Core {
             _dragActive        = true;
             _isDragging        = false;
             if (AudioManager.Instance != null)
-                AudioManager.Instance.PlaySFX(_unlockClip);
+                AudioManager.Instance.Play3DOneShot(_unlockClip, transform.position, _motionVolume, 1f, 15f);
             SaveManager.Instance?.Save();
         }
 
@@ -635,6 +641,38 @@ namespace Escape.Core {
             SaveManager.Instance?.Save();
         }
 
+        /// <summary>
+        /// Ghost prank: toggles the door (opens if closed, closes if open) with a
+        /// custom animation duration, ignoring the Click-mode setting. Slow
+        /// durations give a creeping creak, short ones a violent slam. Saves and
+        /// plays the same motion/latch sounds as a normal click toggle.
+        /// </summary>
+        public void GhostToggle(float durationSeconds) {
+            if (_isLocked) {
+                Debug.Log($"[DoorInteraction] GhostToggle on '{name}' — IGNORED, door is locked.", this);
+                return;
+            }
+
+            // Decide by the VISUAL state (openFraction), not the logical _isOpen
+            // flag — a drag-interrupted animation can leave _isOpen out of sync
+            // with _openFraction, and toggling by the stale flag would play the
+            // motion sound while the door is already at the target (no movement).
+            bool visuallyOpen = _openFraction > 0.01f;
+            _clickTarget       = visuallyOpen ? 0f : 1f;
+            _isOpen            = _clickTarget > 0.5f;
+            _isClickAnimating  = true;
+            _overrideOpenDuration = Mathf.Max(0.05f, durationSeconds);
+            _dragActive        = true;
+
+            // Cancel any other motion modes so they don't fight the animation.
+            _isDragging        = false;
+            _flinging          = false;
+            _isUnlockAnimating = false;
+            _velocity          = 0f;
+
+            SaveManager.Instance?.Save();
+        }
+
         // ── Private helpers ──────────────────────────────────────────────────────
 
     /// <summary>Syncs the optional OcclusionPortal's open state with the door's open fraction.</summary>
@@ -660,13 +698,16 @@ namespace Escape.Core {
         private void ToggleClick() {
             if (_isLocked && !_isOpen) {
                 ProgressLogger.Log("drag_locked", $"дверь {name}: заперта (клик)");
-                AudioManager.Instance.PlaySFX(_lockedClip);
+                // Positional rattle, not a global 2D SFX.
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
                 return;
             }
 
             _clickTarget       = _isOpen ? 0f : 1f;
             _isOpen            = _clickTarget > 0.5f;
             _isClickAnimating  = true;
+            _overrideOpenDuration = 0f;
             _dragActive        = true;
 
             // Cancel any other motion modes so they don't fight the click animation.
@@ -804,7 +845,10 @@ namespace Escape.Core {
             if (prev > 0f && current <= 0f)
             {
                 StopMotionLoops();
-                AudioManager.Instance.PlaySFX(_latchClip);
+                // Positional sound: a latch click from a ghost-toggled door on the
+                // other side of the house must NOT play in the player's ears.
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.Play3DOneShot(_latchClip, transform.position, _motionVolume, 1f, 15f);
             }
         }
         [ContextMenu("Generate Save ID")]

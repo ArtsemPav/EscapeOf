@@ -522,6 +522,149 @@ Env/2ndFloor/Corridor2stF/Horror
 
 > **Статус:** скрипты есть в проекте (`Assets/Scripts/Effects/`), но их триггерные зоны и объекты пауков в текущей сцене `Game.unity` не расставлены. Секция сохранена как справочник — если паучьи ивенты вернутся в сцену.
 
+---
+
+## Невидимая блуждающая сущность — GhostSystem (полтергейст)
+
+Невидимый агент патрулирует дом по waypoint-графу и **активно охотится на игрока**, когда видит его.
+Зрение честное — physics raycast: стены, мебель и **закрытые двери** блокируют видимость
+(закрылся в комнате — спрятался), открытые дверные полотна просматриваются насквозь.
+Само перемещение бесплотное (сквозь стены) — дух, но глаза у него не бесплотные.
+
+### Состояния
+
+```
+Patrol    — дрейф по waypoint-графу; каждый кадр ищет игрока (если погоня разблокирована)
+Chase     — увидел игрока: летит к нему на _chaseSpeed, цель = позиция игрока
+Search    — потерял из виду > _loseSightTime: летит к последней видимой точке,
+            висит там _searchDwellTime, потом снова Patrol
+Dormant   — поимка игрока: `_onPlayerReached` (звук/скример) → агент скрывается
+            (`GhostAgent.SetActive(false)`), таймер 180–480 с (`_respawnDelayRange`,
+            по умолчанию 3–8 минут) → респавн в случайной точке и снова Patrol
+Unpowered — общий свет выключен: агент спрятан, ждёт `LightingSystem.OnPowerChanged`
+```
+
+**Гейт погони:** `_huntUnlockPuzzle` ссылается на `PuzzleModeController` часов
+(`/Env/2ndFloor/Room 4/Puzzle/clock`). Пока загадка не решена (в т.ч. после загрузки сейва),
+`TrySpotPlayer` не срабатывает — призрак не преследует игрока, только летает, топает и щёлкает
+выключателями. После решения — охотится как обычно.
+
+Достижение игрока (`<= _catchDistance`) вызывает `_onPlayerReached` (UnityEvent — повесь скример/урон),
+затем `GhostPatrol` сам уводит призрака в `Dormant` — звук ивента должен быть назначен
+в `_onPlayerReached` до его вызова.
+
+### Архитектура
+
+```
+GhostSystem (сцена, корень)        # GhostPatrol — координатор (сам не двигается)
+├── WP_Room1_2F                   # GhostWaypoint (allowedRooms: Room 1, weight 3)
+├── WP_Corridor2F                 # GhostWaypoint (Coridor2stF, CoridorFDoor, weight 3)
+├── WP_Room4_2F                   # GhostWaypoint (Room 4, Room 5, weight 3)
+├── WP_DoctorRoom                 # GhostWaypoint (DoctorRoom)
+├── WP_Procedural                 # GhostWaypoint (Procedural)
+├── WP_Pantry2                    # GhostWaypoint (Pantry 2, Pantry)
+├── WP_GeneratorRoom              # GhostWaypoint — подвал, генераторная (weight 1)
+└── WP_Switchgear                 # GhostWaypoint — подвал, щитовая (weight 1)
+
+GhostAgent (сцена, корень)         # двигающийся объект: сфера + Point Light (debug-визуал),
+                                   # AudioSource (3D, linear rolloff, max 35 м) + GhostFootsteps (шаги в полёте)
+
+> **Приглушение по этажам** (GhostFootsteps): дистанция считается вручную (rolloff
+> AudioSource фактически отключён, maxDistance=35). На этаже игрока: до `_fullVolumeDistance`
+> (4 м) — полная громкость × `_sameFloorVolumeFactor` (0.6), плавное затухание до
+> `_farVolumeFactor` (0.35) к `_fadeoutDistance` (14 м). На другом этаже (разрыв Y > 3 м):
+> ровный глухой уровень × `_otherFloorVolumeFactor` (0.4) + low-pass 600 Гц по всему этажу.
+```
+
+> **Распределение по этажам:** вес точки (`_visitWeight`) — относительный шанс выбора при
+> патруле (взвешенный рандом в `GhostPatrol.PickNextWaypoint`). Точки 2F имеют вес 3,
+> 1F — 1, подвал — 1: призрак проводит большую часть времени на 2 этаже, но регулярно
+> спускается на 1F и изредка в подвал (GeneratorRoom/Switchgear). Финальная зона
+> (`CoridorFDoor/FinalPart`) waypoint'а не имеет — призрак туда не заглядывает.
+> Автолинковка считается по горизонтальной (XZ) дистанции — вертикальный разлом
+> этажей не разрывает граф, призрак летает сквозь перекрытия by design.
+
+> **Важно:** waypoint'ы НЕ должны быть детьми `GhostAgent` — иначе карта точек «уезжает» вместе
+> с агентом и накапливает смещение. `_agentRoot` на `GhostPatrol` указывает на `GhostAgent`.
+> Для релиза `GhostAgent` можно скрыть (сфера/свет — только debug-визуал для отслеживания).
+
+### Скрипты
+
+- `GhostPatrol.cs` — `/Assets/Scripts/Effects/` — FSM патруль/погоня/поиск/спячка: дрейф по waypoint'ам,
+честное зрение через `Physics.RaycastAll` (блокируют стены, мебель, закрытые `DoorInteraction`;
+открытые двери просматриваются), погоня на `_chaseSpeed`, авта-линковка соседей
+по `_autoLinkDistance` (15 м; путь сквозь стены — by design), `_onPlayerReached` при поимке,
+после неё — `Dormant` и респавн через `_respawnDelayRange`.
+- `GhostFootsteps.cs` — `/Assets/Scripts/Effects/` — шаги, синхронизированные с реальным
+перемещением: один шаг на `_stepLength` (0.7 м) в патруле, `_runStepLength` (1.6 м) в погоне —
+длинный тяжёлый бег вместо «семенящих» шажков; быстрее погоня — шире шаг, а не чаще;
+чередование лево/право (`_leftClip` / `_rightClip`, пара `S_ks_left`/`S_ks_right`);
+узкий рандом питча 0.95–1.05 и громкость на каждом шаге; в покое тишина.
+- `GhostWaypoint.cs` — `/Assets/Scripts/Effects/` — логика провокации: детект игрока
+(`_playerDetectionRadius`), фильтр по комнате игрока (`RoomVisibilityManager.CurrentRoomName`
+из `_allowedRooms`), глобальный + пер-точечный кулдаун, `_provocationChance`,
+последовательность звуковых шагов (`_soundSteps`: задержка + AudioSource).
+
+### Логика
+
+1. `GhostPatrol` стартует в случайной точке, каждые 4–12 с выбирает следующую (из Connected)
+  и двигает `_agentRoot` (= `GhostAgent`) к ней.
+2. По прибытии вызывает `GhostWaypoint.OnGhostArrived()`.
+3. Точка проверяет: игрок в радиусе? в разрешённой комнате? прошёл кулдаун? прошёл шанс?
+4. Если да — проигрывает `_soundSteps` (отложенные `AudioSource.Play()` в 3D).
+
+### Настройка (текущая)
+
+
+| Параметр         | GhostPatrol                               | GhostWaypoint                    |
+| ---------------- | ----------------------------------------- | -------------------------------- |
+| Скорость патруля | `_speed` 1.0 м/с                          | `_playerDetectionRadius` 12 м    |
+| Скорость погони  | `_chaseSpeed` 4.5 м/с (чуть медленнее шага игрока 5) | —                                |
+| Дальность зрения | `_viewDistance` 15 м (raycast, честный)   | —                                |
+| Потеря из виду   | `_loseSightTime` 4 с → Search             | —                                |
+| Поиск на месте   | `_searchDwellTime` 3 с                    | —                                |
+| Поимка           | `_catchDistance` 1 м → `_onPlayerReached` | —                                |
+| Исчезновение     | после поимки `GhostAgent` деактивируется  | —                                |
+| Респавн          | `_respawnDelayRange` 180–480 с (3–8 мин)  | —                                |
+| Вариация скорости| `_patrolSpeedMultiplierRange` 0.6–1.6, переролл каждые 5–12 с, бленд 2 с | — |
+| Звук поимки      | `_onPlayerReached` → `AudioSource.Play()` на `/GhostSystem` (whisper whoosh) | — |
+| Щелчки выключателей | шанс 50% каждые 8 с во время стоянки, радиус 10 м, кулдаун 30 с; 70% гасит / 30% зажигает; щелчок — 3D one-shot на позиции свитча (max 15 м) | — |
+| Полтергейст-швыряние | шанс 40% каждые 10 с во время стоянки, радиус 6 м, кулдаун 45 с; бросок 4–7 м/с горизонталь + 1.5–3.5 м/с вверх, предметы тяжелее 15 кг не трогает; предмет в руках игрока неуязвим (`PhysicsGrabber.CurrentlyGrabbed`); звуки — сам `PhysicsDraggable` | — |
+| Шалости с дверями | шанс 50% каждые 12 с во время стоянки, радиус 8 м, кулдаун 60 с; 70% — медленно (4–7 с, долгий скрип), 30% — хлопок (0.15–0.3 с); только незапертые двери; `DoorInteraction.GhostToggle(duration)` — та же анимация, что у обычного клика (скрипы, защёлка, occlusion); решает по `_openFraction`, а не `_isOpen`; защёлка — 3D one-shot у двери (max 15 м), не глобальный SFX | — |
+| Гейт погони       | `_huntUnlockPuzzle` → `PuzzleModeController` часов (`/Env/2ndFloor/Room 4/Puzzle/clock`): не решены — только Patrol/топот/выключатели | — |
+| Пауза в точке    | 180–300 с (3–5 минут)                     | —                                |
+| Кулдаун          | —                                         | глобальный 45 с, пер-точка 180 с |
+| Шанс провокации  | —                                         | 0.6                              |
+
+
+### Отладка
+
+- `GhostPatrol._debugLogging` (вкл. по умолчанию) пишет в консоль `[GhostPatrol] Start at ...`,
+`Arrived at ...`, `State -> Chase/Search/Patrol`, `Reached the player`,
+`Despawned, respawn in ...`, `Respawned at ...`.
+- Выдели `GhostSystem` в Scene View — `OnDrawGizmosSelected` рисует циановые линии
+авта-линковки между точками и красную сферу дальности зрения.
+- Тестовый визуал агента: `GhostAgent` (зелёная сфера + Point Light) — **отключён**
+  (`MeshRenderer.enabled = false`, `Light.enabled = false`); призрак в игре невидим, шаги и звук работают.
+
+### Что нужно сделать вручную
+
+1. **Звуки:** создать дочерние `AudioSource`-объекты у waypoint'ов (3D spatial, Play On Awake = false),
+  назначить клипы шагов/стуков в `_soundSteps`. Сейчас список пуст — провокации ничего не играют.
+2. **Звук поимки:** настроен — `_onPlayerReached` вызывает `AudioSource.Play()` на `/GhostSystem`
+  (клип `DSGNWhsh_Ghostly Whisper Whoosh High 02`). Поменять клип — в поле **Clip** этого
+  AudioSource; другие варианты — `Assets/sound/ghost/` (Low 01/02/04, High 01/02).
+3. **Имена комнат:** `_allowedRooms` должны совпадать с именами GameObject'ов комнат
+  (так их выдаёт `RoomVisibilityManager.CurrentRoomName`). Сверь со своими `RoomController`-объектами.
+4. **Позиции точек:** сейчас 6 точек на 2 этажах по расчётным координатам — проверь в Scene View,
+  что каждая лежит внутри нужной комнаты (Y: 2F ≈ 10.2–10.3, 1F ≈ 4.2).
+5. **Расширение:** добавить точки в пропущенные комнаты (Room 2/3/6/7, Bathroom, Nursery, подвал) —
+  просто создать дочерний объект под `GhostSystem` с `GhostWaypoint`.
+6. **Броски Rigidbody / другие эффекты** — вторая итерация (по договорённости: сначала только звук).
+
+> Детект намеренно по радиусу + фильтр комнаты, не сквозь-стенной raycast: точка стоит внутри комнаты,
+> а фильтр `_allowedRooms` не даёт сработать, когда игрок в соседней.
+
 Три события с пауком (`/Assets/Models/SpiderInfestation/spider.fbx`, Animator Controller `SpiderController.controller`):
 
 

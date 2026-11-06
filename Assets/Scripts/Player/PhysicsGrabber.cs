@@ -44,6 +44,11 @@ public class PhysicsGrabber : MonoBehaviour
     [Tooltip("Gap at which the player is fully stopped to let the object catch up.")]
     [SerializeField] private float maxGap = 1.5f;
 
+    /// <summary>The draggable object the player is currently holding, or null.
+    /// Static so external systems (e.g. the ghost's poltergeist behaviour) can
+    /// avoid interacting with an object that is in the player's hands.</summary>
+    public static PhysicsDraggable CurrentlyGrabbed { get; private set; }
+
     private FPSController _fpsController;
     private PhysicsDraggable _hoveredDraggable;
     private PhysicsDraggable _grabbedDraggable;
@@ -201,6 +206,7 @@ public class PhysicsGrabber : MonoBehaviour
     {
         _grabbedDraggable = draggable;
         _hoveredDraggable = null;
+        CurrentlyGrabbed = draggable;
 
         Rigidbody rb = draggable.Body;
 
@@ -246,5 +252,7 @@ public class PhysicsGrabber : MonoBehaviour
         _fpsController?.SetPhysicsGrabActive(false);
 
         _grabbedDraggable = null;
+        if (CurrentlyGrabbed == rb.GetComponent<PhysicsDraggable>())
+            CurrentlyGrabbed = null;
     }
 }

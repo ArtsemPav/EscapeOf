@@ -1,0 +1,889 @@
+using System.Collections.Generic;
+using Escape.Core;
+using UnityEngine;
+using UnityEngine.Events;
+
+/// <summary>
+/// Invisible poltergeist that patrols the house along a waypoint graph and
+/// actively hunts the player when it can see them. Vision is honest: a
+/// physics raycast blocks sight on walls, furniture and closed doors — a
+/// player who locked themselves in a room is invisible to the ghost. Open
+/// door panels are looked through. Movement itself is incorporeal (passes
+/// through walls by design — the entity is a spirit, but its EYES are not).
+/// States: Patrol (waypoint drift) → Chase (player visible) →
+/// Search (fly to last seen position, dwell) → Patrol.
+/// </summary>
+public class GhostPatrol : MonoBehaviour, IPowerConsumer
+{
+    public enum GhostState { Patrol, Chase, Search, Dormant, Unpowered }
+
+    [Header("Agent")]
+
+    [Tooltip("Transform that physically moves between waypoints. Waypoints must NOT be children of this object. Leave empty to move this object itself.")]
+    [SerializeField] private Transform _agentRoot;
+
+    [Tooltip("Patrol speed in meters per second.")]
+    [SerializeField] private float _speed = 1.5f;
+
+    [Tooltip("Distance at which the current waypoint is considered reached.")]
+    [SerializeField] private float _arrivalDistance = 0.5f;
+
+    [Tooltip("Seconds to dwell at a waypoint before choosing the next one.")]
+    [SerializeField] private Vector2 _dwellTimeRange = new Vector2(4f, 12f);
+
+    [Tooltip("Max distance between two waypoints to consider them directly connected (auto-linking).")]
+    [SerializeField] private float _autoLinkDistance = 15f;
+
+    [Tooltip("Log state changes and waypoint arrivals to the console (for testing).")]
+    [SerializeField] private bool _debugLogging = true;
+
+    [Tooltip("Waypoints to patrol. Auto-populated from children if left empty.")]
+    [SerializeField] private List<GhostWaypoint> _waypoints = new List<GhostWaypoint>();
+
+    [Header("Player Hunt")]
+
+    [Tooltip("Max distance at which the ghost can spot the player.")]
+    [SerializeField] private float _viewDistance = 15f;
+
+    [Tooltip("Movement speed while chasing the player.")]
+    [SerializeField] private float _chaseSpeed = 3f;
+
+    [Tooltip("Seconds of continuous line-of-sight loss before the ghost gives up the chase and searches the last seen position.")]
+    [SerializeField] private float _loseSightTime = 4f;
+
+    [Tooltip("Seconds the ghost lingers at the last seen position before resuming the patrol.")]
+    [SerializeField] private float _searchDwellTime = 3f;
+
+    [Tooltip("Distance at which the ghost is considered to have reached the player.")]
+    [SerializeField] private float _catchDistance = 1f;
+
+    [Tooltip("Fires once when the ghost reaches the player (wire a scare / damage here). Resets when the player escapes the catch distance.")]
+    [SerializeField] private UnityEvent _onPlayerReached;
+
+    [Header("Despawn")]
+
+    [Tooltip("After reaching the player the ghost despawns (agent GameObject deactivates) and respawns after a random delay in this min/max range, in seconds. Default 180-480 = 3-8 minutes.")]
+    [SerializeField] private Vector2 _respawnDelayRange = new Vector2(180f, 480f);
+
+    [Header("Speed Variation")]
+
+    [Tooltip("Min/max multiplier applied to the patrol speed. Re-rolled every _speedChangeIntervalRange seconds.")]
+    [SerializeField] private Vector2 _patrolSpeedMultiplierRange = new Vector2(0.6f, 1.6f);
+
+    [Tooltip("Min/max seconds between patrol speed re-rolls.")]
+    [SerializeField] private Vector2 _speedChangeIntervalRange = new Vector2(5f, 12f);
+
+    [Tooltip("Seconds to smoothly blend from the current speed to the new one. 0 = instant.")]
+    [SerializeField] private float _speedBlendDuration = 2f;
+
+    [Header("Switch Pranks")]
+
+    [Tooltip("Chance (0-1) that the ghost decides to play with a light switch. Evaluated periodically while dwelling at a waypoint. 0 = never, 1 = always.")]
+    [SerializeField, Range(0f, 1f)] private float _switchFlipChance = 0.35f;
+
+    [Tooltip("Share (0-1) of prank attempts that prefer turning lights OFF. The rest prefer turning them ON. If the nearest switch is already in the preferred state, the ghost flips it to the opposite anyway.")]
+    [SerializeField, Range(0f, 1f)] private float _switchOffPreference = 0.7f;
+
+    [Tooltip("Max distance from the waypoint to search for a LightSwitch (uses its Collider).")]
+    [SerializeField] private float _switchInteractRadius = 5f;
+
+    [Tooltip("Global cooldown between switch flips, seconds.")]
+    [SerializeField] private float _switchFlipCooldown = 30f;
+
+    [Tooltip("Seconds between prank attempts while dwelling at a waypoint.")]
+    [SerializeField] private float _switchPrankInterval = 8f;
+    private float _switchPrankTimer;
+
+    [Header("Poltergeist Throws")]
+
+    [Tooltip("Chance (0-1) that the ghost decides to hurl a nearby draggable object. Evaluated periodically while dwelling at a waypoint. 0 = never.")]
+    [SerializeField, Range(0f, 1f)] private float _throwChance = 0.4f;
+
+    [Tooltip("Max distance from the waypoint to search for a PhysicsDraggable to throw (uses its Collider).")]
+    [SerializeField] private float _throwSearchRadius = 6f;
+
+    [Tooltip("Horizontal launch speed of a thrown object, m/s.")]
+    [SerializeField] private Vector2 _throwSpeedRange = new Vector2(4f, 7f);
+
+    [Tooltip("Upward launch speed of a thrown object, m/s. Adds an arc to the throw.")]
+    [SerializeField] private Vector2 _throwUpwardSpeedRange = new Vector2(1.5f, 3.5f);
+
+    [Tooltip("Max mass of an object the ghost is willing to throw. Heavier furniture stays put.")]
+    [SerializeField] private float _maxThrowableMass = 15f;
+
+    [Tooltip("Global cooldown between poltergeist throws, seconds.")]
+    [SerializeField] private float _throwCooldown = 45f;
+
+    [Tooltip("Seconds between throw attempts while dwelling at a waypoint.")]
+    [SerializeField] private float _throwAttemptInterval = 10f;
+    private float _throwAttemptTimer;
+
+    [Header("Door Pranks")]
+
+    [Tooltip("Chance (0-1) that the ghost decides to play with an unlocked door. Evaluated periodically while dwelling at a waypoint. 0 = never.")]
+    [SerializeField, Range(0f, 1f)] private float _doorChance = 0.5f;
+
+    [Tooltip("Max distance from the waypoint to search for a DoorInteraction (uses its Collider).")]
+    [SerializeField] private float _doorSearchRadius = 8f;
+
+    [Tooltip("Share (0-1) of door pranks that SLAM (fast, loud). The rest creep open/close slowly.")]
+    [SerializeField, Range(0f, 1f)] private float _doorSlamChance = 0.3f;
+
+    [Tooltip("Duration of a slow creepy door animation, seconds.")]
+    [SerializeField] private Vector2 _slowDoorDurationRange = new Vector2(4f, 7f);
+
+    [Tooltip("Duration of a violent slam, seconds.")]
+    [SerializeField] private Vector2 _slamDurationRange = new Vector2(0.15f, 0.3f);
+
+    [Tooltip("Global cooldown between door pranks, seconds.")]
+    [SerializeField] private float _doorCooldown = 60f;
+
+    [Tooltip("Seconds between door attempts while dwelling at a waypoint.")]
+    [SerializeField] private float _doorAttemptInterval = 12f;
+    private float _doorAttemptTimer;
+
+    [Header("Hunt Unlock")]
+
+    [Tooltip("Puzzle that unlocks the hunt. While unsolved, the ghost only patrols, stomps and flips switches — it never chases the player. Assign the clock puzzle's PuzzleModeController here. Leave empty to hunt from the start.")]
+    [SerializeField] private PuzzleModeController _huntUnlockPuzzle;
+
+    private GhostState _state = GhostState.Patrol;
+    private GhostWaypoint _current;
+    private GhostWaypoint _target;
+    private float _dwellTimer;
+    private bool _isPowered;
+
+    // Speed variation state
+    private float _currentSpeedMultiplier = 1f;
+    private float _targetSpeedMultiplier = 1f;
+    private float _speedChangeTimer;
+    private float _speedBlendTimer;
+    private float _speedBlendStartMultiplier = 1f;
+
+    private FPSController _player;
+    private Vector3 _lastSeenPosition;
+    private float _lostSightTimer;
+    private bool _reachedEventFired;
+    private float _switchFlipTimer;
+    private float _throwCooldownTimer;
+    private float _doorCooldownTimer;
+
+    /// <summary>Waypoint the agent is currently dwelling at (null while moving).</summary>
+    public GhostWaypoint CurrentWaypoint => _current;
+
+    /// <summary>True while the agent is flying between waypoints (false while dwelling).</summary>
+    public bool IsMoving => _state == GhostState.Chase
+        ? _player != null && Vector3.Distance(_agentRoot.position, _player.transform.position) > _catchDistance
+        : _target != null;
+
+    /// <summary>True while the ghost is actively chasing a visible player.</summary>
+    public bool IsChasing => _state == GhostState.Chase;
+
+    /// <summary>Current behaviour state of the ghost.</summary>
+    public GhostState State => _state;
+
+    /// <summary>True while the ghost is despawned and waiting for its respawn timer.</summary>
+    public bool IsDormant => _state == GhostState.Dormant;
+
+    private void Awake()
+    {
+        if (_waypoints.Count == 0)
+        {
+            GetComponentsInChildren(true, _waypoints);
+        }
+        if (_waypoints.Count == 0)
+        {
+            Debug.LogWarning("GhostPatrol: no waypoints assigned or found in children.", this);
+            enabled = false;
+            return;
+        }
+
+        AutoLinkWaypoints();
+    }
+
+    private void Start()
+    {
+        if (_agentRoot == null) _agentRoot = transform;
+
+        // Register for power notifications — the current state is delivered
+        // immediately, so _isPowered is up to date from this point on.
+        if (LightingSystem.Instance != null)
+        {
+            LightingSystem.Instance.RegisterConsumer(this);
+        }
+        else
+        {
+            Debug.LogWarning("GhostPatrol: no LightingSystem found — ghost will be active regardless of power.", this);
+            _isPowered = true;
+        }
+
+        if (_isPowered)
+        {
+            SpawnAtRandomWaypoint();
+        }
+        else
+        {
+            // Hide the agent until the power is on.
+            _state = GhostState.Unpowered;
+            _agentRoot.gameObject.SetActive(false);
+        }
+    }
+
+    /// <summary>Places the agent at a random waypoint and starts dwelling there.</summary>
+    private void SpawnAtRandomWaypoint()
+    {
+        _current = _waypoints[Random.Range(0, _waypoints.Count)];
+        _agentRoot.position = _current.transform.position;
+        _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] Spawned at '{_current.name}' pos={_agentRoot.position:F1}", this);
+        }
+    }
+
+    /// <summary>
+    /// IPowerConsumer: the ghost only becomes active once the general power
+    /// is restored (lights are on). When power goes off, it despawns again.
+    /// </summary>
+    public void OnPowerStateChanged(bool isPowered)
+    {
+        _isPowered = isPowered;
+
+        if (isPowered && _state == GhostState.Unpowered)
+        {
+            // Power restored — spawn at a random waypoint and start hunting.
+            _agentRoot.gameObject.SetActive(true);
+            SpawnAtRandomWaypoint();
+            _state = GhostState.Patrol;
+
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostPatrol] Power on — active.", this);
+            }
+        }
+        else if (!isPowered && _state != GhostState.Unpowered)
+        {
+            // Power cut — the spirit dissolves until the lights come back.
+            if (_debugLogging)
+            {
+                Debug.Log("[GhostPatrol] Power off — despawned.", this);
+            }
+            _agentRoot.gameObject.SetActive(false);
+            _state = GhostState.Unpowered;
+        }
+    }
+
+    private void Update()
+    {
+        // Global prank cooldown ticks every frame.
+        if (_switchFlipTimer > 0f) _switchFlipTimer -= Time.deltaTime;
+        if (_throwCooldownTimer > 0f) _throwCooldownTimer -= Time.deltaTime;
+        if (_doorCooldownTimer > 0f) _doorCooldownTimer -= Time.deltaTime;
+
+        switch (_state)
+        {
+            case GhostState.Patrol: UpdatePatrol(); break;
+            case GhostState.Chase: UpdateChase(); break;
+            case GhostState.Search: UpdateSearch(); break;
+            case GhostState.Dormant: UpdateDormant(); break;
+            case GhostState.Unpowered: break; // Waiting for the lights to come back.
+        }
+    }
+
+    private void UpdatePatrol()
+    {
+        if (TrySpotPlayer()) return;
+
+        UpdateSpeedVariation();
+
+        if (_target == null)
+        {
+            // Dwelling: periodically consider a switch prank or a poltergeist
+            // throw while staying.
+            _switchPrankTimer -= Time.deltaTime;
+            if (_switchPrankTimer <= 0f)
+            {
+                _switchPrankTimer = _switchPrankInterval;
+                TryFlipNearbySwitch();
+            }
+
+            _throwAttemptTimer -= Time.deltaTime;
+            if (_throwAttemptTimer <= 0f)
+            {
+                _throwAttemptTimer = _throwAttemptInterval;
+                TryThrowNearbyObject();
+            }
+
+            _doorAttemptTimer -= Time.deltaTime;
+            if (_doorAttemptTimer <= 0f)
+            {
+                _doorAttemptTimer = _doorAttemptInterval;
+                TryToggleNearbyDoor();
+            }
+
+            _dwellTimer -= Time.deltaTime;
+            if (_dwellTimer <= 0f)
+            {
+                PickNextWaypoint();
+            }
+            return;
+        }
+
+        MoveTowards(_target.transform.position, _speed * _currentSpeedMultiplier);
+
+        if (HasArrived(_target.transform.position))
+        {
+            _current = _target;
+            _target = null;
+            _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
+            _switchPrankTimer = 0f;
+
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostPatrol] Arrived at '{_current.name}' pos={_agentRoot.position:F1} (staying {_dwellTimer:F0}s)", this);
+            }
+            _current.OnGhostArrived();
+        }
+    }
+
+    /// <summary>
+    /// Prank behaviour: while dwelling at a waypoint the ghost periodically
+    /// considers playing with a nearby light switch. It has a preference —
+    /// mostly it likes turning lights OFF (spookier), sometimes ON. The
+    /// decision is random with a global cooldown so it stays unpredictable.
+    /// Uses LightSwitch.Interact() — the physical flip, handle animation and
+    /// click sound all happen, exactly like a player's interaction.
+    /// </summary>
+    private void TryFlipNearbySwitch()
+    {
+        if (_switchFlipChance <= 0f) return;
+
+        if (_switchFlipTimer > 0f) return;
+
+        if (Random.value > _switchFlipChance) return;
+
+        // Find the closest switch with a collider within range of the waypoint.
+        Collider[] hits = Physics.OverlapSphere(
+            _current.transform.position, _switchInteractRadius);
+        LightSwitch closest = null;
+        float closestDistance = float.MaxValue;
+        foreach (Collider hit in hits)
+        {
+            LightSwitch sw = hit.GetComponentInParent<LightSwitch>();
+            if (sw == null || !sw.CanInteract()) continue;
+            float distance = Vector3.Distance(
+                _current.transform.position, hit.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = sw;
+            }
+        }
+
+        if (closest == null)
+        {
+            // Nothing reachable here — wait for the next attempt anyway.
+            _switchPrankTimer = _switchPrankInterval;
+            return;
+        }
+
+        bool currentState = LightingSystem.Instance != null
+            && LightingSystem.Instance.GetZoneSwitchState(closest.GetZoneId());
+
+        // The ghost's decision: mostly it prefers darkness, sometimes light.
+        bool wantsOff = Random.value < _switchOffPreference;
+        if (currentState == !wantsOff)
+        {
+            // Already in the preferred state — flip it anyway (that's the prank).
+            closest.Interact();
+        }
+        else
+        {
+            // Different from the preference — flip to reach the wanted state.
+            closest.Interact();
+        }
+        _switchFlipTimer = _switchFlipCooldown;
+        _switchPrankTimer = _switchPrankInterval;
+
+        bool newState = !currentState;
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] {(wantsOff ? "Prefers darkness" : "Prefers light")} — flipped a switch (zone now {(newState ? "ON" : "OFF")}) near '{_current.name}'.", this);
+        }
+    }
+
+    /// <summary>
+    /// Poltergeist behaviour: while dwelling at a waypoint the ghost
+    /// periodically considers hurling a nearby draggable object. The throw is
+    /// a plain physics impulse in a random horizontal direction with a slight
+    /// upward arc — the object flies, tumbles and lands on its own; scrape and
+    /// impact sounds are produced by <see cref="PhysicsDraggable"/> itself.
+    /// Objects the player is currently holding are never touched.
+    /// </summary>
+    private void TryThrowNearbyObject()
+    {
+        if (_throwChance <= 0f) return;
+        if (_throwCooldownTimer > 0f) return;
+        if (_current == null) return;
+
+        if (Random.value > _throwChance) return;
+
+        // Find the closest throwable draggable with a Rigidbody within range.
+        Collider[] hits = Physics.OverlapSphere(
+            _current.transform.position, _throwSearchRadius);
+        PhysicsDraggable closest = null;
+        float closestDistance = float.MaxValue;
+        foreach (Collider hit in hits)
+        {
+            PhysicsDraggable draggable = hit.GetComponentInParent<PhysicsDraggable>();
+            if (draggable == null) continue;
+
+            Rigidbody body = draggable.Body;
+            if (body == null || body.isKinematic) continue;
+            if (body.mass > _maxThrowableMass) continue;
+
+            // Never yank an object out of the player's hands.
+            if (draggable == PhysicsGrabber.CurrentlyGrabbed) continue;
+
+            // Explicitly protected objects (story props, puzzle pieces) stay put.
+            if (!draggable.GhostMayThrow) continue;
+
+            float distance = Vector3.Distance(
+                _current.transform.position, hit.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = draggable;
+            }
+        }
+
+        if (closest == null)
+        {
+            // Nothing throwable here — wait for the next attempt anyway.
+            _throwAttemptTimer = _throwAttemptInterval;
+            return;
+        }
+
+        Rigidbody throwBody = closest.Body;
+
+        // Random horizontal direction (the spirit does not aim — it rages),
+        // plus an upward component for a nice tumbling arc.
+        float angle = Random.Range(0f, Mathf.PI * 2f);
+        Vector3 direction = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
+        Vector3 velocity = direction * Random.Range(_throwSpeedRange.x, _throwSpeedRange.y)
+                         + Vector3.up * Random.Range(_throwUpwardSpeedRange.x, _throwUpwardSpeedRange.y);
+
+        throwBody.linearVelocity = velocity;
+        throwBody.angularVelocity = Random.insideUnitSphere * 5f;
+
+        _throwCooldownTimer = _throwCooldown;
+        _throwAttemptTimer = _throwAttemptInterval;
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] Hurled '{closest.name}' (mass {throwBody.mass:F1} kg) near '{_current.name}'.", this);
+        }
+    }
+
+    /// <summary>
+    /// Door prank: while dwelling at a waypoint the ghost periodically considers
+    /// playing with a nearby unlocked door. Most of the time it creeps the door
+    /// open (or shut) slowly with a long creak; sometimes it SLAMS it. Locked
+    /// doors are left alone — the spirit cannot turn a key. Uses
+    /// DoorInteraction.GhostToggle(duration), so motion loops, the latch click
+    /// and occlusion portals all behave exactly like a normal door move.
+    /// </summary>
+    private void TryToggleNearbyDoor()
+    {
+        if (_doorChance <= 0f) return;
+        if (_doorCooldownTimer > 0f) return;
+        if (_current == null) return;
+
+        if (Random.value > _doorChance) return;
+
+        // Find the closest unlocked door with a collider within range.
+        Collider[] hits = Physics.OverlapSphere(
+            _current.transform.position, _doorSearchRadius);
+        DoorInteraction closest = null;
+        float closestDistance = float.MaxValue;
+        foreach (Collider hit in hits)
+        {
+            DoorInteraction door = hit.GetComponentInParent<DoorInteraction>();
+            if (door == null || door.IsLocked) continue;
+
+            float distance = Vector3.Distance(
+                _current.transform.position, hit.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = door;
+            }
+        }
+
+        if (closest == null)
+        {
+            // No door within reach — wait for the next attempt anyway.
+            _doorAttemptTimer = _doorAttemptInterval;
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostPatrol] Door prank: no unlocked door within {_doorSearchRadius}m of '{_current.name}'.", this);
+            }
+            return;
+        }
+
+        // Slow creeping creak most of the time, violent slam sometimes.
+        bool slam = Random.value < _doorSlamChance;
+        Vector2 range = slam ? _slamDurationRange : _slowDoorDurationRange;
+        float duration = Random.Range(range.x, range.y);
+
+        closest.GhostToggle(duration);
+        _doorCooldownTimer = _doorCooldown;
+        _doorAttemptTimer = _doorAttemptInterval;
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] {(slam ? "SLAMMED" : "Crept")} the door '{closest.name}' {(closest.IsOpen ? "open" : "shut")} in {duration:F1}s near '{_current.name}'.", this);
+        }
+    }
+
+    /// <summary>
+    /// Re-rolls the patrol speed multiplier on a timer and blends smoothly
+    /// toward it — the ghost drifts at a slightly different pace over time.
+    /// </summary>
+    private void UpdateSpeedVariation()
+    {
+        // Blend the multiplier toward its current target.
+        if (_speedBlendTimer < _speedBlendDuration && _currentSpeedMultiplier != _targetSpeedMultiplier)
+        {
+            _speedBlendTimer += Time.deltaTime;
+            _currentSpeedMultiplier = Mathf.Lerp(
+                _speedBlendStartMultiplier, _targetSpeedMultiplier,
+                Mathf.Clamp01(_speedBlendTimer / Mathf.Max(0.001f, _speedBlendDuration)));
+        }
+
+        // Re-roll the target multiplier on an interval.
+        _speedChangeTimer -= Time.deltaTime;
+        if (_speedChangeTimer <= 0f)
+        {
+            _speedChangeTimer = Random.Range(_speedChangeIntervalRange.x, _speedChangeIntervalRange.y);
+            _speedBlendStartMultiplier = _currentSpeedMultiplier;
+            _targetSpeedMultiplier = Random.Range(_patrolSpeedMultiplierRange.x, _patrolSpeedMultiplierRange.y);
+            _speedBlendTimer = 0f;
+        }
+    }
+
+    private void UpdateChase()
+    {
+        // Safety net: if the unlock puzzle state was reset, drop the hunt.
+        if (!IsHuntUnlocked())
+        {
+            SetState(GhostState.Patrol);
+            return;
+        }
+
+        bool visible = CanSeePlayer();
+        if (visible)
+        {
+            _lastSeenPosition = _player.transform.position;
+            _lostSightTimer = 0f;
+        }
+        else
+        {
+            _lostSightTimer += Time.deltaTime;
+            if (_lostSightTimer >= _loseSightTime)
+            {
+                SetState(GhostState.Search);
+                return;
+            }
+        }
+
+        float distanceToPlayer = _player != null
+            ? Vector3.Distance(_agentRoot.position, _player.transform.position)
+            : float.MaxValue;
+
+        // Fly to where the player is (visible) or was last seen (hiding).
+        Vector3 destination = visible ? _player.transform.position : _lastSeenPosition;
+
+        if (distanceToPlayer > _catchDistance)
+        {
+            MoveTowards(destination, _chaseSpeed);
+            _reachedEventFired = false;
+        }
+        else if (!_reachedEventFired)
+        {
+            _reachedEventFired = true;
+            if (_debugLogging)
+            {
+                Debug.Log("[GhostPatrol] Reached the player.", this);
+            }
+            _onPlayerReached.Invoke();
+            BeginDormant();
+        }
+    }
+
+    private void UpdateSearch()
+    {
+        if (TrySpotPlayer()) return;
+
+        if (HasArrived(_lastSeenPosition))
+        {
+            _dwellTimer += Time.deltaTime;
+            if (_dwellTimer >= _searchDwellTime)
+            {
+                SetState(GhostState.Patrol);
+            }
+            return;
+        }
+
+        MoveTowards(_lastSeenPosition, _speed);
+    }
+
+    private void UpdateDormant()
+    {
+        _dwellTimer -= Time.deltaTime;
+        if (_dwellTimer <= 0f)
+        {
+            Respawn();
+        }
+    }
+
+    /// <summary>
+    /// Despawns the agent after catching the player and starts the random respawn timer.
+    /// The catch sound / scare is expected to be wired into <see cref="_onPlayerReached"/>
+    /// by the designer — it fires right before the despawn.
+    /// </summary>
+    private void BeginDormant()
+    {
+        _state = GhostState.Dormant;
+        _target = null;
+        _reachedEventFired = false;
+        _dwellTimer = Random.Range(_respawnDelayRange.x, _respawnDelayRange.y);
+
+        if (_agentRoot != null) _agentRoot.gameObject.SetActive(false);
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] Despawned, respawn in {_dwellTimer:F0}s", this);
+        }
+    }
+
+    /// <summary>Reactivates the agent at a random waypoint and resumes patrolling.</summary>
+    private void Respawn()
+    {
+        _current = _waypoints[Random.Range(0, _waypoints.Count)];
+        if (_agentRoot != null)
+        {
+            _agentRoot.position = _current.transform.position;
+            _agentRoot.gameObject.SetActive(true);
+        }
+
+        _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
+        _state = GhostState.Patrol;
+
+        // Restart speed variation from a neutral multiplier.
+        _currentSpeedMultiplier = 1f;
+        _targetSpeedMultiplier = 1f;
+        _speedBlendTimer = 0f;
+        _speedChangeTimer = Random.Range(_speedChangeIntervalRange.x, _speedChangeIntervalRange.y);
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] Respawned at '{_current.name}' pos={_agentRoot.position:F1}", this);
+        }
+    }
+
+    private void SetState(GhostState newState)
+    {
+        if (_state == newState) return;
+        _state = newState;
+
+        if (newState == GhostState.Search)
+        {
+            _dwellTimer = 0f;
+        }
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] State -> {newState}", this);
+        }
+    }
+
+    /// <summary>
+    /// Checks the player once per frame and switches to Chase on sight.
+    /// Returns true when the player was spotted. Suppressed until the hunt
+    /// unlock puzzle is solved — before that the ghost never chases.
+    /// </summary>
+    private bool TrySpotPlayer()
+    {
+        if (!IsHuntUnlocked()) return false;
+
+        if (CanSeePlayer())
+        {
+            _lastSeenPosition = _player.transform.position;
+            _lostSightTimer = 0f;
+            SetState(GhostState.Chase);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// True when the ghost is allowed to chase: no unlock puzzle assigned, or
+    /// the assigned puzzle is solved (live solve or restored from save).
+    /// </summary>
+    private bool IsHuntUnlocked()
+    {
+        return _huntUnlockPuzzle == null || _huntUnlockPuzzle.IsSolved;
+    }
+
+    /// <summary>
+    /// Honest line-of-sight check: a raycast from the agent to the player.
+    /// Blocked by walls, furniture and closed doors; open door panels are
+    /// looked through. Also fails when the player is beyond _viewDistance.
+    /// </summary>
+    private bool CanSeePlayer()
+    {
+        if (_player == null)
+        {
+            _player = FindFirstObjectByType<FPSController>();
+            if (_player == null) return false;
+        }
+
+        Vector3 origin = _agentRoot.position;
+        // Aim at the player's upper body so low furniture gives partial cover.
+        Vector3 target = _player.transform.position + Vector3.up * 0.9f;
+        Vector3 direction = target - origin;
+        float distance = direction.magnitude;
+
+        if (distance > _viewDistance) return false;
+        if (distance < 0.01f) return true;
+
+        // RaycastAll because the first hit may be an open door panel to look through.
+        RaycastHit[] hits = Physics.RaycastAll(
+            origin, direction / distance, distance, ~0, QueryTriggerInteraction.Ignore);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (RaycastHit hit in hits)
+        {
+            // The player's own colliders being first in line means clear sight.
+            if (hit.collider.GetComponentInParent<FPSController>() != null) return true;
+
+            // Look through open door panels; anything else blocks vision.
+            DoorInteraction door = hit.collider.GetComponentInParent<DoorInteraction>();
+            if (door != null && door.IsOpen) continue;
+
+            return false;
+        }
+
+        // Nothing solid between — clear sight.
+        return true;
+    }
+
+    private void MoveTowards(Vector3 destination, float speed)
+    {
+        Vector3 toDestination = destination - _agentRoot.position;
+        _agentRoot.position += toDestination.normalized * (speed * Time.deltaTime);
+    }
+
+    private bool HasArrived(Vector3 destination)
+    {
+        return Vector3.Distance(_agentRoot.position, destination) <= _arrivalDistance;
+    }
+
+    private void PickNextWaypoint()
+    {
+        if (_waypoints.Count < 2) return;
+
+        // Prefer connected waypoints for coherent paths; fall back to any other.
+        List<GhostWaypoint> candidates = _current != null && _current.Connected.Count > 0
+            ? _current.Connected
+            : _waypoints;
+
+        // Never pick the waypoint we are currently at (when alternatives exist).
+        List<GhostWaypoint> options = candidates.Count > 1 || _current == null
+            ? candidates.FindAll(w => w != _current)
+            : candidates;
+
+        _target = PickWeighted(options);
+        _dwellTimer = 0f;
+    }
+
+    /// <summary>
+    /// Weighted random pick: waypoints with a higher <see cref="GhostWaypoint.VisitWeight"/>
+    /// are proportionally more likely. This keeps the ghost mostly around heavily weighted
+    /// floors (e.g. 2F) while rare waypoints (basement) still get visited.
+    /// </summary>
+    private static GhostWaypoint PickWeighted(List<GhostWaypoint> options)
+    {
+        if (options.Count == 1) return options[0];
+
+        float totalWeight = 0f;
+        foreach (GhostWaypoint option in options)
+            totalWeight += Mathf.Max(0.01f, option.VisitWeight);
+
+        float roll = Random.value * totalWeight;
+        foreach (GhostWaypoint option in options)
+        {
+            roll -= Mathf.Max(0.01f, option.VisitWeight);
+            if (roll <= 0f) return option;
+        }
+        return options[options.Count - 1];
+    }
+
+    /// <summary>
+    /// Links every pair of waypoints closer than <see cref="_autoLinkDistance"/>
+    /// unless a manual connection already exists. Runs at Awake; in the editor
+    /// the same rule is visualized by <see cref="OnDrawGizmosSelected"/>.
+    /// The comparison uses the horizontal (XZ) distance only: the ghost flies
+    /// through floors by design, so basement waypoints connect to the 2F map
+    /// even though the vertical offset alone exceeds the link distance.
+    /// </summary>
+    private void AutoLinkWaypoints()
+    {
+        float sqrDistance = _autoLinkDistance * _autoLinkDistance;
+        for (int i = 0; i < _waypoints.Count; i++)
+        {
+            for (int j = 0; j < _waypoints.Count; j++)
+            {
+                if (i == j) continue;
+                GhostWaypoint a = _waypoints[i];
+                GhostWaypoint b = _waypoints[j];
+                if (a.Connected.Contains(b)) continue;
+
+                Vector3 delta = a.transform.position - b.transform.position;
+                delta.y = 0f;
+                if (delta.sqrMagnitude <= sqrDistance)
+                {
+                    a.Connected.Add(b);
+                }
+            }
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // Fill the list for gizmo drawing when it is only auto-populated at runtime.
+        if (_waypoints.Count == 0) GetComponentsInChildren(true, _waypoints);
+
+        Gizmos.color = Color.cyan;
+        for (int i = 0; i < _waypoints.Count; i++)
+        {
+            for (int j = i + 1; j < _waypoints.Count; j++)
+            {
+                if (_waypoints[i] == null || _waypoints[j] == null) continue;
+                Vector3 delta = _waypoints[i].transform.position - _waypoints[j].transform.position;
+                delta.y = 0f;
+                if (delta.sqrMagnitude <= _autoLinkDistance * _autoLinkDistance)
+                {
+                    Gizmos.DrawLine(_waypoints[i].transform.position, _waypoints[j].transform.position);
+                }
+            }
+        }
+
+        // Visualization of the honest sight radius.
+        Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.6f);
+        Vector3 center = Application.isPlaying && _agentRoot != null ? _agentRoot.position : transform.position;
+        Gizmos.DrawWireSphere(center, _viewDistance);
+    }
+}

@@ -154,6 +154,8 @@ public class RoomVisibilityManager : MonoBehaviour
     /// <summary>Diagnostics for coverage gaps: logs the closest trigger and how far the player is from it.</summary>
     private void LogGap(Vector3 position)
     {
+        if (!_debugLogging) return;
+
         RoomTrigger nearest = null;
         float nearestSqr = float.MaxValue;
 
@@ -400,6 +402,8 @@ public class RoomVisibilityManager : MonoBehaviour
 
     private void LogState(string sourceName)
     {
+        if (!_debugLogging) return;
+
         var visible = new List<string>();
         foreach (var room in _activeRooms)
             if (room != null) visible.Add(room.name);

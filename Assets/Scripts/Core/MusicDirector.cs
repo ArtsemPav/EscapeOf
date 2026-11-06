@@ -808,9 +808,24 @@ public class MusicDirector : MonoBehaviour, ISaveable {
 
         // Refade the track that was active before the event; FadeRoutine
         // un-pauses the pooled source and brings its volume back up.
+        // Exception: a track that had ALREADY played through to the end when
+        // the event muted it (idle cue, zone one-shot). Resuming a finished
+        // source restarts it from zero — the idle cue would replay from the
+        // start, so hand the restore to the fallback logic instead.
         MusicTrack track = _activeTrack;
-        if (track != null)
+        if (track != null) {
+            float clipLength = track.Clip != null ? track.Clip.length : 0f;
+            bool finished = clipLength > 0f
+                && _activeSource != null
+                && _activeSource.clip == track.Clip
+                && _activeSource.time >= clipLength - 0.05f;
+            if (finished) {
+                Debug.Log($"[Music] RestoreAfterLastOwner: pre-mute track '{track.name}' already finished -> fallback instead of restart.");
+                RestoreFallbackTrack();
+                return;
+            }
             _fadeCoroutine = StartCoroutine(FadeRoutine(track, fadeDurationOverride));
+        }
     }
 
     /// <summary>

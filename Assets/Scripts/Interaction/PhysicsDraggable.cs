@@ -96,6 +96,12 @@ public class PhysicsDraggable : MonoBehaviour
     /// <summary>Custom hold distance while dragged (only meaningful when HasCustomHoldDistance).</summary>
     public float HoldDistance => _holdDistance;
 
+    [Tooltip("When enabled, the ghost's poltergeist behaviour may pick this object up and hurl it around the room.")]
+    [SerializeField] private bool _ghostMayThrow = true;
+
+    /// <summary>True when the ghost is allowed to throw this object around.</summary>
+    public bool GhostMayThrow => _ghostMayThrow;
+
     [Header("Fall Safety")]
     [Tooltip("If the object falls below its start position by this many metres " +
              "(fell through the floor / out of the world), it is teleported back " +

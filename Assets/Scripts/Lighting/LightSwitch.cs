@@ -66,6 +66,9 @@ public class LightSwitch : MonoBehaviour, IInteractable
 
     public bool IsPickable() => false;
 
+    /// <summary>The lighting zone ID this switch controls.</summary>
+    public string GetZoneId() => _zoneId;
+
     // ── Unity ─────────────────────────────────────────────────────────────────
 
     private void Start()
@@ -91,7 +94,14 @@ public class LightSwitch : MonoBehaviour, IInteractable
     private void PlayAudio(bool isOn)
     {
         var clip = isOn ? _switchOnClip : _switchOffClip;
-        if (clip != null)
-            AudioManager.Instance?.PlaySFX(clip);
+        if (clip == null) return;
+
+        // 3D one-shot at the switch's own position: a click in the basement
+        // must NOT be heard at full volume on the second floor. Falls back
+        // to the shared 2D SFX source only when there is no AudioManager.
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play3DOneShot(clip, transform.position, 1f, 1f, 15f);
+        else
+            AudioSource.PlayClipAtPoint(clip, transform.position);
     }
 }
