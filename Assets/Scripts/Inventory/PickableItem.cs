@@ -163,6 +163,16 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     /// When inspectOnly is true, opens a read-only 3D preview without adding to inventory or destroying the object.</summary>
     public void Interact()
     {
+        // Guard against a double pickup within the same frame (iOS fast tap):
+        // ConfirmPickup adds the item and queues Destroy, but the collider is still
+        // raycastable until end of frame — the same tap's press can call Interact()
+        // again. _collected is set by NotifyPickedUp in every pickup path.
+        if (_collected)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         if (itemData == null)
         {
             Debug.LogWarning($"PickableItem on {gameObject.name} has no ItemData assigned.", this);

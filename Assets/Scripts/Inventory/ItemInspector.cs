@@ -507,10 +507,16 @@ private bool _ignoreInputThisFrame;
         }
 
         // Capture locals before EndInspection clears them.
-        bool                   wasPreview  = _isPreviewMode;
-        ItemData               item        = _currentItem;
-        GameObject             worldObj    = _worldObject;
+        bool                    wasPreview = _isPreviewMode;
+        ItemData                item       = _currentItem;
+        GameObject              worldObj   = _worldObject;
         System.Action<ItemData> onPickup   = _onPickup;
+
+        // Consume state immediately: EndInspection closes the panel and re-enables
+        // player input, so a same-frame tap (iOS fast touch) could otherwise hit
+        // FPSController while the raycast still sees the not-yet-destroyed collider.
+        // Clearing _currentItem makes any second ConfirmPickup a no-op.
+        _currentItem = null;
 
         // Close the panel first so _isInspecting is false before the callback fires.
         // This allows callbacks (e.g. TryShowNextResult) to open the next inspection immediately.
