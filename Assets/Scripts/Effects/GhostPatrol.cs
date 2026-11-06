@@ -68,8 +68,8 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     [Header("Hunt Cooldown")]
 
-    [Tooltip("After reaching the player the catch event fires and the hunt re-arms after a random delay in this min/max range, in seconds. During the cooldown the ghost does NOT despawn — it keeps patrolling and pranking (switches, doors, objects) but cannot start a new chase. Default 300 = one hunt per 5 minutes at most.")]
-    [SerializeField] private Vector2 _huntCooldownRange = new Vector2(300f, 300f);
+    [Tooltip("After reaching the player the catch event fires and the hunt re-arms after a random delay in this min/max range, in seconds. During the cooldown the ghost does NOT despawn — it keeps patrolling and pranking (switches, doors, objects) but cannot start a new chase. Default 360 = one hunt per 6 minutes at most.")]
+    [SerializeField] private Vector2 _huntCooldownRange = new Vector2(360f, 360f);
 
     [Header("Speed Variation")]
 
@@ -98,7 +98,6 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     [Tooltip("Seconds between prank attempts while dwelling at a waypoint.")]
     [SerializeField] private float _switchPrankInterval = 8f;
-    private float _switchPrankTimer;
 
     [Header("Poltergeist Throws")]
 
@@ -122,7 +121,6 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     [Tooltip("Seconds between throw attempts while dwelling at a waypoint.")]
     [SerializeField] private float _throwAttemptInterval = 10f;
-    private float _throwAttemptTimer;
 
     [Header("Door Pranks")]
 
@@ -149,7 +147,6 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     [Tooltip("Seconds between door attempts while dwelling at a waypoint.")]
     [SerializeField] private float _doorAttemptInterval = 12f;
-    private float _doorAttemptTimer;
 
     [Header("Hunt Unlock")]
 
@@ -178,6 +175,15 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     private float _doorCooldownTimer;
     private float _huntCooldownTimer;
     private float _postCatchFleeTimer;
+    private float _switchPrankTimer;
+    private float _throwAttemptTimer;
+    private float _doorAttemptTimer;
+
+    /// <summary>Recently visited waypoints, newest first — excluded from
+    /// <see cref="PickNextWaypoint"/> so the ghost does not ping-pong between
+    /// two rooms.</summary>
+    private readonly List<GhostWaypoint> _recentWaypoints = new List<GhostWaypoint>();
+    private const int RecentWaypointMemory = 2;
 
     /// <summary>Waypoint the agent is currently dwelling at (null while moving).</summary>
     public GhostWaypoint CurrentWaypoint => _current;
@@ -366,12 +372,28 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             TryThrowNearbyObject(_target.transform.position);
         }
 
+        // In-flight door pranks: long flights between distant waypoints used to
+        // be dead time for door manipulation — use the waypoint being approached.
+        _doorAttemptTimer -= Time.deltaTime;
+        if (_doorAttemptTimer <= 0f)
+        {
+            _doorAttemptTimer = _doorAttemptInterval;
+            TryToggleNearbyDoor(_target.transform.position);
+        }
+
         if (HasArrived(_target.transform.position))
         {
             _current = _target;
             _target = null;
             _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
             _switchPrankTimer = 0f;
+
+            // Remember where we have just been so PickNextWaypoint skips it.
+            _recentWaypoints.Insert(0, _current);
+            if (_recentWaypoints.Count > RecentWaypointMemory)
+            {
+                _recentWaypoints.RemoveAt(_recentWaypoints.Count - 1);
+            }
 
             if (_debugLogging)
             {
@@ -438,17 +460,10 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             && LightingSystem.Instance.GetZoneSwitchState(closest.GetZoneId());
 
         // The ghost's decision: mostly it prefers darkness, sometimes light.
+        // Either way it flips the switch — the prank is the flip itself.
         bool wantsOff = Random.value < _switchOffPreference;
-        if (currentState == !wantsOff)
-        {
-            // Already in the preferred state — flip it anyway (that's the prank).
-            closest.Interact();
-        }
-        else
-        {
-            // Different from the preference — flip to reach the wanted state.
-            closest.Interact();
-        }
+        closest.Interact();
+
         _switchFlipTimer = _switchFlipCooldown;
         _switchPrankTimer = _switchPrankInterval;
 
@@ -537,24 +552,25 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     }
 
     /// <summary>
-    /// Door prank: while dwelling at a waypoint the ghost periodically considers
-    /// playing with a nearby unlocked door. Most of the time it creeps the door
-    /// open (or shut) slowly with a long creak; sometimes it SLAMS it. Locked
-    /// doors are left alone — the spirit cannot turn a key. Uses
-    /// DoorInteraction.GhostToggle(duration), so motion loops, the latch click
-    /// and occlusion portals all behave exactly like a normal door move.
+    /// Door prank: the ghost periodically considers playing with a nearby
+    /// unlocked door. Most of the time it creeps the door open (or shuts it
+    /// fully, latch click included) slowly with a long creak; sometimes it
+    /// SLAMS it. Locked doors are left alone — the spirit cannot turn a key.
+    /// Uses DoorInteraction.GhostMove, so motion loops, the latch click and
+    /// occlusion portals all behave exactly like a normal door move.
     /// </summary>
-    private void TryToggleNearbyDoor()
+    private void TryToggleNearbyDoor() => TryToggleNearbyDoor(
+        _current != null ? _current.transform.position : _agentRoot.position);
+
+    private void TryToggleNearbyDoor(Vector3 searchCenter)
     {
         if (_doorChance <= 0f) return;
         if (_doorCooldownTimer > 0f) return;
-        if (_current == null) return;
 
         if (Random.value > _doorChance) return;
 
         // Find the closest unlocked door with a collider within range.
-        Collider[] hits = Physics.OverlapSphere(
-            _current.transform.position, _doorSearchRadius);
+        Collider[] hits = Physics.OverlapSphere(searchCenter, _doorSearchRadius);
         DoorInteraction closest = null;
         float closestDistance = float.MaxValue;
         foreach (Collider hit in hits)
@@ -564,7 +580,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             if (!IsOnGhostFloor(door.transform)) continue;
 
             float distance = Vector3.Distance(
-                _current.transform.position, hit.transform.position);
+                searchCenter, hit.transform.position);
             if (distance < closestDistance)
             {
                 closestDistance = distance;
@@ -578,7 +594,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             _doorAttemptTimer = _doorAttemptInterval;
             if (_debugLogging)
             {
-                Debug.Log($"[GhostPatrol] Door prank: no unlocked door within {_doorSearchRadius}m of '{_current.name}'.", this);
+                Debug.Log($"[GhostPatrol] Door prank: no unlocked door within {_doorSearchRadius}m of the search point.", this);
             }
             return;
         }
@@ -599,11 +615,12 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         else
         {
             // Partial swing in whichever direction leaves it NOT where it is:
-            // a closed door creeps ajar, a half-open door shuts.
+            // a closed door creeps ajar, a half-open door shuts fully so the
+            // latch click fires (CheckLatch needs openFraction to reach 0).
             bool ajar = closest.IsFullyClosed;
             float fraction = ajar
                 ? Random.Range(_nudgeFractionRange.x, _nudgeFractionRange.y)
-                : Random.Range(0f, 0.05f);
+                : 0f;
             duration = Random.Range(_nudgeDurationRange.x, _nudgeDurationRange.y);
             moved = closest.GhostMove(fraction, duration);
         }
@@ -620,7 +637,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] {(slam ? "SLAMMED" : "Nudged")} the door '{closest.name}' in {duration:F1}s near '{_current.name}'.", this);
+            Debug.Log($"[GhostPatrol] {(slam ? "SLAMMED" : "Nudged")} the door '{closest.name}' in {duration:F1}s near ({searchCenter.x:F0},{searchCenter.y:F0},{searchCenter.z:F0}).", this);
         }
     }
 
@@ -849,10 +866,18 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             ? _current.Connected
             : _waypoints;
 
-        // Never pick the waypoint we are currently at (when alternatives exist).
-        List<GhostWaypoint> options = candidates.Count > 1 || _current == null
-            ? candidates.FindAll(w => w != _current)
-            : candidates;
+        // Never pick the waypoint we are currently at, nor the ones visited
+        // recently — prevents visible ping-ponging between two rooms.
+        List<GhostWaypoint> options = candidates.FindAll(w => w != _current && !_recentWaypoints.Contains(w));
+
+        if (options.Count == 0)
+        {
+            options = candidates.FindAll(w => w != _current);
+        }
+        if (options.Count == 0)
+        {
+            options = candidates;
+        }
 
         _target = PickWeighted(options);
         _dwellTimer = 0f;
@@ -889,8 +914,8 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     /// <summary>
     /// Weighted random pick: waypoints with a higher <see cref="GhostWaypoint.VisitWeight"/>
-    /// are proportionally more likely. This keeps the ghost mostly around heavily weighted
-    /// floors (e.g. 2F) while rare waypoints (basement) still get visited.
+    /// are proportionally more likely. This keeps the ghost mostly around heavily
+    /// weighted floors (e.g. 2F) while rare waypoints still get visited.
     /// </summary>
     private static GhostWaypoint PickWeighted(List<GhostWaypoint> options)
     {
@@ -914,8 +939,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// unless a manual connection already exists. Runs at Awake; in the editor
     /// the same rule is visualized by <see cref="OnDrawGizmosSelected"/>.
     /// The comparison uses the horizontal (XZ) distance only: the ghost flies
-    /// through floors by design, so basement waypoints connect to the 2F map
-    /// even though the vertical offset alone exceeds the link distance.
+    /// through floors by design.
     /// </summary>
     private void AutoLinkWaypoints()
     {

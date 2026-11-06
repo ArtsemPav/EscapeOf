@@ -88,6 +88,9 @@ namespace Escape.Core {
         [Tooltip("Громкость звуков движения двери.")]
         [SerializeField] [Range(0f, 1f)] private float _motionVolume = 0.7f;
 
+        [Tooltip("Max distance at which the looping door creak (open/close) is audible. One-shot sounds (latch, locked, unlock) always use 15 m.")]
+        [SerializeField] [Min(1f)] private float _motionLoopMaxDistance = 15f;
+
         [Header("Occlusion")]
         [Tooltip("OcclusionPortal on this door. When assigned, its 'open' state is synced with the door " +
                  "so baked occlusion culling does not hide objects behind an open door.")]
@@ -781,7 +784,7 @@ namespace Escape.Core {
             source.loop       = true;
             source.spatialBlend = 1f;
             source.minDistance  = 0.5f;
-            source.maxDistance  = 6f;
+            source.maxDistance  = _motionLoopMaxDistance;
             source.volume     = _motionVolume;
             source.playOnAwake = false;
             AudioManager.Instance?.RouteSourceToSfxGroup(source);
