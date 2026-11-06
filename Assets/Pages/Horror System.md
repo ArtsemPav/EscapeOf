@@ -534,13 +534,11 @@ Env/2ndFloor/Corridor2stF/Horror
 ### Состояния
 
 ```
-Patrol    — дрейф по waypoint-графу; каждый кадр ищет игрока (если погоня разблокирована)
+Patrol    — дрейф по waypoint-графу; каждый кадр ищет игрока (если погоня разблокирована
+            и не на кулдауне); на стоянке шалит: выключатели, двери, швыряние предметов
 Chase     — увидел игрока: летит к нему на _chaseSpeed, цель = позиция игрока
 Search    — потерял из виду > _loseSightTime: летит к последней видимой точке,
             висит там _searchDwellTime, потом снова Patrol
-Dormant   — поимка игрока: `_onPlayerReached` (звук/скример) → агент скрывается
-            (`GhostAgent.SetActive(false)`), таймер 180–480 с (`_respawnDelayRange`,
-            по умолчанию 3–8 минут) → респавн в случайной точке и снова Patrol
 Unpowered — общий свет выключен: агент спрятан, ждёт `LightingSystem.OnPowerChanged`
 ```
 
@@ -549,9 +547,9 @@ Unpowered — общий свет выключен: агент спрятан, �
 `TrySpotPlayer` не срабатывает — призрак не преследует игрока, только летает, топает и щёлкает
 выключателями. После решения — охотится как обычно.
 
-Достижение игрока (`<= _catchDistance`) вызывает `_onPlayerReached` (UnityEvent — повесь скример/урон),
-затем `GhostPatrol` сам уводит призрака в `Dormant` — звук ивента должен быть назначен
-в `_onPlayerReached` до его вызова.
+Достижение игрока (`<= _catchDistance`) вызывает `_onPlayerReached` (UnityEvent — повесь скример/урон).
+Призрак НЕ десипаунится: он сразу возвращается в Patrol и продолжает шалости, но новая погоня
+блокируется кулдауном `_huntCooldownRange` (5–10 минут, `IsHuntOnCooldown`).
 
 ### Архитектура
 
@@ -590,11 +588,11 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 
 ### Скрипты
 
-- `GhostPatrol.cs` — `/Assets/Scripts/Effects/` — FSM патруль/погоня/поиск/спячка: дрейф по waypoint'ам,
+- `GhostPatrol.cs` — `/Assets/Scripts/Effects/` — FSM патруль/погоня/поиск: дрейф по waypoint'ам,
 честное зрение через `Physics.RaycastAll` (блокируют стены, мебель, закрытые `DoorInteraction`;
 открытые двери просматриваются), погоня на `_chaseSpeed`, авта-линковка соседей
 по `_autoLinkDistance` (15 м; путь сквозь стены — by design), `_onPlayerReached` при поимке,
-после неё — `Dormant` и респавн через `_respawnDelayRange`.
+после неё — кулдаун охоты `_huntCooldownRange` (5–10 мин) без десипауна: призрак продолжает шалить.
 - `GhostFootsteps.cs` — `/Assets/Scripts/Effects/` — шаги, синхронизированные с реальным
 перемещением: один шаг на `_stepLength` (0.7 м) в патруле, `_runStepLength` (1.6 м) в погоне —
 длинный тяжёлый бег вместо «семенящих» шажков; быстрее погоня — шире шаг, а не чаще;
@@ -625,7 +623,7 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 | Поиск на месте   | `_searchDwellTime` 3 с                    | —                                |
 | Поимка           | `_catchDistance` 1 м → `_onPlayerReached` | —                                |
 | Исчезновение     | после поимки `GhostAgent` деактивируется  | —                                |
-| Респавн          | `_respawnDelayRange` 180–480 с (3–8 мин)  | —                                |
+| Кулдаун охоты    | после поимки `_huntCooldownRange` 300–600 с (5–10 мин); призрак не десипаунится — продолжает патруль и шалости, но не начинает погоню (`IsHuntOnCooldown`) | — |
 | Вариация скорости| `_patrolSpeedMultiplierRange` 0.6–1.6, переролл каждые 5–12 с, бленд 2 с | — |
 | Звук поимки      | `_onPlayerReached` → `AudioSource.Play()` на `/GhostSystem` (whisper whoosh) | — |
 | Щелчки выключателей | шанс 50% каждые 8 с во время стоянки, радиус 10 м, кулдаун 30 с; 70% гасит / 30% зажигает; щелчок — 3D one-shot на позиции свитча (max 15 м) | — |
@@ -641,7 +639,7 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 
 - `GhostPatrol._debugLogging` (вкл. по умолчанию) пишет в консоль `[GhostPatrol] Start at ...`,
 `Arrived at ...`, `State -> Chase/Search/Patrol`, `Reached the player`,
-`Despawned, respawn in ...`, `Respawned at ...`.
+`Caught the player — hunt re-arms in ...` и логи шалостей (двери/предметы/выключатели).
 - Выдели `GhostSystem` в Scene View — `OnDrawGizmosSelected` рисует циановые линии
 авта-линковки между точками и красную сферу дальности зрения.
 - Тестовый визуал агента: `GhostAgent` (зелёная сфера + Point Light) — **отключён**

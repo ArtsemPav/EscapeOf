@@ -15,7 +15,7 @@ using UnityEngine.Events;
 /// </summary>
 public class GhostPatrol : MonoBehaviour, IPowerConsumer
 {
-    public enum GhostState { Patrol, Chase, Search, Dormant, Unpowered }
+    public enum GhostState { Patrol, Chase, Search, Unpowered }
 
     [Header("Agent")]
 
@@ -60,10 +60,10 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [Tooltip("Fires once when the ghost reaches the player (wire a scare / damage here). Resets when the player escapes the catch distance.")]
     [SerializeField] private UnityEvent _onPlayerReached;
 
-    [Header("Despawn")]
+    [Header("Hunt Cooldown")]
 
-    [Tooltip("After reaching the player the ghost despawns (agent GameObject deactivates) and respawns after a random delay in this min/max range, in seconds. Default 180-480 = 3-8 minutes.")]
-    [SerializeField] private Vector2 _respawnDelayRange = new Vector2(180f, 480f);
+    [Tooltip("After reaching the player the catch event fires and the hunt re-arms after a random delay in this min/max range, in seconds. During the cooldown the ghost does NOT despawn — it keeps patrolling and pranking (switches, doors, objects) but cannot start a new chase. Default 300-600 = 5-10 minutes.")]
+    [SerializeField] private Vector2 _huntCooldownRange = new Vector2(300f, 600f);
 
     [Header("Speed Variation")]
 
@@ -167,6 +167,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     private float _switchFlipTimer;
     private float _throwCooldownTimer;
     private float _doorCooldownTimer;
+    private float _huntCooldownTimer;
 
     /// <summary>Waypoint the agent is currently dwelling at (null while moving).</summary>
     public GhostWaypoint CurrentWaypoint => _current;
@@ -182,8 +183,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// <summary>Current behaviour state of the ghost.</summary>
     public GhostState State => _state;
 
-    /// <summary>True while the ghost is despawned and waiting for its respawn timer.</summary>
-    public bool IsDormant => _state == GhostState.Dormant;
+    /// <summary>True while the ghost has just caught the player and its chase is
+    /// on cooldown — it keeps patrolling and pranking during this time.</summary>
+    public bool IsHuntOnCooldown => _huntCooldownTimer > 0f;
 
     private void Awake()
     {
@@ -276,17 +278,17 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     private void Update()
     {
-        // Global prank cooldown ticks every frame.
+        // Global prank cooldowns tick every frame.
         if (_switchFlipTimer > 0f) _switchFlipTimer -= Time.deltaTime;
         if (_throwCooldownTimer > 0f) _throwCooldownTimer -= Time.deltaTime;
         if (_doorCooldownTimer > 0f) _doorCooldownTimer -= Time.deltaTime;
+        if (_huntCooldownTimer > 0f) _huntCooldownTimer -= Time.deltaTime;
 
         switch (_state)
         {
             case GhostState.Patrol: UpdatePatrol(); break;
             case GhostState.Chase: UpdateChase(); break;
             case GhostState.Search: UpdateSearch(); break;
-            case GhostState.Dormant: UpdateDormant(); break;
             case GhostState.Unpowered: break; // Waiting for the lights to come back.
         }
     }
@@ -618,7 +620,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
                 Debug.Log("[GhostPatrol] Reached the player.", this);
             }
             _onPlayerReached.Invoke();
-            BeginDormant();
+            BeginHuntCooldown();
         }
     }
 
@@ -639,57 +641,24 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         MoveTowards(_lastSeenPosition, _speed);
     }
 
-    private void UpdateDormant()
-    {
-        _dwellTimer -= Time.deltaTime;
-        if (_dwellTimer <= 0f)
-        {
-            Respawn();
-        }
-    }
-
     /// <summary>
-    /// Despawns the agent after catching the player and starts the random respawn timer.
-    /// The catch sound / scare is expected to be wired into <see cref="_onPlayerReached"/>
-    /// by the designer — it fires right before the despawn.
+    /// Called right after the catch event fires: the ghost does NOT despawn —
+    /// it drops back into Patrol and keeps doing its activities (switch flips,
+    /// door pranks, throwing objects), but cannot start a new chase until the
+    /// hunt cooldown elapses.
     /// </summary>
-    private void BeginDormant()
+    private void BeginHuntCooldown()
     {
-        _state = GhostState.Dormant;
+        _huntCooldownTimer = Random.Range(_huntCooldownRange.x, _huntCooldownRange.y);
         _target = null;
         _reachedEventFired = false;
-        _dwellTimer = Random.Range(_respawnDelayRange.x, _respawnDelayRange.y);
-
-        if (_agentRoot != null) _agentRoot.gameObject.SetActive(false);
-
-        if (_debugLogging)
-        {
-            Debug.Log($"[GhostPatrol] Despawned, respawn in {_dwellTimer:F0}s", this);
-        }
-    }
-
-    /// <summary>Reactivates the agent at a random waypoint and resumes patrolling.</summary>
-    private void Respawn()
-    {
-        _current = _waypoints[Random.Range(0, _waypoints.Count)];
-        if (_agentRoot != null)
-        {
-            _agentRoot.position = _current.transform.position;
-            _agentRoot.gameObject.SetActive(true);
-        }
-
         _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
-        _state = GhostState.Patrol;
-
-        // Restart speed variation from a neutral multiplier.
-        _currentSpeedMultiplier = 1f;
-        _targetSpeedMultiplier = 1f;
-        _speedBlendTimer = 0f;
-        _speedChangeTimer = Random.Range(_speedChangeIntervalRange.x, _speedChangeIntervalRange.y);
+        _switchPrankTimer = 0f;
+        SetState(GhostState.Patrol);
 
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] Respawned at '{_current.name}' pos={_agentRoot.position:F1}", this);
+            Debug.Log($"[GhostPatrol] Caught the player — hunt re-arms in {_huntCooldownTimer:F0}s, pranks continue.", this);
         }
     }
 
@@ -711,11 +680,13 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     /// <summary>
     /// Checks the player once per frame and switches to Chase on sight.
-    /// Returns true when the player was spotted. Suppressed until the hunt
-    /// unlock puzzle is solved — before that the ghost never chases.
+    /// Returns true when the player was spotted. Suppressed while the hunt is
+    /// on cooldown (just caught the player) and until the hunt unlock puzzle
+    /// is solved — before that the ghost never chases.
     /// </summary>
     private bool TrySpotPlayer()
     {
+        if (_huntCooldownTimer > 0f) return false;
         if (!IsHuntUnlocked()) return false;
 
         if (CanSeePlayer())
