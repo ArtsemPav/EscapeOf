@@ -29,10 +29,16 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [SerializeField] private float _arrivalDistance = 0.5f;
 
     [Tooltip("Seconds to dwell at a waypoint before choosing the next one.")]
-    [SerializeField] private Vector2 _dwellTimeRange = new Vector2(4f, 12f);
+    [SerializeField] private Vector2 _dwellTimeRange = new Vector2(60f, 120f);
+
+    [Tooltip("After catching the player the ghost dwells briefly (this min/max range, seconds) and then flees to a far waypoint instead of lingering where the catch happened.")]
+    [SerializeField] private Vector2 _postCatchFleeDelayRange = new Vector2(4f, 8f);
 
     [Tooltip("Max distance between two waypoints to consider them directly connected (auto-linking).")]
     [SerializeField] private float _autoLinkDistance = 15f;
+
+    [Tooltip("Max height difference between the ghost and a prank target (switch, door, throwable). Objects on other floors are never touched, even if within the search radius.")]
+    [SerializeField] private float _sameFloorHeightThreshold = 3f;
 
     [Tooltip("Log state changes and waypoint arrivals to the console (for testing).")]
     [SerializeField] private bool _debugLogging = true;
@@ -62,8 +68,8 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     [Header("Hunt Cooldown")]
 
-    [Tooltip("After reaching the player the catch event fires and the hunt re-arms after a random delay in this min/max range, in seconds. During the cooldown the ghost does NOT despawn — it keeps patrolling and pranking (switches, doors, objects) but cannot start a new chase. Default 300-600 = 5-10 minutes.")]
-    [SerializeField] private Vector2 _huntCooldownRange = new Vector2(300f, 600f);
+    [Tooltip("After reaching the player the catch event fires and the hunt re-arms after a random delay in this min/max range, in seconds. During the cooldown the ghost does NOT despawn — it keeps patrolling and pranking (switches, doors, objects) but cannot start a new chase. Default 300 = one hunt per 5 minutes at most.")]
+    [SerializeField] private Vector2 _huntCooldownRange = new Vector2(300f, 300f);
 
     [Header("Speed Variation")]
 
@@ -126,14 +132,17 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [Tooltip("Max distance from the waypoint to search for a DoorInteraction (uses its Collider).")]
     [SerializeField] private float _doorSearchRadius = 8f;
 
-    [Tooltip("Share (0-1) of door pranks that SLAM (fast, loud). The rest creep open/close slowly.")]
-    [SerializeField, Range(0f, 1f)] private float _doorSlamChance = 0.3f;
+    [Tooltip("Share (0-1) of door pranks that SLAM the door fully open/shut. The rest give it a short nudge ajar or shut.")]
+    [SerializeField, Range(0f, 1f)] private float _doorSlamChance = 0.4f;
 
-    [Tooltip("Duration of a slow creepy door animation, seconds.")]
-    [SerializeField] private Vector2 _slowDoorDurationRange = new Vector2(4f, 7f);
+    [Tooltip("How far a nudged door swings (share of max angle, 0-1). A nudge is quick, so the creak plays once, clean.")]
+    [SerializeField] private Vector2 _nudgeFractionRange = new Vector2(0.25f, 0.5f);
 
-    [Tooltip("Duration of a violent slam, seconds.")]
-    [SerializeField] private Vector2 _slamDurationRange = new Vector2(0.15f, 0.3f);
+    [Tooltip("Duration of a nudge (partial swing), seconds — roughly the normal door speed.")]
+    [SerializeField] private Vector2 _nudgeDurationRange = new Vector2(0.8f, 1.5f);
+
+    [Tooltip("Duration of a full slam, seconds.")]
+    [SerializeField] private Vector2 _slamDurationRange = new Vector2(0.6f, 1f);
 
     [Tooltip("Global cooldown between door pranks, seconds.")]
     [SerializeField] private float _doorCooldown = 60f;
@@ -168,6 +177,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     private float _throwCooldownTimer;
     private float _doorCooldownTimer;
     private float _huntCooldownTimer;
+    private float _postCatchFleeTimer;
 
     /// <summary>Waypoint the agent is currently dwelling at (null while moving).</summary>
     public GhostWaypoint CurrentWaypoint => _current;
@@ -325,6 +335,19 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             }
 
             _dwellTimer -= Time.deltaTime;
+
+            // Right after a catch: don't linger where it happened — flee to a
+            // far waypoint once the short post-catch delay elapses.
+            if (_postCatchFleeTimer > 0f)
+            {
+                _postCatchFleeTimer -= Time.deltaTime;
+                if (_postCatchFleeTimer <= 0f)
+                {
+                    PickFarWaypoint();
+                    return;
+                }
+            }
+
             if (_dwellTimer <= 0f)
             {
                 PickNextWaypoint();
@@ -333,6 +356,15 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         }
 
         MoveTowards(_target.transform.position, _speed * _currentSpeedMultiplier);
+
+        // In-flight poltergeist: while passing waypoints the ghost may hurl an
+        // object from the room it is flying over (cooldown still applies).
+        _throwAttemptTimer -= Time.deltaTime;
+        if (_throwAttemptTimer <= 0f)
+        {
+            _throwAttemptTimer = _throwAttemptInterval;
+            TryThrowNearbyObject(_target.transform.position);
+        }
 
         if (HasArrived(_target.transform.position))
         {
@@ -347,6 +379,17 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             }
             _current.OnGhostArrived();
         }
+    }
+
+    /// <summary>
+    /// True when the target sits roughly on the ghost's current floor (within
+    /// <see cref="_sameFloorHeightThreshold"/> of the agent). The prank
+    /// OverlapSpheres are 3D and can otherwise reach through ceilings — a
+    /// waypoint in the pantry would "grab" a chair in the corridor above.
+    /// </summary>
+    private bool IsOnGhostFloor(Transform target)
+    {
+        return Mathf.Abs(target.position.y - _agentRoot.position.y) <= _sameFloorHeightThreshold;
     }
 
     /// <summary>
@@ -374,6 +417,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         {
             LightSwitch sw = hit.GetComponentInParent<LightSwitch>();
             if (sw == null || !sw.CanInteract()) continue;
+            if (!IsOnGhostFloor(sw.transform)) continue;
             float distance = Vector3.Distance(
                 _current.transform.position, hit.transform.position);
             if (distance < closestDistance)
@@ -416,24 +460,27 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     }
 
     /// <summary>
-    /// Poltergeist behaviour: while dwelling at a waypoint the ghost
-    /// periodically considers hurling a nearby draggable object. The throw is
-    /// a plain physics impulse in a random horizontal direction with a slight
-    /// upward arc — the object flies, tumbles and lands on its own; scrape and
-    /// impact sounds are produced by <see cref="PhysicsDraggable"/> itself.
-    /// Objects the player is currently holding are never touched.
+    /// Poltergeist behaviour: the ghost periodically considers hurling a nearby
+    /// draggable object. While dwelling, the search centers on the current
+    /// waypoint; while flying between waypoints, on the target waypoint (the
+    /// room it is passing over). The throw is a plain physics impulse in a
+    /// random horizontal direction with a slight upward arc — the object flies,
+    /// tumbles and lands on its own; scrape and impact sounds are produced by
+    /// <see cref="PhysicsDraggable"/> itself. Objects the player is currently
+    /// holding are never touched.
     /// </summary>
-    private void TryThrowNearbyObject()
+    private void TryThrowNearbyObject() => TryThrowNearbyObject(
+        _current != null ? _current.transform.position : _agentRoot.position);
+
+    private void TryThrowNearbyObject(Vector3 searchCenter)
     {
         if (_throwChance <= 0f) return;
         if (_throwCooldownTimer > 0f) return;
-        if (_current == null) return;
 
         if (Random.value > _throwChance) return;
 
         // Find the closest throwable draggable with a Rigidbody within range.
-        Collider[] hits = Physics.OverlapSphere(
-            _current.transform.position, _throwSearchRadius);
+        Collider[] hits = Physics.OverlapSphere(searchCenter, _throwSearchRadius);
         PhysicsDraggable closest = null;
         float closestDistance = float.MaxValue;
         foreach (Collider hit in hits)
@@ -444,6 +491,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             Rigidbody body = draggable.Body;
             if (body == null || body.isKinematic) continue;
             if (body.mass > _maxThrowableMass) continue;
+            if (!IsOnGhostFloor(draggable.transform)) continue;
 
             // Never yank an object out of the player's hands.
             if (draggable == PhysicsGrabber.CurrentlyGrabbed) continue;
@@ -452,7 +500,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             if (!draggable.GhostMayThrow) continue;
 
             float distance = Vector3.Distance(
-                _current.transform.position, hit.transform.position);
+                searchCenter, hit.transform.position);
             if (distance < closestDistance)
             {
                 closestDistance = distance;
@@ -484,7 +532,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] Hurled '{closest.name}' (mass {throwBody.mass:F1} kg) near '{_current.name}'.", this);
+            Debug.Log($"[GhostPatrol] Hurled '{closest.name}' (mass {throwBody.mass:F1} kg) near {searchCenter}.", this);
         }
     }
 
@@ -513,6 +561,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         {
             DoorInteraction door = hit.GetComponentInParent<DoorInteraction>();
             if (door == null || door.IsLocked) continue;
+            if (!IsOnGhostFloor(door.transform)) continue;
 
             float distance = Vector3.Distance(
                 _current.transform.position, hit.transform.position);
@@ -534,18 +583,44 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             return;
         }
 
-        // Slow creeping creak most of the time, violent slam sometimes.
+        // Two prank flavors: a quick nudge (door swings part-way ajar or shut
+        // at roughly normal door speed — the creak plays once, clean) or a
+        // violent full slam.
         bool slam = Random.value < _doorSlamChance;
-        Vector2 range = slam ? _slamDurationRange : _slowDoorDurationRange;
-        float duration = Random.Range(range.x, range.y);
+        float duration;
+        bool moved;
+        if (slam)
+        {
+            // Full swing to the opposite extreme.
+            float fraction = closest.IsFullyClosed ? 1f : 0f;
+            duration = Random.Range(_slamDurationRange.x, _slamDurationRange.y);
+            moved = closest.GhostMove(fraction, duration);
+        }
+        else
+        {
+            // Partial swing in whichever direction leaves it NOT where it is:
+            // a closed door creeps ajar, a half-open door shuts.
+            bool ajar = closest.IsFullyClosed;
+            float fraction = ajar
+                ? Random.Range(_nudgeFractionRange.x, _nudgeFractionRange.y)
+                : Random.Range(0f, 0.05f);
+            duration = Random.Range(_nudgeDurationRange.x, _nudgeDurationRange.y);
+            moved = closest.GhostMove(fraction, duration);
+        }
 
-        closest.GhostToggle(duration);
+        if (!moved)
+        {
+            // Locked or already at the target — try again later.
+            _doorAttemptTimer = _doorAttemptInterval;
+            return;
+        }
+
         _doorCooldownTimer = _doorCooldown;
         _doorAttemptTimer = _doorAttemptInterval;
 
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] {(slam ? "SLAMMED" : "Crept")} the door '{closest.name}' {(closest.IsOpen ? "open" : "shut")} in {duration:F1}s near '{_current.name}'.", this);
+            Debug.Log($"[GhostPatrol] {(slam ? "SLAMMED" : "Nudged")} the door '{closest.name}' in {duration:F1}s near '{_current.name}'.", this);
         }
     }
 
@@ -652,13 +727,16 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         _huntCooldownTimer = Random.Range(_huntCooldownRange.x, _huntCooldownRange.y);
         _target = null;
         _reachedEventFired = false;
-        _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
+        // Brief dwell, then flee to a far waypoint instead of lingering
+        // where the catch happened.
+        _dwellTimer = Random.Range(_postCatchFleeDelayRange.x, _postCatchFleeDelayRange.y);
+        _postCatchFleeTimer = _dwellTimer;
         _switchPrankTimer = 0f;
         SetState(GhostState.Patrol);
 
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] Caught the player — hunt re-arms in {_huntCooldownTimer:F0}s, pranks continue.", this);
+            Debug.Log($"[GhostPatrol] Caught the player — hunt re-arms in {_huntCooldownTimer:F0}s, fleeing in {_postCatchFleeTimer:F0}s.", this);
         }
     }
 
@@ -778,6 +856,35 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         _target = PickWeighted(options);
         _dwellTimer = 0f;
+    }
+
+    /// <summary>
+    /// Post-catch behaviour: fly to the farthest waypoints so the ghost leaves
+    /// the room where the player was just caught instead of hovering nearby.
+    /// Candidates are sorted by distance and one of the top three is picked
+    /// so the retreat destination still varies.
+    /// </summary>
+    private void PickFarWaypoint()
+    {
+        _postCatchFleeTimer = 0f;
+        if (_waypoints.Count < 2) return;
+
+        List<GhostWaypoint> options = _current != null
+            ? (_current.Connected.Count > 0 ? _current.Connected : _waypoints)
+            : _waypoints;
+
+        Vector3 origin = _current != null ? _current.transform.position : _agentRoot.position;
+
+        options.Sort((a, b) => Vector3.SqrMagnitude(b.transform.position - origin)
+            .CompareTo(Vector3.SqrMagnitude(a.transform.position - origin)));
+        int top = Mathf.Min(3, options.Count);
+        _target = options[Random.Range(0, top)];
+        _dwellTimer = 0f;
+
+        if (_debugLogging && _target != null)
+        {
+            Debug.Log($"[GhostPatrol] Post-catch flee -> '{_target.name}'.", this);
+        }
     }
 
     /// <summary>

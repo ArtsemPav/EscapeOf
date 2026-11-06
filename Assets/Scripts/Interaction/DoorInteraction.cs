@@ -642,24 +642,23 @@ namespace Escape.Core {
         }
 
         /// <summary>
-        /// Ghost prank: toggles the door (opens if closed, closes if open) with a
-        /// custom animation duration, ignoring the Click-mode setting. Slow
-        /// durations give a creeping creak, short ones a violent slam. Saves and
-        /// plays the same motion/latch sounds as a normal click toggle.
+        /// Ghost prank: swings the door to an explicit open fraction over the
+        /// given duration, ignoring the Click-mode setting. Small targets give
+        /// a nudge (door creeps ajar), 0/1 with a short duration a slam. Saves
+        /// and plays the same motion/latch sounds as a normal click toggle.
+        /// Returns false when the door is locked or already at the target.
         /// </summary>
-        public void GhostToggle(float durationSeconds) {
+        public bool GhostMove(float targetFraction, float durationSeconds) {
             if (_isLocked) {
-                Debug.Log($"[DoorInteraction] GhostToggle on '{name}' — IGNORED, door is locked.", this);
-                return;
+                Debug.Log($"[DoorInteraction] GhostMove on '{name}' — IGNORED, door is locked.", this);
+                return false;
             }
 
-            // Decide by the VISUAL state (openFraction), not the logical _isOpen
-            // flag — a drag-interrupted animation can leave _isOpen out of sync
-            // with _openFraction, and toggling by the stale flag would play the
-            // motion sound while the door is already at the target (no movement).
-            bool visuallyOpen = _openFraction > 0.01f;
-            _clickTarget       = visuallyOpen ? 0f : 1f;
-            _isOpen            = _clickTarget > 0.5f;
+            targetFraction = Mathf.Clamp01(targetFraction);
+            if (Mathf.Approximately(targetFraction, _openFraction)) return false;
+
+            _clickTarget       = targetFraction;
+            _isOpen            = targetFraction > 0.5f;
             _isClickAnimating  = true;
             _overrideOpenDuration = Mathf.Max(0.05f, durationSeconds);
             _dragActive        = true;
@@ -671,6 +670,7 @@ namespace Escape.Core {
             _velocity          = 0f;
 
             SaveManager.Instance?.Save();
+            return true;
         }
 
         // ── Private helpers ──────────────────────────────────────────────────────
