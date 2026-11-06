@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -31,13 +30,6 @@ public class JournalUI : MonoBehaviour
 
     [Header("Hints")]
     [SerializeField] private TextMeshProUGUI _closeHintText;
-
-    [Header("Flip Animation")]
-    [Tooltip("Длительность анимации листания (секунды).")]
-    [SerializeField, Min(0f)] private float _flipDuration = 0.25f;
-
-    [Tooltip("Кривая анимации листания.")]
-    [SerializeField] private AnimationCurve _flipCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [Tooltip("Вертикальный сдвиг верхней страницы в стопке.")]
     [SerializeField] private float _pageStackOffset = 0.1f;
@@ -87,7 +79,6 @@ public class JournalUI : MonoBehaviour
     private readonly List<Quaternion> _pageInitialRotations = new List<Quaternion>();
     private readonly List<Vector3> _pageInitialPositions = new List<Vector3>();
     private int _currentPage;
-    private bool _isFlipping;
 
     private readonly List<JournalEntryButton> _categoryButtons = new List<JournalEntryButton>();
     private readonly List<int> _categoryButtonIndices = new List<int>();
@@ -155,7 +146,7 @@ public class JournalUI : MonoBehaviour
     {
         EnsureSubscribedToJournalEvents();
 
-        if (!_isOpen || _isFlipping) return;
+        if (!_isOpen) return;
 
         var keyboard = UnityEngine.InputSystem.Keyboard.current;
         if (keyboard == null) return;
@@ -226,22 +217,22 @@ public class JournalUI : MonoBehaviour
         HighlightSelectedCategory();
     }
 
-    /// <summary>Flips to the next page (click on the right stack edge).</summary>
+    /// <summary>Shows the next page (click on the right stack edge).</summary>
     public void FlipRight()
     {
-        if (!_isOpen || _isFlipping || _pages.Count == 0) return;
+        if (!_isOpen || _pages.Count == 0) return;
         if (_currentPage >= _pages.Count - 1) return;
 
-        StartCoroutine(FlipRoutine(_currentPage, _currentPage + 1, forward: true));
+        ShowPage(_currentPage + 1);
     }
 
-    /// <summary>Flips to the previous page (click on the left stack edge).</summary>
+    /// <summary>Shows the previous page (click on the left stack edge).</summary>
     public void FlipLeft()
     {
-        if (!_isOpen || _isFlipping || _pages.Count == 0) return;
+        if (!_isOpen || _pages.Count == 0) return;
         if (_currentPage <= 0) return;
 
-        StartCoroutine(FlipRoutine(_currentPage, _currentPage - 1, forward: false));
+        ShowPage(_currentPage - 1);
     }
 
     // ── Open / Close ─────────────────────────────────────────────────────────
@@ -460,13 +451,27 @@ public class JournalUI : MonoBehaviour
             _pages[index + 1].SetActive(true);
 
         FrameCamera();
+        UpdateEdgeZoneAvailability();
+    }
+
+    /// <summary>Enables the edge arrows only where a page exists to flip to.</summary>
+    private void UpdateEdgeZoneAvailability()
+    {
+        SetZoneEnabled(_leftClickZone, _currentPage > 0);
+        SetZoneEnabled(_rightClickZone, _currentPage < _pages.Count - 1);
+    }
+
+    private void SetZoneEnabled(UnityEngine.UI.Image zone, bool enabled)
+    {
+        if (zone == null) return;
+
+        var button = zone.GetComponent<Button>();
+        if (button != null) button.interactable = enabled;
+        zone.enabled = enabled; // hides the sprite as well
     }
 
     private void ClearPageStack()
     {
-        StopAllCoroutines();
-        _isFlipping = false;
-
         for (int i = 0; i < _spawnedInstances.Count; i++)
             if (_spawnedInstances[i] != null)
                 Destroy(_spawnedInstances[i]);
@@ -537,92 +542,31 @@ public class JournalUI : MonoBehaviour
         instance.transform.localScale *= fit;
     }
 
-    // ── Page Slide Animation ─────────────────────────────────────────────────
-
-    private IEnumerator FlipRoutine(int fromIndex, int toIndex, bool forward)
-    {
-        _isFlipping = true;
-        _currentPage = toIndex; // keep state in sync — routine bypasses ShowPage
-
-        ComputeFrame(out Vector3 targetCenter, out float targetSize);
-        Vector3 startCamPos = _inspectionCamera.transform.position;
-        Vector3 endCamPos = targetCenter + new Vector3(0f, 0f, -InspectionDistance);
-        float startSize = _inspectionCamera.orthographicSize;
-
-        GameObject page;
-        Vector3 startPos, endPos;
-        Quaternion startRot, endRot;
-
-        if (forward)
-        {
-            page = _pages[fromIndex];
-            startPos = page.transform.localPosition;
-            startRot = page.transform.localRotation;
-            endPos = GetPilePose(fromIndex, out endRot);
-
-            // The incoming page rises to the top of the stack.
-            _pages[toIndex].transform.localPosition =
-                _pageInitialPositions[toIndex] + Vector3.up * _pageStackOffset;
-
-            if (toIndex + 1 < _pages.Count)
-                _pages[toIndex + 1].SetActive(true);
-        }
-        else
-        {
-            page = _pages[toIndex];
-            page.SetActive(true);
-            startPos = page.transform.localPosition;   // its pose in the left pile
-            startRot = page.transform.localRotation;
-            endPos = _pageInitialPositions[toIndex] + Vector3.up * _pageStackOffset;
-            endRot = _pageInitialRotations[toIndex];
-
-            // The outgoing page settles back into the stack under the incoming one.
-            _pages[fromIndex].transform.localPosition = _pageInitialPositions[fromIndex];
-            _pages[fromIndex].transform.localRotation = _pageInitialRotations[fromIndex];
-
-            if (fromIndex + 1 < _pages.Count)
-                _pages[fromIndex + 1].SetActive(false);
-        }
-
-        float elapsed = 0f;
-        while (elapsed < _flipDuration)
-        {
-            elapsed += Time.unscaledDeltaTime;
-            float t = Mathf.Clamp01(elapsed / _flipDuration);
-            float eased = _flipCurve.Evaluate(t);
-            page.transform.localPosition = Vector3.Lerp(startPos, endPos, eased);
-            page.transform.localRotation = Quaternion.Slerp(startRot, endRot, eased);
-            _inspectionCamera.orthographicSize = Mathf.Lerp(startSize, targetSize, eased);
-            _inspectionCamera.transform.position = Vector3.Lerp(startCamPos, endCamPos, eased);
-            yield return null;
-        }
-
-        page.transform.localPosition = endPos;
-        page.transform.localRotation = endRot;
-        _inspectionCamera.orthographicSize = targetSize;
-        _inspectionCamera.transform.position = endCamPos;
-
-        _isFlipping = false;
-    }
-
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private void WireEdgeZone(UnityEngine.UI.Image zone, UnityEngine.Events.UnityAction action)
     {
         if (zone == null) return;
 
-        // Invisible but raycastable strip over the stack edge.
-        var color = zone.color;
-        color.a = 0f;
-        zone.color = color;
+        // Raycastable strip over the stack edge — the sprite stays visible as a hint.
         zone.raycastTarget = true;
 
         var button = zone.GetComponent<Button>();
         if (button == null)
             button = zone.gameObject.AddComponent<Button>();
 
-        // No visual transition — the zone is invisible.
-        button.transition = Selectable.Transition.None;
+        // ColorTint multiplies the Image color: hover and press tints.
+        button.targetGraphic = zone;
+        button.transition = Selectable.Transition.ColorTint;
+
+        var colors = button.colors;
+        colors.normalColor = Color.white;                     // idle state
+        colors.highlightedColor = new Color(1f, 0.92f, 0.7f); // hover — warm highlight
+        colors.pressedColor = new Color(0.7f, 0.7f, 0.7f);    // press — darkened
+        colors.selectedColor = Color.white;
+        colors.fadeDuration = 0.1f;
+        button.colors = colors;
+
         button.onClick.AddListener(action);
     }
 
