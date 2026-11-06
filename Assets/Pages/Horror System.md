@@ -560,9 +560,17 @@ GhostSystem (сцена, корень)        # GhostPatrol — координа
 ├── WP_Corridor2F                 # GhostWaypoint (Coridor2stF, CoridorFDoor, weight 3)
 ├── WP_Room4_2F                   # GhostWaypoint (Room 4, Room 5, weight 3)
 ├── WP_Room5_2F                   # GhostWaypoint — центр Room 5 (добавлен)
+├── WP_Bathroom2F                 # GhostWaypoint — центр ванной 2F (allowedRooms: Bathroom2ndFloor)
 ├── WP_DoctorRoom                 # GhostWaypoint (DoctorRoom)
 ├── WP_Procedural                 # GhostWaypoint (Procedural)
 └── WP_Pantry2                    # GhostWaypoint (Pantry 2, Pantry)
+
+> ⚠️ 06.11: мерж "Fix some issues" (коммит ff59463c) стёр `/GhostAgent` из сцены и сдвинул
+> WP_Room2_2F / WP_Room5_2F. Восстановлено: GhostAgent (сфера + зелёный свет, оба disabled,
+> AudioSource 3D 0.8/35 м, GhostFootsteps с шагами S_ks_left/right.ogg),
+> `_agentRoot` перепривязан, точки возвращены в центры комнат, WP_Bathroom2F пересоздана.
+> GhostAgent — критичный объект: без него GhostPatrol подменяет `_agentRoot` на сам GhostSystem
+> (родителя вейпоинтов), и патруль ломается; на нём же живёт звук шагов. Не удалять.
 
 > Подвальные точки (WP_GeneratorRoom, WP_Switchgear) удалены — игрок туда ходит редко.
 > Все точки стоят в центрах комнат на высоте головы (пол 2F y≈6.2 → точки y=7.9; пол 1F y≈0 → точки y=1.7).
@@ -577,6 +585,12 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 > (4 м) — полная громкость × `_sameFloorVolumeFactor` (0.6), плавное затухание до
 > `_farVolumeFactor` (0.35) к `_fadeoutDistance` (14 м). На другом этаже (разрыв Y > 3 м):
 > ровный глухой уровень × `_otherFloorVolumeFactor` (0.4) + low-pass 600 Гц по всему этажу.
+> ⚠️ 06.11: режим «слышны только в погоне» (`_audibleOnlyWhileChasing = true`, дефолт):
+> в патруле и на стоянке — полная тишина; в погоне шаги слышны ТОЛЬКО с расстояния ≥
+> `_chaseAudibleMinDistance` (10 м), приглушённо (`_chaseVolumeFactor` 0.4) и глухо
+> (low-pass `_chaseCutoffHz` 1200 Гц); ближе 10 м — шаги исчезают: «слышишь, что бежит
+> откуда-то издалека, а у самой — тишина». Старое поведение по этажам доступно, если
+> выключить `_audibleOnlyWhileChasing`.
 ```
 
 > **Распределение по этажам:** вес точки (`_visitWeight`) — относительный шанс выбора при
@@ -603,6 +617,9 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 длинный тяжёлый бег вместо «семенящих» шажков; быстрее погоня — шире шаг, а не чаще;
 чередование лево/право (`_leftClip` / `_rightClip`, пара `S_ks_left`/`S_ks_right`);
 узкий рандом питча 0.95–1.05 и громкость на каждом шаге; в покое тишина.
+По умолчанию (`_audibleOnlyWhileChasing = true`) слышен ТОЛЬКО бег в погоне, и то издалека:
+шаги играются лишь когда призрак дальше `_chaseAudibleMinDistance` (10 м), приглушённо
+(`_chaseVolumeFactor` 0.4) и глухо (low-pass 1200 Гц); вблизи — тишина.
 - `GhostWaypoint.cs` — `/Assets/Scripts/Effects/` — логика провокации: детект игрока
 (`_playerDetectionRadius`), фильтр по комнате игрока (`RoomVisibilityManager.CurrentRoomName`
 из `_allowedRooms`), глобальный + пер-точечный кулдаун, `_provocationChance`,
@@ -633,7 +650,7 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 | Вариация скорости| `_patrolSpeedMultiplierRange` 0.6–1.6, переролл каждые 5–12 с, бленд 2 с | — |
 | Звук поимки      | `_onPlayerReached` → `AudioSource.Play()` на `/GhostSystem` (whisper whoosh) | — |
 | Щелчки выключателей | шанс 50% каждые 8 с во время стоянки, радиус 10 м, кулдаун 30 с; 70% гасит / 30% зажигает; щелчок — 3D one-shot на позиции свитча (max 15 м); **только на этаже призрака** | — |
-| Полтергейст-швыряние | шанс 40% каждые 10 с (стоянка и перелёт — центр поиска: текущий/target waypoint), радиус 6 м, кулдаун 45 с; бросок 4–7 м/с горизонталь + 1.5–3.5 м/с вверх, предметы тяжелее 15 кг не трогает; **только предметы на этаже призрака** (`_sameFloorHeightThreshold` 3 м — сквозь перекрытия не достаёт); предмет в руках игрока неуязвим (`PhysicsGrabber.CurrentlyGrabbed`); звуки — сам `PhysicsDraggable` | — |
+| Полтергейст-швыряние | шанс 40% каждые 10 с (стоянка и перелёт — центр поиска: текущий/target waypoint), радиус 6 м, кулдаун 45 с; бросок 4–7 м/с горизонталь + 1.5–3.5 м/с вверх, предметы тяжелее 15 кг не трогает; **куча — `_pileMinCount` (3) объекта ближе `_pileDetectionRadius` (2 м) друг к другу: раскидывается вся сразу** (`FindLargestPile`, flood-fill), иначе бросается один ближайший; **только предметы на этаже призрака** (`_sameFloorHeightThreshold` 3 м — сквозь перекрытия не достаёт); предмет в руках игрока неуязвим (`PhysicsGrabber.CurrentlyGrabbed`); звуки — сам `PhysicsDraggable` | — |
 | Шалости с дверями | шанс 50% каждые 12 с (стоянка **и перелёт** — центр поиска: текущий/target waypoint), радиус 8 м, кулдаун 60 с; 70% — толчок (закрытая дверь приоткрывается на 25–50% за 0.8–1.5 с, прикрытая — **закрывается до конца с щелчком защёлки**), 30% — хлопок целиком (0.6–1.0 с); только незапертые двери и **только на этаже призрака**; `DoorInteraction.GhostMove(fraction, duration)`; защёлка — 3D one-shot у двери (max 15 м); скрип движения — зацикленный 3D-источник у двери, дальность слышимости `_motionLoopMaxDistance` (было жёстко 6 м — скрип терялся на расстоянии, теперь 15 м, настраивается на двери). Ближайшие двери в 2–4 м от каждой точки, но у Room 2 и DoctorRoom ближайшая дверь заперта | — |
 | Гейт погони       | `_huntUnlockPuzzle` → `PuzzleModeController` часов (`/Env/2ndFloor/Room 4/Puzzle/clock`): не решены — только Patrol/топот/выключатели | — |
 | Пауза в точке    | `_dwellTimeRange` 60–120 с на точке, потом перелёт к следующей (взвешенный рандом); две последние точки исключаются из выбора (`_recentWaypoints`, память 2) — против пинг-понга между комнатами; стоянка — окно для шалостей | —                                |

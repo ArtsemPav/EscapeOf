@@ -116,6 +116,12 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [Tooltip("Max mass of an object the ghost is willing to throw. Heavier furniture stays put.")]
     [SerializeField] private float _maxThrowableMass = 15f;
 
+    [Tooltip("Objects closer than this distance to each other count as one pile, meters.")]
+    [SerializeField] private float _pileDetectionRadius = 2f;
+
+    [Tooltip("How many objects together count as a pile. A found pile is scattered all at once; fewer objects are thrown one at a time as usual.")]
+    [SerializeField] private int _pileMinCount = 3;
+
     [Tooltip("Global cooldown between poltergeist throws, seconds.")]
     [SerializeField] private float _throwCooldown = 45f;
 
@@ -475,14 +481,16 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     }
 
     /// <summary>
-    /// Poltergeist behaviour: the ghost periodically considers hurling a nearby
-    /// draggable object. While dwelling, the search centers on the current
+    /// Poltergeist behaviour: the ghost periodically considers hurling nearby
+    /// draggable objects. A clumped pile (see _pileMinCount) is scattered all
+    /// at once; loose objects are thrown one at a time — the closest one.
+    /// While dwelling, the search centers on the current
     /// waypoint; while flying between waypoints, on the target waypoint (the
-    /// room it is passing over). The throw is a plain physics impulse in a
-    /// random horizontal direction with a slight upward arc — the object flies,
-    /// tumbles and lands on its own; scrape and impact sounds are produced by
-    /// <see cref="PhysicsDraggable"/> itself. Objects the player is currently
-    /// holding are never touched.
+    /// room it is passing over). The throw is a
+    /// plain physics impulse in a random horizontal direction with a slight
+    /// upward arc — the object flies, tumbles and lands on its own; scrape and
+    /// impact sounds are produced by <see cref="PhysicsDraggable"/> itself.
+    /// Objects the player is currently holding are never touched.
     /// </summary>
     private void TryThrowNearbyObject() => TryThrowNearbyObject(
         _current != null ? _current.transform.position : _agentRoot.position);
@@ -494,10 +502,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         if (Random.value > _throwChance) return;
 
-        // Find the closest throwable draggable with a Rigidbody within range.
+        // Collect every valid throwable within range.
         Collider[] hits = Physics.OverlapSphere(searchCenter, _throwSearchRadius);
-        PhysicsDraggable closest = null;
-        float closestDistance = float.MaxValue;
+        List<PhysicsDraggable> throwables = new List<PhysicsDraggable>();
         foreach (Collider hit in hits)
         {
             PhysicsDraggable draggable = hit.GetComponentInParent<PhysicsDraggable>();
@@ -514,23 +521,101 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             // Explicitly protected objects (story props, puzzle pieces) stay put.
             if (!draggable.GhostMayThrow) continue;
 
-            float distance = Vector3.Distance(
-                searchCenter, hit.transform.position);
-            if (distance < closestDistance)
-            {
-                closestDistance = distance;
-                closest = draggable;
-            }
+            throwables.Add(draggable);
         }
 
-        if (closest == null)
+        if (throwables.Count == 0)
         {
             // Nothing throwable here — wait for the next attempt anyway.
             _throwAttemptTimer = _throwAttemptInterval;
             return;
         }
 
-        Rigidbody throwBody = closest.Body;
+        // A pile the player stacked gets scattered all at once — angrier.
+        List<PhysicsDraggable> pile = FindLargestPile(throwables);
+        if (pile.Count >= _pileMinCount)
+        {
+            foreach (PhysicsDraggable draggable in pile) Hurl(draggable);
+            _throwCooldownTimer = _throwCooldown;
+            _throwAttemptTimer = _throwAttemptInterval;
+
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostPatrol] Scattered a pile of {pile.Count} objects near {searchCenter}.", this);
+            }
+            return;
+        }
+
+        // Usual rage: throw the closest object only.
+        PhysicsDraggable closest = throwables[0];
+        float closestDistance = float.MaxValue;
+        foreach (PhysicsDraggable draggable in throwables)
+        {
+            float distance = Vector3.Distance(searchCenter, draggable.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = draggable;
+            }
+        }
+        Hurl(closest);
+
+        _throwCooldownTimer = _throwCooldown;
+        _throwAttemptTimer = _throwAttemptInterval;
+
+        if (_debugLogging)
+        {
+            Debug.Log($"[GhostPatrol] Hurled '{closest.name}' (mass {closest.Body.mass:F1} kg) near {searchCenter}.", this);
+        }
+    }
+
+    /// <summary>
+    /// Groups the candidates into clumps of objects lying within
+    /// <see cref="_pileDetectionRadius"/> of each other (flood-fill) and
+    /// returns the largest clump.
+    /// </summary>
+    private List<PhysicsDraggable> FindLargestPile(List<PhysicsDraggable> candidates)
+    {
+        List<PhysicsDraggable> remaining = new List<PhysicsDraggable>(candidates);
+        List<PhysicsDraggable> largest = new List<PhysicsDraggable>();
+
+        while (remaining.Count > 0)
+        {
+            // Grow a clump from the first remaining object.
+            List<PhysicsDraggable> clump = new List<PhysicsDraggable> { remaining[0] };
+            remaining.RemoveAt(0);
+
+            bool grew = true;
+            while (grew)
+            {
+                grew = false;
+                for (int i = remaining.Count - 1; i >= 0; i--)
+                {
+                    foreach (PhysicsDraggable member in clump)
+                    {
+                        if (Vector3.Distance(member.transform.position, remaining[i].transform.position)
+                            <= _pileDetectionRadius)
+                        {
+                            clump.Add(remaining[i]);
+                            remaining.RemoveAt(i);
+                            grew = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (clump.Count > largest.Count) largest = clump;
+        }
+
+        return largest;
+    }
+
+    /// <summary>Launches a single draggable in a random direction with a slight upward arc.</summary>
+    private void Hurl(PhysicsDraggable draggable)
+    {
+        Rigidbody body = draggable.Body;
+        if (body == null) return;
 
         // Random horizontal direction (the spirit does not aim — it rages),
         // plus an upward component for a nice tumbling arc.
@@ -539,16 +624,8 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         Vector3 velocity = direction * Random.Range(_throwSpeedRange.x, _throwSpeedRange.y)
                          + Vector3.up * Random.Range(_throwUpwardSpeedRange.x, _throwUpwardSpeedRange.y);
 
-        throwBody.linearVelocity = velocity;
-        throwBody.angularVelocity = Random.insideUnitSphere * 5f;
-
-        _throwCooldownTimer = _throwCooldown;
-        _throwAttemptTimer = _throwAttemptInterval;
-
-        if (_debugLogging)
-        {
-            Debug.Log($"[GhostPatrol] Hurled '{closest.name}' (mass {throwBody.mass:F1} kg) near {searchCenter}.", this);
-        }
+        body.linearVelocity = velocity;
+        body.angularVelocity = Random.insideUnitSphere * 5f;
     }
 
     /// <summary>

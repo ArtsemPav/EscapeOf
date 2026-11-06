@@ -3,10 +3,12 @@ using UnityEngine;
 /// <summary>
 /// Plays 3D footstep sounds synced to the ghost agent's actual movement:
 /// one step per <see cref="_stepLength"/> meters traveled. Faster chase =
-/// faster steps. Silent while the agent dwells at a waypoint. Requires an
-/// attached 3D AudioSource (spatialBlend = 1) — the sound comes from the agent.
-/// Left and right foot clips alternate per step, matching the player's
-/// FootstepController convention.
+/// faster steps. Steps are heard ONLY from a distance — the muffled
+/// "someone walking in other rooms" ambience; steps near the player are
+/// dropped. Chase steps are louder and less muffled than patrol steps.
+/// Requires an attached 3D AudioSource (spatialBlend = 1). Left and right
+/// foot clips alternate per step, matching the player's FootstepController
+/// convention.
 /// </summary>
 [RequireComponent(typeof(AudioSource))]
 public class GhostFootsteps : MonoBehaviour
@@ -32,31 +34,26 @@ public class GhostFootsteps : MonoBehaviour
     [Tooltip("Random volume range per step (multiplied by AudioSource volume and the floor factor).")]
     [SerializeField] private Vector2 _volumeRange = new Vector2(0.6f, 0.9f);
 
-    [Header("Floor Muffling")]
+    [Tooltip("PATROL steps are silent closer than this distance (meters) — you hear the ghost walking in other rooms, never right next to you.")]
+    [SerializeField] private float _audibleMinDistance = 8f;
 
-    [Tooltip("Vertical distance (meters) between the ghost and the player above which they count as different floors.")]
-    [SerializeField] private float _floorHeightThreshold = 3f;
+    [Tooltip("CHASE steps are silent closer than this distance (meters). Kept tiny so the approaching hunt is always audible.")]
+    [SerializeField] private float _chaseAudibleMinDistance = 1.5f;
 
-    [Tooltip("Volume multiplier while the ghost is on the PLAYER's floor (slightly quieter).")]
-    [SerializeField, Range(0f, 1f)] private float _sameFloorVolumeFactor = 0.75f;
+    [Tooltip("Volume multiplier for distant PATROL steps — the muffled 'someone walking in another room' ambience.")]
+    [SerializeField, Range(0f, 1f)] private float _patrolVolumeFactor = 0.6f;
 
-    [Tooltip("Volume multiplier while the ghost is on ANOTHER floor (muffled steps through the ceiling).")]
-    [SerializeField, Range(0f, 1f)] private float _otherFloorVolumeFactor = 0.35f;
+    [Tooltip("Low-pass cutoff (Hz) for distant patrol steps. Lower = duller, more 'through the wall'.")]
+    [SerializeField] private float _patrolCutoffHz = 1500f;
 
-    [Tooltip("Low-pass cutoff (Hz) for the muffled other-floor steps. Lower = duller.")]
-    [SerializeField] private float _otherFloorCutoffHz = 900f;
+    [Tooltip("Volume multiplier for distant CHASE steps (louder than patrol — the ghost is running at you).")]
+    [SerializeField, Range(0f, 1f)] private float _chaseVolumeFactor = 0.85f;
 
-    [Tooltip("Low-pass cutoff (Hz) when the ghost is on the player's floor (20k = no filtering).")]
-    [SerializeField] private float _sameFloorCutoffHz = 20000f;
+    [Tooltip("Low-pass cutoff (Hz) for distant chase steps. Lower = duller, more 'through the wall'.")]
+    [SerializeField] private float _chaseCutoffHz = 3000f;
 
-    [Tooltip("Distance (meters) up to which same-floor steps play at full volume.")]
-    [SerializeField] private float _fullVolumeDistance = 4f;
-
-    [Tooltip("Distance (meters) at which same-floor steps reach their quietest level.")]
-    [SerializeField] private float _fadeoutDistance = 14f;
-
-    [Tooltip("Volume multiplier at and beyond the fade-out distance on the same floor.")]
-    [SerializeField, Range(0f, 1f)] private float _farVolumeFactor = 0.35f;
+    [Tooltip("Log every played step (distance, mode) to the console for tuning.")]
+    [SerializeField] private bool _debugLogging = false;
 
     private AudioSource _source;
     private UnityEngine.AudioLowPassFilter _lowPass;
@@ -108,11 +105,10 @@ public class GhostFootsteps : MonoBehaviour
 
     /// <summary>
     /// Plays the alternating left/right footstep clip with randomized pitch and volume.
-    /// Volume and tone depend on the ghost's position relative to the player:
-    /// same floor = loud up close, fading with horizontal distance; other floor
-    /// = uniformly muffled thumps (low volume + low-pass) audible anywhere on
-    /// the floor above/below. Distance attenuation is computed manually — the
-    /// AudioSource's own rolloff is bypassed by keeping maxDistance large.
+    /// Steps are heard ONLY from a distance (beyond <see cref="_audibleMinDistance"/>):
+    /// the player senses someone walking in OTHER rooms, but the ghost is never
+    /// announced right next to them. Distant steps are muffled (low-pass), quieter
+    /// while patrolling, louder while chasing. Steps too close are simply dropped.
     /// </summary>
     private void PlayStep()
     {
@@ -125,24 +121,27 @@ public class GhostFootsteps : MonoBehaviour
 
         Vector3 playerPosition = GetPlayerPosition();
         float distance = Vector3.Distance(transform.position, playerPosition);
-        bool sameFloor = IsPlayerOnGhostFloor();
+        bool chasing = _patrol.IsChasing;
 
-        float distanceFactor;
-        if (sameFloor)
+        // Too close = silence. The ghost is "in your room" — the player must SEE
+        // it coming, not hear a step reveal it. The threshold is per-mode: far
+        // away for the distant-room ambience, tiny for the chase so the
+        // approaching hunt stays audible right up to the catch.
+        float minDistance = chasing ? _chaseAudibleMinDistance : _audibleMinDistance;
+        if (distance < minDistance)
         {
-            // Loud up close, smoothly fading to a quiet floor level with distance.
-            float fade = Mathf.InverseLerp(_fadeoutDistance, _fullVolumeDistance, distance);
-            distanceFactor = Mathf.Lerp(_farVolumeFactor, 1f, fade) * _sameFloorVolumeFactor;
-        }
-        else
-        {
-            // Other floor: uniform muffled level everywhere on that floor.
-            distanceFactor = _otherFloorVolumeFactor;
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostFootsteps] Step SUPPRESSED: player is only {distance:F1} m away (min {minDistance:F0}), chasing={chasing}.", this);
+            }
+            return;
         }
 
-        _lowPass.cutoffFrequency = sameFloor ? _sameFloorCutoffHz : _otherFloorCutoffHz;
+        float volumeFactor = chasing ? _chaseVolumeFactor : _patrolVolumeFactor;
+        _lowPass.cutoffFrequency = chasing ? _chaseCutoffHz : _patrolCutoffHz;
+
         _source.pitch = Random.Range(_pitchRange.x, _pitchRange.y);
-        _source.volume = Random.Range(_volumeRange.x, _volumeRange.y) * distanceFactor;
+        _source.volume = Random.Range(_volumeRange.x, _volumeRange.y) * volumeFactor;
         _source.PlayOneShot(clip);
     }
 
@@ -155,11 +154,5 @@ public class GhostFootsteps : MonoBehaviour
             if (_player == null) return transform.position;
         }
         return _player.transform.position;
-    }
-
-    /// <summary>True when the ghost and the player share a floor (vertical gap is small).</summary>
-    private bool IsPlayerOnGhostFloor()
-    {
-        return Mathf.Abs(transform.position.y - GetPlayerPosition().y) <= _floorHeightThreshold;
     }
 }
