@@ -38,4 +38,13 @@ public class DocumentData : ScriptableObject
 
     [Tooltip("Звук, проигрываемый при закрытии документа. Опционально.")]
     public AudioClip closeClip;
+
+    /// <summary>
+    /// Initial preview rotation for this document: per-document previewRotation when
+    /// useCustomPreviewRotation is set, identity otherwise.
+    /// </summary>
+    public Quaternion GetPreviewRotation()
+    {
+        return useCustomPreviewRotation ? Quaternion.Euler(previewRotation) : Quaternion.identity;
+    }
 }

@@ -11,11 +11,13 @@ public class DocumentInteraction : MonoBehaviour, IInteractable
     [Tooltip("Текст подсказки при наведении на объект.")]
     [SerializeField] private string _interactText = "Прочитать";
 
-    /// <summary>Opens the document reading panel.</summary>
+    /// <summary>Opens the document reading panel and registers the journal entry (first read only).</summary>
     public void Interact()
     {
-        if (_documentData != null)
-            DocumentUI.Instance.Open(_documentData);
+        if (_documentData == null) return;
+
+        JournalSystem.Instance?.AddEntry(_documentData);
+        DocumentUI.Instance.Open(_documentData);
     }
 
     public string GetInteractText() => _interactText;
