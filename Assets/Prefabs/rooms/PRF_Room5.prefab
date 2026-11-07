@@ -6022,10 +6022,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1199574573489911994}
     m_Modifications:
-    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
     - target: {fileID: 4118868574131736382, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -6087,6 +6083,10 @@ PrefabInstance:
       value: ScandicAlphabet
       objectReference: {fileID: 0}
     - target: {fileID: 8732660922886064280, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
@@ -6330,10 +6330,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2558556392371781558}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -6403,6 +6399,10 @@ PrefabInstance:
       value: PRF_PaperNoteRoom5 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -7584,6 +7584,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Room5
   _renderers: []
+  _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
 --- !u!1001 &4781006694502376132
@@ -9125,6 +9126,10 @@ PrefabInstance:
       propertyPath: _animator
       value: 
       objectReference: {fileID: 3970075340034107681}
+    - target: {fileID: 2268754858471057966, guid: e7b6765be0c9135438980ea802229240, type: 3}
+      propertyPath: _lightZoneId
+      value: Room5
+      objectReference: {fileID: 0}
     - target: {fileID: 2268754858471057966, guid: e7b6765be0c9135438980ea802229240, type: 3}
       propertyPath: _fadeDuration
       value: 1
@@ -10889,6 +10894,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!64 &9081248732812298608

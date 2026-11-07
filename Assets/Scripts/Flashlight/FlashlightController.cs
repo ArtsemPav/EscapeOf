@@ -32,6 +32,12 @@ public class FlashlightController : MonoBehaviour, ISaveable
              "If not assigned, falls back to Camera.main.")]
     [SerializeField] private Transform proximityRayOrigin;
 
+    /// <summary>Overrides the ray origin used for proximity dimming (e.g. the cinematic camera).</summary>
+    public void SetProximityRayOrigin(Transform origin) => proximityRayOrigin = origin;
+
+    /// <summary>The current proximity ray origin transform.</summary>
+    public Transform ProximityRayOrigin => proximityRayOrigin;
+
     [Tooltip("How far ahead to cast for proximity detection (metres). " +
              "When a surface is closer than this, intensity is scaled down.")]
     [SerializeField] [Min(0.3f)] private float proximityRange = 1.2f;

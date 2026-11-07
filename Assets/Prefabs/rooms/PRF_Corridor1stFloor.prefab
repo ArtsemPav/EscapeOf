@@ -404,7 +404,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.5862533, g: 0.864395, b: 1, a: 1}
-  m_Intensity: 0.9
+  m_Intensity: 0.5
   m_Range: 1.5
   m_SpotAngle: 33.629604
   m_InnerSpotAngle: 24.609936
@@ -446,7 +446,7 @@ Light:
   m_Lightmapping: 4
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
-  m_BounceIntensity: 9
+  m_BounceIntensity: 4
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
@@ -20172,6 +20172,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.4
   _unlockAjarSpeed: 0.8
   _motionVolume: 0.7
+  _motionLoopMaxDistance: 15
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -20227,6 +20228,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.4
   _unlockAjarSpeed: 0.8
   _motionVolume: 0.7
+  _motionLoopMaxDistance: 15
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -26836,6 +26838,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7199857819773750743}
     m_Modifications:
+    - target: {fileID: 3969305993467433585, guid: 656ced46d90550c408c33fd8ca6dbf3e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7466281931459581646, guid: 656ced46d90550c408c33fd8ca6dbf3e, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 4608
+      objectReference: {fileID: 0}
+    - target: {fileID: 8599123312865053988, guid: 656ced46d90550c408c33fd8ca6dbf3e, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 4608
+      objectReference: {fileID: 0}
     - target: {fileID: 2006179204411908613, guid: 0466c5cfff753634eb4bc1d701242e63, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -26911,18 +26925,6 @@ PrefabInstance:
     - target: {fileID: 6717893581857412070, guid: 0466c5cfff753634eb4bc1d701242e63, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 3969305993467433585, guid: 656ced46d90550c408c33fd8ca6dbf3e, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7466281931459581646, guid: 656ced46d90550c408c33fd8ca6dbf3e, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 4608
-      objectReference: {fileID: 0}
-    - target: {fileID: 8599123312865053988, guid: 656ced46d90550c408c33fd8ca6dbf3e, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 4608
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -33623,6 +33625,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!1001 &7081383962990666622

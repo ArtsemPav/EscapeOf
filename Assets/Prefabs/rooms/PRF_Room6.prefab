@@ -2295,6 +2295,7 @@ MonoBehaviour:
   _puzzleSolvedParam: PuzzleSolved
   _audioController: {fileID: 6312005241146898087}
   _fadeDuration: 1
+  _lightZoneId: Room6
 --- !u!114 &6312005241146898087
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2352,6 +2353,7 @@ MonoBehaviour:
   _unlockAjarFraction: 1
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
+  _motionLoopMaxDistance: 15
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -3582,6 +3584,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!1001 &575968847391212616
@@ -6436,6 +6439,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Room6
   _renderers: []
+  _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
 --- !u!1 &2949400098300563011 stripped
@@ -7522,6 +7526,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!1001 &4105097484141479718

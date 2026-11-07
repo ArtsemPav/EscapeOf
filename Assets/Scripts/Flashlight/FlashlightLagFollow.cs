@@ -23,6 +23,12 @@ public class FlashlightLagFollow : MonoBehaviour
             Debug.LogWarning("FlashlightLagFollow: cameraTransform is not assigned.", this);
     }
 
+    /// <summary>Redirects the flashlight to follow another camera (e.g. the cinematic camera).</summary>
+    public void SetFollowTarget(Transform target) => cameraTransform = target;
+
+    /// <summary>The transform the flashlight is currently following.</summary>
+    public Transform FollowTarget => cameraTransform;
+
     // LateUpdate runs after FPSController has applied camera rotation
     private void LateUpdate()
     {

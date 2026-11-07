@@ -48,6 +48,10 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
     [Tooltip("Duration of the screen fade to/from black.")]
     [SerializeField, Min(0f)] private float _fadeDuration = 1f;
 
+    [Header("Flashlight")]
+    [Tooltip("Zone Id of the room this cinematic takes place in. Empty = the flashlight is not used in this cinematic.")]
+    [SerializeField] private string _lightZoneId;
+
     // ── State ───────────────────────────────────────────────────────────────────
 
     private CinemachineBrain _brain;
@@ -55,6 +59,10 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
     private bool _isPlaying;
     private bool _wasAlreadySolved;
     private int _awakeFrame;
+    private FlashlightLagFollow _flashlightFollow;
+    private Transform _originalFollowTarget;
+    private Transform _originalProximityOrigin;
+    private bool _flashlightWasOn;
 
     /// <summary>
     /// True while any PuzzleSolvedCinematic is currently playing.
@@ -95,6 +103,8 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
         if (!_isPlaying) return;
 
         // Emergency cleanup — restore everything immediately.
+        RestoreFlashlightAfterCinematic();
+
         if (_cinematicCamera != null)
         {
             _cinematicCamera.Priority = 0;
@@ -172,6 +182,7 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         InteractionUI.Instance?.SetVisible(false);
+        SetupFlashlightForCinematic();
 
         // ── Launch animation ────────────────────────────────────────────────────
         if (_animator != null)
@@ -211,6 +222,57 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
         SetBlendDuration(blendDuration);
         _cinematicCamera.Priority = CinematicCameraPriority;
         _cinematicCamera.gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// Locks the flashlight input and redirects its beam to follow the cinematic camera
+    /// when the room's lights are off, so the shot is lit by the player's flashlight.
+    /// </summary>
+    private void SetupFlashlightForCinematic()
+    {
+        if (string.IsNullOrEmpty(_lightZoneId) || LightingSystem.Instance == null
+            || LightingSystem.Instance.IsZoneLit(_lightZoneId))
+            return;
+
+        var flash = FlashlightController.Instance;
+        if (flash != null)
+        {
+            flash.IsLocked = true;
+            _flashlightWasOn = flash.IsOn;
+            if (!_flashlightWasOn) flash.ForceOn();
+
+            // Dimming must measure from the cinematic camera — the player's frozen
+            // camera would dim the beam based on geometry around the player instead.
+            _originalProximityOrigin = flash.ProximityRayOrigin;
+            flash.SetProximityRayOrigin(_cinematicCamera != null ? _cinematicCamera.transform : null);
+        }
+
+        if (_cinematicCamera == null) return;
+        _flashlightFollow = FindFirstObjectByType<FlashlightLagFollow>();
+        if (_flashlightFollow != null)
+        {
+            _originalFollowTarget = _flashlightFollow.FollowTarget;
+            _flashlightFollow.SetFollowTarget(_cinematicCamera.transform);
+        }
+    }
+
+    /// <summary>Restores the flashlight's follow target, input lock, and on/off state after the cinematic.</summary>
+    private void RestoreFlashlightAfterCinematic()
+    {
+        var flash = FlashlightController.Instance;
+        if (flash != null)
+        {
+            flash.IsLocked = false;
+            if (!_flashlightWasOn && flash.IsOn) flash.ForceOff();
+            if (_originalProximityOrigin != null)
+                flash.SetProximityRayOrigin(_originalProximityOrigin);
+            _originalProximityOrigin = null;
+        }
+
+        if (_flashlightFollow != null && _originalFollowTarget != null)
+            _flashlightFollow.SetFollowTarget(_originalFollowTarget);
+        _flashlightFollow = null;
+        _originalFollowTarget = null;
     }
 
     /// <summary>
@@ -266,6 +328,7 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
     {
         InputManager.Instance?.SetPlayerInputEnabled(true);
         InteractionUI.Instance?.SetVisible(true);
+        RestoreFlashlightAfterCinematic();
         SetBlendDuration(_originalBlendTime);
         _isPlaying = false;
         IsAnyCinematicPlaying = false;
