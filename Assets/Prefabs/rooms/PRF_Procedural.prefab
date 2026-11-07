@@ -4028,6 +4028,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!1001 &1875710368147962256
@@ -7063,6 +7064,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8194895613470918703}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
     - target: {fileID: 4451360623482977459, guid: a571c8d90e3cde0408ca98c10f8b77aa, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 16896
@@ -7134,14 +7143,6 @@ PrefabInstance:
     - target: {fileID: 6146684655915795732, guid: a571c8d90e3cde0408ca98c10f8b77aa, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 16896
-      objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -7927,6 +7928,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Procedural
   _renderers: []
+  _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
 --- !u!1 &4277118447046759881 stripped
@@ -8209,7 +8211,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Procedural
-  _defaultSwitchState: 1
+  _defaultSwitchState: 0
   _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 1499826378016512208}
@@ -10191,6 +10193,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Procedural
   _renderers: []
+  _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
 --- !u!1 &5863609533810377805 stripped
@@ -10544,6 +10547,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!1001 &6021409100438317575
@@ -11628,6 +11632,7 @@ MonoBehaviour:
   _impactMinSpeed: 0.5
   _impactCooldown: 0.1
   _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
 --- !u!1001 &6495932167629017156
