@@ -89,8 +89,10 @@ public class UIManager : MonoBehaviour
             // и снова покажет подсказку если нужно.
             _playerController?.ResetInteractionCache();
 
-            // Все панели закрыты — возвращаем HUD взаимодействия.
-            InteractionUI.Instance?.SetVisible(true);
+            // Все панели закрыты — возвращаем HUD взаимодействия,
+            // но не во время решённой кинематики: она сама вернёт HUD на OnCinematicEnd.
+            if (!PuzzleSolvedCinematic.IsAnyCinematicPlaying)
+                InteractionUI.Instance?.SetVisible(true);
         }
     }
 
@@ -104,7 +106,8 @@ public class UIManager : MonoBehaviour
         GameManager.Instance?.UpdateCursorState();
         _playerController?.SetPlayerInputEnabled(true);
         _playerController?.ResetInteractionCache();
-        InteractionUI.Instance?.SetVisible(true);
+        if (!PuzzleSolvedCinematic.IsAnyCinematicPlaying)
+            InteractionUI.Instance?.SetVisible(true);
     }
 
     /// <summary>
@@ -137,8 +140,10 @@ public class UIManager : MonoBehaviour
             _playerController?.SetPlayerInputEnabled(true);
             _playerController?.ResetInteractionCache();
 
-            // Все модальные состояния закрыты — возвращаем HUD взаимодействия.
-            InteractionUI.Instance?.SetVisible(true);
+            // Все модальные состояния закрыты — возвращаем HUD взаимодействия,
+            // но не во время решённой кинематики: она сама вернёт HUD на OnCinematicEnd.
+            if (!PuzzleSolvedCinematic.IsAnyCinematicPlaying)
+                InteractionUI.Instance?.SetVisible(true);
         }
     }
 }

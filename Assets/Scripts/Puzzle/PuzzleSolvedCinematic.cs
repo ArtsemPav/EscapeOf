@@ -56,6 +56,13 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
     private bool _wasAlreadySolved;
     private int _awakeFrame;
 
+    /// <summary>
+    /// True while any PuzzleSolvedCinematic is currently playing.
+    /// UI systems check this before restoring the interaction HUD,
+    /// so a panel/modal closing mid-cinematic doesn't re-show the crosshair.
+    /// </summary>
+    public static bool IsAnyCinematicPlaying { get; private set; }
+
     // ── Unity Lifecycle ─────────────────────────────────────────────────────────
 
     private void Awake()
@@ -101,7 +108,10 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
             ScreenFader.Instance.FadeOut(0f);
         }
 
+        InteractionUI.Instance?.SetVisible(true);
+
         _isPlaying = false;
+        IsAnyCinematicPlaying = false;
     }
 
     // ── Public API ──────────────────────────────────────────────────────────────
@@ -152,6 +162,7 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
         SaveManager.Instance?.Save();
 
         _isPlaying = true;
+        IsAnyCinematicPlaying = true;
         StartCoroutine(PlayCinematicRoutine());
     }
 
@@ -160,6 +171,7 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
         InputManager.Instance?.SetPlayerInputEnabled(false);
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        InteractionUI.Instance?.SetVisible(false);
 
         // ── Launch animation ────────────────────────────────────────────────────
         if (_animator != null)
@@ -253,8 +265,10 @@ public class PuzzleSolvedCinematic : MonoBehaviour, ISaveable
     public void OnCinematicEnd()
     {
         InputManager.Instance?.SetPlayerInputEnabled(true);
+        InteractionUI.Instance?.SetVisible(true);
         SetBlendDuration(_originalBlendTime);
         _isPlaying = false;
+        IsAnyCinematicPlaying = false;
     }
 
     // ── ISaveable ──────────────────────────────────────────────────────────────
