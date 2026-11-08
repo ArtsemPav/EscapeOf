@@ -159,6 +159,11 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [Tooltip("Puzzle that unlocks the hunt. While unsolved, the ghost only patrols, stomps and flips switches — it never chases the player. Assign the clock puzzle's PuzzleModeController here. Leave empty to hunt from the start.")]
     [SerializeField] private PuzzleModeController _huntUnlockPuzzle;
 
+    [Header("Performance")]
+
+    [Tooltip("Seconds between vision raycasts while patrolling/searching. The chase checks every frame — a hunt must not lose the player to a timing gap. No perceptible difference in behaviour, saves per-frame RaycastAll pressure.")]
+    [SerializeField, Range(0.05f, 0.5f)] private float _visionCheckInterval = 0.15f;
+
     private GhostState _state = GhostState.Patrol;
     private GhostWaypoint _current;
     private GhostWaypoint _target;
@@ -190,6 +195,12 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// two rooms.</summary>
     private readonly List<GhostWaypoint> _recentWaypoints = new List<GhostWaypoint>();
     private const int RecentWaypointMemory = 2;
+
+    /// <summary>Next Time.time at which the patrol/search vision check runs.</summary>
+    private float _nextVisionCheckTime;
+
+    /// <summary>Reusable buffer for the vision raycast (no per-frame allocations).</summary>
+    private static readonly RaycastHit[] VisionHits = new RaycastHit[24];
 
     /// <summary>Waypoint the agent is currently dwelling at (null while moving).</summary>
     public GhostWaypoint CurrentWaypoint => _current;
@@ -851,7 +862,10 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     }
 
     /// <summary>
-    /// Checks the player once per frame and switches to Chase on sight.
+    /// Checks the player and switches to Chase on sight. While patrolling or
+    /// searching, the check is throttled to every <see cref="_visionCheckInterval"/>
+    /// seconds — the last result is reused between checks, so spotting is
+    /// delayed by at most that interval (imperceptible for a hunting ghost).
     /// Returns true when the player was spotted. Suppressed while the hunt is
     /// on cooldown (just caught the player) and until the hunt unlock puzzle
     /// is solved — before that the ghost never chases.
@@ -860,6 +874,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     {
         if (_huntCooldownTimer > 0f) return false;
         if (!IsHuntUnlocked()) return false;
+
+        if (_state != GhostState.Chase && Time.time < _nextVisionCheckTime) return false;
+        _nextVisionCheckTime = Time.time + _visionCheckInterval;
 
         if (CanSeePlayer())
         {
@@ -884,6 +901,8 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// Honest line-of-sight check: a raycast from the agent to the player.
     /// Blocked by walls, furniture and closed doors; open door panels are
     /// looked through. Also fails when the player is beyond _viewDistance.
+    /// Uses a reusable buffer (no per-frame allocation) and walks the hits
+    /// nearest-first instead of sorting them.
     /// </summary>
     private bool CanSeePlayer()
     {
@@ -902,25 +921,41 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         if (distance > _viewDistance) return false;
         if (distance < 0.01f) return true;
 
-        // RaycastAll because the first hit may be an open door panel to look through.
-        RaycastHit[] hits = Physics.RaycastAll(
-            origin, direction / distance, distance, ~0, QueryTriggerInteraction.Ignore);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        // RaycastNonAlloc with a reusable buffer; then walk the hits
+        // nearest-first — no array allocation, no sort. An open door panel
+        // is looked through: skip it and consider the next-nearest hit.
+        Vector3 normalizedDirection = direction / distance;
+        int hitCount = Physics.RaycastNonAlloc(
+            origin, normalizedDirection, VisionHits, distance, ~0,
+            QueryTriggerInteraction.Ignore);
 
-        foreach (RaycastHit hit in hits)
+        bool[] handled = new bool[hitCount]; // tiny, only on the throttled cadence
+        while (true)
         {
+            int nearestIndex = -1;
+            float nearestDistance = float.MaxValue;
+            for (int i = 0; i < hitCount; i++)
+            {
+                if (!handled[i] && VisionHits[i].distance < nearestDistance)
+                {
+                    nearestDistance = VisionHits[i].distance;
+                    nearestIndex = i;
+                }
+            }
+            if (nearestIndex < 0) return true; // nothing solid between — clear sight
+
+            handled[nearestIndex] = true;
+            Collider hitCollider = VisionHits[nearestIndex].collider;
+
             // The player's own colliders being first in line means clear sight.
-            if (hit.collider.GetComponentInParent<FPSController>() != null) return true;
+            if (hitCollider.GetComponentInParent<FPSController>() != null) return true;
 
             // Look through open door panels; anything else blocks vision.
-            DoorInteraction door = hit.collider.GetComponentInParent<DoorInteraction>();
+            DoorInteraction door = hitCollider.GetComponentInParent<DoorInteraction>();
             if (door != null && door.IsOpen) continue;
 
             return false;
         }
-
-        // Nothing solid between — clear sight.
-        return true;
     }
 
     private void MoveTowards(Vector3 destination, float speed)

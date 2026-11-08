@@ -1,3 +1,4 @@
+using Escape.Core;
 using UnityEngine;
 
 /// <summary>
@@ -6,6 +7,10 @@ using UnityEngine;
 /// faster steps. Steps are heard ONLY from a distance — the muffled
 /// "someone walking in other rooms" ambience; steps near the player are
 /// dropped. Chase steps are louder and less muffled than patrol steps.
+/// Steps are also occlusion-aware: when a raycast to the player is blocked
+/// (wall, floor slab or a closed door between the agent and the player),
+/// the step is heavily muffled and quieted — the "through the thick floor /
+/// wall" sound. Only an unobstructed path lets the steps ring clear.
 /// Requires an attached 3D AudioSource (spatialBlend = 1). Left and right
 /// foot clips alternate per step, matching the player's FootstepController
 /// convention.
@@ -52,14 +57,29 @@ public class GhostFootsteps : MonoBehaviour
     [Tooltip("Low-pass cutoff (Hz) for distant chase steps. Lower = duller, more 'through the wall'.")]
     [SerializeField] private float _chaseCutoffHz = 3000f;
 
-    [Tooltip("Log every played step (distance, mode) to the console for tuning.")]
-    [SerializeField] private bool _debugLogging = false;
+    [Header("Occlusion (steps through floors / walls)")]
+
+    [Tooltip("When the direct path to the player is blocked (floor slab, wall, closed door), the step plays this much quieter. 0.15 = a barely audible thump through the ceiling.")]
+    [SerializeField, Range(0f, 1f)] private float _occludedVolumeFactor = 0.15f;
+
+    [Tooltip("Low-pass cutoff (Hz) for occluded steps. Low value = a dull muffled thud, as if through a thick concrete floor.")]
+    [SerializeField, Range(100f, 4000f)] private float _occludedCutoffHz = 500f;
+
+    [Tooltip("Seconds between occlusion raycasts. Steps only need it when they actually play, so this just spaces the checks out.")]
+    [SerializeField, Range(0.05f, 1f)] private float _occlusionCheckInterval = 0.25f;
 
     private AudioSource _source;
     private UnityEngine.AudioLowPassFilter _lowPass;
     private FPSController _player;    private Vector3 _lastPosition;
     private float _distanceSinceStep;
     private bool _nextStepIsLeft = true;
+    private float _nextOcclusionCheckTime;
+    private bool _isOccluded;
+    private static readonly RaycastHit[] OcclusionHits = new RaycastHit[16];
+
+    /// <summary>Layers that occlude the direct path to the player: everything
+    /// except Ignore Raycast and the player's own layer.</summary>
+    private static int _occluderMask = -1;
 
     private void Awake()
     {
@@ -109,6 +129,9 @@ public class GhostFootsteps : MonoBehaviour
     /// the player senses someone walking in OTHER rooms, but the ghost is never
     /// announced right next to them. Distant steps are muffled (low-pass), quieter
     /// while patrolling, louder while chasing. Steps too close are simply dropped.
+    /// When the direct path to the player is occluded (floor slab between the
+    /// floors, wall, closed door), the step is heavily muted and low-passed —
+    /// a dull thud "through the thick floor" instead of a clear step.
     /// </summary>
     private void PlayStep()
     {
@@ -120,7 +143,8 @@ public class GhostFootsteps : MonoBehaviour
         _nextStepIsLeft = !_nextStepIsLeft;
 
         Vector3 playerPosition = GetPlayerPosition();
-        float distance = Vector3.Distance(transform.position, playerPosition);
+        Vector3 agentPosition = transform.position;
+        float distance = Vector3.Distance(agentPosition, playerPosition);
         bool chasing = _patrol.IsChasing;
 
         // Too close = silence. The ghost is "in your room" — the player must SEE
@@ -128,21 +152,72 @@ public class GhostFootsteps : MonoBehaviour
         // away for the distant-room ambience, tiny for the chase so the
         // approaching hunt stays audible right up to the catch.
         float minDistance = chasing ? _chaseAudibleMinDistance : _audibleMinDistance;
-        if (distance < minDistance)
+        if (distance < minDistance) return;
+
+        // Occlusion check (raycast, cached between steps): is the direct path
+        // to the player blocked by a floor slab / wall / closed door? A ghost
+        // one floor below must sound like a muffled thump through concrete,
+        // not like someone standing in front of you.
+        if (Time.unscaledTime >= _nextOcclusionCheckTime)
         {
-            if (_debugLogging)
-            {
-                Debug.Log($"[GhostFootsteps] Step SUPPRESSED: player is only {distance:F1} m away (min {minDistance:F0}), chasing={chasing}.", this);
-            }
-            return;
+            _nextOcclusionCheckTime = Time.unscaledTime + _occlusionCheckInterval;
+            _isOccluded = IsPathOccluded(agentPosition, playerPosition);
         }
 
+        // Base mode layering, then the occlusion layering on top.
         float volumeFactor = chasing ? _chaseVolumeFactor : _patrolVolumeFactor;
-        _lowPass.cutoffFrequency = chasing ? _chaseCutoffHz : _patrolCutoffHz;
+        float cutoffHz = chasing ? _chaseCutoffHz : _patrolCutoffHz;
+        if (_isOccluded)
+        {
+            volumeFactor *= _occludedVolumeFactor;
+            cutoffHz = Mathf.Min(cutoffHz, _occludedCutoffHz);
+        }
 
+        _lowPass.cutoffFrequency = cutoffHz;
         _source.pitch = Random.Range(_pitchRange.x, _pitchRange.y);
         _source.volume = Random.Range(_volumeRange.x, _volumeRange.y) * volumeFactor;
         _source.PlayOneShot(clip);
+    }
+
+    /// <summary>
+    /// True when a raycast from the agent to the player hits geometry before
+    /// reaching them: a floor slab, a wall, furniture or (optionally) a closed
+    /// door. The player's own colliders are ignored via layer mask.
+    /// </summary>
+    private bool IsPathOccluded(Vector3 from, Vector3 to)
+    {
+        if (_occluderMask == -1)
+        {
+            // Everything except Ignore Raycast. The player's own colliders are
+            // skipped by comparing hits against the player component below.
+            int ignoreRaycastLayer = LayerMask.NameToLayer("Ignore Raycast");
+            _occluderMask = ignoreRaycastLayer >= 0 ? ~(1 << ignoreRaycastLayer) : ~0;
+        }
+
+        Vector3 delta = to - from;
+        float distance = delta.magnitude;
+        if (distance < 0.01f) return false;
+
+        Vector3 direction = delta / distance;
+        int hitCount = Physics.RaycastNonAlloc(
+            from, direction, OcclusionHits, distance, _occluderMask,
+            QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider hit = OcclusionHits[i].collider;
+
+            // Skip the player's own colliders (capsule, etc.).
+            if (hit.GetComponentInParent<FPSController>() != null) continue;
+
+            // Open door panels do not occlude — you can see/hear through them.
+            DoorInteraction door = hit.GetComponentInParent<DoorInteraction>();
+            if (door != null && door.IsOpen) continue;
+
+            return true;
+        }
+
+        return false;
     }
 
     /// <summary>Cached player position (found once, refreshed if destroyed).</summary>

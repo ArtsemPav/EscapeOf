@@ -580,11 +580,13 @@ GhostSystem (сцена, корень)        # GhostPatrol — координа
 GhostAgent (сцена, корень)         # двигающийся объект: сфера + Point Light (debug-визуал),
                                    # AudioSource (3D, linear rolloff, max 35 м) + GhostFootsteps (шаги в полёте)
 
-> **Приглушение по этажам** (GhostFootsteps): дистанция считается вручную (rolloff
-> AudioSource фактически отключён, maxDistance=35). На этаже игрока: до `_fullVolumeDistance`
-> (4 м) — полная громкость × `_sameFloorVolumeFactor` (0.6), плавное затухание до
-> `_farVolumeFactor` (0.35) к `_fadeoutDistance` (14 м). На другом этаже (разрыв Y > 3 м):
-> ровный глухой уровень × `_otherFloorVolumeFactor` (0.4) + low-pass 600 Гц по всему этажу.
+> **Приглушение по этажам / через стены** (GhostFootsteps): помимо дистанционных слоёв,
+> каждый шаг проверяет окклюзию лучом от агента к игроку (кеш, интервал
+> `_occlusionCheckInterval` 0.25 с). Если путь перекрыт плитой перекрытия, стеной или
+> закрытой дверью (открытые двери прослушиваются), шаг накладывает дополнительный слой:
+> громкость × `_occludedVolumeFactor` (0.15) + low-pass `_occludedCutoffHz` (500 Гц) —
+> глухой удар «сквозь толстый бетонный пол», а не чёткий шаг «прямо перед тобой».
+> Чистый звук шага слышен только по прямой видимости с призраком.
 > ⚠️ 06.11: режим «слышны только в погоне» (`_audibleOnlyWhileChasing = true`, дефолт):
 > в патруле и на стоянке — полная тишина; в погоне шаги слышны ТОЛЬКО с расстояния ≥
 > `_chaseAudibleMinDistance` (10 м), приглушённо (`_chaseVolumeFactor` 0.4) и глухо
@@ -608,8 +610,10 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 ### Скрипты
 
 - `GhostPatrol.cs` — `/Assets/Scripts/Effects/` — FSM патруль/погоня/поиск: дрейф по waypoint'ам,
-честное зрение через `Physics.RaycastAll` (блокируют стены, мебель, закрытые `DoorInteraction`;
-открытые двери просматриваются), погоня на `_chaseSpeed`, авта-линковка соседей
+честное зрение через `Physics.RaycastNonAlloc` в переиспользуемый буфер (блокируют стены,
+мебель, закрытые `DoorInteraction`; открытые двери просматриваются), в патруле/поиске
+зрение троттлится до `_visionCheckInterval` (0.15 с) — без аллокаций в кадре, погоня на `_chaseSpeed`,
+авта-линковка соседей
 по `_autoLinkDistance` (15 м; путь сквозь стены — by design), `_onPlayerReached` при поимке,
 после неё — кулдаун охоты `_huntCooldownRange` (360 с) без десипауна: призрак 4–8 с постоит и улетает в дальнюю комнату, продолжая шалить.
 - `GhostFootsteps.cs` — `/Assets/Scripts/Effects/` — шаги, синхронизированные с реальным
@@ -620,6 +624,9 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 По умолчанию (`_audibleOnlyWhileChasing = true`) слышен ТОЛЬКО бег в погоне, и то издалека:
 шаги играются лишь когда призрак дальше `_chaseAudibleMinDistance` (10 м), приглушённо
 (`_chaseVolumeFactor` 0.4) и глухо (low-pass 1200 Гц); вблизи — тишина.
+Дополнительно каждый шаг проверяет окклюзию (`RaycastNonAlloc`): перекрытый путь —
+громкость × `_occludedVolumeFactor` (0.15), low-pass `_occludedCutoffHz` (500 Гц) —
+«сквозь толстый пол / стену».
 - `GhostWaypoint.cs` — `/Assets/Scripts/Effects/` — логика провокации: детект игрока
 (`_playerDetectionRadius`), фильтр по комнате игрока (`RoomVisibilityManager.CurrentRoomName`
 из `_allowedRooms`), глобальный + пер-точечный кулдаун, `_provocationChance`,
