@@ -1,17 +1,8 @@
+<!-- version: 1 -->
+
 ## Audio System
 
 Система аудио: SFX, 3D-звуки, фоновые слои и музыка с кроссфейдами. Музыка полностью управляется `MusicDirector`, SFX — `AudioManager`.
-
-### IdleMusicTrigger.cs (`Assets/Scripts/Core/IdleMusicTrigger.cs`)
-
-На `GameManager` в Game.unity. Если игрок `_idleThreshold` секунд (480 = 8 минут, меняется в инспекторе) не решил ни одной загадки и не открыл ни одной двери — просит `MusicDirector` включить трек `Idle_Hint` (`S_Abbys.aif`); первый же прогресс возвращает прежний трек. Источники прогресса: `ProgressLogger.PuzzleSolved` и `DoorInteraction.DoorOpened`. Таймер на unscaled-времени, на паузе не тикает.
-
-Правила приоритета:
-- cue срабатывает **один раз за сессию** (`_idleCuePlayedOnce`) — после первого включения больше не повторяется;
-- cue включается **только поверх дефолтного трека** (`MusicDirector.IsDefaultTrackActive`) — если в момент истечения порога играет другая музыка (зоновая, событие), таймер **перезапускается** и ждёт полный период заново;
-- первый прогресс (решённый паззл / открытая дверь) уводит cue назад в дефолт (`ClearTrack`);
-- вход в режим паззла (`PuzzleModeController.PuzzleModeStarted`) тоже уводит cue и замораживает таймер, выход (`PuzzleModeEnded`) обнуляет отсчёт;
-- сохранение с активным cue не запоминает его как доминантный трек (`RequestIdleCueTrack` + `_idleCueTrack` в `MusicDirector`) — после загрузки сейва играет дефолт.
 
 ## Core Components
 
@@ -81,7 +72,7 @@
 - Треки, запрошенные с `playOnce`, запоминаются и никогда не перезапускаются.
 - `ISaveable`: сериализует доминирующий трек (имя + позиция) и список проигранных playOnce-треков. Пока меню владеет музыкой, сохраняется прерванный игровой трек (автосейв-таймер на unscaled времени).
 - В `Start` доминантный трек из сейва имеет приоритет над дефолтом сцены; в сцене без игрового трека играет `_pauseMenuTrack` как музыка меню.
-- Нелоoping-трек, доигравший до конца, возвращает дефолтный трек сцены (`RestoreFallbackTrack`). Завершённость детектируется по двум признакам: `source.time` за пределами ~0 **или** запрос трека старше, чем длится клип (`_lastSwitchTime`) — доигравшие источники на некоторых платформах сбрасывают `time` в ~0 и выглядят как «никогда не стартовавшие»; второй признак не даёт reviver в `Update` перезапустить отыгранный playOnce-трек заново.
+- Нелоoping-трек, доигравший до конца, возвращает дефолтный трек сцены (`RestoreFallbackTrack`).
 - Пул источников прогревается (`LoadAudioData`) в `Start` — стриминг без хичей на первом воспроизведении.
 
 ### MusicTrack.cs (`Assets/Scripts/Core/MusicTrack.cs`)
@@ -125,22 +116,3 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 - **Mute для событий:** `AudioManager.MuteBackground/UnmuteBackground` или напрямую `MusicDirector.MuteForEvent/RestoreAfterEvent` — глушится музыка и tracked-лупы, one-shot SFX продолжают звучать.
 - **Слои:** `PlayBackgroundLayer`/`StopBackgroundLayer` для независимых 2D-слоёв с фейдами.
 - **Громкости:** `SystemSettings` пишет в exposed-параметры микшера (`SFXVolume` / `MusicVolume`), изменения применяются мгновенно к играющему звуку.
-
-## Звуки предметов (унифицированная система)
-
-Звуки подбора задаются **только в `ItemData`-ассетах** — в сцене и префабах их нет:
-
-```
-Клик по предмету в мире   →  ItemData.previewClip (громкость previewVolume)
-                             Пусто → тишина
-Взятие в окне осмотра     →  ItemData.pickupClip
-                             Пусто → общий pickupClip с /InspectionSetup (ItemInspector)
-Крафт                     →  InventoryAudio._craftClip (слушает InventorySystem.OnCrafted)
-```
-
-- `PickableItem` больше не хранит звуков (поля `_previewSound`/`_previewSoundVolume` удалены).
-- `ItemInspector` (`/InspectionSetup`) держит `pickupClip` = `S_GrabItem` — дефолтный звук взятия на все предметы.
-- Приоритет: `ItemData.pickupClip` → общий `ItemInspector.pickupClip`.
-- Стандартный звук клика — `S_GrabbinForItem` (`/Assets/sound/pickItem/`), вписан в `previewClip` всех существующих ассетов. Кастомы: `Data_KeyPantry` и `Data_Сanister` — `GasCan`.
-- Viewable-предметы (`inspectOnly`, например бутылки) идут через тот же `PickableItem.Interact()` → тот же `previewClip`.
-- Правило: новый звук предмета = поле в его `ItemData`-ассете. Не вешать звуки на объекты в сцене.

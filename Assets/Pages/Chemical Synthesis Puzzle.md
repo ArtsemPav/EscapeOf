@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 ## Что делает загадка
 
 Игрок управляет лабораторной станцией с пятью устройствами: **центрифуга**, **спиртовка**, **миксер**, **анализатор** и **мусорка** (`TrashController`). Все ингредиенты выдаются в **неопознанном** виде — их нужно либо опознать в анализаторе, либо использовать напрямую (неопознанные дублируют функционал опознанных). Для победы нужно синтезировать и опознать `SerumColba`.
@@ -6,21 +8,21 @@
 
 ## Конфигурация рецептов (`ChemicalSynthesisController`)
 
-Файл: `Assets/Scripts/Puzzle/ChemicalPuzzle/ChemicalSynthesisController.cs`. Вся цепочка синтеза задаётся centrally на контроллере — полями `SynthesisStep[] _synthesisSteps`. Каждая запись `SynthesisStep` — один шаг обработки на одном устройстве; значения инжектируются в контроллеры устройств в `Awake()` (`ApplySynthesisRecipe`).
+Файл: `Assets/Scripts/Puzzle/ChemicalPuzzle/ChemicalSynthesisController.cs`. Вся цепочка синтеза задаётся ** centrally на контроллере** — полями `SynthesisStep[] _synthesisSteps`. Каждая запись `SynthesisStep` — один шаг обработки на одном устройстве; значения инжектируются в контроллеры устройств в `Awake()` (`ApplySynthesisRecipe`).
 
 `SynthesisStep` (заполняются только поля выбранного устройства, остальные игнорируются):
 
 
-| Поле                 | Устройство          | Описание                                                                 |
-| -------------------- | ------------------- | ------------------------------------------------------------------------ |
-| `label`              | любое               | Подпись шага только для Inspector, на рантайм не влияет                   |
-| `device`             | любое               | `Burner / Centrifuge / Mixer / Analyzer`                                  |
-| `burnerInputs`       | Burner              | Правильные входы (все дают `successResult`, остальное — `spoiledResult`)  |
-| `centrifugeInput`    | Centrifuge          | Один вход → один выход. Дополнительные маппинги = дополнительные шаги     |
-| `successResult` / `spoiledResult` | Burner / Centrifuge | Результаты при верном/неверном входе                             |
-| `mixerIngredients`   | Mixer               | Ингредиенты рецепта (порядок не важен, важен факт наличия)                |
-| `mixerResult`        | Mixer               | Выход рецепта. Один шаг = один рецепт; первый полностью совпавший выигрывает |
-| `analyzerWinItemId`  | Analyzer            | `ItemId` колбы, дающей победу (default: `"SerumColba"`)                   |
+| Поле                              | Устройство          | Описание                                                                     |
+| --------------------------------- | ------------------- | ---------------------------------------------------------------------------- |
+| `label`                           | любое               | Подпись шага только для Inspector, на рантайм не влияет                      |
+| `device`                          | любое               | `Burner / Centrifuge / Mixer / Analyzer`                                     |
+| `burnerInputs`                    | Burner              | Правильные входы (все дают `successResult`, остальное — `spoiledResult`)     |
+| `centrifugeInput`                 | Centrifuge          | Один вход → один выход. Дополнительные маппинги = дополнительные шаги        |
+| `successResult` / `spoiledResult` | Burner / Centrifuge | Результаты при верном/неверном входе                                         |
+| `mixerIngredients`                | Mixer               | Ингредиенты рецепта (порядок не важен, важен факт наличия)                   |
+| `mixerResult`                     | Mixer               | Выход рецепта. Один шаг = один рецепт; первый полностью совпавший выигрывает |
+| `analyzerWinItemId`               | Analyzer            | `ItemId` колбы, дающей победу (default: `"SerumColba"`)                      |
 
 
 ---
@@ -167,13 +169,13 @@ ChemicalSynthesisController      ← оркестратор, IPuzzleDropHandler,
 └── TrashController
 ```
 
-**`ChemicalDeviceBase`** — абстрактный базовый класс: `IsBusy`, `OnProcessComplete`, `CompleteWithResult/s`.
+`**ChemicalDeviceBase**` — абстрактный базовый класс: `IsBusy`, `OnProcessComplete`, `CompleteWithResult/s`.
 
-**`IdentificationEntry`** — struct `{ ItemData unknown; ItemData identified; }` — используется в `_equivalenceMap` контроллера (общая для всех устройств и анализатора).
+`**IdentificationEntry**` — struct `{ ItemData unknown; ItemData identified; }` — используется в `_equivalenceMap` контроллера (общая для всех устройств и анализатора).
 
-**`DeviceTooltipInfo`** — тексты тултипов устройств (`_deviceTooltips`), показываются при наведении (включая мусорку).
+`**DeviceTooltipInfo` / `DeviceTooltipInfo**` — тексты тултипов устройств (`_deviceTooltips`), показываются при наведении (включая мусорку).
 
-**`IChemicalPuzzleContext`** — интерфейс контекста: `IsAccepted`, `Normalize`, `IsPuzzleItem`. Инжектируется в устройства через `Initialize(context)`.
+`**IChemicalPuzzleContext**` — интерфейс контекста: `IsAccepted`, `Normalize`, `IsPuzzleItem`. Инжектируется в устройства через `Initialize(context)`.
 
 ### Поток событий
 

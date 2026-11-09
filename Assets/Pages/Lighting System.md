@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 ## Overview
 
 The lighting system controls all runtime lights in the scene through named zones. Each lamp registers itself independently, which makes the system fully compatible with prefabs — no scene hierarchy restructuring required.

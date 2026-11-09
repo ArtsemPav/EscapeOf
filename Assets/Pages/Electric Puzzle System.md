@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 ## Overview
 
 The electric puzzle is a wire-connection panel gated by two conditions: the building generator must be running (`LightingSystem.IsGeneratorReady`) and a fuse must be inserted. The player then connects six colored terminals to six neutral terminals in the correct order. Pulling the lever with a correct solution completes the puzzle (with a solved cinematic); pulling it with a wrong solution instantly resets all wires.
@@ -214,10 +216,10 @@ electric  (root — ElectricPuzzleController, BoxCollider, PuzzleModeController,
 ### Hints
 
 
-| Field               | Description                                                                                          |
-| ------------------- | ---------------------------------------------------------------------------------------------------- |
-| `_noGeneratorHint`  | Hint via `PopupMessageSystem` when the lever is pulled before the generator runs (default: «Сначала нужно запустить генератор.») |
-| `_noFuseHint`       | Hint when the generator runs but no fuse is inserted (default: «Нужен предохранитель.»)               |
+| Field              | Description                                                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `_noGeneratorHint` | Hint via `PopupMessageSystem` when the lever is pulled before the generator runs (default: «Сначала нужно запустить генератор.») |
+| `_noFuseHint`      | Hint when the generator runs but no fuse is inserted (default: «Нужен предохранитель.»)                                          |
 
 
 ### Lamp
@@ -235,10 +237,10 @@ electric  (root — ElectricPuzzleController, BoxCollider, PuzzleModeController,
 ### Lever
 
 
-| Field                 | Description                                                                                   |
-| --------------------- | --------------------------------------------------------------------------------------------- |
-| `_lever`              | `ElectricLever` on `pCube17` — auto-found in `Awake()` if not assigned                        |
-| `_wrongPullParticles` | `ParticleSystem` on `vfx_Sparks_01` — plays on incorrect lever pulls (generator on, fuse in)  |
+| Field                 | Description                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------- |
+| `_lever`              | `ElectricLever` on `pCube17` — auto-found in `Awake()` if not assigned                       |
+| `_wrongPullParticles` | `ParticleSystem` on `vfx_Sparks_01` — plays on incorrect lever pulls (generator on, fuse in) |
 
 
 ### Settings

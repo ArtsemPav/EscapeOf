@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 ## Обзор
 
 Финальная загадка игры — двухфазная головоломка у последней двери.
@@ -8,7 +10,7 @@
 
 **Финал:** после решения `EndGameSequence` берёт управление на себя — открывает дверь, ведёт игрока сквозь неё с гейнз-хореографией (взгляды на статуи Смерти и Ангела), затемняет экран и показывает титры. Титры стирают сейв и возвращают игру на стартовую сцену.
 
-Оба состояния (фаза 1 и фаза 2) сохраняются через Save System.
+Оба состояния (фаза 1 и фаза 2) сохраняются через [@ id="/Pages/Private/Save System.md" label="Save System"].
 
 Скрипты: `Assets/Scripts/Puzzle/FinalDoor/`.
 
@@ -28,7 +30,6 @@ FinalDoorPuzzle (root)
 │   ├── FinalDoorSideInteractable       # вход в puzzle mode с камерой статуи
 │   └── CinemachineCamera               # close-up камеры статуй
 ├── Гнёзда MedallionHole × 6            # компоненты гнёзд двери
-├── Prizm                              # ObjectSpinner: медленное вращение вокруг Y
 └── Scull
     ├── ScullPuzzlePhase        # фаза 2: монеты, челюсть, сыворотка, сейв
     ├── CinemachineCamera       # close-up черепа
@@ -45,19 +46,21 @@ FinalDoorPuzzle (root)
 
 **Inspector**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_saveId` | ID сохранения (default: `"final_door_puzzle_mode"`), хранит только `isSolved` |
-| `_overviewCamera` | Камера обзора для кинематика. Автопоиск по имени `"All"`/`"Overview"` если пусто |
-| `_statueCameras` | Камеры статуй. Автообнаружение из дочерних объектов, если пусто |
-| `_blendDuration` | Длительность бленда переходов внутри puzzle mode в сек (default: 0.75) |
-| `_showInventoryBar` | Показывать `PuzzleInventoryBar` в puzzle mode (default: `true`) |
-| `_disableFlashlightInPuzzle` | Принудительно выключить фонарь в puzzle mode (default: `true`) |
-| `_flashlightSupportLights` | Свет-компенсация на время отключённого фонаря |
-| `_interactText` | Подсказка fallback-взаимодействия (default: `"Осмотреть"`) |
-| `_crosshairMode` | Режим прицела (default: `Hand`) |
-| `_useExitPopup` / `_exitPopupText` / `_exitPopupType` | Попап-подсказка «Выход: Esc» при входе (default: `Warning`, 3 сек) |
-| `OnPuzzleModeEntered` / `OnPuzzleModeExited` / `OnPuzzleSolved` | `UnityEvent` |
+
+| Поле                                                            | Описание                                                                         |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `_saveId`                                                       | ID сохранения (default: `"final_door_puzzle_mode"`), хранит только `isSolved`    |
+| `_overviewCamera`                                               | Камера обзора для кинематика. Автопоиск по имени `"All"`/`"Overview"` если пусто |
+| `_statueCameras`                                                | Камеры статуй. Автообнаружение из дочерних объектов, если пусто                  |
+| `_blendDuration`                                                | Длительность бленда переходов внутри puzzle mode в сек (default: 0.75)           |
+| `_showInventoryBar`                                             | Показывать `PuzzleInventoryBar` в puzzle mode (default: `true`)                  |
+| `_disableFlashlightInPuzzle`                                    | Принудительно выключить фонарь в puzzle mode (default: `true`)                   |
+| `_flashlightSupportLights`                                      | Свет-компенсация на время отключённого фонаря                                    |
+| `_interactText`                                                 | Подсказка fallback-взаимодействия (default: `"Осмотреть"`)                       |
+| `_crosshairMode`                                                | Режим прицела (default: `Hand`)                                                  |
+| `_useExitPopup` / `_exitPopupText` / `_exitPopupType`           | Попап-подсказка «Выход: Esc» при входе (default: `Warning`, 3 сек)               |
+| `OnPuzzleModeEntered` / `OnPuzzleModeExited` / `OnPuzzleSolved` | `UnityEvent`                                                                     |
+
 
 **События (C#):** `OnEntered`, `OnExited`, `OnSolved`.
 
@@ -65,14 +68,16 @@ FinalDoorPuzzle (root)
 
 **Публичные методы**
 
-| Метод | Описание |
-| ----- | -------- |
-| `EnterPuzzleMode(entryCamera, dropHandler)` | Вход в puzzle mode: мгновенный кат на камеру, модальное состояние UI, курсор, фонарь off, инвентарь-бар |
-| `ExitPuzzleMode()` / `ExitPuzzleModeInstant()` | Выход с блендом / мгновенно (для затемнений) |
-| `SwitchCamera(cam)` / `SwitchCameraInstant(cam)` | Переключение камеры внутри режима (плавно / кат) |
-| `SwitchToOverview()` / `SwitchToOverviewInstant()` | Переход к камере обзора |
-| `SetSolved()` | Помечает загадку решённой, шлёт события, выходит из режима, сохраняет |
-| `MarkPhase1Completed()` | Блокирует взаимодействия корня и статуй — работает только череп |
+
+| Метод                                              | Описание                                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `EnterPuzzleMode(entryCamera, dropHandler)`        | Вход в puzzle mode: мгновенный кат на камеру, модальное состояние UI, курсор, фонарь off, инвентарь-бар |
+| `ExitPuzzleMode()` / `ExitPuzzleModeInstant()`     | Выход с блендом / мгновенно (для затемнений)                                                            |
+| `SwitchCamera(cam)` / `SwitchCameraInstant(cam)`   | Переключение камеры внутри режима (плавно / кат)                                                        |
+| `SwitchToOverview()` / `SwitchToOverviewInstant()` | Переход к камере обзора                                                                                 |
+| `SetSolved()`                                      | Помечает загадку решённой, шлёт события, выходит из режима, сохраняет                                   |
+| `MarkPhase1Completed()`                            | Блокирует взаимодействия корня и статуй — работает только череп                                         |
+
 
 Esc (`InputManager.OnMenuPerformed`) выходит из режима, но только если все дочерние `IPuzzleExitGuard` разрешают (`CanExitPuzzle`).
 
@@ -82,12 +87,14 @@ Esc (`InputManager.OnMenuPerformed`) выходит из режима, но то
 
 **Inspector**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_controller` | `FinalDoorPuzzleController`. Автопоиск `GetComponentInParent` если пусто |
-| `_camera` | `CinemachineCamera` этой статуи — активируется мгновенно при взаимодействии |
-| `_interactText` | Подсказка (default: `"Осмотреть"`) |
-| `_crosshairMode` | Режим прицела (default: `Hand`) |
+
+| Поле             | Описание                                                                    |
+| ---------------- | --------------------------------------------------------------------------- |
+| `_controller`    | `FinalDoorPuzzleController`. Автопоиск `GetComponentInParent` если пусто    |
+| `_camera`        | `CinemachineCamera` этой статуи — активируется мгновенно при взаимодействии |
+| `_interactText`  | Подсказка (default: `"Осмотреть"`)                                          |
+| `_crosshairMode` | Режим прицела (default: `Hand`)                                             |
+
 
 `CanInteract()` возвращает `false`, когда режим активен, загадка решена или фаза 1 завершена.
 
@@ -97,19 +104,21 @@ Esc (`InputManager.OnMenuPerformed`) выходит из режима, но то
 
 **Inspector**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_controller` | Контроллер (автопоиск на том же объекте) |
-| `_doorHoles` | 6 гнёзд `MedallionHole` в порядке 0..5. Автопоиск из детей если пусто |
-| `_doorMedallionOrder` | Правильный `ItemData` для каждого гнезда, в порядке 0..5 |
-| `_allMedallions` | Все медальоны загадки — для восстановления из сейва (порядок не важен) |
-| `_activationAnimator` | Аниматор активации двери (триггер `_activationTrigger`, default `"Activate"`) |
-| `_scullAnimator` | Аниматор черепа — играет состояние `_scullMoveStateName` (default: `"scullMove"`) |
-| `_activationDuration` | Запас времени ожидания анимации в сек (default: 3) |
-| `_fadeDuration` | Длительность фейдов кинематика в сек (default: 1) |
-| `_solvedObject` | GameObject, активируемый после кинематика |
-| `_scullPhase` | `ScullPuzzlePhase` — активируется после фазы 1 (автопоиск в детях) |
-| `_activationClip` / `_solvedClip` / `_coinDropClip` / `_coinPickupClip` + тома | Звуки активации, решения, вставки/подбора медальона |
+
+| Поле                                                                           | Описание                                                                          |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `_controller`                                                                  | Контроллер (автопоиск на том же объекте)                                          |
+| `_doorHoles`                                                                   | 6 гнёзд `MedallionHole` в порядке 0..5. Автопоиск из детей если пусто             |
+| `_doorMedallionOrder`                                                          | Правильный `ItemData` для каждого гнезда, в порядке 0..5                          |
+| `_allMedallions`                                                               | Все медальоны загадки — для восстановления из сейва (порядок не важен)            |
+| `_activationAnimator`                                                          | Аниматор активации двери (триггер `_activationTrigger`, default `"Activate"`)     |
+| `_scullAnimator`                                                               | Аниматор черепа — играет состояние `_scullMoveStateName` (default: `"scullMove"`) |
+| `_activationDuration`                                                          | Запас времени ожидания анимации в сек (default: 3)                                |
+| `_fadeDuration`                                                                | Длительность фейдов кинематика в сек (default: 1)                                 |
+| `_solvedObject`                                                                | GameObject, активируемый после кинематика                                         |
+| `_scullPhase`                                                                  | `ScullPuzzlePhase` — активируется после фазы 1 (автопоиск в детях)                |
+| `_activationClip` / `_solvedClip` / `_coinDropClip` / `_coinPickupClip` + тома | Звуки активации, решения, вставки/подбора медальона                               |
+
 
 **Кинематик активации (после `FinalDoorPuzzleUI.OnPuzzleSolved`):**
 
@@ -134,14 +143,16 @@ FadeIn (чёрный экран)
 
 **Inspector**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_doorHoles` | Гнёзда в порядке 0..5 (автопоиск из детей) |
-| `_holeLayer` | LayerMask коллайдеров гнёзд для рейкастов |
-| `_coinPrefab` | Fallback-префаб монеты, если `ItemData.inspectionPrefab` пуст |
-| `_dropHeight` | Высота старта анимации падения в метрах (default: 0.005) |
-| `_dropDuration` | Длительность падения в сек (default: 0.35) |
-| `_controller` | Контроллер (автопоиск на том же объекте) |
+
+| Поле            | Описание                                                      |
+| --------------- | ------------------------------------------------------------- |
+| `_doorHoles`    | Гнёзда в порядке 0..5 (автопоиск из детей)                    |
+| `_holeLayer`    | LayerMask коллайдеров гнёзд для рейкастов                     |
+| `_coinPrefab`   | Fallback-префаб монеты, если `ItemData.inspectionPrefab` пуст |
+| `_dropHeight`   | Высота старта анимации падения в метрах (default: 0.005)      |
+| `_dropDuration` | Длительность падения в сек (default: 0.35)                    |
+| `_controller`   | Контроллер (автопоиск на том же объекте)                      |
+
 
 **Событие:** `OnPuzzleSolved` — все 6 гнёзд заполнены правильно (`PlacedItem == _medallionOrder[i]` повсюду). `MarkSolved()` блокирует дальнейшие взаимодействия. `RestoreState` заполняет гнёзда по id и молча проверяет победу (без события).
 
@@ -151,25 +162,27 @@ FadeIn (чёрный экран)
 
 **Inspector (основные поля)**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_controller` | Контроллер (автопоиск по родителю) |
-| `_scullCamera` | Close-up камера черепа |
-| `_eye0Object` / `_eye1Object` | Визуалы монет в глазницах (Coin1/Coin2), скрыты до вставки |
-| `_eyeLayer` | LayerMask коллайдеров глазниц (default: bit 10, PuzzleInteractable) |
-| `_scullAnimator` / `_scullOpenStateName` | Аниматор и состояние открытия челюсти (default: `"ScullOpen"`) |
-| `_coinItems` | Принимаемые монеты (Coin 1, Coin 2) — любая в любую глазницу |
-| `_serumColbaItem` | `ItemData` колбы с сывороткой |
-| `_colbaTransform` / `_colbaReadTransform` | Transforms колбы: исходный и финальный (`colbaRead`) для анимации переворота |
-| `_liquidWobble` | `ChemicalPuzzle.LiquidWobble` жидкость — при выливании меш жидкости сжимается по локальной оси до нуля (шейдер клипует по мировой горизонтали, поэтому `fillFraction` в наклонной позе даёт эффект наполнения) |
-| `_liquidRenderer` | Рендерер жидкости |
-| `_pourDuration` / `_flipDuration` | Длительности анимаций выливания и переворота в сек (default: 2 / 1) |
-| `_scullDropCollider` / `_scullDropLayer` | Коллайдер черепа для приёма колбы (default layer bit 7, Interactable); попадание проверяется через `RaycastAll` — геометрия перед черепом (челюсть, стены) не перекрывает зону дропа |
-| `_coinPrefab` / `_coinRenderingLayerMask` | Ghost-префаб монеты и URP rendering layer mask (default: биты 22 `CoridorFDoor` + 9 `flashLight`) |
-| `_dropHeight` / `_dropDuration` | Анимация вставки монеты (default: 0.05 / 0.3) |
-| `_fadeDuration` | Фейды финального кинематика (default: 1) |
-| `_interactText` | Подсказка (default: `"Осмотреть череп"`) |
-| `_coinDropClip` / `_jawOpenClip` / `_pourClip` + тома | Звуки |
+
+| Поле                                                  | Описание                                                                                                 |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `_controller`                                         | Контроллер (автопоиск по родителю)                                                                       |
+| `_scullCamera`                                        | Close-up камера черепа                                                                                   |
+| `_eye0Object` / `_eye1Object`                         | Визуалы монет в глазницах (Coin1/Coin2), скрыты до вставки                                               |
+| `_eyeLayer`                                           | LayerMask коллайдеров глазниц (default: bit 10, PuzzleInteractable)                                      |
+| `_scullAnimator` / `_scullOpenStateName`              | Аниматор и состояние открытия челюсти (default: `"ScullOpen"`)                                           |
+| `_coinItems`                                          | Принимаемые монеты (Coin 1, Coin 2) — любая в любую глазницу                                             |
+| `_serumColbaItem`                                     | `ItemData` колбы с сывороткой                                                                            |
+| `_colbaTransform` / `_colbaReadTransform`             | Transforms колбы: исходный и финальный (`colbaRead`) для анимации переворота                             |
+| `_liquidWobble`                                       | `ChemicalPuzzle.LiquidWobble` жидкость — `fillFraction` анимируется до 0 при выливании                   |
+| `_liquidRenderer`                                     | Рендерер жидкости                                                                                        |
+| `_pourDuration` / `_flipDuration`                     | Длительности анимаций выливания и переворота в сек (default: 2 / 1)                                      |
+| `_scullDropCollider` / `_scullDropLayer`              | Коллайдер черепа для приёма колбы (default layer bit 7, Interactable); включается после открытия челюсти |
+| `_coinPrefab` / `_coinRenderingLayerMask`             | Ghost-префаб монеты и URP rendering layer mask (default: биты 22 `CoridorFDoor` + 9 `flashLight`)        |
+| `_dropHeight` / `_dropDuration`                       | Анимация вставки монеты (default: 0.05 / 0.3)                                                            |
+| `_fadeDuration`                                       | Фейды финального кинематика (default: 1)                                                                 |
+| `_interactText`                                       | Подсказка (default: `"Осмотреть череп"`)                                                                 |
+| `_coinDropClip` / `_jawOpenClip` / `_pourClip` + тома | Звуки                                                                                                    |
+
 
 **Логика фазы 2:**
 
@@ -182,12 +195,8 @@ Activate()  ← вызывается из FinalDoorPuzzleInteraction после 
   → Обе глазницы заполнены → OpenJawRoutine:
       пауза 0.3с → звук → Play("ScullOpen") → _jawOpen = true
       → коллайдеры глазниц off, коллайдер приёма сыворотки on → Save
-  → SerumColba: HandleDrop → RaycastAll по коллайдеру черепа → ClearGhost → PourRoutine:
-      колба сразу в авторской наклонной позе colbaRead (без анимации поворота);
-      меш жидкости сжимается по локальной оси до нуля И сползает к горлышку
-      (bounds.max.y → +Y) за _pourDuration — колба перевёрнута, горлышко в +Y
-      (fillFraction не используется — в наклонной позе мировая клип-плоскость
-      шейдера даёт визуальное наполнение)
+  → SerumColba: HandleDrop → рейкаст по коллайдеру черепа → PourRoutine:
+      активировать colbaRead → переворот (SmoothStep) + fillFraction → 0
       → пауза 0.5с → скрыть колбу → FadeIn
       → _serumPoured = true → ExitPuzzleModeInstant → SetSolved() → FadeOut → Save
 ```
@@ -200,24 +209,26 @@ Ghost-превью монет и колбы делаются инстансом 
 
 **Inspector (ключевые поля)**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_controller` | Контроллер — источник события `OnSolved` |
-| `_doorAnimator` / `_doorOpenStateName` | Аниматор двери и состояние открытия (default: `"doorOpen"`) |
-| `_doorOpenFallbackDuration` | Fallback-ожидание без аниматора в сек (default: 4.5) |
-| `_walkTarget` / `_doorCenter` / `_walkDistanceBeyondDoor` | Точка прогулки; без явной цели строится автоматически: центр двери + направление «игрок → дверь», продлённое на 2.5 м за дверь |
-| `_playerStartPoint` | Точка снапа игрока (только горизонталь, высота сохраняется) — снап происходит на чёрном экране |
-| `_lookPoint` | Точка, на которую заблокирован взгляд до конца финального фейда |
-| `_deathPoint` / `_angelPoint` | Статуи для гейнз-хореографии: после открытия двери взгляд плавно переводится на Смерть, затем на Ангела |
-| `_gazeStartDelay` / `_gazeHoldTime` / `_gazeArrivalAngle` / `_gazeTimeout` | Параметры гейнза (default: 1 / 1.2 сек / 3° / 8 сек) |
-| `_cameraTurnSpeed` / `_aimAcceleration` / `_aimSettleAngle` / `_lookHoldDistance` | Плавность поворота камеры: разгон, торможение у цели, остановка прицела вблизи точки (default: 120°/с, 240°/с², 45°, 1.5 м) |
-| `_maxStallTime` | Если игрок «застрял» дольше этого времени — фейд форсируется (default: 2.5 сек) |
-| `_walkSpeed` / `_guiltWalkSpeed` / `_guiltPauseDuration` | Скорости ходьбы; финальный подход — медленные «тяжёлые» шаги (default: 0.8 / 0.4 м/с, пауза 2 сек) |
-| `_arrivalThreshold` / `_maxWalkDuration` | Порог прихода и страховочный таймаут прогулки (default: 0.2 м / 20 сек) |
-| `_portal` | `PortalFunnelController` — активируется вместе с открытием двери (всю игру чёрная дыра держится выключенной) |
-| `_startDelay` / `_earlyFadeLead` / `_fadeDuration` | Задержка старта, ранний фейд за N секунд до конца прогулки (default: 5), длительность финального фейда (default: 2.5) |
-| `_creditsView` | `EndGameCreditsView` (автопоиск по типу) |
-| `_debugLogging` | Отладочные логи |
+
+| Поле                                                                              | Описание                                                                                                                       |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `_controller`                                                                     | Контроллер — источник события `OnSolved`                                                                                       |
+| `_doorAnimator` / `_doorOpenStateName`                                            | Аниматор двери и состояние открытия (default: `"doorOpen"`)                                                                    |
+| `_doorOpenFallbackDuration`                                                       | Fallback-ожидание без аниматора в сек (default: 4.5)                                                                           |
+| `_walkTarget` / `_doorCenter` / `_walkDistanceBeyondDoor`                         | Точка прогулки; без явной цели строится автоматически: центр двери + направление «игрок → дверь», продлённое на 2.5 м за дверь |
+| `_playerStartPoint`                                                               | Точка снапа игрока (только горизонталь, высота сохраняется) — снап происходит на чёрном экране                                 |
+| `_lookPoint`                                                                      | Точка, на которую заблокирован взгляд до конца финального фейда                                                                |
+| `_deathPoint` / `_angelPoint`                                                     | Статуи для гейнз-хореографии: после открытия двери взгляд плавно переводится на Смерть, затем на Ангела                        |
+| `_gazeStartDelay` / `_gazeHoldTime` / `_gazeArrivalAngle` / `_gazeTimeout`        | Параметры гейнза (default: 1 / 1.2 сек / 3° / 8 сек)                                                                           |
+| `_cameraTurnSpeed` / `_aimAcceleration` / `_aimSettleAngle` / `_lookHoldDistance` | Плавность поворота камеры: разгон, торможение у цели, остановка прицела вблизи точки (default: 120°/с, 240°/с², 45°, 1.5 м)    |
+| `_maxStallTime`                                                                   | Если игрок «застрял» дольше этого времени — фейд форсируется (default: 2.5 сек)                                                |
+| `_walkSpeed` / `_guiltWalkSpeed` / `_guiltPauseDuration`                          | Скорости ходьбы; финальный подход — медленные «тяжёлые» шаги (default: 0.8 / 0.4 м/с, пауза 2 сек)                             |
+| `_arrivalThreshold` / `_maxWalkDuration`                                          | Порог прихода и страховочный таймаут прогулки (default: 0.2 м / 20 сек)                                                        |
+| `_portal`                                                                         | `PortalFunnelController` — активируется вместе с открытием двери (всю игру чёрная дыра держится выключенной)                   |
+| `_startDelay` / `_earlyFadeLead` / `_fadeDuration`                                | Задержка старта, ранний фейд за N секунд до конца прогулки (default: 5), длительность финального фейда (default: 2.5)          |
+| `_creditsView`                                                                    | `EndGameCreditsView` (автопоиск по типу)                                                                                       |
+| `_debugLogging`                                                                   | Отладочные логи                                                                                                                |
+
 
 **Последовательность:**
 
@@ -242,17 +253,19 @@ OnSolved
 
 **Inspector**
 
-| Поле | Описание |
-| ---- | -------- |
-| `_canvasGroup` | CanvasGroup для фейда (автопоиск на объекте) |
-| `_fadeInDuration` | Длительность проявления чёрного фона в сек (default: 2) |
-| `_entries` | Массив ассетов `CreditsEntry` — строки титров, показываются по одной |
-| `_entryHoldDuration` / `_entryFadeDuration` | Время показа и фейда каждой строки (default: 3 / 0.8 сек) |
-| `_creditsLabel` | `TextMeshProUGUI` для строк и финального текста |
-| `_thanksText` | Финальный текст (default: `"Спасибо за игру"`) |
-| `_thanksHoldDuration` | Сколько держится финальный текст (default: 5 сек) |
-| `_startSceneName` | Сцена, загружаемая после титров (default: `"Start"`) |
-| `_deleteSaveOnFinish` | Стереть дефолтный слот сейва перед выходом (default: `true`) — пройденную игру нельзя загрузить |
+
+| Поле                                        | Описание                                                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `_canvasGroup`                              | CanvasGroup для фейда (автопоиск на объекте)                                                    |
+| `_fadeInDuration`                           | Длительность проявления чёрного фона в сек (default: 2)                                         |
+| `_entries`                                  | Массив ассетов `CreditsEntry` — строки титров, показываются по одной                            |
+| `_entryHoldDuration` / `_entryFadeDuration` | Время показа и фейда каждой строки (default: 3 / 0.8 сек)                                       |
+| `_creditsLabel`                             | `TextMeshProUGUI` для строк и финального текста                                                 |
+| `_thanksText`                               | Финальный текст (default: `"Спасибо за игру"`)                                                  |
+| `_thanksHoldDuration`                       | Сколько держится финальный текст (default: 5 сек)                                               |
+| `_startSceneName`                           | Сцена, загружаемая после титров (default: `"Start"`)                                            |
+| `_deleteSaveOnFinish`                       | Стереть дефолтный слот сейва перед выходом (default: `true`) — пройденную игру нельзя загрузить |
+
 
 `CreditsEntry` — ScriptableObject (`Create → EscapeOf → Credits Entry`): опциональный заголовок `_title` (роль/раздел) и текст `_text`.
 
@@ -287,10 +300,11 @@ FadeIn фона (unscaled time) → по очереди: fade строки → h
 
 ## Взаимодействие с другими системами
 
-| Система | Связь |
-| ------- | ----- |
-| Save System | Три независимых `ISaveable`: контроллер (`isSolved`), фаза 1 (`phase1Completed` + медальоны), фаза 2 (`activated`/`jawOpen`/`serumPoured` + монеты) |
-| Inventory System | `PuzzleInventoryBar` — источник drag-and-drop; извлечение предметов обратно в инвентарь |
-| Химическая загадка (`ChemicalPuzzle`) | Общие типы `ItemData`, `MedallionHole`, `LiquidWobble` (жидкость в колбе) |
-| Flashlight System | Фонарь принудительно выключен и заблокирован в puzzle mode |
-| `AudioManager` / `ScreenFader` / `InputManager` / `UIManager` / `MusicDirector` | Звуки, фейды, вход Esc, модальное состояние UI |
+
+| Система                                                                         | Связь                                                                                                                                               |
+| ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [@ id="/Pages/Private/Save System.md" label="Save System"]          | Три независимых `ISaveable`: контроллер (`isSolved`), фаза 1 (`phase1Completed` + медальоны), фаза 2 (`activated`/`jawOpen`/`serumPoured` + монеты) |
+| [@ id="/Pages/Private/Inventory System.md" label="Inventory System"]     | `PuzzleInventoryBar` — источник drag-and-drop; извлечение предметов обратно в инвентарь                                                             |
+| Химическая загадка (`ChemicalPuzzle`)                                           | Общие типы `ItemData`, `MedallionHole`, `LiquidWobble` (жидкость в колбе)                                                                           |
+| [@ id="/Pages/Private/Flashlight System.md" label="Flashlight System"]    | Фонарь принудительно выключен и заблокирован в puzzle mode                                                                                          |
+| `AudioManager` / `ScreenFader` / `InputManager` / `UIManager` / `MusicDirector` | Звуки, фейды, вход Esc, модальное состояние UI                                                                                                      |

@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 Система сохранений автоматически запоминает состояние игры и восстанавливает его при следующем запуске. Любой объект в сцене может участвовать в сохранении — достаточно реализовать один интерфейс.
 
 ## Как это работает в двух словах
@@ -111,53 +113,55 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 ## Уже реализованные ISaveable в проекте
 
 
-| Компонент                     | SaveId пример                 | Что сохраняет                                            |
-| ----------------------------- | ----------------------------- | -------------------------------------------------------- |
-| `PickableItem`                | `pickable_flashlight`         | Подобран ли предмет (`collected`)                        |
-| `InventorySystem`             | `inventory` (константа)       | Содержимое всех слотов                                   |
-| `DoorInteraction`             | `door_firstroom_main`         | Открыта/заперта/угол открытия                            |
-| `CodeLock`                    | `codelock_firstroom`          | Разблокирован ли замок, текущий код                      |
-| `HorrorEvent`                 | `horror_<eventId>`            | Сработало ли событие (авто-ID из `_eventId`)             |
-| `FlashlightController`        | `flashlight` (константа)      | Включён ли фонарик                                       |
-| `FPSController` (Player)      | `player` (константа)          | Позиция и угол камеры                                    |
-| `PressurePuzzle`              | `pressure_puzzle_boilerroom`  | Решена ли загадка (`isSolved`)                           |
-| `MedallionBoxInteraction`     | `medallion_puzzle`            | Solved-флаг + ItemId в каждой из 5 лунок                 |
-| `MedallionCollectionTracker`  | `medallion_collection`        | Порядок подбора медальонов                               |
-| `MedallionRoomTransformation` | `_saveId`                     | Состояние трансформации комнаты медальонов               |
-| `LightingSystem`              | `LightingSystem` (константа)  | Power state, generator readiness, switch states          |
-| `ElectricPuzzleController`    | `electric_puzzle`             | isSolved, wiresCorrect, connections, fuseInserted        |
-| `ChemicalSynthesisController` | `_saveId`                     | isSolved                                                 |
-| `LoopPuzzleController`        | `_saveId`                     | isSolved, switchStates, conditionLenses                  |
-| `LoopPuzzleHiddenDoor`        | `_saveId`                     | Состояние скрытой двери                                  |
-| `PaintingColumn`              | `painting_column_q1`          | Текущая высота картины                                   |
-| `SpotlightLensButton`         | `spotlight_lens_l1`           | Текущий шаг линзы (0–3)                                  |
-| `PuzzleModeController`        | `puzzle_mode_...`             | Решена ли загадка (общий контроллер режима)              |
-| `NurseryLockController`       | `nursery_lock`                | isSolved, isLockpickInserted                             |
-| `MetamorfPuzzleController`    | `metamorf_puzzle`             | Состояние загадки метаморфозы                            |
-| `BoardPuzzleManager`          | `board_puzzle`                | Состояние трубопроводной загадки                         |
-| `FifteenPuzzleManager`        | `fifteen_puzzle`              | Состояние загадки «пятнашки»                             |
-| `ClockHand`                   | `clock_hand_...`              | Положение стрелки часов                                  |
-| `LaptopOS`                    | `laptop_os`                   | Состояние ОС ноутбука                                    |
-| `ElevatorController`          | `elevator`                    | Текущий этаж, состояние лифта                            |
-| `MechanicalLock`              | `mechanical_lock_...`         | Состояние механического замка                            |
-| `LockDial`                    | `lock_dial_...`               | Положение диска замка                                    |
-| `RotateOnTrigger`             | `rotate_on_trigger_...`       | Угол вращения                                            |
-| `LeverInteraction`            | `_saveId` (или GUID)          | Состояние рычага (`IsOn`)                                |
-| `RoomPuzzleGate`              | `room_gate_coridor_fdoor`     | Состояние шлюза комнаты                                  |
-| `HorrorInteractable`          | `hprop_<suffix>`              | Состояние хоррор-интерактивного объекта                  |
-| `DuckHorrorInteractable`      | `_saveId`                     | Состояние утки-скримера                                  |
-| `SpiderWebSlowTrigger`        | `spider_web/...` (авто)       | Пройдена ли паутина (`isPassed`) — авто-ID из пути сцены |
-| `LiquidDrainInteractable`     | (GUID, авто)                  | Слита ли жидкость (`isDrained`)                          |
-| `RigidbodyStateSaver`         | `_saveId`                     | Поза Rigidbody (позиция + поворот, опц. скорости)        |
-| `MriUvCutscene`               | `_saveId`                     | Проиграна ли UV-катсцена МРИ                             |
-| `UVPentagramSequence`         | `_saveId`                     | Состояние UV-пентаграммы                                 |
-| `EarthquakeFOVPulse`          | авто-константа                | Отыгран ли эффект землетрясения (один раз)               |
-| `ScullPuzzlePhase`            | `final_door_scull_phase`      | Фаза финальной двери (череп)                             |
-| `FinalDoorPuzzleController`   | `_saveId`                     | Состояние контроллера финальной двери                    |
-| `FinalDoorPuzzleInteraction`  | `final_door_puzzle`           | Состояние взаимодействия финальной двери                 |
-| `GeneratorPuzzleController`   | `_saveId`                     | Состояние загадки генератора                             |
-| `PuzzleSolvedCinematic`       | `puzzle_solved_cinematic_...` | Воспроизведён ли кинематик                               |
-| `MusicDirector`               | `music_director` (константа)  | Доминирующий трек + позиция, playOnce-треки              |
+| Компонент                     | SaveId пример                 | Что сохраняет                                                         |
+| ----------------------------- | ----------------------------- | --------------------------------------------------------------------- |
+| `PickableItem`                | `pickable_flashlight`         | Подобран ли предмет (`collected`)                                     |
+| `InventorySystem`             | `inventory` (константа)       | Содержимое всех слотов                                                |
+| `DoorInteraction`             | `door_firstroom_main`         | Открыта/заперта/угол открытия                                         |
+| `CodeLock`                    | `codelock_firstroom`          | Разблокирован ли замок, текущий код                                   |
+| `HorrorEvent`                 | `horror_<eventId>`            | Сработало ли событие (авто-ID из `_eventId`)                          |
+| `FlashlightController`        | `flashlight` (константа)      | Включён ли фонарик                                                    |
+| `FPSController` (Player)      | `player` (константа)          | Позиция и угол камеры                                                 |
+| `PressurePuzzle`              | `pressure_puzzle_boilerroom`  | Решена ли загадка (`isSolved`)                                        |
+| `MedallionBoxInteraction`     | `medallion_puzzle`            | Solved-флаг + ItemId в каждой из 5 лунок                              |
+| `MedallionCollectionTracker`  | `medallion_collection`        | Порядок подбора медальонов                                            |
+| `MedallionRoomTransformation` | `_saveId`                     | Состояние трансформации комнаты медальонов                            |
+| `LightingSystem`              | `LightingSystem` (константа)  | Power state, generator readiness, switch states                       |
+| `ElectricPuzzleController`    | `electric_puzzle`             | isSolved, wiresCorrect, connections, fuseInserted                     |
+| `ChemicalSynthesisController` | `_saveId`                     | isSolved                                                              |
+| `LoopPuzzleController`        | `_saveId`                     | isSolved, switchStates, conditionLenses                               |
+| `LoopPuzzleHiddenDoor`        | `_saveId`                     | Состояние скрытой двери                                               |
+| `PaintingColumn`              | `painting_column_q1`          | Текущая высота картины                                                |
+| `SpotlightLensButton`         | `spotlight_lens_l1`           | Текущий шаг линзы (0–3)                                               |
+| `PuzzleModeController`        | `puzzle_mode_...`             | Решена ли загадка (общий контроллер режима)                           |
+| `NurseryLockController`       | `nursery_lock`                | isSolved, isLockpickInserted                                          |
+| `MetamorfPuzzleController`    | `metamorf_puzzle`             | Состояние загадки метаморфозы                                         |
+| `BoardPuzzleManager`          | `board_puzzle`                | Состояние трубопроводной загадки                                      |
+| `FifteenPuzzleManager`        | `fifteen_puzzle`              | Состояние загадки «пятнашки»                                          |
+| `ClockHand`                   | `clock_hand_...`              | Положение стрелки часов                                               |
+| `LaptopOS`                    | `laptop_os`                   | Состояние ОС ноутбука                                                 |
+| `ElevatorController`          | `elevator`                    | Текущий этаж, состояние лифта                                         |
+| `MechanicalLock`              | `mechanical_lock_...`         | Состояние механического замка                                         |
+| `LockDial`                    | `lock_dial_...`               | Положение диска замка                                                 |
+| `RotateOnTrigger`             | `rotate_on_trigger_...`       | Угол вращения                                                         |
+| `LeverInteraction`            | `_saveId` (или GUID)          | Состояние рычага (`IsOn`)                                             |
+| `RoomPuzzleGate`              | `room_gate_coridor_fdoor`     | Состояние шлюза комнаты                                               |
+| `FireIgnitionZone`            | `fire_zone/...` (авто)        | Сработала ли зона розжига (`isTriggered`) — авто-ID из пути сцены     |
+| `EmissionTrigger`             | `emission_trigger/...` (авто) | Состояние emission + флаг срабатывания; отключается галкой Save State |
+| `HorrorInteractable`          | `hprop_<suffix>`              | Состояние хоррор-интерактивного объекта                               |
+| `DuckHorrorInteractable`      | `_saveId`                     | Состояние утки-скримера                                               |
+| `SpiderWebSlowTrigger`        | `spider_web/...` (авто)       | Пройдена ли паутина (`isPassed`) — авто-ID из пути сцены              |
+| `LiquidDrainInteractable`     | (GUID, авто)                  | Слита ли жидкость (`isDrained`)                                       |
+| `RigidbodyStateSaver`         | `_saveId`                     | Поза Rigidbody (позиция + поворот, опц. скорости)                     |
+| `MriUvCutscene`               | `_saveId`                     | Проиграна ли UV-катсцена МРИ                                          |
+| `UVPentagramSequence`         | `_saveId`                     | Состояние UV-пентаграммы                                              |
+| `EarthquakeFOVPulse`          | авто-константа                | Отыгран ли эффект землетрясения (один раз)                            |
+| `ScullPuzzlePhase`            | `final_door_scull_phase`      | Фаза финальной двери (череп)                                          |
+| `FinalDoorPuzzleController`   | `_saveId`                     | Состояние контроллера финальной двери                                 |
+| `FinalDoorPuzzleInteraction`  | `final_door_puzzle`           | Состояние взаимодействия финальной двери                              |
+| `GeneratorPuzzleController`   | `_saveId`                     | Состояние загадки генератора                                          |
+| `PuzzleSolvedCinematic`       | `puzzle_solved_cinematic_...` | Воспроизведён ли кинематик                                            |
+| `MusicDirector`               | `music_director` (константа)  | Доминирующий трек + позиция, playOnce-треки                           |
 
 
 ---

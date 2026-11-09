@@ -1,7 +1,9 @@
+<!-- version: 1 -->
+
 Два вида кодовых замков:
 
-1. **`CodeLock` + `CodeLockUI`** — настенная панель с нумпадом: игрок вводит код, при успехе срабатывает UnityEvent (например, дверь `UnlockAndOpen()`).
-2. **`DigitalLockSystem` + `RingCodeIndicator`** — «умный» экран с полем ввода (используется внутри пазлов через `PuzzleModeController`).
+1. `**CodeLock` + `CodeLockUI**` — настенная панель с нумпадом: игрок вводит код, при успехе срабатывает UnityEvent (например, дверь `UnlockAndOpen()`).
+2. `**DigitalLockSystem` + `RingCodeIndicator**` — «умный» экран с полем ввода (используется внутри пазлов через `PuzzleModeController`).
 
 ---
 

@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 ## Overview
 
 Performance culling that toggles room **geometry** and **light zones** based on the player's
@@ -181,7 +183,7 @@ nearest trigger in the reconcile fallback.
   From inside a room you can see down a corridor; if those far rooms aren't listed, they pop to skybox
    when you fully enter. Match a room's list to what its adjacent corridor segment shows.
 3. **Trigger volumes should cover the whole room interior**, including the doorway threshold, so the
-   player never stands in a spot covered by no trigger (or only a neighbor's trigger).
+  player never stands in a spot covered by no trigger (or only a neighbor's trigger).
 4. Light zones are shared (e.g. stairs lights use `ZoneId="Corridor"`). A zone lights up if any active
   room owns it — see [@ id="/Pages/Private/Lighting System.md" label="Lighting System"].
 

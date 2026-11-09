@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 Инвентарь — это три независимых слоя: **данные** (ScriptableObjects), **логика** (`InventorySystem`) и **UI** (`InventoryUI` + слоты). Слои общаются через событие `OnInventoryChanged` — UI не знает о логике, логика не знает о UI.
 
 Для новичков — начни с [@ id="/Pages/Private/Quick Start.md" label="Quick Start"], затем [@ id="/Pages/Private/Pickable Items.md" label="Pickable Items"].
@@ -66,9 +68,6 @@ Assets/Data/Recipes/       # CraftingRecipe ассеты
 | `description`              | Описание (показывается в тултипе)                                                                                                     |
 | `_itemId` / `ItemId`       | Стабильный ID для сейв-системы. Если пуст — используется имя ассета. Не переименовывай ассет после сохранений                         |
 | `icon`                     | Иконка для слота инвентаря                                                                                                            |
-| `previewClip`              | Звук клика по предмету в мире (до открытия превью). Если пусто — тишина                                                               |
-| `previewVolume`            | Громкость `previewClip` (0–1, по умолчанию 1)                                                                                         |
-| `pickupClip`               | Звук взятия предмета в превью. Если пусто — общий `pickupClip` из `ItemInspector`                                                     |
 | `consumeOnUse`             | Если включено (по умолчанию) — предмет удаляется из инвентаря после использования                                                     |
 | `showInDevPanel`           | Показывать предмет в списке dev-панели для быстрого тестирования                                                                      |
 | `inspectionPrefab`         | Prefab для 3D-просмотра. Если пустой — предмет подбирается напрямую без инспекции. Также используется как 3D-модель в превью и лунках |
@@ -157,7 +156,7 @@ UI подписывается в `Start` и отписывается в `OnDisab
 | `bool PlaceItemAt(slotIndex, item)`               | Кладёт в указанный пустой слот; при занятом — фолбэк в `AddItem`                                       |
 | `bool ReplaceItem(from, to)`                      | Заменяет предмет в первом найденном слоте, позиция сохраняется (компакции нет)                         |
 | `void Compact()`                                  | Компакция всех слотов + `OnInventoryChanged` + сейв (после отложенного крафта)                         |
-| `void ReleaseAllReservations()`                   | No-op для обратной совместимости (резервации удалены)                                                  |
+| `void ReleaseAllReservations()`                   | No-op для обратной совместимости (резервации удалён)                                                   |
 | `void ClearAll()`                                 | Очищает все слоты и руны (сброс сохранения)                                                            |
 | `int MaxSlots` / `ItemData[] AllItems`            | Число слотов / база ассетов (для dev-панели)                                                           |
 | `ItemData FindItemByIdPublic(id)`                 | Поиск предмета по ItemId (для dev-панели)                                                              |
@@ -362,7 +361,7 @@ Canvas/InventoryPanel/
 | `Hints Label`   | Ссылка на `TextMeshProUGUI` объекта `HintsText`                                             |
 | `Hints`         | Массив подсказок (`key` + `action`); дефолт: перемещение, 3D-осмотр, крафт, Tab/I — закрыть |
 | `Hints Per Row` | Сколько подсказок на одну строку (по умолчанию 2)                                           |
-| `Separator`     | Строка между клавишей и действием (по умолчанию `  —  `)                                    |
+| `Separator`     | Строка между клавишей и действием (по умолчанию `—` )                                       |
 | `Column Gap`    | Строка-отступ между подсказками в одной строке                                              |
 
 
@@ -442,7 +441,7 @@ Canvas/
 - Drag-порог `25 px` отличает клик от вращения; при открытии во время зажатой ЛКМ ввод игнорируется до отпускания кнопки (`_waitForMouseRelease`)
 - Панель открывается через `UIManager.OpenPanel(inspectionPanel, CursorLockMode.Confined)`
 - При закрытии текстовые поля восстанавливаются через `SetActive(true)`, пивот уничтожается вместе с инстансом
-- Звук подбора: `ItemData.pickupClip` если задан, иначе общий `pickupClip` из `ItemInspector` — через `AudioManager.PlaySFX`
+- Звук подбора: `pickupClip` через `AudioManager.PlaySFX`
 
 ### Параметры Inspector
 

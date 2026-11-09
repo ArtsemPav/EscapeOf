@@ -1,3 +1,5 @@
+<!-- version: 1 -->
+
 ## Обзор
 
 Три механики «потянуть»:
@@ -12,7 +14,8 @@ FPSController
 ├── HandleInteractionDetection()     — raycast, ищет IDraggable + IInteractable
 └── HandleDragInteraction()          — маршрутизирует дельту мыши в OnDrag()
         │
-        ├── PhysicsDraggable         — физический проп (пружина)        ├── DrawerDrag               — ящик (трансляция)
+        ├── PhysicsDraggable         — физический проп (пружина)
+        ├── DrawerDrag               — ящик (трансляция)
         └── DoorInteraction          — дверь (вращение)
 ```
 
@@ -59,8 +62,6 @@ CCD дорог — не включается на все ~80 пропов сра
 3. Последняя перенесённая вещь (`PinCcdAfterCarry` — пин переживает отпускание).
 
 `UnpinCcd()` возвращает inspector-режим, когда игрок берёт следующий объект. Плюс fall-safety как последняя сеть против туннелирования.
-
-**`_ghostMayThrow`** (вкл. по умолчанию) — разрешает призраку швырять предмет в рамках полтергейст-поведения `GhostPatrol` (см. Horror System). Снимай флаг у сюжетно важных предметов, которые должны оставаться на своей позиции: призрак их не трогает, игрок таскать может свободно.
 
 ### Параметры `PhysicsGrabber` (на Player)
 
@@ -362,9 +363,6 @@ float deltaFraction = Mathf.Clamp(
 | `SetUnlockAjarFraction(f)` / `SetUnlockAjarSpeed(s)` | Настройка приоткрытия из UnityEvents                             |
 | `Open()` / `Close()`                                 | Полное открытие/закрытие (wire на рычаги)                        |
 | `CloseAndLock()`                                     | Закрыть и запереть                                               |
-| `GhostMove(fraction, duration)`                      | Шалость призрака: качнуть дверь к заданной доле открытия за заданное время — короткий толчок или резкий хлопок; запертые двери и позицию «уже там» игнорирует (возвращает false) |
-
-**Все одиночные звуки двери (`_latchClip`, `_lockedClip`, `_unlockClip`) играются через `AudioManager.Play3DOneShot` у самой двери (max 15 м), а не через глобальный 2D `PlaySFX`** — иначе защёлка призраковой двери на другом конце дома щёлкает прямо в ушах игрока. `GhostToggle` решает, куда двигать дверь, по фактическому `_openFraction`, а не по логическому `_isOpen` — флаг рассинхронизируется, если анимацию прервали drag'ом.
 | `GetInteractText()`                                  | `_closeText`/`_openText` («Открыть дверь»/«Закрыть дверь»)       |
 | `GetCrosshairMode()`                                 | `ItemDrag`; для запертой: `Unlocked` (есть ключ) / `Locked`      |
 
