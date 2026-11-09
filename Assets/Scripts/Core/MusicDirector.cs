@@ -499,6 +499,14 @@ public class MusicDirector : MonoBehaviour, ISaveable {
             return;
         }
         if (_activeSource == null || _activeTrack == null || _fadeCoroutine != null || MutedForEvent) return;
+        // While the window is unfocused every director source is frozen (see
+        // Focus-loss freeze). The guard must not run here: a frozen loop track
+        // looks exactly like a dead one, and reviving it would UnPause() the
+        // music right back. The main menu has no GameManager pause to hide
+        // behind (AudioListener.pause stays false there), so the freeze and
+        // this guard used to fight each other and the menu track kept playing
+        // through Alt-Tab. Everything re-evaluates on refocus.
+        if (!_appFocused) return;
         if (GameManager.Instance != null && GameManager.Instance.IsPaused) return;
 
         if (_activeSource.isPlaying) {
