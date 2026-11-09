@@ -113,6 +113,9 @@ namespace Escape.Interaction
         /// <summary>True when master power is on — the elevator can move.</summary>
         public bool HasPower { get; private set; } = false;
 
+        /// <summary>True while a move sequence (doors + travel + doors) is in progress.</summary>
+        public bool IsBusy => _isBusy;
+
         /// <summary>Hint text shown by elevator buttons when power is off.</summary>
         public string NoPowerHint => _noPowerHint;
 
@@ -270,18 +273,21 @@ namespace Escape.Interaction
 
         /// <summary>
         /// Requests the elevator to move to the given floor index.
-        /// If already there with doors open, does nothing.
-        /// If busy, the request is ignored (no queue to keep logic simple).
-        /// Does nothing when master power is off.
+        /// Returns true when the request is accepted, false when ignored
+        /// (no power, busy, invalid floor, or already there with doors open).
         /// </summary>
-        public void MoveToFloor(int floorIndex)
+        public bool MoveToFloor(int floorIndex)
         {
-            if (!HasPower) return;
-            if (_isBusy) return;
-            if (floorIndex < 0 || floorIndex >= _floorMarkers.Length) return;
-            if (floorIndex == CurrentFloor && AreDoorsOpen) return;
+            Debug.Log($"[Elevator] MoveToFloor({floorIndex}) | power={HasPower} busy={_isBusy} " +
+                      $"current={CurrentFloor} doorsOpen={AreDoorsOpen} draggables={_draggablesInside.Count}");
+
+            if (!HasPower) return false;
+            if (_isBusy) return false;
+            if (floorIndex < 0 || floorIndex >= _floorMarkers.Length) return false;
+            if (floorIndex == CurrentFloor && AreDoorsOpen) return false;
 
             StartCoroutine(MoveSequence(floorIndex));
+            return true;
         }
 
         private IEnumerator MoveSequence(int targetFloor)
@@ -294,9 +300,22 @@ namespace Escape.Interaction
             if (_playerFPSController != null)
                 _playerFPSController.SetElevatorMode(true);
 
-            // 1. Wait while there are draggable objects inside — doors cannot close
-            while (HasDraggablesInside())
+            // 1. Wait while there are draggable objects inside — doors cannot close.
+            //    Bounded: if something is stuck inside for too long, proceed anyway.
+            const float dragWaitTimeout = 10f;
+            float dragWaited = 0f;
+            while (HasDraggablesInside() && dragWaited < dragWaitTimeout)
+            {
+                dragWaited += Time.deltaTime;
                 yield return null;
+            }
+
+            if (_draggablesInside.Count > 0)
+            {
+                Debug.LogWarning($"[Elevator] Proceeding with {_draggablesInside.Count} draggable(s) " +
+                                 "still inside after timeout — clearing the set so the ride can start.");
+                _draggablesInside.Clear();
+            }
 
             // 2. Close doors at current floor
             if (AreDoorsOpen)

@@ -12,11 +12,19 @@ namespace Escape.Interaction
         [Header("Target")]
         [Tooltip("Индекс этажа: 0 = подвал, 1 = 1-й этаж, 2 = 2-й этаж.")]
         [SerializeField] private int _floorIndex;
+
+        /// <summary>Этаж, к которому привязана эта кнопка.</summary>
+        public int FloorIndex => _floorIndex;
         [Tooltip("Ссылка на контроллер лифта. Если пусто — ищется на родительском объекте.")]
         [SerializeField] private ElevatorController _controller;
 
         [Header("UI Hints")]
         [SerializeField] private string _hintText = "Нажать кнопку";
+
+        private bool _lastCallAccepted;
+
+        /// <summary>Результат последнего вызова MoveToFloor: true — запрос принят.</summary>
+        public bool LastCallAccepted => _lastCallAccepted;
 
         private void Awake()
         {
@@ -35,7 +43,7 @@ namespace Escape.Interaction
 
             // MoveToFloor checks HasPower internally — the button press animation
             // still plays so the player understands the button exists but is inactive.
-            _controller.MoveToFloor(_floorIndex);
+            _lastCallAccepted = _controller.MoveToFloor(_floorIndex);
         }
 
         public string GetInteractText()

@@ -20132,6 +20132,26 @@ PrefabInstance:
       propertyPath: m_Materials.Array.size
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1374521644551256234, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+      propertyPath: m_Size.x
+      value: 0.06
+      objectReference: {fileID: 0}
+    - target: {fileID: 1374521644551256234, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+      propertyPath: m_Size.y
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 1374521644551256234, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+      propertyPath: m_Size.z
+      value: 0.29
+      objectReference: {fileID: 0}
+    - target: {fileID: 1374521644551256234, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+      propertyPath: m_Center.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1374521644551256234, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+      propertyPath: m_Center.z
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7743944168586619236, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2560
@@ -20146,10 +20166,18 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5095891065330605529}
+    - targetCorrespondingSourceObject: {fileID: 100000, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7232532063300717732}
   m_SourcePrefab: {fileID: 100100000, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
 --- !u!4 &2081385461773865573 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5594461997940294328, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
+  m_PrefabInstance: {fileID: 5854983561166639325}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &4195402902011312569 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7743944168586619236, guid: 15f99e84a0ba2f148a00a5632cb3f332, type: 3}
   m_PrefabInstance: {fileID: 5854983561166639325}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &5854983561166244445 stripped
@@ -20196,6 +20224,25 @@ MonoBehaviour:
   _returnDuration: 0.12
   _pressClip: {fileID: 8300000, guid: 1ad329427850ea74fab650ea9beac0b6, type: 3}
   _pressVolume: 1
+--- !u!114 &7232532063300717732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5854983561166673533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a17532449b4aef418d8cbb3cbf8ddf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Escape.Interaction.ElevatorSwitchGlow
+  _glowRenderer: {fileID: 4195402902011312569}
+  _callButton: {fileID: 1420475924595145676}
+  _controller: {fileID: 0}
+  _button: {fileID: 5095891065330605529}
+  _glowOffMaterial: {fileID: 2100000, guid: e34d21c942e8ae34495c4d63ce025da7, type: 2}
+  _glowOnMaterial: {fileID: 2100000, guid: f2d2c9b4f49807d48af03b19c928f481, type: 2}
+  _busyFlashFallbackDuration: 0.2
 --- !u!1001 &5864734618667913772
 PrefabInstance:
   m_ObjectHideFlags: 0

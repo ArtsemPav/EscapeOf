@@ -24,6 +24,12 @@ public class ButtonPressAnimation : MonoBehaviour
     [Tooltip("Duration of the return phase in seconds.")]
     [SerializeField] private float _returnDuration = 0.12f;
 
+    /// <summary>Duration of the inward press phase in seconds.</summary>
+    public float PressDuration => _pressDuration;
+
+    /// <summary>Duration of the return phase in seconds.</summary>
+    public float ReturnDuration => _returnDuration;
+
     [Header("Audio")]
     [Tooltip("Played once through AudioManager when the button is pressed.")]
     [SerializeField] private AudioClip _pressClip;

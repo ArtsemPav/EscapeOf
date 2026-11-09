@@ -135,7 +135,8 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         currentStep = _currentStep,
         isUnlocked  = _isUnlocked,
         isRequiredItemApplied = _isRequiredItemApplied,
-        comboProgressIndex = _comboProgressIndex
+        comboProgressIndex = _comboProgressIndex,
+        combination = _combination
     });
 
     public void LoadSaveData(string json)
@@ -145,6 +146,13 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         _isUnlocked  = data.isUnlocked;
         _isRequiredItemApplied = data.isRequiredItemApplied;
         _comboProgressIndex = data.comboProgressIndex;
+
+        // Restore the saved combination (overrides any randomized values from Awake)
+        if (data.combination != null && data.combination.Length > 0)
+        {
+            _combination = data.combination;
+        }
+
         SnapToStep(_currentStep);
     }
 
@@ -155,6 +163,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         public bool isUnlocked;
         public bool isRequiredItemApplied;
         public int  comboProgressIndex;
+        public ComboStep[] combination;
     }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
@@ -599,17 +608,10 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
     {
         if (_combination == null || _combination.Length == 0) return;
 
-        RotationDirection currentDir = (UnityEngine.Random.value > 0.5f) 
-            ? RotationDirection.Clockwise 
-            : RotationDirection.CounterClockwise;
-
+        // Only randomize target values; directions stay as configured in the Inspector
         for (int i = 0; i < _combination.Length; i++)
         {
             _combination[i].TargetValue = UnityEngine.Random.Range(_randomMinValue, _randomMaxValue + 1);
-            _combination[i].RequiredDirection = currentDir;
-            currentDir = (currentDir == RotationDirection.Clockwise) 
-                ? RotationDirection.CounterClockwise 
-                : RotationDirection.Clockwise;
         }
     }
 
