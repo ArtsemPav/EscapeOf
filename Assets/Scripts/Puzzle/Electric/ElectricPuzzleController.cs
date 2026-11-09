@@ -84,6 +84,12 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("Emission color of the lamp material when the puzzle is solved.")]
     [SerializeField] private Color _lampGreenEmission = new Color(0f, 3.59f, 0.17f, 1f);
 
+    [Tooltip("Base color of the lamp material while the generator is off (lamp is dead).")]
+    [SerializeField] private Color _lampOffColor = new Color(0.08f, 0.08f, 0.08f, 1f);
+
+    [Tooltip("Emission color of the lamp material while the generator is off (no glow).")]
+    [SerializeField] private Color _lampOffEmission = Color.black;
+
     [Header("Lever")]
     [Tooltip("ElectricLever component on pCube17. Enabled after wires are correctly connected.")]
     [SerializeField] private ElectricLever _lever;
@@ -336,6 +342,10 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
             _controller.OnExited  += HandleExited;
             _controller.OnSolved  += HandleSolved;
         }
+
+        // The lamp is dead until the generator runs — tint only lights up on power.
+        if (LightingSystem.Instance != null)
+            LightingSystem.Instance.OnGeneratorReadyChanged += HandleGeneratorReadyChanged;
     }
 
     private void OnDisable()
@@ -346,6 +356,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
             _controller.OnExited  -= HandleExited;
             _controller.OnSolved  -= HandleSolved;
         }
+
+        if (LightingSystem.Instance != null)
+            LightingSystem.Instance.OnGeneratorReadyChanged -= HandleGeneratorReadyChanged;
     }
 
     private void Start()
@@ -1069,9 +1082,27 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     {
         if (_lampMaterial == null) return;
 
+        // No generator power — the panel is dead, the lamp stays completely dark.
+        bool hasPower = LightingSystem.Instance == null || LightingSystem.Instance.IsGeneratorReady;
+        if (!hasPower && !_isSolved)
+        {
+            _lampMaterial.SetColor("_BaseColor", _lampOffColor);
+            _lampMaterial.SetColor("_EmissionColor", _lampOffEmission);
+            return;
+        }
+
         bool solved = _isSolved;
         _lampMaterial.SetColor("_BaseColor",     solved ? _lampGreenColor     : _lampRedColor);
         _lampMaterial.SetColor("_EmissionColor", solved ? _lampGreenEmission : _lampRedEmission);
+    }
+
+    /// <summary>
+    /// Red-tints the lamp when the generator becomes ready (panel gets power),
+    /// and re-evaluates the tint if the generator state can change at runtime.
+    /// </summary>
+    private void HandleGeneratorReadyChanged(bool ready)
+    {
+        if (ready) UpdateLamp();
     }
 
     // ── IPuzzleDropHandler ─────────────────────────────────────────────────────

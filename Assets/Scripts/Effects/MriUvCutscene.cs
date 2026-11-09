@@ -281,7 +281,13 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         SaveManager.Instance?.Unregister(this);
 
         if (_playing)
+        {
+            // Never leave the signs forced visible (SetForcedVisible leaks otherwise:
+            // _forcedAmount = 1 keeps them glowing in any light until the next
+            // SetSignsVisible(false), which a destroyed cutscene never issues).
+            SetSignsVisible(false);
             ReleaseControl();
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────────────

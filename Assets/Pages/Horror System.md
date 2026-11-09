@@ -473,6 +473,9 @@ Env/2ndFloor/Corridor2stF/Horror
 
 - **Триггер:** `OnManual` — срабатывает только из `DuckHorrorInteractable` (`Assets/Scripts/Interaction/DuckHorrorInteractable.cs`).
 - **Эффект:** `AppearThenDisappearAfterDelay` (1 с).
+- **Звук и перекрытия:** у уточки два звука, и оба теперь глушатся перекрытиями (`AudioOcclusionUtility` — raycast от источника к камере; путь перекрыт перекрытием/стеной/закрытой дверью → тише + low-pass):
+  - Крик скримера (`AudioSource` на `duckHorror`, `S_DduckJump.aif`) — компонент `AudioSourceOcclusion` (`Assets/Scripts/Effects/AudioSourceOcclusion.cs`): `_occludedVolumeFactor = 0.1`, `_occludedCutoffHz = 400`.
+  - Завлекающий луп `DuckSoundZone` (`Assets/Scripts/Interaction/DuckSoundZone.cs`) — непрерывное (градиентное) приглушение: raycast от утки к камере, путь перекрыт → «muffle» плавно нарастает с расстоянием (`_muffleStartDistance = 2` → `_muffleFullDistance = 6`), на дальней дистанции звук — `_volume × _farOccludedVolumeFactor (0.07)` с low-pass `_farOccludedCutoffHz = 600`. Вблизи стены почти не глушат, чем дальше — тем тише и глуже, без резких вкл/выкл. Геометрия ближе `_sourceIgnoreRadius (0.5)` к утке игнорируется — иначе чаша унитаза «глушила» бы звук всегда.
 - `DuckHorrorInteractable` также `ISaveable` — прогресс ныряний сохраняется.
 
 ---
