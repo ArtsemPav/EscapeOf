@@ -48,6 +48,9 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
     [Tooltip("Name of the jaw-opening animation state.")]
     [SerializeField] private string _scullOpenStateName = "ScullOpen";
 
+    [Tooltip("Name of the colba carry-and-pour animation state (ColbaApproach).")]
+    [SerializeField] private string _colbaPourStateName = "ColbaApproach";
+
     [Header("Accepted Items")]
     [Tooltip("Coin items accepted by the eyes (Coin 1, Coin 2). Either can go in either eye.")]
     [SerializeField] private ItemData[] _coinItems;
@@ -108,9 +111,11 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
     [SerializeField] private AudioClip _coinDropClip;
     [SerializeField] private AudioClip _jawOpenClip;
     [SerializeField] private AudioClip _pourClip;
+    [SerializeField] private AudioClip _colbaSmashClip;
     [SerializeField, Range(0f, 1f)] private float _coinDropVolume = 0.8f;
     [SerializeField, Range(0f, 1f)] private float _jawOpenVolume = 1f;
     [SerializeField, Range(0f, 1f)] private float _pourVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float _colbaSmashVolume = 1f;
 
     // ── State ──────────────────────────────────────────────────────────────────
 
@@ -445,11 +450,17 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
 
     // ── Pouring Animation ─────────────────────────────────────────────────────────
 
+    /// <summary>Delay between the serum drop and the pour sound, so the SFX
+    /// lands when the flask is already tilted and the liquid flows.</summary>
+    private const float PourSoundDelay = 0.5f;
+
+    /// <summary>How long before the pour animation ends the glass smash plays.</summary>
+    private const float SmashSoundLead = 0.4f;
+
     private IEnumerator PourRoutine()
     {
         _pouring = true;
-
-        PlaySFX(_pourClip, _pourVolume);
+        bool smashPlayed = false;
 
         if (_colbaReadTransform != null)
         {
@@ -461,22 +472,28 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
             foreach (var rend in _colbaReadTransform.GetComponentsInChildren<Renderer>(true))
                 rend.renderingLayerMask = _coinRenderingLayerMask;
 
-            // The colba appears immediately in its authored tilted pour pose —
-            // no flip animation (the upright→tilt lerp read as a strange wobble).
+            // Play the authored carry-and-pour animation (lift to the mouth,
+            // tilt, drain). The clip drives colbaRead's transform and the
+            // liquid's fillFraction.
+            bool clipPlaying = false;
+            if (_scullAnimator != null && !string.IsNullOrEmpty(_colbaPourStateName))
+            {
+                _scullAnimator.Play(_colbaPourStateName);
+                clipPlaying = true;
+            }
 
-            // The LiquidFlask shader clips against a world-space horizontal plane
-            // anchored by the local fill amount — in the tilted pose draining
-            // fillFraction visually RAISES the surface (the flask looks like it
-            // fills up). So instead of animating fill, squeeze the liquid mesh
-            // away along the flask axis.
+            // Code-side drain runs only when the clip is unavailable — the clip
+            // animates fillFraction itself when present.
+            float drainStart = clipPlaying ? 1.8f : 0f;
+            float drainDuration = clipPlaying ? 1.2f : _pourDuration;
+
+            // Backup drain (used only without the clip): squeeze the liquid
+            // mesh away along the flask axis so the flask visually empties.
             Transform liquidTransform = _liquidWobble != null ? _liquidWobble.transform
                                       : (_liquidRenderer != null ? _liquidRenderer.transform : null);
             Vector3 liquidStartScale = liquidTransform != null ? liquidTransform.localScale : Vector3.zero;
             Vector3 liquidEndScale = liquidTransform != null ? new Vector3(liquidStartScale.x, 0.001f, liquidStartScale.z) : Vector3.zero;
 
-            // The flask is authored flipped, so the neck sits at the local +Y end
-            // of the liquid mesh. While squeezing, slide the mesh toward the neck
-            // so the liquid drains out of the mouth instead of floating mid-flask.
             Vector3 liquidStartPos = Vector3.zero;
             Vector3 liquidEndPos = Vector3.zero;
             if (liquidTransform != null)
@@ -489,18 +506,33 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
             }
 
             float elapsed = 0f;
+            // Match the ColbaApproach clip: lift 1.2s + tilt/drain 1.8s.
+            float waitDuration = clipPlaying ? 3f : _pourDuration;
 
-            while (elapsed < _pourDuration)
+            // The pour sound starts once the flask is already tilted and the
+            // liquid actually flows — half a second after the drop.
+            yield return new WaitForSeconds(PourSoundDelay);
+            PlaySFX(_pourClip, _pourVolume);
+
+            // The smash lands slightly before the animation ends — the glass
+            // breaks as the last of the liquid leaves the flask.
+            float smashAt = Mathf.Max(0f, waitDuration - SmashSoundLead);
+
+            while (elapsed < waitDuration)
             {
                 elapsed += Time.deltaTime;
 
-                // Squeeze the liquid mesh away along the flask axis, sliding it
-                // toward the neck.
-                if (liquidTransform != null)
+                if (!clipPlaying && liquidTransform != null)
                 {
-                    float pourT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(elapsed / _pourDuration));
+                    float pourT = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((elapsed - drainStart) / drainDuration));
                     liquidTransform.localScale = Vector3.Lerp(liquidStartScale, liquidEndScale, pourT);
                     liquidTransform.localPosition = Vector3.Lerp(liquidStartPos, liquidEndPos, pourT);
+                }
+
+                if (!smashPlayed && elapsed >= smashAt)
+                {
+                    smashPlayed = true;
+                    PlaySFX(_colbaSmashClip, _colbaSmashVolume);
                 }
 
                 yield return null;
@@ -508,11 +540,13 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
 
             if (_liquidWobble != null)
             {
-                _liquidWobble.transform.localScale = liquidEndScale;
                 _liquidWobble.fillFraction = 0f;
                 _liquidWobble.enabled = false;
             }
         }
+
+        if (!smashPlayed)
+            PlaySFX(_colbaSmashClip, _colbaSmashVolume);
 
         // Hold the shot briefly so the player sees the empty colba, then hide it.
         yield return new WaitForSeconds(0.5f);
@@ -601,26 +635,7 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
         if (coinRef != null)
             _ghostPreview.transform.localRotation = coinRef.localRotation;
         _ghostPreview.transform.localScale = ghostLocalScale;
-        foreach (var rend in _ghostPreview.GetComponentsInChildren<Renderer>())
-        {
-            // Apply rendering layer mask so the ghost receives light from the puzzle's light groups.
-            rend.renderingLayerMask = _coinRenderingLayerMask;
-
-            rend.sharedMaterial = new Material(rend.sharedMaterial);
-            var mat = rend.material;
-            mat.SetFloat(Shader.PropertyToID("_Surface"), 1f);
-            mat.SetFloat(Shader.PropertyToID("_Blend"), 0f);
-            mat.SetFloat(Shader.PropertyToID("_SrcBlend"), (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-            mat.SetFloat(Shader.PropertyToID("_DstBlend"), (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-            mat.SetFloat(Shader.PropertyToID("_ZWrite"), 0f);
-            mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-            if (mat.HasProperty(Shader.PropertyToID("_BaseColor")))
-            {
-                var c = mat.GetColor(Shader.PropertyToID("_BaseColor"));
-                c.a = 0.4f;
-                mat.SetColor(Shader.PropertyToID("_BaseColor"), c);
-            }
-        }
+        MakeTransparentGhost(_ghostPreview.GetComponentsInChildren<Renderer>());
 
         _hoveredEye = eyeIndex;
     }
@@ -659,9 +674,27 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
         _ghostPreview = Instantiate(prefab, _colbaReadTransform.position, _colbaReadTransform.rotation, transform);
         _ghostPreview.transform.localScale = _colbaReadTransform.localScale;
 
-        foreach (var rend in _ghostPreview.GetComponentsInChildren<Renderer>(true))
+        // Include inactive renderers — the liquid mesh may sit under a disabled
+        // branch of the prefab hierarchy.
+        MakeTransparentGhost(_ghostPreview.GetComponentsInChildren<Renderer>(true));
+
+        _hoveredEye = -1;
+    }
+
+    /// <summary>
+    /// Turns every renderer of a ghost preview into a translucent hologram.
+    /// Applies to ALL renderers including the liquid mesh (whose custom
+    /// LiquidFlask shader would otherwise stay opaque) and skips ghost-only
+    /// silhouette meshes. Without this the colba ghost hides behind the new
+    /// black jaw mesh and reads as a solid blob.
+    /// </summary>
+    private void MakeTransparentGhost(Renderer[] renderers)
+    {
+        foreach (var rend in renderers)
         {
             rend.renderingLayerMask = _coinRenderingLayerMask;
+            rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
             rend.sharedMaterial = new Material(rend.sharedMaterial);
             var mat = rend.material;
             mat.SetFloat(Shader.PropertyToID("_Surface"), 1f);
@@ -676,9 +709,13 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
                 c.a = 0.4f;
                 mat.SetColor(Shader.PropertyToID("_BaseColor"), c);
             }
+            if (mat.HasProperty(Shader.PropertyToID("_SurfaceColor")))
+            {
+                var sc = mat.GetColor(Shader.PropertyToID("_SurfaceColor"));
+                sc.a = 0.4f;
+                mat.SetColor(Shader.PropertyToID("_SurfaceColor"), sc);
+            }
         }
-
-        _hoveredEye = -1;
     }
 
     private void ClearGhost()
