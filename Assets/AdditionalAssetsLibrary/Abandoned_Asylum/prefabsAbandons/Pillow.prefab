@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 4182960130155038}
   - component: {fileID: 33075750728885886}
   - component: {fileID: 23457393242424066}
-  - component: {fileID: 5466805215827759331}
   - component: {fileID: 6684345043216920554}
   - component: {fileID: 6321214578454832908}
   - component: {fileID: 5684033542123657546}
@@ -67,7 +66,7 @@ MeshRenderer:
   m_SmallMeshCulling: 1
   m_ForceMeshLod: -1
   m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
+  m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
   - {fileID: 2100000, guid: cddfff23802328548af6379891a1a411, type: 2}
@@ -94,25 +93,6 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!205 &5466805215827759331
-LODGroup:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1284733586385132}
-  serializedVersion: 2
-  m_LocalReferencePoint: {x: -0.00000667572, y: 0.054595, z: 0.00822714}
-  m_Size: 0.71366835
-  m_FadeMode: 0
-  m_AnimateCrossFading: 0
-  m_LastLODIsBillboard: 0
-  m_LODs:
-  - screenRelativeHeight: 0.19498737
-    fadeTransitionWidth: 0
-    renderers:
-    - renderer: {fileID: 23457393242424066}
-  m_Enabled: 1
 --- !u!65 &6684345043216920554
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -175,3 +155,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
   dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 1
+  _maxDragDistance: 0
+  _holdDistance: 0
+  _scrapeClips: []
+  _scrapeVolume: 0.7
+  _scrapeFullVolumeSpeed: 3
+  _scrapeFadeSpeed: 6
+  _scrapeStartSpeed: 0.05
+  _impactClips: []
+  _impactVolumeAtMin: 0.15
+  _impactVolumeAtMax: 1
+  _impactMaxSpeed: 5
+  _impactMinSpeed: 0.5
+  _impactCooldown: 0.1
+  _impactPitchVariation: 0.05
+  _ghostMayThrow: 1
+  _fallReturnDepth: 10
+  _fallReturnLift: 0.5

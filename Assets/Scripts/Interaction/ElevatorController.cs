@@ -278,9 +278,6 @@ namespace Escape.Interaction
         /// </summary>
         public bool MoveToFloor(int floorIndex)
         {
-            Debug.Log($"[Elevator] MoveToFloor({floorIndex}) | power={HasPower} busy={_isBusy} " +
-                      $"current={CurrentFloor} doorsOpen={AreDoorsOpen} draggables={_draggablesInside.Count}");
-
             if (!HasPower) return false;
             if (_isBusy) return false;
             if (floorIndex < 0 || floorIndex >= _floorMarkers.Length) return false;
