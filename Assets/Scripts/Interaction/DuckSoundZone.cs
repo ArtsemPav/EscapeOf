@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +7,12 @@ using UnityEngine;
 ///   - Duck visible (in frustum and unoccluded) → sound fades out (player found it).
 ///   - Player outside hearing range → sound stops.
 ///   - Master power OFF → sound stops entirely.
+/// The lure is CONTINUOUSLY occlusion-aware: every check interval the direct
+/// path from the duck to the player camera is raycast, and a muffle value
+/// (0 = clear, 1 = fully muffled) blends smoothly toward its target. A blocked
+/// path barely muffles the sound up close and muffles it progressively with
+/// range — the farther the duck is behind walls/floors, the quieter and duller
+/// the squeak, without any hard audible on/off steps.
 /// Implements IPowerConsumer to receive power state from LightingSystem.
 /// The AudioSource follows the duck's position so the sound stays spatially accurate.
 /// </summary>
@@ -16,6 +21,8 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
 {
     private const float FadeDuration = 1.5f;
     private const float CheckInterval = 0.2f;
+    private const float MuffleBlendDuration = 0.8f;
+    private const float ClearCutoffHz = 20000f;
 
     [Header("Audio")]
     [Tooltip("Duck sound clip used to lure the player.")]
@@ -35,6 +42,24 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     [Tooltip("Maximum volume of the duck sound.")]
     [SerializeField, Range(0f, 1f)] private float _volume = 0.7f;
 
+    [Header("Occlusion (the farther, the quieter)")]
+    [Tooltip("Distance up to which a blocked path barely muffles the lure: right next to the duck a wall hardly matters.")]
+    [SerializeField, Min(0f)] private float _muffleStartDistance = 2f;
+
+    [Tooltip("Distance at which a blocked path reaches its full muffle. Between start and this, the muffle ramps up smoothly with range.")]
+    [SerializeField, Min(0.1f)] private float _muffleFullDistance = 6f;
+
+    [Tooltip("Volume factor of the fully muffled lure (blocked path at/beyond Muffle Full Distance). 0.1 = barely audible through the floor.")]
+    [SerializeField, Range(0f, 1f)] private float _farOccludedVolumeFactor = 0.1f;
+
+    [Tooltip("Low-pass cutoff (Hz) of the fully muffled lure. Low value = a dull muffled squeak, as if through a thick floor.")]
+    [SerializeField, Range(100f, 4000f)] private float _farOccludedCutoffHz = 600f;
+
+    [Tooltip("Geometry within this radius of the duck is ignored by the occlusion raycast. " +
+             "The duck sits inside the toilet bowl — without this the bowl itself would " +
+             "permanently occlude the lure even for a player standing right next to it.")]
+    [SerializeField, Min(0f)] private float _sourceIgnoreRadius = 0.5f;
+
     [Header("Visibility")]
     [Tooltip("If enabled, casts a ray from the camera to the duck to check for walls/obstacles blocking the view.")]
     [SerializeField] private bool _checkOcclusion = true;
@@ -45,10 +70,19 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     private AudioSource _audioSource;
     private Renderer _duckRenderer;
     private Camera _playerCamera;
-    private Coroutine _fadeCoroutine;
+    private AudioLowPassFilter _lowPass;
     private Coroutine _checkRoutine;
     private bool _soundActive;
     private bool _isPowered;
+
+    // Fade in/out progress: 0 = silent, 1 = lure volume. Blended every tick,
+    // replacing start/stop coroutines so there is a single volume writer.
+    private float _fade;
+
+    // Continuous muffle state, 0 = clear path, 1 = fully muffled (blocked far
+    // path). Blended toward its target each tick so stepping behind a wall
+    // changes the sound gradually instead of snapping.
+    private float _muffleMix;
 
     private void Awake()
     {
@@ -81,9 +115,6 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     public void OnPowerStateChanged(bool isPowered)
     {
         _isPowered = isPowered;
-
-        if (!isPowered)
-            FadeOutSound();
     }
 
     /// <summary>Creates and configures the AudioSource if it doesn't exist.</summary>
@@ -102,16 +133,24 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
         _audioSource.loop = true;
         _audioSource.playOnAwake = false;
         _audioSource.volume = 0f;
+        _lowPass = gameObject.GetComponent<AudioLowPassFilter>();
+        if (_lowPass == null)
+            _lowPass = gameObject.AddComponent<AudioLowPassFilter>();
+        _lowPass.enabled = false;
         AudioManager.Instance?.RouteSourceToSfxGroup(_audioSource);
     }
 
     /// <summary>
-    /// Periodically checks distance and visibility. Plays sound when player
-    /// is within hearing range but cannot see the duck, and power is on.
+    /// Single writer for the lure's sound state, run every check interval:
+    /// raycast the path, blend the muffle mix toward its target, fade in/out,
+    /// and write volume + low-pass cutoff. Because everything blends through
+    /// the same tick, moving between rooms never snaps the sound.
     /// </summary>
-    private IEnumerator DistanceCheckLoop()
+    private System.Collections.IEnumerator DistanceCheckLoop()
     {
         var wait = new WaitForSeconds(CheckInterval);
+        float fadeStep = CheckInterval / FadeDuration;
+        float muffleStep = CheckInterval / MuffleBlendDuration;
 
         while (enabled)
         {
@@ -121,12 +160,70 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
             bool shouldPlay = ShouldPlaySound();
 
             if (shouldPlay && !_soundActive)
-                FadeInSound();
+                StartPlayback();
             else if (!shouldPlay && _soundActive)
-                FadeOutSound();
+                StopPlayback();
+
+            // Continuous muffle: blocked path ramps with distance, clear path
+            // is fully clear regardless of range.
+            float mixTarget = 0f;
+            if (_soundActive && _playerCamera != null && _soundTarget != null)
+            {
+                bool pathBlocked = AudioOcclusionUtility.IsPathOccluded(
+                    _soundTarget.position, _playerCamera.transform.position, _sourceIgnoreRadius);
+                if (pathBlocked)
+                {
+                    float distance = Vector3.Distance(
+                        _soundTarget.position, _playerCamera.transform.position);
+                    mixTarget = Mathf.Clamp01(
+                        (distance - _muffleStartDistance) /
+                        Mathf.Max(0.01f, _muffleFullDistance - _muffleStartDistance));
+                }
+            }
+
+            _muffleMix = Mathf.MoveTowards(_muffleMix, mixTarget, muffleStep);
+            _fade = Mathf.MoveTowards(_fade, _soundActive ? 1f : 0f, fadeStep);
+
+            if (_audioSource != null)
+            {
+                float volumeFactor = Mathf.Lerp(1f, _farOccludedVolumeFactor, _muffleMix);
+                _audioSource.volume = _volume * volumeFactor * _fade;
+
+                bool muffleAudible = _muffleMix > 0.01f;
+                _lowPass.enabled = muffleAudible;
+                if (muffleAudible)
+                    _lowPass.cutoffFrequency =
+                        Mathf.Lerp(ClearCutoffHz, _farOccludedCutoffHz, _muffleMix);
+
+                if (!_soundActive && _fade <= 0f)
+                {
+                    _audioSource.Stop();
+                    _audioSource.enabled = false;
+                }
+            }
 
             yield return wait;
         }
+    }
+
+    /// <summary>Starts playing the lure and registers it for background ducking.</summary>
+    private void StartPlayback()
+    {
+        _soundActive = true;
+        EnsureAudioSource();
+        _audioSource.enabled = true;
+
+        if (!_audioSource.isPlaying)
+            _audioSource.Play();
+
+        AudioManager.Instance?.RegisterLoopSource(_audioSource, _volume);
+    }
+
+    /// <summary>Marks the lure as stopped; the loop fades it out and halts the source.</summary>
+    private void StopPlayback()
+    {
+        _soundActive = false;
+        AudioManager.Instance?.UnregisterLoopSource(_audioSource);
     }
 
     /// <summary>
@@ -187,46 +284,12 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
         return true;
     }
 
-    /// <summary>Fades in the duck sound and starts playback.</summary>
-    private void FadeInSound()
-    {
-        _soundActive = true;
-        EnsureAudioSource();
-        _audioSource.enabled = true;
-
-        if (!_audioSource.isPlaying)
-            _audioSource.Play();
-
-        AudioManager.Instance?.RegisterLoopSource(_audioSource, _volume);
-
-        StopFadeCoroutine();
-        _fadeCoroutine = StartCoroutine(AudioFades.Volume(_audioSource, _volume, FadeDuration));
-    }
-
-    /// <summary>Fades out the duck sound and stops playback after fade.</summary>
-    private void FadeOutSound()
-    {
-        if (!_soundActive) return;
-
-        _soundActive = false;
-        AudioManager.Instance?.UnregisterLoopSource(_audioSource);
-
-        StopFadeCoroutine();
-        _fadeCoroutine = StartCoroutine(AudioFades.Volume(_audioSource, 0f, FadeDuration, () =>
-        {
-            if (_audioSource != null)
-            {
-                _audioSource.Stop();
-                _audioSource.enabled = false;
-            }
-        }));
-    }
-
     /// <summary>Instantly stops the sound without fading.</summary>
     private void StopSoundImmediate()
     {
         _soundActive = false;
-        StopFadeCoroutine();
+        _fade = 0f;
+        _muffleMix = 0f;
 
         if (_audioSource != null)
         {
@@ -241,15 +304,6 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     {
         if (_audioSource != null && _soundTarget != null)
             _audioSource.transform.position = _soundTarget.position;
-    }
-
-    private void StopFadeCoroutine()
-    {
-        if (_fadeCoroutine != null)
-        {
-            StopCoroutine(_fadeCoroutine);
-            _fadeCoroutine = null;
-        }
     }
 
     private void StopCheckRoutine()
