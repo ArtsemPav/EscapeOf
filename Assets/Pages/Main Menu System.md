@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 5 -->
 
 ## Обзор
 
@@ -193,6 +193,35 @@ Singleton, `[DefaultExecutionOrder(-50)]` — в `Awake` вызывает `Syste
 - Курсор: разлочен при паузе или любой открытой панели (`UpdateCursorState`).
 
 > `MenuScript` упразднён — класс пустой (deprecated), компонент можно смело удалить со сцены.
+
+### Стиль меню паузы (Game.unity `/Canvas/MainMenu/MenuRoot`)
+
+Меню паузы стилизовано под стартовое меню — те же текстовые пункты, hover-сдвиги и линии-разделители:
+
+- Пункты — `Button` с прозрачным фоном (`Image` alpha 0) и `Text (TMP)`: Arial SDF Bold, UpperCase, 26pt, characterSpacing 5. ColorTint вешается на текст (беж `#E6D9B8` → белый на hover), навигация None.
+- Порядок пунктов: Продолжить, Настройки звука, В главное меню, Выход.
+- Debug-пункты (Сохранить, Загрузить, Удалить дебаг-сейв, Сбросить прогресс) вынесены в отдельную группу `MenuRoot/DebugSection` с приглушённым заголовком `DEBUG`. Скрытием группы управляет один `DebugButtonsBlocker` на самой `DebugSection` — в не-dev сборках (`#if !UNITY_EDITOR && !DEVELOPMENT_BUILD`) группа целиком деактивируется.
+- На `MenuRoot`: `VerticalLayoutGroup` (spacing 8, MiddleCenter) + `MenuHoverEffect` (slide 10) + `MenuSelectionLines` (Line_Top / Line_Bottom, цвет беж с alpha 0.5) — компоненты переиспользованы из стартового меню, работают на unscaled time, то есть анимируются при `Time.timeScale = 0`.
+- `MenuSelectionLines` выбирает первую кнопку при старте — при открытии паузы линии всегда обрамляют один из пунктов, а не весь список.
+- Фон меню паузы (`/Canvas/MainMenu/Background`) — спрайт `Assets/Sprites/loading/pause.png` (импорт: Sprite / Single).
+- `BackBtn` в панели настроек звука стилизован так же: прозрачный фон, ColorTint на тексте, «НАЗАД» Arial SDF Bold UpperCase 26pt, разрядка 5, размер 460×44. Проводка `SoundSettingsBackBtn` не затронута.
+
+---
+
+## Фон загрузочного экрана по прогрессу
+
+Загрузочный экран меняет картинку в зависимости от стадии прогресса игрока (`BuildingProgressStage`): `NoPower` → `loading.jpg` (тёмное здание), `PowerRestored` → `loading2.png` (свет включён). Стадия = «загадка с электричеством решена хоть раз» (`LightingSystem._isPowerActivated`), а не текущее состояние рубильника.
+
+### `LoadingScreenTheme` — `Assets/Scripts/UI/LoadingScreenTheme.cs`
+
+ScriptableObject-каталог (ассет `Assets/Data/LoadingScreenTheme.asset`): список пар «стадия → спрайт» + fallback. `GetBackground(stage)` возвращает спрайт с наибольшей стадией, не превышающей заданную. Новая картинка загрузочного экрана = новое значение `BuildingProgressStage` + одна запись в ассете — код сцен не меняется.
+
+### Выбор стадии
+
+- **Старт-сцена, «Загрузить»** (`MainMenuController.OnLoadGame`): `LightingSystem.IsPowerActivatedInSave(slot)` — статика, читает `slot_N.json` через `SaveManager.PeekEntityData` и парсит `isPowerActivated` у сущности `LightingSystem`. Сейва нет → `NoPower` (но кнопка Load и так скрыта).
+- **Меню паузы, «В главное меню»** (`MainMenuItemBtn`): живое состояние — `LightingSystem.Instance.GetProgressStage()`.
+
+В обоих случаях результат уходит в `FakeLoadingScreen.SetBackgroundStage(stage)` до `BeginLoading()`; экран подменяет спрайт у `Image` фона. Оба загрузочных экрана (`Start.unity /LoadingOverlayCanvas/LoadingScreen` и `Game.unity /Canvas/MainMenuLoadingScreen`) ссылаются на одну тему. New Game всегда рисует `NoPower` — стадия ставится только на Load и возврат из паузы.
 
 ---
 

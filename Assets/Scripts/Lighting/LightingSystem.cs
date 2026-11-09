@@ -80,7 +80,10 @@ public class LightingSystem : MonoBehaviour, ISaveable
 
     // ── ISaveable ─────────────────────────────────────────────────────────────
 
-    public string SaveId => "LightingSystem";
+    public string SaveId => SaveIdValue;
+
+    // Keep the save id accessible from the static save-peeking helper below.
+    private const string SaveIdValue = "LightingSystem";
 
     [Serializable]
     private class SaveData
@@ -115,7 +118,6 @@ public class LightingSystem : MonoBehaviour, ISaveable
     {
         var data = JsonUtility.FromJson<SaveData>(json);
         if (data == null) return;
-
         _isPowered = data.isPowered;
         _isGeneratorReady = data.isGeneratorReady;
         _isPowerActivated = data.isPowerActivated;
@@ -139,6 +141,34 @@ public class LightingSystem : MonoBehaviour, ISaveable
         // was still the default (false). Save data may have changed it to true.
         NotifyConsumers(_isPowered);
     }
+
+    // ── Save peeking ──────────────────────────────────────────────────────────
+
+    [Serializable]
+    private class PeekData
+    {
+        public bool isPowerActivated;
+    }
+
+    /// <summary>
+    /// Reads the persisted power-restored milestone directly from a save file
+    /// without loading the game or any scene objects. Used by the main menu to
+    /// pick the loading screen art before the gameplay scene exists.
+    /// </summary>
+    public static bool IsPowerActivatedInSave(int slot)
+    {
+        string json = SaveManager.PeekEntityData(slot, SaveIdValue);
+        if (json == null) return false;
+        try { return JsonUtility.FromJson<PeekData>(json)?.isPowerActivated ?? false; }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>
+    /// The building-progress stage for the current game state: PowerRestored
+    /// once the electric puzzle has been solved (ever), NoPower before that.
+    /// </summary>
+    public BuildingProgressStage GetProgressStage()
+        => _isPowerActivated ? BuildingProgressStage.PowerRestored : BuildingProgressStage.NoPower;
 
     // ── Unity ─────────────────────────────────────────────────────────────────
 

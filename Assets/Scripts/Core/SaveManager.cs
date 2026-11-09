@@ -615,6 +615,34 @@ public class SaveManager : MonoBehaviour
         => File.Exists(Path.Combine(Application.persistentDataPath, SaveFolder, $"{FilePrefix}{slot}{FileExtension}"));
 
     /// <summary>
+    /// Reads a save file from disk and returns the raw JSON blob of the given
+    /// entity (SaveId), or null when the file is missing, unreadable or the
+    /// entity is not in it. Static so menu scenes can peek at a save without
+    /// a SaveManager instance or any scene objects.
+    /// </summary>
+    public static string PeekEntityData(int slot, string saveId)
+    {
+        if (!TryReadFile(Path.Combine(Application.persistentDataPath, SaveFolder, $"{FilePrefix}{slot}{FileExtension}"), out string json))
+            return null;
+
+        GameSaveData data;
+        try { data = JsonUtility.FromJson<GameSaveData>(json); }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SaveManager] PeekEntityData: parse failed for slot {slot}: {e.Message}");
+            return null;
+        }
+        if (data?.entities == null) return null;
+
+        foreach (EntityRecord record in data.entities)
+        {
+            if (record != null && record.id == saveId)
+                return record.data;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Clears the pending load slot and deletes the given slot's save with its
     /// backups, so the next session starts fresh.
     /// </summary>

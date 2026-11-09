@@ -71,11 +71,22 @@ public class MainMenuItemBtn : BaseButton
             yield break;
         }
 
+        // The loading screen art matches the live building state: the powered
+        // art once the electric puzzle has been solved, the dark one before.
+        var loadingScreen = _loadingScreen.GetComponent<FakeLoadingScreen>();
+        if (loadingScreen != null)
+        {
+            BuildingProgressStage stage = LightingSystem.Instance != null
+                ? LightingSystem.Instance.GetProgressStage()
+                : BuildingProgressStage.NoPower;
+            loadingScreen.SetBackgroundStage(stage);
+        }
+
         // FakeLoadingScreen streams the Start scene while the bar fills and
         // fades to black itself right before the scene activates — same
         // beats as the start scene's New Game transition.
         _loadingScreen.SetActive(true);
-        _loadingScreen.GetComponent<FakeLoadingScreen>().BeginLoading();
+        loadingScreen.BeginLoading();
 
         if (ScreenFader.Instance != null) ScreenFader.Instance.FadeOut();
     }

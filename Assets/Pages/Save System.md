@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 Система сохранений автоматически запоминает состояние игры и восстанавливает его при следующем запуске. Любой объект в сцене может участвовать в сохранении — достаточно реализовать один интерфейс.
 
@@ -185,6 +185,7 @@ SaveManager.Instance?.Save(); // дебаунс 2 сек — несколько 
 - `SaveImmediate(int slot = -1)` — синхронная запись (для debug-кнопок).
 - `Load(int slot)` — загрузка слота с автопадением на бэкапы (файл битый, пустой или не парсится — берётся следующий).
 - `DeleteSave(int slot = 0)` / `ClearRegistry()` / `HasSave(int slot = 0)` / `SlotHasSave(int slot)`.
+- `PeekEntityData(slot, saveId)` — статика: читает файл сейва и возвращает сырой JSON-блоб сущности по её SaveId (или null). Работает без инстанса SaveManager — из старт-сцены. Используется `LightingSystem.IsPowerActivatedInSave` для выбора фона загрузочного экрана.
 - `StartNewGame(int slot)` — статика: чистит слот и бэкапы, сбрасывает активный слот, запрашивает wake-up intro.
 - `RequestLoadFromSlot(int slot)` / `ResetActiveSlot()` — управление слотом следующей сессии.
 - `RequestWakeUpIntro()` / `ConsumeWakeUpIntroRequest()` — one-shot флаг интро пробуждения (PlayerPrefs): ставится меню на New Game, консюментится `WakeUpIntroController`.

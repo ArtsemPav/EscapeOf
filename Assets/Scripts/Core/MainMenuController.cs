@@ -149,6 +149,16 @@ public class MainMenuController : MonoBehaviour
             return;
         }
 
+        // The loading screen art matches the building state stored in the save:
+        // the powered building art once the electric puzzle has been solved.
+        if (_loadingScreen != null)
+        {
+            BuildingProgressStage stage = LightingSystem.IsPowerActivatedInSave(DefaultSaveSlot)
+                ? BuildingProgressStage.PowerRestored
+                : BuildingProgressStage.NoPower;
+            _loadingScreen.SetBackgroundStage(stage);
+        }
+
         SaveManager.RequestLoadFromSlot(DefaultSaveSlot);
         BeginGameTransition();
     }

@@ -31,9 +31,27 @@ public class FakeLoadingScreen : MonoBehaviour
     [Tooltip("Gameplay scene loaded after the bar fills.")]
     [SerializeField] private string _sceneToLoad = "Game";
 
+    [Header("Background Art")]
+    [Tooltip("Background image whose sprite switches with the player's progress.")]
+    [SerializeField] private Image _background;
+
+    [Tooltip("Art set for the progress stages (dark / powered building, ...).")]
+    [SerializeField] private LoadingScreenTheme _theme;
+
     private Coroutine _fillRoutine;
     private AsyncOperation _sceneLoadOperation;
     private bool _sceneReady;
+
+    /// <summary>
+    /// Picks the background art for the given progress stage. Call before
+    /// Show()/BeginLoading() — e.g. after reading the save file or the live
+    /// LightingSystem state. With no theme assigned the current sprite stays.
+    /// </summary>
+    public void SetBackgroundStage(BuildingProgressStage stage)
+    {
+        if (_background == null || _theme == null) return;
+        _background.sprite = _theme.GetBackground(stage);
+    }
 
     /// <summary>Shows the loading screen with the bar at zero, without starting the fill.</summary>
     public void Show()
