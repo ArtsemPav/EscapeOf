@@ -309,6 +309,16 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         }
     }
 
+    private void OnDestroy()
+    {
+        // Keep LightingSystem's consumer list clean — a destroyed consumer would
+        // otherwise still receive (and crash on) power notifications.
+        if (LightingSystem.Instance != null)
+        {
+            LightingSystem.Instance.UnregisterConsumer(this);
+        }
+    }
+
     private void Update()
     {
         // Global prank cooldowns tick every frame.
