@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Overview
 
@@ -155,9 +155,28 @@ Backwards compatibility: old saves without `isGeneratorReady`/`isPowerActivated`
 | `Flicker Frequency`           | Times per second the intensity is randomised (2–50 Hz)          |
 | `Occasional Min/Max Interval` | Pause between flicker bursts (seconds)                          |
 | `Occasional Min/Max Duration` | Length of each burst (seconds)                                  |
+| `Linked Lights`               | Extra `Light` components (WITHOUT a `LightZone`) that mirror this lamp exactly: on/off state, fade multiplier and flicker pattern. Use for tandem flicker of several bulbs from one script. |
 
 
 Multiple lamps sharing the same `Zone Id` are controlled together. Each lamp has its own flicker settings, so lamps within one zone can flicker independently.
+
+**Linked Lights (tandem flicker):**
+
+To make several sources flicker in tandem, assign a single `LightZone` as the lead lamp and list the other `Light` components in `Linked Lights` (they may be child or nearby GameObjects and must NOT have their own `LightZone` — otherwise they are driven twice). Every entry keeps its own authored intensity (`OriginalIntensity` captured in `Awake`), so linked bulbs can have different brightness while flickering in sync.
+
+**Public API:**
+
+```csharp
+zone.SetActive(bool on);                    // on/off + flicker control (preferred over Light.enabled)
+zone.SetIntensityMultiplier(float m);       // fade support, 0..1 of OriginalIntensity
+zone.StopFlicker();                         // stop flicker, restore full intensity
+
+zone.Light;                                 // the Light component on this GameObject
+zone.OriginalIntensity;                     // authored intensity of the main light
+zone.IntensityMultiplierChanged += (float m) => { }; // fires on every flicker step / fade update
+```
+
+**`IntensityMultiplierChanged` event:** raised with the current brightness multiplier (0..1) on every flicker tick and fade update. `ZoneEmission` subscribes to it so the lamp mesh's glow flickers in tandem with the light.
 
 **Flicker modes:**
 
@@ -166,6 +185,28 @@ Multiple lamps sharing the same `Zone Id` are controlled together. Each lamp has
 - `Occasional` — long stable phase → short burst of rapid flicker → restore → repeat
 
 Flicker stops automatically when the light is turned off (switch or panel) and resumes after it is turned back on. It does not conflict with the fade transition.
+
+---
+
+## ZoneEmission
+
+**File:** `ZoneEmission.cs`
+**Component:** place on the lamp mesh GameObject. Binds the mesh's material emission to the zone state — the glow is on when the zone is lit (power AND switch ON), off otherwise. Works without a `Light` component (pure emissive glow).
+
+Each assigned renderer gets an **instantiated material**, so lamps sharing the same material asset react independently. Use `Material Indices` to pick the emissive slot on multi-material lamps. Registers as an `IPowerConsumer`, so it survives save-load and power restoration automatically.
+
+
+| Field                | Description                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `Zone Id`            | Zone to follow. If empty, the `ZoneId` of a `LightZone` in parents is used.                 |
+| `Target Light Zone`  | Optional `LightZone` reference. When set (or found in parents), the emission flickers in tandem with the lamp light. |
+| `Renderers`          | Renderers whose emission follows the zone. Auto-found on this GameObject if empty.          |
+| `Material Indices`   | Per-renderer material slot index (element i → renderers[i]). Omitted/out-of-range → slot 0. |
+| `Emission Color`     | Emission color multiplied into the emissive map.                                            |
+| `Emission Intensity` | HDR intensity of the glow. Values above 1 bloom when a volume is present.                   |
+
+
+**Tandem flicker with the light:** if `Target Light Zone` resolves to a `LightZone` (assigned manually or auto-found in parents), the component subscribes to `IntensityMultiplierChanged` and scales the HDR emission by the same multiplier as the lamp light on every flicker tick and fade update — the glow dips exactly in sync. Note the auto-lookup only searches **parents**: if the `LightZone` sits on a sibling GameObject (e.g. a `Point light` child of the lamp root), assign it manually.
 
 ---
 

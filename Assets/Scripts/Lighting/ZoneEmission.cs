@@ -23,6 +23,11 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
     [SerializeField] private string _zoneId;
 
     [Header("References")]
+    [Tooltip("LightZone whose flicker/fade multiplier drives this glow. " +
+             "If not assigned, the first LightZone in parents is used. When found, " +
+             "the emission flickers in tandem with the lamp light.")]
+    [SerializeField] private LightZone _targetLightZone;
+
     [Tooltip("Renderers whose emission follows the zone state. " +
              "Auto-found on this GameObject if not assigned.")]
     [SerializeField] private Renderer[] _renderers;
@@ -44,6 +49,8 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
 
     private LightingSystem _lightingSystem;
     private Material[] _materials;
+    private bool _lit;
+    private float _multiplier = 1f;
 
     /// <summary>Resolved zone ID this component follows.</summary>
     public string ZoneId => _zoneId;
@@ -62,7 +69,22 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
         if (_renderers == null || _renderers.Length == 0)
             _renderers = GetComponents<Renderer>();
 
+        if (_targetLightZone == null)
+            _targetLightZone = GetComponentInParent<LightZone>();
+
         InstantiateMaterials();
+    }
+
+    private void OnEnable()
+    {
+        if (_targetLightZone != null)
+            _targetLightZone.IntensityMultiplierChanged += HandleIntensityMultiplierChanged;
+    }
+
+    private void OnDisable()
+    {
+        if (_targetLightZone != null)
+            _targetLightZone.IntensityMultiplierChanged -= HandleIntensityMultiplierChanged;
     }
 
     private void Start()
@@ -142,16 +164,27 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
 
     private void UpdateEmission(bool lit)
     {
+        _lit = lit;
+        ApplyEmission();
+    }
+
+    /// <summary>
+    /// Applies the current zone-lit state and flicker/fade multiplier to every material.
+    /// Always runs both branches so emission exactly mirrors the lamp light at full
+    /// brightness, during dips and when fully off.
+    /// </summary>
+    private void ApplyEmission()
+    {
         if (_materials == null) return;
 
         foreach (var material in _materials)
         {
             if (material == null || !material.HasProperty(EmissionColorId)) continue;
 
-            if (lit)
+            if (_lit)
             {
                 material.EnableKeyword(EmissionKeyword);
-                material.SetColor(EmissionColorId, _emissionColor * _emissionIntensity);
+                material.SetColor(EmissionColorId, _emissionColor * (_emissionIntensity * Mathf.Max(0f, _multiplier)));
             }
             else
             {
@@ -159,5 +192,16 @@ public class ZoneEmission : MonoBehaviour, IPowerConsumer
                 material.SetColor(EmissionColorId, Color.black);
             }
         }
+    }
+
+    /// <summary>
+    /// Called by the target <see cref="LightZone"/> on every flicker step and fade
+    /// update. Scales the HDR emission by the same multiplier as the lamp light,
+    /// so the glow dips in tandem with the light.
+    /// </summary>
+    private void HandleIntensityMultiplierChanged(float multiplier)
+    {
+        _multiplier = multiplier;
+        ApplyEmission();
     }
 }

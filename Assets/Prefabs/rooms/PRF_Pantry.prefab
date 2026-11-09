@@ -318,7 +318,6 @@ GameObject:
   - component: {fileID: 2039918091141036861}
   - component: {fileID: 760591789938312037}
   - component: {fileID: 7423365064766970812}
-  - component: {fileID: 6980171974753250104}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -435,26 +434,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &6980171974753250104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5236959872150099188}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Pantry 2
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &6769964282739634500
 GameObject:
   m_ObjectHideFlags: 0
@@ -3721,6 +3700,8 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 760591789938312037}
 --- !u!1 &1927442144651555790 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -3739,6 +3720,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Pantry 2
+  _targetLightZone: {fileID: 5721047415817135417}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}

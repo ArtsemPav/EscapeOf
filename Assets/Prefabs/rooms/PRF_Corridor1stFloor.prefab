@@ -7597,7 +7597,6 @@ GameObject:
   - component: {fileID: 6760820796404487567}
   - component: {fileID: 2433011903863497949}
   - component: {fileID: 6851588724967863012}
-  - component: {fileID: 6728594863164465245}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -7633,8 +7632,8 @@ Light:
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 2.17
   m_Range: 3.75
-  m_SpotAngle: 136.284
-  m_InnerSpotAngle: 94.166374
+  m_SpotAngle: 98.03354
+  m_InnerSpotAngle: 33.204758
   m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
@@ -7714,26 +7713,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &6728594863164465245
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3739865745337777551}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Corridor
-  _flickerMode: 1
-  _flickerMinMultiplier: 0.3
-  _flickerFrequency: 30
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &3768556512472317092
 GameObject:
   m_ObjectHideFlags: 0
@@ -8858,7 +8837,6 @@ GameObject:
   - component: {fileID: 8606327601178912828}
   - component: {fileID: 8468819765250816031}
   - component: {fileID: 7491739727158373405}
-  - component: {fileID: 1002556818149644735}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -8975,26 +8953,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &1002556818149644735
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4979305607076863167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Corridor
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &4987964520067479003
 GameObject:
   m_ObjectHideFlags: 0
@@ -12643,6 +12601,8 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 8468819765250816031}
 --- !u!1 &289137629391198068 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -12661,6 +12621,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Corridor
+  _targetLightZone: {fileID: 6727103442862526251}
   _renderers:
   - {fileID: 311827432665176750}
   _materialIndices: 
@@ -24217,7 +24178,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.345
+      value: -0.43
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.z
@@ -24253,7 +24214,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Range
-      value: 4.31
+      value: 3.94
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Color.b
@@ -24273,7 +24234,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_SpotAngle
-      value: 155.31079
+      value: 179
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Lightmapping
@@ -24340,6 +24301,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Corridor
+  _targetLightZone: {fileID: 8881552435464201842}
   _renderers:
   - {fileID: 3999240543254990431}
   _materialIndices: 
@@ -24370,6 +24332,8 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 2433011903863497949}
 --- !u!4 &4024848408801803299 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4369005094392084, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}

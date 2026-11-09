@@ -367,6 +367,7 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights: []
 --- !u!1 &6067425867797127148
 GameObject:
   m_ObjectHideFlags: 0
@@ -449,7 +450,6 @@ GameObject:
   - component: {fileID: 8895508389939132161}
   - component: {fileID: 7066248583382136950}
   - component: {fileID: 73932144036412410}
-  - component: {fileID: 5649854745307405191}
   m_Layer: 0
   m_Name: Point light (30)
   m_TagString: Untagged
@@ -566,26 +566,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &5649854745307405191
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6972026577713694630}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Procedural
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &7310363258747141152
 GameObject:
   m_ObjectHideFlags: 0
@@ -827,7 +807,6 @@ GameObject:
   - component: {fileID: 8443077866474211645}
   - component: {fileID: 7259783792668439632}
   - component: {fileID: 1699838535191758986}
-  - component: {fileID: 6553597954409750759}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -944,26 +923,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &6553597954409750759
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8971535606216872688}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Procedural
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &9030358467028817853
 GameObject:
   m_ObjectHideFlags: 0
@@ -7088,7 +7047,7 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8194895613470918703}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -7164,7 +7123,7 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 16896
       objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -7842,7 +7801,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.605
+      value: -0.299
       objectReference: {fileID: 0}
     - target: {fileID: 4423407365265172, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_LocalPosition.z
@@ -7955,6 +7914,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Procedural
+  _targetLightZone: {fileID: 2601974259840566543}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
@@ -8013,6 +7973,9 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 7259783792668439632}
+  - {fileID: 7066248583382136950}
 --- !u!1001 &4302770627368760750
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -10220,6 +10183,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Procedural
+  _targetLightZone: {fileID: 0}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
@@ -10278,6 +10242,7 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights: []
 --- !u!1001 &5897376392547222064
 PrefabInstance:
   m_ObjectHideFlags: 0

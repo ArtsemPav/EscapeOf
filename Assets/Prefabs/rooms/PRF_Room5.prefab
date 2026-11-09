@@ -102,7 +102,6 @@ GameObject:
   - component: {fileID: 5167895902923651072}
   - component: {fileID: 1752794797156547234}
   - component: {fileID: 6303758285573498324}
-  - component: {fileID: 1204174125015319394}
   m_Layer: 0
   m_Name: Point light (30)
   m_TagString: Untagged
@@ -219,26 +218,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &1204174125015319394
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 319376404956640392}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Room5
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &442147287752281160
 GameObject:
   m_ObjectHideFlags: 0
@@ -1331,7 +1310,6 @@ GameObject:
   - component: {fileID: 5014919055487519320}
   - component: {fileID: 1290630887831587846}
   - component: {fileID: 6112130197685424064}
-  - component: {fileID: 6711722536759102152}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -1448,26 +1426,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &6711722536759102152
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4849148522098513880}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Room5
-  _flickerMode: 0
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &5017528608062256360
 GameObject:
   m_ObjectHideFlags: 0
@@ -6330,10 +6288,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2558556392371781558}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -6403,6 +6357,10 @@ PrefabInstance:
       value: PRF_PaperNoteRoom5 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -7565,6 +7523,9 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 1290630887831587846}
+  - {fileID: 1752794797156547234}
 --- !u!1 &4607107038221133208 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -7583,6 +7544,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Room5
+  _targetLightZone: {fileID: 2353784780354442102}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}

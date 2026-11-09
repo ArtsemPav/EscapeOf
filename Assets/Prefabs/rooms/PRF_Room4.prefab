@@ -578,7 +578,6 @@ GameObject:
   - component: {fileID: 7087757737515568527}
   - component: {fileID: 1469567890906116951}
   - component: {fileID: 7687403452482438234}
-  - component: {fileID: 7900799157494730193}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -695,26 +694,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &7900799157494730193
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6109908149953121330}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: Room4
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &6167951627264076739
 GameObject:
   m_ObjectHideFlags: 0
@@ -4768,6 +4747,7 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights: []
 --- !u!1 &4329466460624377356 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1194454072305808758, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
@@ -4793,6 +4773,7 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights: []
 --- !u!1001 &3331634170446609515
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5824,7 +5805,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Range
-      value: 5.02
+      value: 4.76
       objectReference: {fileID: 0}
     - target: {fileID: 108883779594015524, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       propertyPath: m_Color.b
@@ -5946,6 +5927,8 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 1469567890906116951}
 --- !u!1 &3903162907126047558 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -5964,6 +5947,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: Room4
+  _targetLightZone: {fileID: 2985666940705084840}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}

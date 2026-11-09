@@ -6150,7 +6150,6 @@ GameObject:
   - component: {fileID: 8733202572400765366}
   - component: {fileID: 8388895991486301026}
   - component: {fileID: 6010524895157918542}
-  - component: {fileID: 2846770824704402234}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -6267,26 +6266,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &2846770824704402234
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6944676169154593027}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: GeneratorRoom
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &7323090239009977577
 GameObject:
   m_ObjectHideFlags: 0
@@ -6602,7 +6581,6 @@ GameObject:
   - component: {fileID: 8194107097251792770}
   - component: {fileID: 8168712498870159669}
   - component: {fileID: 2632526185179037914}
-  - component: {fileID: 4072279558790719530}
   m_Layer: 0
   m_Name: Point light (29)
   m_TagString: Untagged
@@ -6619,7 +6597,7 @@ Transform:
   m_GameObject: {fileID: 7917446981705320205}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: -0.069, y: -2.234, z: 0.038}
+  m_LocalPosition: {x: 0.03, y: -0.87, z: 0.04}
   m_LocalScale: {x: 0.82069325, y: 0.82069314, z: 0.82069314}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6636,8 +6614,8 @@ Light:
   serializedVersion: 12
   m_Type: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 2.17
-  m_Range: 3.75
+  m_Intensity: 0.65
+  m_Range: 1.41
   m_SpotAngle: 136.284
   m_InnerSpotAngle: 94.166374
   m_CookieSize2D: {x: 10, y: 10}
@@ -6719,26 +6697,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &4072279558790719530
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7917446981705320205}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: GeneratorRoom
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
 --- !u!1 &8267081952926552158
 GameObject:
   m_ObjectHideFlags: 0
@@ -6869,10 +6827,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 4492372440869039146, guid: 32a9416018706304da993bb57f4e7f86, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2097664
@@ -6942,6 +6896,10 @@ PrefabInstance:
       value: 520
       objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -8762,6 +8720,8 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 8388895991486301026}
 --- !u!1 &952081812584859670 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -8780,6 +8740,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: GeneratorRoom
+  _targetLightZone: {fileID: 4988227660564627805}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
@@ -9513,6 +9474,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: GeneratorRoom
+  _targetLightZone: {fileID: 0}
   _renderers:
   - {fileID: 1635101861645271746}
   _materialIndices: 01000000
@@ -9543,6 +9505,7 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights: []
 --- !u!4 &1635101861643501600 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
@@ -10117,6 +10080,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
   _zoneId: GeneratorRoom
+  _targetLightZone: {fileID: 7391992672080364846}
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
@@ -10175,6 +10139,8 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _linkedLights:
+  - {fileID: 8168712498870159669}
 --- !u!1001 &1923435618599990663
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17865,10 +17831,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -17944,6 +17906,10 @@ PrefabInstance:
     - target: {fileID: 6146684655915795732, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2097664
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
