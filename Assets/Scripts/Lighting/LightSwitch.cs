@@ -10,7 +10,7 @@ using UnityEngine;
 /// </summary>
 public class LightSwitch : MonoBehaviour, IInteractable
 {
-    [Tooltip("The zone ID this switch controls. Must match LightZone.ZoneId on the lamp objects.")]
+    [Tooltip("The zone ID this switch controls. Must match Lamp.ZoneId on the lamp objects.")]
     [SerializeField] private string _zoneId;
 
     [Tooltip("Default switch state for a new game (no save). When power is first restored, " +

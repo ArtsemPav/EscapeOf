@@ -2268,7 +2268,7 @@ PrefabInstance:
       addedObject: {fileID: 8690610474999074002}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8433541344837991678}
+      addedObject: {fileID: 2570016991841700307}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!4 &46048587698897281 stripped
 Transform:
@@ -2309,7 +2309,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &8433541344837991678
+--- !u!114 &2570016991841700307
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -2318,10 +2318,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 48103699926063119}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Corridor
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -2329,6 +2330,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &81963218243515071
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4445,7 +4451,7 @@ PrefabInstance:
       addedObject: {fileID: 4779364474615330427}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4023450148820184352}
+      addedObject: {fileID: 1104718033662212135}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!1 &996887881270434291 stripped
 GameObject:
@@ -4481,7 +4487,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &4023450148820184352
+--- !u!114 &1104718033662212135
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -4490,10 +4496,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 996887881270434291}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Corridor
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -4501,6 +4508,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!4 &998909346992488573 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4369005094392084, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -10627,7 +10639,7 @@ PrefabInstance:
       addedObject: {fileID: 2305298383953915943}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2976863286606133541}
+      addedObject: {fileID: 2172852712260544885}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!1 &3802532047374148844 stripped
 GameObject:
@@ -10663,7 +10675,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &2976863286606133541
+--- !u!114 &2172852712260544885
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10672,10 +10684,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3802532047374148844}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Corridor
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -10683,6 +10696,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!4 &3804468824318442850 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4369005094392084, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
@@ -17307,7 +17325,7 @@ PrefabInstance:
       addedObject: {fileID: 4872487053453541189}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1585535734929894928}
+      addedObject: {fileID: 2587240044663677477}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!4 &7104348050099968392 stripped
 Transform:
@@ -17348,7 +17366,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &1585535734929894928
+--- !u!114 &2587240044663677477
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -17357,10 +17375,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 7106337250341322758}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Corridor
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -17368,6 +17387,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &7196761380989692734
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -18383,7 +18407,7 @@ PrefabInstance:
       addedObject: {fileID: 8668353141628866323}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1116526479139593010}
+      addedObject: {fileID: 7834791374132179793}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!1 &7553581922125264131 stripped
 GameObject:
@@ -18419,7 +18443,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &1116526479139593010
+--- !u!114 &7834791374132179793
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -18428,10 +18452,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 7553581922125264131}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Corridor
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -18439,6 +18464,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!4 &7555571510264245389 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4369005094392084, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}

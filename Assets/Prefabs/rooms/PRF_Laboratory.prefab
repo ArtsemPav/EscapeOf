@@ -9706,14 +9706,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2808026025327760060}
+      addedObject: {fileID: 5634035607639889407}
   m_SourcePrefab: {fileID: 100100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
 --- !u!1 &1500648195034247169 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
   m_PrefabInstance: {fileID: 1500648195034281633}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2808026025327760060
+--- !u!114 &5634035607639889407
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9722,10 +9722,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1500648195034247169}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Laboratory
+  _extraLights: []
   _flickerMode: 0
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -9733,7 +9734,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
-  _linkedLights: []
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!4 &1500648195034672163 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
@@ -12397,7 +12402,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 9120393378039229288}
+      addedObject: {fileID: 668325668381285694}
   m_SourcePrefab: {fileID: 100100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
 --- !u!23 &3101931782552238451 stripped
 MeshRenderer:
@@ -12414,7 +12419,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
   m_PrefabInstance: {fileID: 3101931782554394899}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &9120393378039229288
+--- !u!114 &668325668381285694
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -12423,10 +12428,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3101931782554494899}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Laboratory
+  _extraLights: []
   _flickerMode: 0
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -12434,7 +12440,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
-  _linkedLights: []
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &3163739458768196442
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20104,7 +20114,7 @@ PrefabInstance:
       addedObject: {fileID: 5569198399515358006}
     - targetCorrespondingSourceObject: {fileID: 7261599626355108041, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8820660607450821054}
+      addedObject: {fileID: 3160638912967982685}
   m_SourcePrefab: {fileID: 100100000, guid: 7842e463f8e4f2346bf261246a1e888e, type: 3}
 --- !u!1 &4340683082084477919 stripped
 GameObject:
@@ -20132,7 +20142,7 @@ MonoBehaviour:
   _handleRotationOff: {x: 80, y: 0, z: 0}
   _switchOnClip: {fileID: 8300000, guid: c6d715f193d92504a823a244f66b3a63, type: 3}
   _switchOffClip: {fileID: 8300000, guid: c6d715f193d92504a823a244f66b3a63, type: 3}
---- !u!114 &8820660607450821054
+--- !u!114 &3160638912967982685
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -20141,11 +20151,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 4340683082084477919}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e187649f7277f574683a82102746b633, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Laboratory
-  _targetLightZone: {fileID: 0}
+  _extraLights: []
+  _flickerMode: 0
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
   _renderers:
   - {fileID: 8390225251723482587}
   - {fileID: 7612843006367140627}
@@ -21032,7 +21050,7 @@ PrefabInstance:
       addedObject: {fileID: 836644501313579009}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 4650074780825649826}
+      addedObject: {fileID: 3537254432596763352}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!4 &6901324158088006634 stripped
 Transform:
@@ -21073,7 +21091,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &4650074780825649826
+--- !u!114 &3537254432596763352
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -21082,10 +21100,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 6903757906242589284}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Laboratory
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -21093,8 +21112,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
-  _linkedLights:
-  - {fileID: 1222529831756354588}
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &6932897755015825522
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22434,7 +22456,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7578658362699694234}
+      addedObject: {fileID: 5224597086823597804}
   m_SourcePrefab: {fileID: 100100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
 --- !u!23 &7612843006367140627 stripped
 MeshRenderer:
@@ -22451,7 +22473,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
   m_PrefabInstance: {fileID: 7612843006369436531}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7578658362699694234
+--- !u!114 &5224597086823597804
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -22460,10 +22482,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 7612843006369338835}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Laboratory
+  _extraLights: []
   _flickerMode: 0
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -22471,7 +22494,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
-  _linkedLights: []
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &7642242332330035927
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -23985,7 +24012,7 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 7384835683830425492}
+      addedObject: {fileID: 6554263319713921663}
   m_SourcePrefab: {fileID: 100100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
 --- !u!4 &8390225251721058105 stripped
 Transform:
@@ -23997,7 +24024,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
   m_PrefabInstance: {fileID: 8390225251721448891}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &7384835683830425492
+--- !u!114 &6554263319713921663
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -24006,10 +24033,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 8390225251721480987}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Laboratory
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -24017,7 +24045,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
-  _linkedLights: []
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!23 &8390225251723482587 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: 2300000, guid: 64580fd0b48a266469ed778b57333348, type: 3}

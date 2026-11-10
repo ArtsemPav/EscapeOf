@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Wall switch inside the painting room. Toggles a LightingSystem zone by ID.
-/// Room lights just need a LightZone component with the matching ZoneId —
+/// Room lights just need a Lamp component with the matching ZoneId —
 /// no direct Light references, so lights can live in any prefab or scene object.
 /// State is persisted automatically by LightingSystem — no separate ISaveable needed.
 /// Default zone state is ON (LightingSystem defaults to true for unknown zones).
@@ -15,7 +15,7 @@ public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
     [SerializeField] private string _lockedInteractText  = "Заблокировано";
 
     [Header("Lighting Zone")]
-    [Tooltip("Must match the ZoneId on all LightZone components in the painting room, " +
+    [Tooltip("Must match the ZoneId on all Lamp components in the painting room, " +
              "and the _roomLightZoneId on LoopPuzzleController.")]
     [SerializeField] private string _zoneId = "painting_room";
 

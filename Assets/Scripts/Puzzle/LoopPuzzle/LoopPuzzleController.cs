@@ -67,7 +67,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
 
     [Header("Room Light Zone")]
     [Tooltip("ZoneId of the painting room lights in LightingSystem. " +
-             "Must match the ZoneId on LightZone components and PaintingRoomLightSwitch.")]
+             "Must match the ZoneId on Lamp components and PaintingRoomLightSwitch.")]
     [SerializeField] private string _roomLightZoneId = "painting_room";
 
     [Header("Painting Conditions (Q1–Q4)")]

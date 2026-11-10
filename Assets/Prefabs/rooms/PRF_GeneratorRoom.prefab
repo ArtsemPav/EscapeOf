@@ -6827,6 +6827,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4422218443436579290}
     m_Modifications:
+    - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
     - target: {fileID: 4492372440869039146, guid: 32a9416018706304da993bb57f4e7f86, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 2097664
@@ -6892,10 +6896,6 @@ PrefabInstance:
       value: PRF_PaperGenerator 1
       objectReference: {fileID: 0}
     - target: {fileID: 6146684655915795732, guid: 32a9416018706304da993bb57f4e7f86, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: b82c4f7fce642334e9aced24f42a10ec, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -8658,13 +8658,10 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3110201260194077347}
+      addedObject: {fileID: 5597325064712149383}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6002715769703740846}
-    - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4988227660564627805}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!1 &951633610113609278 stripped
 GameObject:
@@ -8700,34 +8697,12 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &4988227660564627805
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 951633610113609278}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: GeneratorRoom
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
-  _linkedLights:
-  - {fileID: 8388895991486301026}
 --- !u!1 &952081812584859670 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
   m_PrefabInstance: {fileID: 950851962885285540}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &3110201260194077347
+--- !u!114 &5597325064712149383
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8736,11 +8711,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 952081812584859670}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e187649f7277f574683a82102746b633, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: GeneratorRoom
-  _targetLightZone: {fileID: 4988227660564627805}
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
@@ -9451,17 +9434,14 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 100002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8587238487333748998}
-    - targetCorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 6263372793672780048}
+      addedObject: {fileID: 3004843894483861126}
   m_SourcePrefab: {fileID: 100100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
 --- !u!1 &1635101861643082752 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 100002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
   m_PrefabInstance: {fileID: 1635101861643115170}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8587238487333748998
+--- !u!114 &3004843894483861126
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -9470,34 +9450,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1635101861643082752}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e187649f7277f574683a82102746b633, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: GeneratorRoom
-  _targetLightZone: {fileID: 0}
-  _renderers:
-  - {fileID: 1635101861645271746}
-  _materialIndices: 01000000
-  _emissionColor: {r: 0.7490196, g: 0.3019608, b: 0.07450981, a: 1}
-  _emissionIntensity: 4
---- !u!1 &1635101861643082754 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 100000, guid: 64580fd0b48a266469ed778b57333348, type: 3}
-  m_PrefabInstance: {fileID: 1635101861643115170}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &6263372793672780048
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1635101861643082754}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: GeneratorRoom
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -9505,7 +9462,12 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
-  _linkedLights: []
+  _emissionMode: 1
+  _renderers:
+  - {fileID: 1635101861645271746}
+  _materialIndices: 01000000
+  _emissionColor: {r: 0.7490196, g: 0.3019608, b: 0.07450981, a: 1}
+  _emissionIntensity: 4
 --- !u!4 &1635101861643501600 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400002, guid: 64580fd0b48a266469ed778b57333348, type: 3}
@@ -10049,13 +10011,10 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8841747599304197214}
+      addedObject: {fileID: 3557887702663889618}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6943759934885962910}
-    - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7391992672080364846}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!4 &1911508944279423647 stripped
 Transform:
@@ -10067,7 +10026,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
   m_PrefabInstance: {fileID: 1911935098512317323}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &8841747599304197214
+--- !u!114 &3557887702663889618
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10076,11 +10035,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 1913164904636101945}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e187649f7277f574683a82102746b633, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ZoneEmission
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: GeneratorRoom
-  _targetLightZone: {fileID: 7391992672080364846}
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
   _renderers: []
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
@@ -10119,28 +10086,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &7391992672080364846
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1913596345794155281}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
-  _zoneId: GeneratorRoom
-  _flickerMode: 2
-  _flickerMinMultiplier: 0.1
-  _flickerFrequency: 20
-  _occasionalMinInterval: 3
-  _occasionalMaxInterval: 12
-  _occasionalMinDuration: 0.2
-  _occasionalMaxDuration: 1.2
-  _linkedLights:
-  - {fileID: 8168712498870159669}
 --- !u!1001 &1923435618599990663
 PrefabInstance:
   m_ObjectHideFlags: 0

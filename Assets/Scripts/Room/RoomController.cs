@@ -105,7 +105,7 @@ public class RoomController : MonoBehaviour
     /// <summary>Collects the distinct light zone ids used by lamps in this room.</summary>
     private void CollectZoneIds()
     {
-        var zones = GetComponentsInChildren<LightZone>(includeInactive: true);
+        var zones = GetComponentsInChildren<ILampZone>(includeInactive: true);
         var idSet = new HashSet<string>();
 
         foreach (var zone in zones)

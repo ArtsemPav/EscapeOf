@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Обзор
 
@@ -614,7 +614,7 @@ Editor-скрипт `Assets/Scripts/Editor/PuzzleCheats/PaintPuzzleUnlockTool.cs
 | `_columnButtons`    | `PaintingColumnTrigger[4]` | Кнопки Q1–Q4                                                                                                                        |
 | `_powerButtons`     | `LoopPuzzleButton[6]`      | Рубильники S1–S6                                                                                                                    |
 | `_roomLightSwitch`  | `PaintingRoomLightSwitch`  | Выключатель света в PaintingRoom — блокируется при решении. Опциональное (`null` = пропускается)                                    |
-| `_roomLightZoneId`  | `string`                   | Zone ID освещения PaintingRoom (default: `"painting_room"`). Должен совпадать с `ZoneId` на `LightZone` и `PaintingRoomLightSwitch` |
+| `_roomLightZoneId`  | `string`                   | Zone ID освещения PaintingRoom (default: `"painting_room"`). Должен совпадать с `ZoneId` на `Lamp` и `PaintingRoomLightSwitch`     |
 
 
 ### Условие `requireRoomLightOff` в `PaintingCondition`
@@ -629,7 +629,7 @@ bool roomLightOk = !cond.requireRoomLightOff || _roomLightOff;
 
 Для работы условия необходимо:
 
-1. На объектах освещения в PaintingRoom добавить `LightZone` с `Zone Id = _roomLightZoneId`
+1. На объектах освещения в PaintingRoom добавить `Lamp` с `Zone Id = _roomLightZoneId`
 2. `PaintingRoomLightSwitch` должен управлять той же зоной
 
 ---
@@ -647,6 +647,6 @@ bool roomLightOk = !cond.requireRoomLightOff || _roomLightOff;
 - [x] **ScreenFader**: объект `/Canvas/ScreenFader` активен в сцене (`activeSelf = true`)
 - [x] **SolvedLight**: `SolvedLightFade` на `SolvedLight`, назначен в `LoopPuzzleController._solvedLight`
 - [ ] Добавить `PaintingRoomLightSwitch` на объект выключателя в сцене, назначить его в `LoopPuzzleController._roomLightSwitch`
-- [ ] На объекты освещения в PaintingRoom добавить компонент **Light Zone** (`LightGroup.cs`) с `Zone Id = "painting_room"`
+- [ ] На объекты освещения в PaintingRoom добавить компонент **Lamp** (`Lamp.cs`) с `Zone Id = "painting_room"`
 - [ ] Настроить высоты `_lowY / _midY / _highY` в `PaintingColumn` под реальную геометрию сцены
 - [ ] Уточнить код Δ (значение символа Q4) у дизайнера

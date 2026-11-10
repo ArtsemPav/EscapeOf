@@ -190,7 +190,7 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
     private class LampState
     {
         public Light Light;
-        public LightZone Zone;
+        public ILampZone Zone;
         public Color Color;
         public float BaseIntensity;
         public bool WasEnabled;
@@ -508,7 +508,7 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
             Light light = _lampLights[i];
             if (light == null) continue;
 
-            var zone = light.GetComponent<LightZone>();
+            var zone = light.GetComponentInParent<ILampZone>();
             zone?.StopFlicker();
 
             list.Add(new LampState

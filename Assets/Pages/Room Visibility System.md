@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Overview
 
@@ -89,7 +89,7 @@ value. Used by `ProgressLogger` to record room visits.
 **Responsibilities (on `Awake`):**
 
 - Collects interactable colliders (objects implementing `IInteractable`) — for `Lock`/`Unlock`.
-- Collects distinct `ZoneId`s from child `LightZone`s → exposed via `ZoneIds`.
+- Collects distinct `ZoneId`s from child `Lamp`s (via `ILampZone`) → exposed via `ZoneIds`.
 - Collects renderers that are **enabled at startup** (authored-disabled renderers are left alone) → `_managedRenderers`.
 - `ConfigureTriggers()` injects each trigger with its room list. Entries referencing the **same trigger
 within this room** are merged.

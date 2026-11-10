@@ -16,7 +16,7 @@ using UnityEngine;
 ///   - When power is OFF → all lights are disabled regardless of switch states.
 ///   - When power is ON  → each zone reflects its own switch state (on/off).
 /// 
-/// LightZone components register themselves on Awake.
+/// ILampZone components (Lamp) register themselves on Awake.
 /// LightSwitch components call SetZoneSwitch() to toggle individual zones.
 /// ElectricPanel calls SetPower() to control the master breaker.
 /// IPowerConsumer implementations register via RegisterConsumer() and receive
@@ -63,8 +63,8 @@ public class LightingSystem : MonoBehaviour, ISaveable
     /// <summary>True after the electric panel puzzle has activated power at least once.</summary>
     public bool IsPowerActivated => _isPowerActivated;
 
-    // zoneId → list of LightZone components registered from the scene/prefabs
-    private readonly Dictionary<string, List<LightZone>> _zones = new();
+    // zoneId → list of ILampZone lamps registered from the scene/prefabs
+    private readonly Dictionary<string, List<ILampZone>> _zones = new();
 
     // zoneId → switch state (true = switch is ON). Default true when first seen.
     private readonly Dictionary<string, bool> _switchStates = new();
@@ -189,19 +189,19 @@ public class LightingSystem : MonoBehaviour, ISaveable
         SaveManager.Instance?.Unregister(this);
     }
 
-    // ── Registration (called by LightZone) ────────────────────────────────────
+    // ── Registration (called by ILampZone) ────────────────────────────────────
 
-    /// <summary>Called automatically by LightZone.Awake().</summary>
-    public void RegisterZone(LightZone zone)
+    /// <summary>Called automatically by Lamp.Awake().</summary>
+    public void RegisterZone(ILampZone zone)
     {
         if (string.IsNullOrEmpty(zone.ZoneId))
         {
-            Debug.LogWarning($"[LightingSystem] LightZone on '{zone.gameObject.name}' has no ZoneId — skipping.", zone);
+            Debug.LogWarning($"[LightingSystem] ILampZone on '{(zone as Component)?.name}' has no ZoneId — skipping.", zone as Component);
             return;
         }
 
         if (!_zones.ContainsKey(zone.ZoneId))
-            _zones[zone.ZoneId] = new List<LightZone>();
+            _zones[zone.ZoneId] = new List<ILampZone>();
         _zones[zone.ZoneId].Add(zone);
 
         // Default switch state is NOT set here — LightSwitch.Start() calls
@@ -212,8 +212,8 @@ public class LightingSystem : MonoBehaviour, ISaveable
         zone.SetActive(IsZoneActive(zone.ZoneId));
     }
 
-    /// <summary>Called automatically by LightZone.OnDestroy().</summary>
-    public void UnregisterZone(LightZone zone)
+    /// <summary>Called automatically by Lamp.OnDestroy().</summary>
+    public void UnregisterZone(ILampZone zone)
     {
         if (string.IsNullOrEmpty(zone.ZoneId)) return;
         if (_zones.TryGetValue(zone.ZoneId, out var list))
@@ -384,7 +384,7 @@ public class LightingSystem : MonoBehaviour, ISaveable
             SetZoneLights(lights, on ? 1f : 0f, on);
     }
 
-    private IEnumerator FadeZone(List<LightZone> lights, bool on)
+    private IEnumerator FadeZone(List<ILampZone> lights, bool on)
     {
         // Before fading out — stop flicker so intensity is at baseline (OriginalIntensity).
         if (!on)
@@ -393,7 +393,7 @@ public class LightingSystem : MonoBehaviour, ISaveable
         // Enable lights before fading in so intensity lerp is visible.
         if (on)
             foreach (var z in lights)
-                if (z != null) { z.Light.enabled = true; z.SetIntensityMultiplier(0f); }
+                if (z != null) z.SetIntensityMultiplier(0f);
 
         float elapsed = 0f;
         while (elapsed < _fadeDuration)
@@ -406,12 +406,12 @@ public class LightingSystem : MonoBehaviour, ISaveable
             yield return null;
         }
 
-        // After fade completes — hand control back to LightZone (enables flicker if any).
+        // After fade completes — hand control back to the lamp (enables flicker if any).
         foreach (var zone in lights)
             zone?.SetActive(on);
     }
 
-    private static void SetZoneLights(List<LightZone> lights, float multiplier, bool enabled)
+    private static void SetZoneLights(List<ILampZone> lights, float multiplier, bool enabled)
     {
         foreach (var zone in lights)
         {

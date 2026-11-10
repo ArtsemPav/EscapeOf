@@ -5822,7 +5822,7 @@ GameObject:
   - component: {fileID: 2959964142219292668}
   - component: {fileID: 2926923716538084300}
   - component: {fileID: 4627905478276371138}
-  - component: {fileID: 4206213300300795526}
+  - component: {fileID: 8316235669039147343}
   m_Layer: 0
   m_Name: Point light (28)
   m_TagString: Untagged
@@ -5939,7 +5939,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &4206213300300795526
+--- !u!114 &8316235669039147343
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5948,10 +5948,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 2961868614162821234}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Procedural
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -5959,6 +5960,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1 &3021466669043895762
 GameObject:
   m_ObjectHideFlags: 0
@@ -6200,7 +6206,7 @@ GameObject:
   - component: {fileID: 3151907842424024559}
   - component: {fileID: 3040124718587275743}
   - component: {fileID: 2757755422092668081}
-  - component: {fileID: 1268307439265039782}
+  - component: {fileID: 5739376366808681685}
   m_Layer: 0
   m_Name: Point light (28)
   m_TagString: Untagged
@@ -6317,7 +6323,7 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!114 &1268307439265039782
+--- !u!114 &5739376366808681685
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -6326,10 +6332,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 3149316861890523745}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 40954b9d2265e6547b58b77224dfe376, type: 3}
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::LightZone
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
   _zoneId: Procedural
+  _extraLights: []
   _flickerMode: 2
   _flickerMinMultiplier: 0.1
   _flickerFrequency: 20
@@ -6337,6 +6344,11 @@ MonoBehaviour:
   _occasionalMaxInterval: 12
   _occasionalMinDuration: 0.2
   _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1 &3149713668669576265
 GameObject:
   m_ObjectHideFlags: 0
