@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 3 -->
 
 ## Overview
 
@@ -71,6 +71,8 @@ Player clicks lever (pCube17 / ElectricLever) with generator running and fuse in
                         │    0. PuzzleInventoryBar + PuzzleCursor hidden
                         │    1. Quick fade to black (_cutFadeDuration, default 0.3s)
                         │    2. Instant cut to _cinematicCamera (EllectricCamera)
+                        │    2.5. Force-enable _cinematicLights (zone power is off),
+                        │       show _cinematicMannequin (silhouette in the strobe)
                         │    3. Fade from black — player sees cinematic shot
                         │    4. UpdateLamp() (green), _solvedClip, StartSolvedLoop()
                         │       _lampAnimator.SetTrigger(_lampAnimTrigger) — lamp animation
@@ -107,6 +109,15 @@ Player exits puzzle
 **Lamp is a material tint, not a light source.** `_lampRenderer` (MeshRenderer on `pSphere25`) instantiates a unique material in `Awake()` and toggles `_BaseColor` / `_EmissionColor` between red and green. HDR emission values (3.59) give a bright glow. `UpdateLamp()` is driven by `_isSolved` — the lamp turns green only during the solved cinematic (or via `RefreshVisuals()` on load), not when the wires merely become correct.
 
 **Solved cinematic.** When the lever is pulled with correct wires, `HandleLeverPulled()` activates `_solvedObject`, saves, and starts `SolvedCinematicRoutine()` — a coroutine that hides the inventory bar and puzzle cursor, fades to black, cuts to `_cinematicCamera` (EllectricCamera), fades back in, then turns the lamp green + sound + solved loop + lamp animation, holds the shot for `_lampAnimDuration`, fades to black again, and activates building power via `LightingSystem.ActivatePower()` **while the screen is black** before blending back to the player camera (the coroutine waits for the exit blend before the final fade-in). ESC is blocked during the cinematic via `IPuzzleExitGuard`. If `_cinematicCamera` is null, the puzzle solves immediately without a cinematic (fallback). The `CinemachineBrain` blend is temporarily set to 0 for instant cuts hidden by fades, and restored to the original value for the exit transition.
+
+**Mannequin in the cinematic.** `_cinematicMannequin` (`NeonLamp (1)/horror` — MaidHolder group near the door) is activated by the script in Phase 2.5 while the screen is still black, so the player sees its silhouette in the face light strobe. The FaceIntro clip (played by the `ElectricFackeLight` controller on the lamp's Animator) strobes `ElectricFaceLight` and hides the mannequin via its `m_IsActive` curve **at the final blink-off** (keys: 0 → 1, 1.167 → 1, 1.233 → 0; the face light goes dark at 1.183s and returns steady at 1.467s — the light comes back on an empty room). Phase 7 hides the mannequin as a safety net in case the clip was skipped.
+
+**Mannequin visibility — two pitfalls (both bit us):**
+
+1. **Write Defaults on the lamp controller states.** The `ElectricFackeLight` controller's idle state `FaicIdle` runs from scene load and, with Write Defaults ON, force-writes the default value (inactive — as at scene start) of `m_IsActive` for `horror` **every frame**, overriding the script's `SetActive(true)` during the dark phase. Diagnosis from Editor.log: mannequin deactivated at fade frame 1 with the animator on; survived when the animator was disabled. Fix: **Write Defaults = OFF on all five states** of `ElectricFackeLight` (`FaicIdle`, `FaceIntro`, `Lit`, `faceLightend`, `faceLightend 0`). The face lights are saved with intensity 0 in the scene, so the dark phase stays dark without Write Defaults.
+2. **Rendering Layers (light groups).** The face light Point lights only illuminate URP light layers **bit 9 + bit 20** (mask 1049088; two of the three lights are bit-20-only). The mannequin's `SkinnedMeshRenderer` (`tripo_node_6c80839a`) must include exactly those bits — its mask is set to **1049088**. If the mannequin is active but pitch-black in the strobe, compare `Light.renderingLayerMask` on `ElectricFaceLight` children with `SkinnedMeshRenderer.renderingLayerMask` on the maid first.
+
+`_cinematicLights` (the face light's Point lights) are force-enabled in Phase 2.5 because LightingSystem keeps them disabled while the zone power is off, and handed back in Phase 7. NOTE: the separate `HorrorEvent` `Event_EntityAppear` (OnPowerStateChanged → same horror object, AppearThenDisappearAfterDelay 2.5s) also fires at Phase 7 power-on — currently harmless (suppressed by the safety net, single frame during the black screen), but it owns a MusicDirector mute that only releases via its 30s failsafe; consider unassigning its target or disabling music ownership if post-solve music dips are noticed.
 
 **Wire reset is instant.** `ResetAllWires()` is called in `TryInteractLever` on the same frame the player clicks — before the lever animation starts. The player sees all wires vanish immediately.
 
@@ -277,9 +288,11 @@ electric  (root — ElectricPuzzleController, BoxCollider, PuzzleModeController,
 | Field                 | Description                                                                                          |
 | --------------------- | ---------------------------------------------------------------------------------------------------- |
 | `_cinematicCamera`    | `CinemachineCamera` (EllectricCamera) for the dramatic solved shot — assigned on the scene object    |
-| `_lampAnimator`       | Animator that plays the lamp turn-on animation during the cinematic (assign when animation is ready) |
+| `_lampAnimator`       | Animator on the lamp (`NeonLamp (1)`), controller `ElectricFackeLight` — plays the FaceIntro strobe   |
 | `_lampAnimTrigger`    | Trigger parameter name for the lamp animation (default: `"PlayLampAnimation"`)                       |
 | `_lampAnimDuration`   | How long to hold the cinematic shot while the lamp animation plays (default: 3s)                     |
+| `_cinematicLights`    | Face light Point lights (URP light layers bits 9+20) — force-enabled during the dark shot, handed back in Phase 7 |
+| `_cinematicMannequin` | `NeonLamp (1)/horror` group — shown in the dark, hidden by the FaceIntro `m_IsActive` curve at the final blink-off; renderer mask must include the face lights' layers |
 | `_cutFadeDuration`    | Duration of the quick fade when cutting to the cinematic camera (default: 0.3s)                      |
 | `_solvedFadeDuration` | Duration of the fade when returning to the player camera (default: 1s)                               |
 

@@ -150,17 +150,7 @@ public class EndGameCreditsView : MonoBehaviour
 
         yield return new WaitForSeconds(_thanksHoldDuration);
 
-        // 4. Wipe the save so the finished game cannot be loaded again.
-        if (_deleteSaveOnFinish)
-        {
-            SaveManager.ResetActiveSlot();
-            if (SaveManager.Instance != null)
-                SaveManager.Instance.DeleteSave(DefaultSaveSlot);
-            else
-                Debug.LogWarning("[EndGameCreditsView] SaveManager instance missing — save not deleted.");
-        }
-
-        // 5. Return the cursor so the main menu is usable, and destroy ALL
+        // 4. Return the cursor so the main menu is usable, and destroy ALL
         //    DontDestroyOnLoad singletons (same pattern as LoadSaveBtn) so the
         //    start scene gets fresh instances — the persistent InputManager is
         //    still holding disabled action maps from the endgame cinematic,
@@ -174,6 +164,25 @@ public class EndGameCreditsView : MonoBehaviour
         if (InputManager.Instance != null) Destroy(InputManager.Instance.gameObject);
         if (ResolutionManager.Instance != null) Destroy(ResolutionManager.Instance.gameObject);
         if (PopupMessageSystem.Instance != null) Destroy(PopupMessageSystem.Instance.gameObject);
+
+        // 5. Let the Destroy() calls above complete: SaveManager.OnDestroy
+        //    flushes any pending debounced snapshot SYNCHRONOUSLY and an
+        //    in-flight background autosave is awaited there too — both would
+        //    resurrect the save file if it were deleted earlier. Only after
+        //    the last write has landed is the wipe final.
+        yield return null;
+
+        // 6. Lock saving first: from this moment SaveManager must never write
+        //    again — not the debounced flush, not the autosave, not the flush
+        //    in OnDestroy (which would resurrect the file deleted below), and
+        //    not after an app restart. Then wipe the save so the finished game
+        //    cannot be loaded — deletes the file and its backups, resets the
+        //    active slot and clears the lock for the next playthrough.
+        if (_deleteSaveOnFinish)
+        {
+            SaveManager.LockSaving();
+            SaveManager.StartNewGame(DefaultSaveSlot);
+        }
 
         Time.timeScale = 1f;
         SceneManager.LoadScene(_startSceneName);

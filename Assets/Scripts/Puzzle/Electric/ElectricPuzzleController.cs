@@ -162,6 +162,18 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("How long to hold the cinematic shot while the lamp animation plays (seconds).")]
     [SerializeField, Min(0f)] private float _lampAnimDuration = 3f;
 
+    [Tooltip("Lights animated by the cinematic's FaceIntro clip (face light of the panel). " +
+             "They are zone-gated by LightingSystem and stay disabled while power is off, " +
+             "so they are force-enabled during the cinematic shot (while the screen is black).")]
+    [SerializeField] private Light[] _cinematicLights;
+
+    [Tooltip("The mannequin horror group near the door. Activated while the cinematic shot " +
+             "is still dark so the player sees its silhouette in the face light strobe. " +
+             "The FaceIntro clip's m_IsActive curve hides it at the final blink-off " +
+             "(light goes dark ~1.2s into the clip) so the steady light shows an empty room; " +
+             "Phase 7 hides it as a safety net in case the clip was skipped.")]
+    [SerializeField] private GameObject _cinematicMannequin;
+
     [Tooltip("Duration of the screen fade when cutting to the cinematic camera (seconds). " +
              "Keep short for a sharp cut.")]
     [SerializeField, Min(0f)] private float _cutFadeDuration = 0.3f;
@@ -940,6 +952,18 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         // Wait one frame so the brain processes the instant cut.
         yield return null;
 
+        // ── Phase 2.5: Set up the dark shot while the screen is black ──────────
+        // The FaceIntro clip animates the face light intensity, but LightingSystem
+        // keeps those lights disabled while the building power is off (zone
+        // 'Electric') — force-enable them so the flicker is visible.
+        SetCinematicLightsEnabled(true);
+
+        // Show the mannequin NOW, in the dark, so the player sees its silhouette
+        // in the face light strobe. The FaceIntro clip hides it (m_IsActive → 0)
+        // at the final blink-off, so the steady light shows an empty room.
+        if (_cinematicMannequin != null)
+            _cinematicMannequin.SetActive(true);
+
         // ── Phase 3: Fade from black — player sees the cinematic shot ──────────
         if (ScreenFader.Instance != null)
             yield return ScreenFader.Instance.FadeOut(_cutFadeDuration);
@@ -948,8 +972,8 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         // ── Phase 4: Turn on lamp, play sound, trigger animation
         // Power activation is deferred to Phase 7 (during fade to black) so
-        // the building lights turn on while the screen is hidden — the player
-        // sees the result only when the camera returns, not during the close-up.
+        // the cinematic shot stays dark: the FaceIntro animation flickers the
+        // face light on and shows/hides the mannequin via its m_IsActive curve.
         UpdateLamp();
         PlaySFX(_solvedClip, _solvedVolume);
         StartSolvedLoop();
@@ -968,6 +992,15 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         // ── Phase 7: Activate building power while the screen is black ─────────
         LightingSystem.Instance?.ActivatePower();
+
+        // Hand the cinematic lights back to LightingSystem (zone 'Electric' now
+        // fades them in itself) while the screen is still black.
+        SetCinematicLightsEnabled(false);
+
+        // Safety net: the FaceIntro clip normally hides the mannequin via its
+        // m_IsActive curve — make sure it is gone once the power is back.
+        if (_cinematicMannequin != null)
+            _cinematicMannequin.SetActive(false);
 
         if (_cinematicCamera != null)
         {
@@ -1007,6 +1040,24 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         var blend = _brain.DefaultBlend;
         blend.Time = duration;
         _brain.DefaultBlend = blend;
+    }
+
+    /// <summary>
+    /// Force-enables the cinematic lights so the FaceIntro clip's intensity
+    /// flicker is visible while the building power is still off.
+    /// Only touches lights that are currently disabled — lights already lit
+    /// (e.g. after power was restored) are left untouched.
+    /// </summary>
+    private void SetCinematicLightsEnabled(bool enable)
+    {
+        if (_cinematicLights == null) return;
+
+        foreach (var light in _cinematicLights)
+        {
+            if (light == null) continue;
+            if (light.enabled == enable) continue;
+            light.enabled = enable;
+        }
     }
 
     /// <summary>

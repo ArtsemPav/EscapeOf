@@ -108,6 +108,32 @@ public class SaveManager : MonoBehaviour
     // the debounced flush snapshots the settled state instead.
     private bool _initialSettled;
 
+    // One-way "the game is finished" switch. Set when the endgame cinematic
+    // starts; from that moment no Save path may write to disk. Survives
+    // OnDestroy flushes and background autosave landings, and persists across
+    // app restarts via PlayerPrefs — so a save deleted after the credits can
+    // never be resurrected, in this session or any later one. Cleared only by
+    // StartNewGame (the player starts a fresh game).
+    private const string SavingLockedPrefKey = "save_manager_saving_locked";
+
+    // In-memory mirror of SavingLockedPrefKey, re-read in Awake.
+    private bool _savingLocked;
+
+    /// <summary>
+    /// Permanently disables all saving (manual, debounced, auto and flush-on-
+    /// destroy) for the rest of the app session and across restarts, until the
+    /// player starts a new game. Called when the endgame cinematic begins.
+    /// </summary>
+    public static void LockSaving()
+    {
+        PlayerPrefs.SetInt(SavingLockedPrefKey, 1);
+        if (Instance != null) Instance._savingLocked = true;
+        Debug.Log("[SaveManager] Saving locked — the game is finished.");
+    }
+
+    // In-memory mirror of SavingLockedPrefKey, re-read in Awake.
+    private static bool SavingIsLocked => PlayerPrefs.GetInt(SavingLockedPrefKey, 0) == 1;
+
     /// <summary>
     /// True once the initial load has settled (first Update after every Start() has run).
     /// While false, event-driven effects must restore silently instead of replaying
@@ -133,6 +159,8 @@ public class SaveManager : MonoBehaviour
             return;
         }
         Instance = this;
+        // Re-apply the finished-game saving lock from prefs (survives app restarts).
+        _savingLocked = SavingIsLocked;
         DontDestroyOnLoad(gameObject);
     }
 
@@ -184,6 +212,9 @@ public class SaveManager : MonoBehaviour
         while (_mainThreadCallbacks.Count > 0)
             _mainThreadCallbacks.Dequeue()?.Invoke();
 
+        // Saving is locked after the game was finished — no auto or debounced writes.
+        if (_savingLocked) return;
+
         float dt = Time.unscaledDeltaTime;
 
         // Debounced event-driven save
@@ -226,6 +257,10 @@ public class SaveManager : MonoBehaviour
         // Не мешаем дублю-инстансу (он сам себя уничтожает в Awake)
         if (Instance != this) return;
 
+        // Saving is locked after the game was finished — the flush below would
+        // resurrect the save the credits just deleted, so it must not run.
+        if (_savingLocked) return;
+
         // Выход в меню (MainMenuItemBtn) и debug-загрузка (LoadSaveBtn) уничтожают
         // SaveManager через Destroy(), что минует OnApplicationQuit. Без этого
         // снимок, ожидающий записи в дебаунс-окне (saveDebounceDelay), теряется —
@@ -236,6 +271,10 @@ public class SaveManager : MonoBehaviour
 
     private void OnApplicationQuit()
     {
+        // Saving is locked after the game was finished — the flush below would
+        // resurrect the save the credits just deleted, so it must not run.
+        if (_savingLocked) return;
+
         // Flush any pending debounced save synchronously so no data is lost on exit.
         if (_pendingSave)
             FlushPendingSave(synchronous: true);
@@ -334,6 +373,9 @@ public class SaveManager : MonoBehaviour
     /// </summary>
     public void Save()
     {
+        // Saving is locked after the game was finished — drop the request silently.
+        if (_savingLocked) return;
+
         // Scene initialization (light-switch sync, power consumers, scripted events)
         // can fire Save() before every Start() has applied the loaded state — the
         // player teleport, flashlight restore, etc. A snapshot taken at that moment
@@ -370,7 +412,17 @@ public class SaveManager : MonoBehaviour
     /// session's active slot.
     /// </summary>
     public void SaveImmediate(int slot = -1)
-        => WriteToFile(slot >= 0 ? slot : _activeSlot, BuildSnapshot(), synchronous: true);
+    {
+        // Saving is locked after the game was finished — even the explicit
+        // debug write must not resurrect the finished save.
+        if (_savingLocked)
+        {
+            Debug.LogWarning("[SaveManager] SaveImmediate skipped — saving is locked.", this);
+            return;
+        }
+
+        WriteToFile(slot >= 0 ? slot : _activeSlot, BuildSnapshot(), synchronous: true);
+    }
 
     /// <summary>Collects GetSaveData() from every registered ISaveable into a new GameSaveData object.</summary>
     private GameSaveData BuildSnapshot()
@@ -648,6 +700,10 @@ public class SaveManager : MonoBehaviour
     /// </summary>
     public static void StartNewGame(int slot)
     {
+        // The player is starting over — lift the finished-game saving lock.
+        PlayerPrefs.DeleteKey(SavingLockedPrefKey);
+        if (Instance != null) Instance._savingLocked = false;
+
         ResetActiveSlot();
         string dir = Path.Combine(Application.persistentDataPath, SaveFolder);
         TryDelete(Path.Combine(dir, $"{FilePrefix}{slot}{FileExtension}"));
