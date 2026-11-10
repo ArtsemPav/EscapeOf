@@ -96,10 +96,11 @@ public class JournalSystem : MonoBehaviour, ISaveable
     /// <summary>True if the document has been read (unlocked in the journal).</summary>
     public bool IsUnlocked(DocumentData data) => data != null && _unlocked.Contains(data);
 
-    /// <summary>Opens the journal (blocked while any other panel is open).</summary>
+    /// <summary>Opens the journal (blocked while any other panel is open or nothing was collected yet).</summary>
     public void OpenJournal()
     {
         if (_isOpen) return;
+        if (_unlockedList.Count == 0) return; // no notes collected yet — journal stays locked
         if (UIManager.Instance != null && UIManager.Instance.IsAnyPanelOpen) return;
 
         _isOpen = true;
