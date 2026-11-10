@@ -58,6 +58,10 @@ public static class SystemSettings
     public static float ToDecibels(float normalized)
         => normalized <= 0.0001f ? -80f : Mathf.Log10(Mathf.Clamp(normalized, 0.0001f, 1f)) * 20f;
 
+    /// <summary>Converts AudioMixer decibels back to the normalized loudness (0–1).</summary>
+    public static float FromDecibels(float decibels)
+        => decibels <= -79.99f ? 0f : Mathf.Clamp01(Mathf.Pow(10f, decibels / 20f));
+
     /// <summary>Sets the music volume, persists it and applies it to the mixer immediately.</summary>
     public static void SetMusicVolume(float value)
     {

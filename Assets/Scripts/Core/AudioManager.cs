@@ -7,6 +7,9 @@ using UnityEngine.Audio;
 /// Sound-effect service: one-shot SFX, spatial 3D loops and background layers.
 /// Owns no music — all music (menu, gameplay, zones, events) is handled by
 /// MusicDirector through the Music bus of the SFX AudioMixer.
+/// SFX is split into two mixer-bus categories: SFX2D (non-positional sounds)
+/// and SFX3D (spatial sources); sources are routed automatically by their
+/// spatialBlend, and unassigned categories fall back to the general SFX group.
 /// Volume settings are applied to the exposed mixer parameters (SFXVolume /
 /// MusicVolume) by SystemSettings, so sliders affect playing audio instantly.
 /// </summary>
@@ -26,12 +29,27 @@ public class AudioManager : MonoBehaviour {
     [Tooltip("Name of the exposed music volume parameter on the AudioMixer (Music bus).")]
     [SerializeField] private string _musicVolumeParameter = "MusicVolume";
 
-    [Tooltip("Mixer group all dynamically created sound-effect sources are routed to.")]
+    [Tooltip("Mixer group all dynamically created sound-effect sources are routed to (fallback when no category group is assigned).")]
     [SerializeField] private AudioMixerGroup _sfxGroup;
+
+    [Tooltip("Mixer group for 2D sound effects (non-positional one-shots and background layers). Fallback: _sfxGroup.")]
+    [SerializeField] private AudioMixerGroup _sfx2DGroup;
+
+    [Tooltip("Mixer group for 3D (spatial) sound effects. Fallback: _sfxGroup.")]
+    [SerializeField] private AudioMixerGroup _sfx3DGroup;
+
+    [Tooltip("Mixer group for safe-dial sounds, routed under Master OUTSIDE the Music/SFX buses, " +
+             "so stethoscope mode can silence the world while safe sounds stay audible.")]
+    [SerializeField] private AudioMixerGroup _safeGroup;
 
     [Header("Fades")]
     [Tooltip("Default fade duration in seconds for background layers and mute transitions.")]
     [SerializeField] private float _fadeDuration = 1.5f;
+
+    // ── Stethoscope state ──────────────────────────────────────────────────────
+
+    private AudioSource _safeSfxSource;
+    private bool _stethoscopeActive;
 
     // ── Background layer state ─────────────────────────────────────────────────
 
@@ -49,6 +67,10 @@ public class AudioManager : MonoBehaviour {
             AudioListener.pause = false;
             BackgroundTracking.ResetForNewSession();
             ApplySavedVolumes();
+            // The shared 2D SFX source belongs to the 2D category (its group may
+            // already be set in the inspector — only route when it isn't).
+            if (_sfxSource != null && !BelongsToCategory(_sfxSource, _sfx2DGroup))
+                RouteToCategory(_sfxSource);
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
         } else {
             Destroy(gameObject);
@@ -60,18 +82,18 @@ public class AudioManager : MonoBehaviour {
         UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    /// <summary>After each scene load, routes every orphan AudioSource (no mixer group) to the SFX bus.</summary>
+    /// <summary>After each scene load, routes every orphan AudioSource (no mixer group) to its 2D/3D SFX category by spatialBlend.</summary>
     private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) {
         AudioSource[] sources = FindObjectsOfType<AudioSource>();
         foreach (AudioSource source in sources) {
             if (source != null && source.outputAudioMixerGroup == null)
-                RouteToSfxGroup(source);
+                RouteToCategory(source);
         }
     }
 
     /// <summary>
     /// Plays a one-shot 3D sound effect from a pooled source parented to the
-    /// target (auto-destroys when the clip finishes). Routed to the SFX bus.
+    /// target (auto-destroys when the clip finishes). Routed to the SFX3D bus.
     /// </summary>
     public void Play3DOneShot(AudioClip clip, Vector3 position, float volume = 1f, float minDistance = 1f, float maxDistance = 10f) {
         if (clip == null) return;
@@ -85,7 +107,7 @@ public class AudioManager : MonoBehaviour {
         source.minDistance = minDistance;
         source.maxDistance = maxDistance;
         source.playOnAwake = false;
-        RouteToSfxGroup(source);
+        RouteToCategory(source);
         source.Play();
         Destroy(obj, clip.length + 0.1f);
     }
@@ -109,14 +131,30 @@ public class AudioManager : MonoBehaviour {
             : null;
     }
 
-    /// <summary>Routes a dynamically created source to the SFX mixer group so the SFX volume setting applies to it.</summary>
-    private void RouteToSfxGroup(AudioSource source) {
-        if (source != null && _sfxGroup != null)
-            source.outputAudioMixerGroup = _sfxGroup;
+    /// <summary>
+    /// Routes a dynamically created source to its SFX category group: 2D
+    /// (spatialBlend &lt; 0.5) goes to the SFX2D bus, spatial sources to SFX3D.
+    /// Falls back to the general SFX group when a category group is unassigned.
+    /// </summary>
+    private void RouteToCategory(AudioSource source) {
+        if (source == null) return;
+        AudioMixerGroup group = source.spatialBlend >= 0.5f ? _sfx3DGroup : _sfx2DGroup;
+        if (group == null) group = _sfxGroup;
+        if (group != null)
+            source.outputAudioMixerGroup = group;
     }
 
-    /// <summary>Public wrapper for component-owned sources (e.g. drag/scrape loops) outside the tracking system.</summary>
-    public void RouteSourceToSfxGroup(AudioSource source) => RouteToSfxGroup(source);
+    /// <summary>True when the source is already routed to the given category group (or the group is unassigned).</summary>
+    private static bool BelongsToCategory(AudioSource source, AudioMixerGroup categoryGroup) {
+        return categoryGroup == null || source.outputAudioMixerGroup == categoryGroup;
+    }
+
+    /// <summary>
+    /// Public wrapper for component-owned sources (e.g. drag/scrape loops)
+    /// outside the tracking system. Routes by spatialBlend: 2D sources to the
+    /// SFX2D bus, spatial sources to SFX3D.
+    /// </summary>
+    public void RouteSourceToSfxGroup(AudioSource source) => RouteToCategory(source);
 
     // ── Dynamic music source factory (used by MusicDirector) ───────────────────
 
@@ -181,7 +219,7 @@ public class AudioManager : MonoBehaviour {
         source.maxDistance = maxDistance;
         source.loop = true;
         source.playOnAwake = false;
-        RouteToSfxGroup(source);
+        RouteToCategory(source);
         source.Play();
 
         BackgroundTracking.Register(source, volume);
@@ -194,7 +232,7 @@ public class AudioManager : MonoBehaviour {
     /// </summary>
     public void RegisterLoopSource(AudioSource source, float volume) {
         if (source == null) return;
-        RouteToSfxGroup(source);
+        RouteToCategory(source);
         BackgroundTracking.Register(source, volume);
     }
 
@@ -227,7 +265,7 @@ public class AudioManager : MonoBehaviour {
         _backgroundLayerSource.spatialBlend = 0f; // 2D
         _backgroundLayerSource.volume       = 0f;
         _backgroundLayerSource.playOnAwake  = false;
-        RouteToSfxGroup(_backgroundLayerSource);
+        RouteToCategory(_backgroundLayerSource);
         _backgroundLayerSource.Play();
 
         float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
@@ -262,10 +300,51 @@ public class AudioManager : MonoBehaviour {
         _layerCoroutine = StartCoroutine(routine);
     }
 
+    // ── Stethoscope fade (exposed mixer volume params, Safe group excluded) ────
+
+    /// <summary>Supersedes any running stethoscope fade and starts a new one.</summary>
+    private void StartStethoscopeFade(AudioMixer mixer, bool mute, float duration) {
+        if (_stethoscopeMuteRoutine != null) StopCoroutine(_stethoscopeMuteRoutine);
+        _stethoscopeMuteRoutine = StartCoroutine(StethoscopeFadeRoutine(mixer, mute, duration));
+    }
+
+    /// <summary>
+    /// Fades the Music and SFX (parent, so both 2D/3D children follow) bus volumes:
+    /// muting fades to silence, unmuting restores the user's saved volumes
+    /// (SystemSettings). The Safe group is a direct child of Master, outside both
+    /// buses, so it is not affected.
+    /// </summary>
+    private IEnumerator StethoscopeFadeRoutine(AudioMixer mixer, bool mute, float duration) {
+        float sfxStart   = GetBusLinearVolume(mixer, _sfxVolumeParameter);
+        float musicStart = GetBusLinearVolume(mixer, _musicVolumeParameter);
+        float sfxEnd     = mute ? 0f : SystemSettings.SfxVolume;
+        float musicEnd   = mute ? 0f : SystemSettings.MusicVolume;
+
+        float elapsed = 0f;
+        while (elapsed < duration) {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            mixer.SetFloat(_sfxVolumeParameter, SystemSettings.ToDecibels(Mathf.Lerp(sfxStart, sfxEnd, t)));
+            mixer.SetFloat(_musicVolumeParameter, SystemSettings.ToDecibels(Mathf.Lerp(musicStart, musicEnd, t)));
+            yield return null;
+        }
+        mixer.SetFloat(_sfxVolumeParameter, SystemSettings.ToDecibels(sfxEnd));
+        mixer.SetFloat(_musicVolumeParameter, SystemSettings.ToDecibels(musicEnd));
+    }
+
+    /// <summary>Reads a bus volume from the mixer, converting decibels to the 0..1 scale.</summary>
+    private float GetBusLinearVolume(AudioMixer mixer, string parameter) {
+        return mixer.GetFloat(parameter, out float db) ? SystemSettings.FromDecibels(db) : 1f;
+    }
+
     // ── Ambience mute (ending cutscene: the world goes quiet, the music speaks) ──
 
     [Tooltip("How often the ambience mute re-scans for world sources that appeared after the mute started (e.g. fires the ending ignites).")]
     [SerializeField, Range(0.2f, 5f)] private float _ambienceRescanInterval = 0.5f;
+
+    // ── Stethoscope fade state ─────────────────────────────────────────────────
+
+    private Coroutine _stethoscopeMuteRoutine;
 
     private readonly List<AudioSource> _mutedAmbience = new List<AudioSource>();
     private readonly List<float> _mutedAmbienceVolumes = new List<float>();
@@ -355,6 +434,78 @@ public class AudioManager : MonoBehaviour {
         float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
         MusicDirector.RestoreAfterEvent(duration);
         BackgroundTracking.SetMuted(false, duration, this);
+    }
+
+    // ── Stethoscope mode (silence the world, keep the safe audible) ────────────
+
+    /// <summary>
+    /// Silences the whole soundscape (Music and SFX buses) while leaving the Safe
+    /// mixer group untouched, so safe-dial sounds stay audible. Implemented with
+    /// exposed mixer volume parameters — every source routed through the mixer
+    /// is silenced, including ones spawned later; no scene sweeping required.
+    /// Restores the pre-mode saved volumes on exit.
+    /// </summary>
+    public void EnterStethoscopeMode(float fadeDuration = -1f) {
+        AudioMixer mixer = ResolveMixer();
+        if (mixer == null || _stethoscopeActive) return;
+        float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
+
+        _stethoscopeActive = true;
+        MusicDirector.MuteForEvent(duration);
+        BackgroundTracking.SetMuted(true, duration, this);
+
+        StartStethoscopeFade(mixer, true, duration);
+    }
+
+    /// <summary>Fades the world's volume back and ends stethoscope mode.</summary>
+    public void ExitStethoscopeMode(float fadeDuration = -1f) {
+        AudioMixer mixer = ResolveMixer();
+        if (mixer == null || !_stethoscopeActive) return;
+        float duration = fadeDuration < 0f ? _fadeDuration : fadeDuration;
+
+        _stethoscopeActive = false;
+        MusicDirector.RestoreAfterEvent(duration);
+        BackgroundTracking.SetMuted(false, duration, this);
+
+        StartStethoscopeFade(mixer, false, duration);
+    }
+
+    /// <summary>True while stethoscope mode is active (safe sounds bypass the world's mute).</summary>
+    public bool StethoscopeActive => _stethoscopeActive;
+
+    /// <summary>
+    /// Plays a one-shot on a dedicated source routed to the Safe mixer group —
+    /// the only soundscape that stays audible in stethoscope mode.
+    /// </summary>
+    public void PlaySafeSFX(AudioClip clip, float volume = 1f) {
+        if (clip == null) return;
+        EnsureSafeSfxSource();
+        _safeSfxSource.PlayOneShot(clip, volume);
+    }
+
+    /// <summary>True when the source belongs to the Safe mixer group.</summary>
+    public bool BelongsToSafeGroup(AudioSource source) =>
+        source != null && _safeGroup != null && source.outputAudioMixerGroup == _safeGroup;
+
+    /// <summary>
+    /// Routes a source (e.g. the safe's background layer) to the Safe mixer group,
+    /// the only soundscape that stays audible in stethoscope mode. No-op when the
+    /// Safe group is unassigned in the inspector.
+    /// </summary>
+    public void RouteSourceToSafeGroup(AudioSource source) {
+        if (source != null && _safeGroup != null)
+            source.outputAudioMixerGroup = _safeGroup;
+    }
+
+    /// <summary>Creates the dedicated Safe-group source lazily (DontDestroyOnLoad manager).</summary>
+    private void EnsureSafeSfxSource() {
+        if (_safeSfxSource != null) return;
+        GameObject obj = new GameObject("Safe_SFX");
+        obj.transform.SetParent(transform);
+        _safeSfxSource = obj.AddComponent<AudioSource>();
+        _safeSfxSource.playOnAwake = false;
+        _safeSfxSource.spatialBlend = 0f;
+        _safeSfxSource.outputAudioMixerGroup = _safeGroup;
     }
 
     /// <summary>

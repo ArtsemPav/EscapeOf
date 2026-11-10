@@ -358,10 +358,17 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (AudioManager.Instance == null) return;
 
         bool hasStethoscope = HasRequiredItem();
-        
-        // Tick sound is always played regardless of stethoscope
+
+        // Tick sound is always played regardless of stethoscope. With the
+        // stethoscope applied it routes to the Safe group, which stays audible
+        // while stethoscope mode silences the rest of the world.
         if (_tickSound != null)
-            AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
+        {
+            if (AudioManager.Instance.StethoscopeActive)
+                AudioManager.Instance.PlaySafeSFX(_tickSound, _tickVolume);
+            else
+                AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
+        }
 
         // Correct step sound is only played if the player has the stethoscope 
         // AND reaches the target value with the correct rotation direction.
@@ -372,7 +379,12 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
                                   && currentDirection == target.RequiredDirection;
 
             if (isCorrectMovement && _correctStepSound != null)
-                AudioManager.Instance.PlaySFX(_correctStepSound, _correctStepVolume);
+            {
+                if (AudioManager.Instance.StethoscopeActive)
+                    AudioManager.Instance.PlaySafeSFX(_correctStepSound, _correctStepVolume);
+                else
+                    AudioManager.Instance.PlaySFX(_correctStepSound, _correctStepVolume);
+            }
         }
     }
 
@@ -426,7 +438,12 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
             while (angle >= nextTickAngle)
             {
                 if (_tickSound != null && AudioManager.Instance != null)
-                    AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
+                {
+                    if (AudioManager.Instance.StethoscopeActive)
+                        AudioManager.Instance.PlaySafeSFX(_tickSound, _tickVolume);
+                    else
+                        AudioManager.Instance.PlaySFX(_tickSound, _tickVolume);
+                }
                 nextTickAngle += _stepAngle;
             }
 
@@ -492,10 +509,14 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
         if (_puzzleMode != null && _puzzleMode.IsActive)
         {
-            AudioManager.Instance?.MuteBackground();
+            AudioManager.Instance?.EnterStethoscopeMode();
 
             if (_puzzleBackgroundLayer != null)
-                AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+            {
+                AudioSource layer = AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+                // The amplified safe layer must stay audible in stethoscope mode.
+                if (layer != null) AudioManager.Instance?.RouteSourceToSafeGroup(layer);
+            }
         }
 
         return true;
@@ -537,10 +558,13 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (_stethoscopeVisual != null) _stethoscopeVisual.SetActive(_isRequiredItemApplied);
 
         if (_isRequiredItemApplied) {
-            AudioManager.Instance?.MuteBackground();
+            AudioManager.Instance?.EnterStethoscopeMode();
 
             if (_puzzleBackgroundLayer != null)
-                AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+            {
+                AudioSource layer = AudioManager.Instance?.PlayBackgroundLayer(_puzzleBackgroundLayer, _puzzleBackgroundLayerVolume);
+                if (layer != null) AudioManager.Instance?.RouteSourceToSafeGroup(layer);
+            }
         }
     }
 
@@ -556,7 +580,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
         if (!HasRequiredItem()) return;
 
         AudioManager.Instance?.StopBackgroundLayer();
-        AudioManager.Instance?.UnmuteBackground();
+        AudioManager.Instance?.ExitStethoscopeMode();
         MusicDirector.PlayGameMusic();
     }
 

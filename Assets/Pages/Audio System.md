@@ -1,26 +1,47 @@
-<!-- version: 1 -->
+<!-- version: 4 -->
 
 ## Audio System
 
-Система аудио: SFX, 3D-звуки, фоновые слои и музыка с кроссфейдами. Музыка полностью управляется `MusicDirector`, SFX — `AudioManager`.
+Система аудио: SFX, 3D-звуки, фоновые слои и музыка с кроссфейдами. Музыка полностью управляется `MusicDirector`, SFX — `AudioManager`. Все фейды идут по `Time.unscaledDeltaTime` (работают на паузе).
+
+## Audio Categories (шины микшера)
+
+Все звуки игры делятся на три категории — по шинам микшера `Assets/sound/SFX.mixer`:
+
+
+| Категория | Шина mixer'а       | Что играет                                                                                                                                                                   |
+| --------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Music     | `Master/Music`     | Вся музыка (меню, геймплей, зоны, события) — через `MusicDirector`                                                                                                           |
+| SFX2D     | `Master/SFX/SFX2D` | Не позиционные эффекты: one-shot SFX (`PlaySFX`/`PlaySFXExclusive`) и фоновые слои (`PlayBackgroundLayer`), общий 2D-источник `_sfxSource`                                   |
+| SFX3D     | `Master/SFX/SFX3D` | Пространственные звуки: `Play3DOneShot`, `Play3DLoop`, tracked-лупы, компонентные источники с `spatialBlend >= 0.5`                                                          |
+| Safe      | `Master/Safe`      | Звуки сейфа (`LockDial`): тики, звук корректного шага и слой `_puzzleBackgroundLayer` при применённом стетоскопе. Единственная шина, остающаяся слышимой в режиме стетоскопа |
+
+
+Громкость: `SFXVolume` управляет **родительской** SFX-шиной — `SFX2D` и `SFX3D` наследуют её, оба слайдера настроек работают без миграций. Разделение категорий — структура для будущих снапшотов/даункейлов.
+
+Автороутинг: `AudioManager.RouteToCategory(AudioSource)` выбирает группу по `source.spatialBlend >= 0.5f ? SFX3D : SFX2D` (fallback — общая `_sfxGroup`, если категория не назначена в инспекторе). Роутинг применяется: к источникам фабрик менеджера, к общему 2D-источнику (в `Awake`), к «осиротевшим» источникам после загрузки сцены (`OnSceneLoaded`) и ко всем источникам, переданным через публичную обёртку `RouteSourceToSfxGroup` (drag/scrape-лупы, эффекты и т.д.).
 
 ## Core Components
 
 ### AudioManager.cs (`Assets/Scripts/Core/AudioManager.cs`)
 
-Синглтон-сервис звуковых эффектов (`AudioManager.Instance`). Музыкой не владеет — всё музыкальное (меню, геймплей, зоны, события) ведёт `MusicDirector` через Music-шину SFX AudioMixer.
+Синглтон-сервис звуковых эффектов (`AudioManager.Instance`, `DontDestroyOnLoad`). Музыкой не владеет — всё музыкальное (меню, геймплей, зоны, события) ведёт `MusicDirector` через Music-шину SFX AudioMixer.
 
 Поля инспектора:
 
 
-| Поле                    | Тип             | Описание                                                                 |
-| ----------------------- | --------------- | ------------------------------------------------------------------------ |
-| `_sfxSource`            | AudioSource     | 2D-источник, через который играются все one-shot SFX                     |
-| `_sfxMixer`             | AudioMixer      | SFX AudioMixer с открытыми параметрами SFXVolume / MusicVolume           |
-| `_sfxVolumeParameter`   | string          | Имя параметра SFX-громкости (по умолчанию `"SFXVolume"`)                 |
-| `_musicVolumeParameter` | string          | Имя параметра громкости музыки (по умолчанию `"MusicVolume"`)            |
-| `_sfxGroup`             | AudioMixerGroup | Группа, в которую маршрутизируются все динамически создаваемые источники |
-| `_fadeDuration`         | float           | Дефолтная длительность фейда (1.5 с)                                     |
+| Поле                      | Тип             | Описание                                                                      |
+| ------------------------- | --------------- | ----------------------------------------------------------------------------- |
+| `_sfxSource`              | AudioSource     | 2D-источник, через который играются все one-shot SFX (категория SFX2D)        |
+| `_sfxMixer`               | AudioMixer      | SFX AudioMixer с открытыми параметрами SFXVolume / MusicVolume                |
+| `_sfxVolumeParameter`     | string          | Имя параметра SFX-громкости (по умолчанию `"SFXVolume"`)                      |
+| `_musicVolumeParameter`   | string          | Имя параметра громкости музыки (по умолчанию `"MusicVolume"`)                 |
+| `_sfxGroup`               | AudioMixerGroup | Общая SFX-группа — fallback, когда категория не назначена                     |
+| `_sfx2DGroup`             | AudioMixerGroup | Группа категории 2D (one-shot SFX, фоновые слои); null → fallback `_sfxGroup` |
+| `_sfx3DGroup`             | AudioMixerGroup | Группа категории 3D (пространственные звуки); null → fallback `_sfxGroup`     |
+| `_safeGroup`              | AudioMixerGroup | Шина `Master/Safe` — звуки сейфа, не глушатся в режиме стетоскопа             |
+| `_fadeDuration`           | float           | Дефолтная длительность фейда (1.5 с)                                          |
+| `_ambienceRescanInterval` | float           | Частота re-scan сцены при мьюте эмбиента (0.5 с)                              |
 
 
 Публичный API:
@@ -30,50 +51,68 @@
 - `Play3DOneShot(AudioClip clip, Vector3 position, float volume = 1f, float minDistance = 1f, float maxDistance = 10f)` — одноразовый 3D-звук из временного источника (самоуничтожается).
 - `Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance)` — зацикленный пространственный источник, парентится к цели и регистрируется в системе фонового mute. Возвращает `AudioSource`.
 - `RegisterLoopSource(AudioSource source, float volume)` / `UnregisterLoopSource(AudioSource source)` — управление уже существующими источниками в tracking-системе.
-- `PlayBackgroundLayer(AudioClip clip, float volume = 1f, float fadeDuration = -1f)` — зацикленный 2D-слой (сердцебиение, гул) с независимым фейдом.
+- `PlayBackgroundLayer(AudioClip clip, float volume = 1f, float fadeDuration = -1f)` — зацикленный 2D-слой (сердцебиение, гул) с независимым фейдом. Прежний слой дофейдивается перед запуском нового (иначе фейд бы «тёк»).
 - `StopBackgroundLayer(float fadeDuration = -1f)` — фейд-аут и уничтожение слоя.
 - `MuteBackground(float fadeDuration = -1f)` / `UnmuteBackground(float fadeDuration = -1f)` — глушит/возвращает музыку (`MusicDirector.MuteForEvent`/`RestoreAfterEvent`) и все tracked 3D-лупы; one-shot SFX не затрагиваются. Поддерживает вложенность (счётчик владельцев у директора).
+- `MuteAmbience(float fadeDuration = 1.5f)` / `UnmuteAmbience()` — кинематографичный мьют для финальной катсцены: глушит **все** AudioSource сцены, кроме источников `MusicDirector` (проверка `OwnsSource`) и общего SFX-источника. Не требует регистрации — сканирует сцену и периодически (раз в `_ambienceRescanInterval`) режет новую эмбиент-громкость (огни, которые поджигает финал). Односторонний: credits-флоу уничтожает синглтон, восстановление не требуется.
+- `EnterStethoscopeMode(float fadeDuration = -1f)` / `ExitStethoscopeMode(float fadeDuration = -1f)` — режим стетоскопа (загадка сейфа): фейдит шины `Music` и `SFX` (родительскую — глушатся и `SFX2D`, и `SFX3D`) в тишину через exposed-параметры, шина `Safe` (прямой ребёнок Master) не затрагивается. На входе также глушит музыку/tracked-лупы (`MuteBackground`), на выходе восстанавливает сохранённые громкости (`SystemSettings`) и состояние директора. Вложенность не поддерживается — владелец один (`LockDial`).
+- `PlaySafeSFX(AudioClip clip, float volume = 1f)` — one-shot через отдельный источник `Safe_SFX`, маршрутизированный в шину `Safe` (создаётся лениво). Единственный звук, слышимый в режиме стетоскопа.
+- `RouteSourceToSafeGroup(AudioSource source)` — направляет источник (например, слой усиленного звука сейфа) в шину `Safe`.
+- `BelongsToSafeGroup(AudioSource source)` — проверка принадлежности источника шине `Safe`.
+- `StethoscopeActive` — активен ли режим стетоскопа (используется `LockDial` для выбора между `PlaySFX` и `PlaySafeSFX`).
 - `PlayNewMusicSource(AudioClip clip, bool loop, string trackName = null)` — фабрика: создаёт зацикленный 2D-источник под менеджером для `MusicDirector` (громкость 0, воспроизведение сразу).
 - `ApplySavedVolumes()` — применяет сохранённые громкости (PlayerPrefs через `SystemSettings`) к шинам микшера.
 - `ResolveMixerExternal()` — доступ к микшеру для `SystemSettings`.
-- `RouteSourceToSfxGroup(AudioSource source)` — публичная обёртка маршрутизации для источников компонентов (например drag/scrape-лупы).
+- `RouteSourceToSfxGroup(AudioSource source)` — публичная обёртка маршрутизации для источников компонентов (например drag/scrape-лупы); маршрутизирует по `spatialBlend` в категорию SFX2D/SFX3D.
 
-Дополнительно: в `Awake` сбрасывает статическое состояние tracking'а (`BackgroundTracking.ResetForNewSession`), подписывается на `SceneManager.sceneLoaded` и после каждой загрузки сцены направляет все «осиротевшие» AudioSource (без mixer group) на SFX-шину.
+В `Awake`: сбрасывает статическое состояние tracking'а (`BackgroundTracking.ResetForNewSession`), сбрасывает `AudioListener.pause = false` (наследуемый от перехода сцены, где умирающий геймплейный мир молчит под экраном загрузки) и применяет сохранённые громкости; общий 2D-источник направляется в категорию SFX2D (если он ещё не на ней). Подписывается на `SceneManager.sceneLoaded` и после каждой загрузки сцены направляет все «осиротевшие» AudioSource (без mixer group) в их категорию (SFX2D/SFX3D по `spatialBlend`).
 
 ### MusicDirector.cs (`Assets/Scripts/Core/MusicDirector.cs`)
 
-Синглтон (`MusicDirector.Instance`), решает какой музыкальный трек сейчас играет и кроссфейдит треки через `AudioManager`. Реализует `ISaveable` (SaveId `"music_director"`).
+Синглтон (`MusicDirector.Instance`, `DontDestroyOnLoad`), решает какой музыкальный трек сейчас играет и кроссфейдит треки через `AudioManager`. Реализует `ISaveable` (SaveId `"music_director"`). Дубль компонента в новой сцене работает как «носитель конфига»: его `_defaultGameTrack` принимается постоянным инстансом, сам дубль уничтожается.
 
 Поля инспектора:
 
 
-| Поле                 | Тип             | Описание                                                                                |
-| -------------------- | --------------- | --------------------------------------------------------------------------------------- |
-| `_defaultGameTrack`  | MusicTrack      | Трек, играющий при старте игры                                                          |
-| `_pauseMenuTrack`    | MusicTrack      | Трек паузы (меню); после закрытия меню возобновляется игровой                           |
-| `_musicGroup`        | AudioMixerGroup | Music-шина, куда направляются все музыкальные источники                                 |
-| `_minSwitchInterval` | float           | Минимальный интервал между переключениями (2 с), защита от мерцания на триггерах дверей |
+| Поле                 | Тип             | Описание                                                      |
+| -------------------- | --------------- | ------------------------------------------------------------- |
+| `_defaultGameTrack`  | MusicTrack      | Трек, играющий при старте игры                                |
+| `_pauseMenuTrack`    | MusicTrack      | Трек паузы (меню); после закрытия меню возобновляется игровой |
+| `_musicGroup`        | AudioMixerGroup | Music-шина, куда направляются все музыкальные источники       |
+| `_minSwitchInterval` | float           | Дефолтная длительность фейда (2 с)                            |
 
+
+Примечание: `_minSwitchInterval` больше **не** анти-фликер интервал — в `RequestTrackInternal` новый запрос всегда побеждает немедленно, старый трек уходит под новый. Значение используется как дефолтная длительность фейда (и фейд-аута ownerless-источника).
 
 Ключевой API (статический):
 
-- `RequestTrack(MusicTrack track, bool playOnce = false)` — запрос трека; тот же активный игнорируется, playOnce-проигранные пропускаются; во время horror-мьюта запрос ставится в очередь. Возвращает `true`, если запрос принят.
+- `RequestTrack(MusicTrack track, bool playOnce = false)` — запрос трека; тот же активный игнорируется, playOnce-проигранные пропускаются; во время horror-мьюта запрос ставится в очередь (при restore срабатывает только последний). Возвращает `true`, если запрос принят.
+- `RequestIdleCueTrack(MusicTrack track)` — как `RequestTrack`, но запоминает cue: трек-подсказка никогда не сохраняется как доминантный (загрузка в дефолт трека сцены), `ClearTrack` возвращает предыдущий трек.
 - `ClearTrack(MusicTrack track)` — возвращает предыдущий трек после временного запроса.
-- `PlayMenuMusic()` / `PlayGameMusic()` — переключение на музыку паузы и обратно; позиция игрового трека запоминается и восстанавливается.
-- `MuteForEvent(float fadeDuration = 0)` / `RestoreAfterEvent(float fadeDurationOverride = -1)` — управление звуками для horror-событий; вложенные события считаются по числу владельцев (`_muteOwnerCount`). Очередь отложенных zone-запросов: при restore срабатывает только последний.
-- `DuckActiveTrack(float targetMultiplier, float fadeDuration)` — приглушить активный трек и вернуть громкость (используется лифтом). Отменяется сменой трека.
+- `PlayMenuMusic()` / `PlayGameMusic()` — переключение на музыку паузы и обратно; позиция игрового трека запоминается и восстанавливается. Работает и во время horror-мьюта (в паузе `AudioListener.pause`, menu-трек — единственный слышимый звук); `PlayGameMusic` во время мьюта ничего не включает — restore сделает это сам.
+- `MuteForEvent(float fadeDuration = 0)` / `RestoreAfterEvent(float fadeDurationOverride = -1)` — управление звуками для horror-событий; вложенные события считаются по числу владельцев (`_muteOwnerCount`).
+- `DuckActiveTrack(float targetMultiplier, float fadeDuration)` — приглушить активный трек и вернуть громкость (используется лифтом). Отменяется сменой трека; во время мьюта или меню игнорируется. Восстановление — к запомненному уровню до duck, не к `track.Volume`.
 - `FadeOutForLoadingScreen(float fadeDuration = 1.5f)` — глушит все source пула и очищает активный трек при переходе сцены (фейд идёт на отдельном `DontDestroyOnLoad`-хосте `LoadingFadeHost`, переживающем уничтожение менеджера).
-- `RegisterTrack(MusicTrack track)` — регистрация трека для резолва по имени из сейва (вызывается зонами в `Awake`).
-- Свойства: `Instance`, `ActiveTrack`, `MutedForEvent`.
+- `RegisterTrack(MusicTrack track)` — регистрация трека для резолва по имени из сейва (статический словарь `KnownTracks`, зоны регистрируют треки в `Awake`).
+- `OwnsSource(AudioSource source)` — принадлежит ли источник директору (пул или активный кроссфейд); используется `MuteAmbience`, чтобы не сглотнуть музыку.
+- Свойства: `Instance`, `ActiveTrack`, `MutedForEvent`, `IsDefaultTrackActive` (меню и мьют не активны, играет дефолтный трек сцены — проверяют системы, сидящие поверх дефолтного эмбиента, например idle-подсказка).
 
 Особенности:
 
-- Источники пулятся по трекам (`Dictionary<MusicTrack, AudioSource>`) и **паузятся, а не уничтожаются** — трек возобновляется с позиции фейд-аута.
+- Источники пулятся по трекам (`Dictionary<MusicTrack, AudioSource>`) и **паузятся, а не уничтожаются** — трек возобновляется с позиции фейд-аута. `ignoreListenerPause = true` только у track паузы (единственный слышимый звук при `AudioListener.pause`).
 - Треки, запрошенные с `playOnce`, запоминаются и никогда не перезапускаются.
-- `ISaveable`: сериализует доминирующий трек (имя + позиция) и список проигранных playOnce-треков. Пока меню владеет музыкой, сохраняется прерванный игровой трек (автосейв-таймер на unscaled времени).
+- Кроссфейд (`FadeRoutine`) переключает bookkeeping (`_activeSource`) в **начале** фейда; прерывание fade (пауза, мьют, потеря фокуса) дофинализирует уходящий источник (`_fadingOutSource`) — источник-сирота на полугромкости невозможен.
+- `ISaveable`: сериализует доминирующий трек (имя + позиция) и список проигранных playOnce-треков. Пока меню владеет музыкой, сохраняется прерванный игровой трек. Idle-cue в сейв не попадает.
 - В `Start` доминантный трек из сейва имеет приоритет над дефолтом сцены; в сцене без игрового трека играет `_pauseMenuTrack` как музыка меню.
-- Нелоoping-трек, доигравший до конца, возвращает дефолтный трек сцены (`RestoreFallbackTrack`).
+- Нелоопинг-трек, доигравший до конца, возвращает дефолтный трек сцены (`RestoreFallbackTrack`).
 - Пул источников прогревается (`LoadAudioData`) в `Start` — стриминг без хичей на первом воспроизведении.
+
+Защитные механизмы:
+
+- **Watchdog мьюта** (`MuteMaxHoldSeconds = 120`, проверяется в `Update` до раннего return при мьюте): владелец, не отпустивший мьют (событие disabled mid-play с замороженным failsafe, ручной `MuteForEvent` без restore), не может заглушить игру навсегда — счётчик принудительно обнуляется (`ForceReleaseMute`), пре-мьют трек возвращается.
+- **Мьют на потерю фокуса (Alt-Tab):** menu-трек глушится, остальные источники пула замораживаются (`Pause`). Контроль — в `Update`, а не в `OnApplicationFocus`, потому что порядок callback'ов с `GameManager` не гарантирован; иначе нелооп-трек «доигрывал» за кадром и лёг fallback посреди финала. На рефокусе источники размораживаются (кроме состояния паузы игры).
+- **Track-life guard** (стейт-машина в `Update`): если активный источник остановился без запроса, реакция по причине — пауза/мьют/фейд владеют аудио сами; доигравший нелооп-трек → `RestoreFallbackTrack`; «никогда не стартовавший» (гонка стриминга, `Play()` не взялся) → ревайв с rate-limit 0.5 с. Дискриминатор «доиграл» vs «не стартовал» — флаг наблюдаемого воспроизведения `_activeSourcePlayed` (`source.time` ненадёжен). Мёртвый луп-источник (потеря устройства) пересоздаётся через фабрику.
+- **Restore из мьюта:** доигравший на момент мьюта нелооп-трек не рестартуется с нуля — уходит в `RestoreFallbackTrack`.
 
 ### MusicTrack.cs (`Assets/Scripts/Core/MusicTrack.cs`)
 
@@ -89,6 +128,10 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 
 Статический хелпер фейдов: `AudioFades.Volume(AudioSource source, float to, float duration, Action onComplete = null)` — корутина лерпает громкость по `Time.unscaledDeltaTime` (работает на паузе), молча завершается при уничтожении источника. Используется и `AudioManager`, и `MusicDirector`.
 
+### IdleMusicTrigger.cs (`Assets/Scripts/Core/IdleMusicTrigger.cs`)
+
+Анти-stuck подсказка: если игрок долго бездействует и `MusicDirector.IsDefaultTrackActive`, запрашивает idle-трек через `RequestIdleCueTrack`. Cue никогда не сохраняется как доминантный трек.
+
 ### InventoryAudio.cs (`Assets/Scripts/Inventory/InventoryAudio.cs`)
 
 Слушается `InventorySystem.OnCrafted` и через `AudioManager.PlaySFX` играет звук крафта (`_craftClip`, `_craftVolume = 1`). Ставится на тот же GameObject, что и `InventorySystem`.
@@ -99,7 +142,7 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 
 Зацикленный 3D-звук (гудящая лампа, вентиляция):
 
-1. `AudioManager.Instance.Play3DLoop(clip, transform, volume, minDistance, maxDistance)` — создаст управляемый дочерний GameObject с `AudioSource` (3D-спатиализация, SFX-шина) и вернёт источник.
+1. `AudioManager.Instance.Play3DLoop(clip, transform, volume, minDistance, maxDistance)` — создаст управляемый дочерний GameObject с `AudioSource` (3D-спатиализация, категория SFX3D) и вернёт источник.
 2. Остановка — `AudioManager.Instance.UnregisterLoopSource(source)`.
 
 Разовый 3D-звук в точке: `AudioManager.Instance.Play3DOneShot(clip, position, volume, minDistance, maxDistance)`.
@@ -113,6 +156,10 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 ### Обработка паузы и mute
 
 - **Музыка:** владеет `MusicDirector` — `PlayMenuMusic`/`PlayGameMusic` вызываются из `GameManager`, при `Time.timeScale == 0` фейды идут по `Time.unscaledDeltaTime`.
-- **Mute для событий:** `AudioManager.MuteBackground/UnmuteBackground` или напрямую `MusicDirector.MuteForEvent/RestoreAfterEvent` — глушится музыка и tracked-лупы, one-shot SFX продолжают звучать.
+- **Mute для событий (horror):** `AudioManager.MuteBackground/UnmuteBackground` или напрямую `MusicDirector.MuteForEvent/RestoreAfterEvent` — глушится музыка и tracked-лупы, one-shot SFX продолжают звучать. Вложенность — по счётчику владельцев; утечка держателя дольше 120 с чинится watchdog'ом.
+- **Мьют всей сцены (финальная катсцена):** `AudioManager.MuteAmbience` — глушит всё, кроме музыки директора и one-shot SFX, включая эмбиент, появляющийся во время катсцены.
 - **Слои:** `PlayBackgroundLayer`/`StopBackgroundLayer` для независимых 2D-слоёв с фейдами.
+- **Стетоскоп (загадка сейфа):** при применении стетоскопа `LockDial` вызывает `AudioManager.EnterStethoscopeMode` — музыка и все SFX-шины фейдятся в тишину, а тики/звук корректного шага и `_puzzleBackgroundLayer` идут через шину `Safe` (`PlaySafeSFX`/`RouteSourceToSafeGroup`) и остаются слышимыми. Выход из паззла — `ExitStethoscopeMode`, громкости восстанавливаются. Требует шину `Master/Safe` в `SFX.mixer` и назначенное поле `_safeGroup` у `AudioManager` (в сцене `Game.unity` уже назначено).
 - **Громкости:** `SystemSettings` пишет в exposed-параметры микшера (`SFXVolume` / `MusicVolume`), изменения применяются мгновенно к играющему звуку.
+
+&nbsp;

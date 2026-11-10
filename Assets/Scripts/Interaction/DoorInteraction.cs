@@ -514,7 +514,7 @@ namespace Escape.Core {
                 }
                 else {
                     // Заперта, ключа нет — вместо молчания показываем подсказку.
-                    AudioManager.Instance.PlaySFX(_lockedClip);
+                    AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
                     ShowLockedHint();
                 }
             }
