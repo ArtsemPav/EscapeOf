@@ -396,7 +396,16 @@ public class ClockHand : MonoBehaviour, ISaveable
 
         bool isHolding     = _isGrabbed && mouse.leftButton.isPressed;
         CrosshairMode mode = isHolding ? CrosshairMode.Grab : CrosshairMode.Hand;
-        string hint        = isHolding ? _rotateHintText : _pressHintText;
+        string hint = Localization.TryGet(LocalizationKeys.InteractRotate, out string localizedRotateHint)
+            ? localizedRotateHint
+            : _rotateHintText;
+        if (!isHolding)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            hint = Localization.TryGet(LocalizationKeys.InteractPress, out string localizedPressHint)
+                ? localizedPressHint
+                : _pressHintText;
+        }
 
         InteractionUI.Instance?.SetCrosshair(mode);
         InteractionUI.Instance?.SetHint(true, hint, false, mode);

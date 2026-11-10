@@ -50,7 +50,20 @@ public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
 
     public bool IsPickable()        => false;
     public bool UseLMBClick         => true;
-    public string GetInteractText() => _isLocked
-        ? _lockedInteractText
-        : (IsLightOff ? _interactTextWhenOff : _interactTextWhenOn);
+    public string GetInteractText()
+    {
+        if (_isLocked)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            return Localization.TryGet(LocalizationKeys.InteractBlocked, out string localizedBlocked)
+                ? localizedBlocked
+                : _lockedInteractText;
+        }
+
+        string key = IsLightOff ? LocalizationKeys.InteractLightSwitchOn : LocalizationKeys.InteractLightOff;
+        string fallback = IsLightOff ? _interactTextWhenOff : _interactTextWhenOn;
+
+        // Keep the Inspector fallback when this localization key is missing.
+        return Localization.TryGet(key, out string localized) ? localized : fallback;
+    }
 }

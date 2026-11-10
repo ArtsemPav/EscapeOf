@@ -43,10 +43,15 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
         }
     }
 
+    /// <summary>Returns the localized puzzle inspection hint, or the Inspector fallback.</summary>
     public string GetInteractText()
     {
-        if (_controller == null) return _interactText;
-        if (_controller.IsSolved && !_controller.AllowEnterWhenSolved) return string.Empty;
+        if (_controller != null && _controller.IsSolved && !_controller.AllowEnterWhenSolved)
+            return string.Empty;
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractInspect, out string localizedHint))
+            return localizedHint;
         return _interactText;
     }
 

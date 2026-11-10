@@ -106,7 +106,14 @@ public class ScrewdriverRepairController : MonoBehaviour,
 
     // ── IPuzzleDropTarget ────────────────────────────────────────────────────────
 
-    public string GetDropHint() => _dropHint;
+    /// <summary>Returns the localized screwdriver drop hint, or the Inspector fallback.</summary>
+    public string GetDropHint()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.DropUseScrewdriver, out string localizedHint))
+            return localizedHint;
+        return _dropHint;
+    }
 
     public bool CanAccept(ItemData item)
     {

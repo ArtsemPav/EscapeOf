@@ -284,7 +284,16 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     public string GetInteractText()
     {
         if (_isLocked)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractLocked, out string localizedLockedHint))
+                return localizedLockedHint;
             return _lockedHint;
+        }
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractPull, out string localizedPullHint))
+            return localizedPullHint;
         return _interactText;
     }
 
@@ -299,9 +308,13 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     /// <summary>Returns the locked hint when the drawer is locked.</summary>
     public string GetBlockedHint()
     {
-        if (_isLocked)
-            return _lockedHint;
-        return string.Empty;
+        if (!_isLocked)
+            return string.Empty;
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractLocked, out string localizedLockedHint))
+            return localizedLockedHint;
+        return _lockedHint;
     }
 
     // ── Public API ──────────────────────────────────────────────────────────────

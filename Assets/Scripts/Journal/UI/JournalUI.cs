@@ -422,11 +422,41 @@ public class JournalUI : MonoBehaviour
         // Page_N order.
         documentPages.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.Ordinal));
 
+        // Localization page index is per-document, not global across the category stack.
+        int documentPageIndex = 0;
         foreach (var page in documentPages)
         {
             _pages.Add(page);
             _pageInitialRotations.Add(page.transform.localRotation);
             _pageInitialPositions.Add(page.transform.localPosition);
+            ApplyLocalizedPageText(data, page, documentPageIndex);
+            documentPageIndex++;
+        }
+    }
+
+    /// <summary>
+    /// Soft localization of baked page text — same scheme as DocumentUI.ApplyLocalizedPageText:
+    /// when the document has a localizationPrefix and the table contains the page key, the
+    /// translated string replaces the page's baked TMP text. Page key: 'note.<prefix>.page<n>'
+    /// replaces every TMP of the page; per-TMP keys 'note.<prefix>.page<n>.<i>' override
+    /// individual TMPs. Missing keys keep the baked text.
+    /// </summary>
+    private static void ApplyLocalizedPageText(DocumentData data, GameObject page, int pageIndex)
+    {
+        if (data == null || string.IsNullOrEmpty(data.localizationPrefix)) return;
+
+        string pageKey = $"note.{data.localizationPrefix}.page{pageIndex}";
+        TMP_Text[] texts = page.GetComponentsInChildren<TMP_Text>(true);
+
+        string pageText = Localization.Get(pageKey);
+        bool hasPageText = pageText != pageKey;
+
+        for (int i = 0; i < texts.Length; i++)
+        {
+            string itemKey = $"{pageKey}.{i}";
+            string itemText = Localization.Get(itemKey);
+            if (itemText != itemKey) texts[i].text = itemText;
+            else if (hasPageText) texts[i].text = pageText;
         }
     }
 

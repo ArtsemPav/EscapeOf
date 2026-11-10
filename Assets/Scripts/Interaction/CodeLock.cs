@@ -130,7 +130,14 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
         _lockUI.Open(this);
     }
 
-    public string GetInteractText() => _interactText;
+    /// <summary>Returns the localized enter-code hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractEnterCode, out string localizedHint))
+            return localizedHint;
+        return _interactText;
+    }
     public bool IsPickable() => false;
     public bool UseLMBClick => true;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;
@@ -160,7 +167,12 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
     {
         if (IsUnlocked) return string.Empty;
         if (_requiredItem != null && !InventorySystem.Instance.HasItem(_requiredItem))
-            return _missingItemHint;
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            return Localization.TryGet(LocalizationKeys.InteractMissingItem, out string localizedHint)
+                ? localizedHint
+                : _missingItemHint;
+        }
         return string.Empty;
     }
 

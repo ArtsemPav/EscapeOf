@@ -32,30 +32,121 @@
 
 `<область>.<объект>[.<деталь>]` — snake_case, нижний регистр.
 
-## Текстовые ключи (Ru.asset)
+## Текстовые ключи (Ru.asset) — по областям
+
+### 1. UI: меню, панели, настройки (`ui.*`)
 
 | Ключ | Значение (Ru) | Где используется |
 |---|---|---|
+| `ui.loading.title` | ЗАГРУЗКА | MainMenuLoadingScreen, Start.unity (LocalizedTMP) |
+| `ui.menu.continue_game` | ПРОДОЛЖИТЬ | Game.unity MainMenu ResumeBtn (LocalizedTMP) |
+| `ui.inventory.title` | ИНВЕНТАРЬ | InventoryPanel TitleText (LocalizedTMP) |
+| `ui.save.saving` | ● Сохранение... | SaveIndicator.Label (LocalizedTMP) |
+| `ui.journal.close_hint` | J — Закрыть | JournalPanel CloseHint (LocalizedTMP) |
+| `ui.inspect.hint` | ЛКМ — вращать \| ЛКМ — взять | InspectionPanel.HintText (LocalizedTMP) |
 | `ui.settings.window` | ОКНО: | SettingsPanelController |
 | `ui.settings.window.borderless` | ОКНО: БЕЗ РАМКИ (ПОЛНЫЙ ЭКРАН) | SettingsPanelController |
 | `ui.settings.window.windowed` | ОКНО: ОКОННЫЙ РЕЖИМ | SettingsPanelController |
 | `ui.settings.resolution` | РАЗРЕШЕНИЕ: | SettingsPanelController |
 | `ui.settings.framerate` | КАДРЫ В СЕКУНДУ: | SettingsPanelController |
 | `ui.settings.default_suffix` | " (по умолчанию)" | SettingsPanelController |
-| `ui.settings.music_volume` | Музыка | SettingsPanelController (после смены языка) |
-| `ui.settings.sfx_volume` | Звуки | SettingsPanelController (после смены языка) |
+| `ui.settings.music_volume` | ГРОМКОСТЬ МУЗЫКИ / Музыка | Start.unity MusicLabel + SettingsPanelController |
+| `ui.settings.sfx_volume` | ГРОМКОСТЬ ЭФФЕКТОВ / Звуки | Start.unity SfxLabel + SettingsPanelController |
 | `ui.settings.language` | ЯЗЫК: | SettingsPanelController |
+
+### 2. UI: взаимодействие (`ui.interact.*`, `ui.drop.*`)
+
+| Ключ | Значение (Ru) | Где используется |
+|---|---|---|
+| `ui.interact.open_door` | Открыть | DoorInteraction._openText (fallback: Inspector) |
+| `ui.interact.close_door` | Закрыть | DoorInteraction._closeText (fallback: Inspector) |
+| `ui.interact.locked` | Заперто | DrawerDrag._lockedHint (fallback: Inspector) |
+| `ui.interact.read` | Прочитать | DocumentInteraction (fallback: Inspector) |
+| `ui.interact.inspect` | Осмотреть | PuzzleInteractable, FinalDoorPuzzleController, FinalDoorSideInteractable (fallback: Inspector) |
+| `ui.interact.inspect_skull` | Осмотреть череп | ScullPuzzlePhase (fallback: Inspector) |
+| `ui.interact.press` | Нажать | ClockHand._pressHintText, PuzzleButtonInteractable, MriCutsceneButton (fallback: Inspector) |
+| `ui.interact.press_button` | Нажать кнопку | ElevatorButton._hintText (fallback: Inspector) |
+| `ui.interact.rotate` | Повернуть | CylinderInteractable, ClockHand (fallback: Inspector) |
+| `ui.interact.pull` | Потянуть | DrawerDrag, PhysicsDraggable (fallback: Inspector) |
+| `ui.interact.light_on` | Включить | LightSwitch._turnOnHint (fallback: Inspector) |
+| `ui.interact.light_off` | Выключить | LightSwitch._turnOffHint (fallback: Inspector) |
+| `ui.interact.lever_pull` | Потянуть рычаг | LeverInteraction._textWhenOff, ElectricLever (fallback: Inspector) |
+| `ui.interact.lever_return` | Вернуть рычаг | LeverInteraction._textWhenOn (fallback: Inspector) |
+| `ui.interact.lever_switch_on` | Включить рычаг | PressureLever._textWhenOff (fallback: Inspector) |
+| `ui.interact.lever_switch_off` | Выключить рычаг | PressureLever._textWhenOn (fallback: Inspector) |
+| `ui.interact.switch_camera` | Переключить камеру | TVChannelButton (fallback: Inspector) |
+| `ui.interact.no_power` | Нет электричества | LightSwitch, ElevatorController.NoPowerHint (fallback: Inspector) |
+| `ui.interact.need_lights` | Нужно включить свет | PuzzleModeController, CardLockPuzzleController (fallback: Inspector) |
 | `ui.interact.apply` | Применить {0} {1} | InteractionUI.ShowDragHint |
-| `ui.interact.rotate` | Повернуть | CylinderInteractable (fallback: Inspector) |
-| `ui.codelock.success` | Доступ открыт | CodeLockUI (fallback: GameConfig) |
-| `ui.codelock.wrong` | Неверный код | CodeLockUI (fallback: GameConfig) |
+| `ui.drop.swipe_card` | Провести картой | CardLockPuzzleController._dropHint (fallback: Inspector) |
+| `ui.drop.insert_generator` | Установить в генератор | GeneratorPuzzleController._dropHint (fallback: Inspector) |
+| `ui.drop.use_screwdriver` | Использовать отвёртку | ScrewdriverRepairController._dropHint (fallback: Inspector) |
+| `ui.drop.insert_reel` | Установить бабину | FilmProjectorPuzzleController._dropHint (fallback: Inspector) |
+| `ui.drop.on_safe` | на сейф | LockDial.GetDropHint |
+| `ui.tooltip.rune_pouch` | Мешочек с рунами | RunePouchUI (константа заменена ключом) |
+| `ui.tooltip.rune_master` | Мастер рун | RunePouchUI (константа заменена ключом) |
+
+### 3. UI: панели загадок и статусы (`ui.panel.*`, `ui.puzzle.*`, `ui.hint.*`, `ui.minigame.*`, `ui.medallion.*`)
+
+| Ключ | Значение (Ru) | Где используется |
+|---|---|---|
+| `ui.panel.breaker_on` | Щиток [Питание ВКЛ] | ElectricPanel._hintPoweredOn (fallback: Inspector) |
+| `ui.panel.breaker_off` | Щиток [Питание ВЫКЛ] | ElectricPanel._hintPoweredOff (fallback: Inspector) |
+| `ui.panel.breaker_no_power` | Щиток [Нет питания] | ElectricPanel._hintNotActivated (fallback: Inspector) |
+| `ui.puzzle.generator_first` | Сначала нужно запустить генератор. | ElectricPuzzleController._noGeneratorHint (fallback: Inspector) |
+| `ui.puzzle.no_fuse` | Нужен предохранитель. | ElectricPuzzleController._noFuseHint (fallback: Inspector) |
+| `ui.puzzle.fifteen.move` | Передвинуть плитку | FifteenPuzzleElement (fallback: "Move Tile") |
+| `ui.hint.gen_both/first/second` | Установите (оба) предмет(ы/а) в генератор. | GeneratorPuzzleController popups |
+| `ui.hint.projector` | Установите бабину в проектор. | FilmProjectorPuzzleController popup |
+| `ui.hint.need_plunger` | Нужен вантуз | LiquidDrainInteractable.GetBlockedHint |
+| `ui.hint.exit_esc` | Выход: Esc | FinalDoorPuzzleController popup |
+| `ui.medallion.hint` | Вставьте медальоны в нужные отверстия | MedallionBoxPanel.HintText (LocalizedTMP) |
+| `ui.minigame.space` | ПРОБЕЛ / ЛКМ | ScrewdriverMinigamePanel центр (LocalizedTMP) |
 | `ui.minigame.misses` | Промахи: {0} | ScrewdriverMinigamePanel |
 | `ui.minigame.misses_limited` | Промахи: {0}/{1} | ScrewdriverMinigamePanel |
+| `puzzle.synthesis.success` | СИНТЕЗ УСПЕШЕН | AnalyzerScreenController |
+
+### 4. UI: кодовые замки и ноутбук (`ui.codelock.*`, `ui.laptop.*`)
+
+| Ключ | Значение (Ru) | Где используется |
+|---|---|---|
+| `ui.codelock.title` | КОДОВЫЙ ЗАМОК | CodeLockPanel.Title (LocalizedTMP, Game + Sample) |
+| `ui.codelock.success` | Доступ открыт | CodeLockUI (fallback: GameConfig) |
+| `ui.codelock.wrong` | Неверный код | CodeLockUI (fallback: GameConfig) |
+| `ui.interact.enter_code` | Ввести код | CodeLock._interactText (fallback: Inspector) |
+| `ui.laptop.access_granted` / `ui.laptop.wrong_password` | Доступ разрешён / Неверный пароль | LaptopController, LaptopOS |
+
+### 5. Мир: надписи на стенах и предметах (`world.*`)
+
+| Ключ | Значение (Ru) | Где используется |
+|---|---|---|
+| `world.plates.*` | Палата 1–7, Морг, Уборная, д-р Морро, Лаборатория, Кладовая, Процедурная, Комната медсестры, Генераторная, Электрощитовая | 3D-таблички TextTablichka на дверях (LocalizedTMP) |
+| `world.posters.light_riddle` | Свет зародится под землей, если найдешь ты корм ему среди "лесов" | TextTablichka, PRF_Corridor2ndFloor (LocalizedTMP) |
+| `world.posters.diploma` | 1978 - это был лучший год в моей жизни | TextTablichka, PRF_Diplom (LocalizedTMP) |
+| `world.uv.corridor1` | Я искал выход там, где конец встречается с началом» | UVText (1), PRF_Corridor1stFloor (LocalizedTMP) |
+| `world.uv.nursery` | Я теряла цвета. Свет продолжал хранить их все | UVText (1), PRF_NurseryRoom (LocalizedTMP) |
+| `world.uv.room3` | Каждый новый виток растет по закону чисел | UVText (1), PRF_Room3 (LocalizedTMP) |
+| `world.uv.room5` | Я искала путь среди развилок, забыв о корнях | UVText (1), PRF_Room5 (LocalizedTMP) |
+| `world.uv.room6` | Прежняя форма исчезает. Жизнь принимает новую | UVText (1), PRF_Room6 (LocalizedTMP) |
+| `world.notes.clock` | Нужно найти время... Установи правильное время... | Content, Paperclock.prefab (LocalizedTMP) |
+| `world.chem.centrifuge_ready` / `world.chem.awaiting_sample` | Готова / Ожидание образца | Экраны центрифуги и анализатора (LocalizedTMP) |
+
+### 6. Предметы (`item.*`)
+
+| Ключ | Значение (Ru) | Где используется |
+|---|---|---|
+| `item.<AssetName>.name` / `.desc` | Названия и описания 92 ItemData | ItemData.LocalizedName/LocalizedDescription (ключ = m_Name ассета, НЕ имя файла!) |
+
+### 7. Динамические семейства
+
+| Ключ | Значение (Ru) | Где используется |
+|---|---|---|
 | `hints.<id>.key` / `hints.<id>.action` | — | InventoryHints (по записи, id задаётся в Inspector) |
 | `journal.category.<id>` | — | JournalUI (id = JournalCategory.categoryNameKey) |
-| `puzzle.synthesis.success` | СИНТЕЗ УСПЕШЕН | AnalyzerScreenController |
 | `popup.*` | — | PopupMessageData (по мере необходимости) |
-| `note.<prefix>.page<n>` | — | DocumentUI (n с 0; подмена только при существующем ключе) |
+| `note.<prefix>.page<n>` | — | DocumentUI, JournalUI (n с 0; подмена только при существующем ключе) |
+
+Ключи в коде берутся из статического класса `LocalizationKeys` (`Assets/Scripts/Core/LocalizationKeys.cs`) — не использовать инлайновые литералы.
 
 ## Спрайтовые ключи (RuSprites.asset)
 

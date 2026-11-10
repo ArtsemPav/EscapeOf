@@ -57,7 +57,14 @@ namespace PuzzleGame
             manager.TryMoveElement(this);
         }
 
-        public string GetInteractText() => "Move Tile";
+        /// <summary>Returns the localized move hint, or the English fallback.</summary>
+        public string GetInteractText()
+        {
+            // Keep the existing fallback when this optional localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.PuzzleFifteenMove, out string localizedHint))
+                return localizedHint;
+            return "Move Tile";
+        }
         public bool IsPickable() => false;
         public bool UseLMBClick => true; // Allows interaction via left mouse click
         public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;

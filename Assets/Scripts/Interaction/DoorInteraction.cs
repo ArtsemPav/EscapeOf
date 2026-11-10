@@ -520,7 +520,22 @@ namespace Escape.Core {
             }
         }
 
-        public string GetInteractText()   => _isOpen ? _closeText : _openText;
+        /// <summary>Returns the localized open or close hint, or its Inspector fallback.</summary>
+        public string GetInteractText()
+        {
+            if (_isOpen)
+            {
+                // Keep the Inspector fallback when this localization key is missing.
+                if (Localization.TryGet(LocalizationKeys.InteractCloseDoor, out string localizedCloseHint))
+                    return localizedCloseHint;
+                return _closeText;
+            }
+
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractOpenDoor, out string localizedOpenHint))
+                return localizedOpenHint;
+            return _openText;
+        }
         public bool   IsPickable()        => false;
         public bool   UseLMBClick         => false;
 

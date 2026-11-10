@@ -657,7 +657,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         // Checked before the fuse requirement so the lever still reacts without power.
         if (LightingSystem.Instance != null && !LightingSystem.Instance.IsGeneratorReady)
         {
-            PopupMessageSystem.Instance?.Show(_noGeneratorHint, PopupMessageType.Hint);
+            // Keep the Inspector fallback when this localization key is missing.
+            string noGeneratorHint = Localization.Resolve(LocalizationKeys.PuzzleGeneratorFirst, _noGeneratorHint);
+            PopupMessageSystem.Instance?.Show(noGeneratorHint, PopupMessageType.Hint);
             lever.Interact();
             return true;
         }
@@ -666,7 +668,9 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         // Correct wires stay connected — the player inserts the fuse and pulls again.
         if (!_fuseInserted)
         {
-            PopupMessageSystem.Instance?.Show(_noFuseHint, PopupMessageType.Hint);
+            PopupMessageSystem.Instance?.Show(
+                Localization.Resolve(LocalizationKeys.PuzzleNoFuse, _noFuseHint),
+                PopupMessageType.Hint);
             lever.Interact();
             return true;
         }

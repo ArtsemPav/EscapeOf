@@ -105,7 +105,22 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 
     public bool   IsPickable()        => false;
     public bool   UseLMBClick         => true;
-    public string GetInteractText()   => _isLocked ? _lockedInteractText : _interactText;
+    /// <summary>Returns localized lens/blocked hints, or the Inspector fallbacks.</summary>
+    public string GetInteractText()
+    {
+        if (_isLocked)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            return Localization.TryGet(LocalizationKeys.InteractBlocked, out string localizedBlocked)
+                ? localizedBlocked
+                : _lockedInteractText;
+        }
+
+        // Keep the Inspector fallback when this localization key is missing.
+        return Localization.TryGet(LocalizationKeys.InteractLensChange, out string localized)
+            ? localized
+            : _interactText;
+    }
 
     // ── Rotation ───────────────────────────────────────────────────────────────
 

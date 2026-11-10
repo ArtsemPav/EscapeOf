@@ -22,5 +22,9 @@ public class TVChannelButton : MonoBehaviour, IInteractable
 
     public bool   IsPickable()      => false;
     public bool   UseLMBClick       => true;
-    public string GetInteractText() => enabled ? _interactText : _noPowerText;
+
+    /// <summary>Returns the localized camera-switch hint, or the Inspector fallbacks.</summary>
+    public string GetInteractText() => enabled
+        ? Localization.Resolve(LocalizationKeys.InteractSwitchCamera, _interactText)
+        : Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
 }

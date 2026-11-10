@@ -12,8 +12,7 @@ public class RunePouchUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 {
     public static RunePouchUI Instance { get; private set; }
 
-    private const string PouchTooltipTitle = "Мешочек с рунами";
-    private const string MasterTooltipTitle = "Мастер рун";
+    // Tooltip titles use localization keys with these original strings as fallbacks.
 
     [Header("Icons")]
     [Tooltip("Sprite shown while runes are still being collected.")]
@@ -73,6 +72,7 @@ public class RunePouchUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             _image.sprite = _allRunesCollected && masterIcon != null ? masterIcon : pouchIcon;
     }
 
+    /// <summary>Shows the localized rune pouch or master-rune tooltip on pointer entry.</summary>
     public void OnPointerEnter(PointerEventData eventData)
     {
         if (InventorySystem.Instance == null) return;
@@ -82,12 +82,18 @@ public class RunePouchUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
         if (_allRunesCollected)
         {
-            title = MasterTooltipTitle;
+            // Keep the existing tooltip title when this optional localization key is missing.
+            title = Localization.TryGet(LocalizationKeys.TooltipRuneMaster, out string localizedMasterTitle)
+                ? localizedMasterTitle
+                : "Мастер рун";
             description = "";
         }
         else
         {
-            title = PouchTooltipTitle;
+            // Keep the existing tooltip title when this optional localization key is missing.
+            title = Localization.TryGet(LocalizationKeys.TooltipRunePouch, out string localizedPouchTitle)
+                ? localizedPouchTitle
+                : "Мешочек с рунами";
             int collected = InventorySystem.Instance.CollectedRuneCount;
             int total = InventorySystem.Instance.TotalRuneCount;
             description = $"Собрано: {collected} / {total}";

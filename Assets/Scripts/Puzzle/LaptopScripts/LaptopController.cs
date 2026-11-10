@@ -169,7 +169,7 @@ public class LaptopController : MonoBehaviour
     {
         _isProcessing = true;
 
-        ShowStatus(_successMessage, _successColor);
+        ShowStatus(Localization.Resolve(LocalizationKeys.LaptopAccessGranted, _successMessage), _successColor);
 
         yield return new WaitForSecondsRealtime(1f);
 
@@ -181,7 +181,7 @@ public class LaptopController : MonoBehaviour
     {
         _isProcessing = true;
 
-        ShowStatus(_errorMessage, _errorColor);
+        ShowStatus(Localization.Resolve(LocalizationKeys.LaptopWrongPassword, _errorMessage), _errorColor);
 
         if (_shakeTarget != null)
             yield return StartCoroutine(ShakeRoutine());
