@@ -1,4 +1,4 @@
-<!-- version: 6 -->
+<!-- version: 7 -->
 
 ## Обзор
 
@@ -27,7 +27,7 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera) + MainMenuCo
 
 ### `MainMenuController` — `Assets/Scripts/Core/MainMenuController.cs`
 
-Компонент на `MainMenuCanvas`. Обрабатывает кнопки главного меню (подключение через Inspector `onClick`), автоматически подключает hover- и click-звуки ко всем `Button` под канвасом (включая неактивные панели подменю) через `AudioManager.PlaySFX`.
+Компонент на `MainMenuCanvas`. Обрабатывает кнопки главного меню (подключение через Inspector `onClick`). Hover- и click-звуки для всех `Button` под канвасом обеспечивает отдельный компонент `MenuButtonSounds` на том же объекте — контроллер оставил себе только переходный «boom» (`_transitionClip`).
 
 
 | Метод                | Описание                                                                                 |
@@ -40,15 +40,26 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera) + MainMenuCo
 
 
 
-| Поле                                                          | Описание                                                          |
-| ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `_settingsPanel`                                              | Панель настроек                                                   |
-| `_menuRoot`                                                   | Корень блока меню, скрывается при открытии настроек               |
-| `_loadingScreen`                                              | `FakeLoadingScreen` перед переключением в геймплейную сцену       |
-| `_transitionFadeSeconds`                                      | Длительность фейда в чёрное (2.2 с); должна покрывать camera push |
-| `_loadGameButton`                                             | Кнопка Load Game — скрывается в `Start`, если сейва нет           |
-| `_cameraDolly`                                                | `MenuCameraDolly` для push-forward бита при переходе              |
-| `_hoverClip` / `_clickClip` / `_hoverVolume` / `_clickVolume` | Звуки меню (громкость 0.7)                                        |
+| Поле                                    | Описание                                                          |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `_settingsPanel`                        | Панель настроек                                                   |
+| `_menuRoot`                             | Корень блока меню, скрывается при открытии настроек               |
+| `_loadingScreen`                        | `FakeLoadingScreen` перед переключением в геймплейную сцену       |
+| `_transitionFadeSeconds`                | Длительность фейда в чёрное (2.2 с); должна покрывать camera push |
+| `_loadGameButton`                       | Кнопка Load Game — скрывается в `Start`, если сейва нет           |
+| `_cameraDolly`                          | `MenuCameraDolly` для push-forward бита при переходе              |
+| `_transitionClip` / `_transitionVolume` | Кинематик-«boom» при переходе в игру (громкость 1)                |
+
+
+### `MenuButtonSounds` — `Assets/Scripts/UI/MenuButtonSounds.cs`
+
+Компонент на корне любого меню (`MainMenuCanvas` в Start.unity, `/Canvas/MainMenu` в Game.unity). В `Awake` подключает hover- и click-звуки ко всем `Button` под объектом, включая кнопки неактивных панелей подменю, через `AudioManager.PlayUISFX` — то есть звуки слышны и при `AudioListener.pause = true` (в паузе). При уничтожении снимает click-листенеры.
+
+
+| Поле                            | По умолчанию | Описание                                                           |
+| ------------------------------- | ------------ | ------------------------------------------------------------------ |
+| `_hoverClip` / `_clickClip`     | —            | Звук наведения / клика (в сценах: `S_Click3.aif` / `S_Click2.aif`) |
+| `_hoverVolume` / `_clickVolume` | `0.7`        | Громкость на SFX-шине                                              |
 
 
 ### Переход в игру (`BeginGameTransition`)
@@ -188,7 +199,7 @@ Singleton, `[DefaultExecutionOrder(-50)]` — в `Awake` вызывает `Syste
 
 Логика паузы (ESC, `Time.timeScale`, курсор, музыка) живёт в `GameManager`:
 
-- `SetPause(bool)`: `Time.timeScale = 0/1`, `AudioListener.pause = pause` — глушится весь звук, кроме источников с `ignoreListenerPause` (только музыка меню паузы), открывается `menuUI` через `UIManager`, музыка переключается `MusicDirector.PlayMenuMusic()` / `PlayGameMusic()`.
+- `SetPause(bool)`: `Time.timeScale = 0/1`, `AudioListener.pause = pause` — глушится весь звук, кроме источников с `ignoreListenerPause` (музыка меню паузы и UI-звуки через `AudioManager.PlayUISFX`), открывается `menuUI` через `UIManager`, музыка переключается `MusicDirector.PlayMenuMusic()` / `PlayGameMusic()`.
 - ESC сначала закрывает открытый таб-инвентарь и не открывает паузу, пока открыта любая другая панель (`UIManager.IsAnyPanelOpen`).
 - Курсор: разлочен при паузе или любой открытой панели (`UpdateCursorState`).
 
@@ -205,6 +216,7 @@ Singleton, `[DefaultExecutionOrder(-50)]` — в `Awake` вызывает `Syste
 - `MenuSelectionLines` выбирает первую кнопку при старте — при открытии паузы линии всегда обрамляют один из пунктов, а не весь список.
 - Фон меню паузы (`/Canvas/MainMenu/Background`) — спрайт `Assets/Sprites/loading/pause.png` (импорт: Sprite / Single).
 - `BackBtn` в панели настроек звука стилизован так же: прозрачный фон, ColorTint на тексте, «НАЗАД» Arial SDF Bold UpperCase 26pt, разрядка 5, размер 460×44. Проводка `SoundSettingsBackBtn` не затронута.
+- На `/Canvas/MainMenu` висит `MenuButtonSounds` (те же клипы и громкость, что в стартовом меню) — звуки hover/click паузного меню и его панели настроек играют через `AudioManager.PlayUISFX` и не глушатся `AudioListener.pause`. Источник — `/AudioManager/UISFX` (2D, шина SFX2D, `ignoreListenerPause = true` в `AudioManager.Awake`).
 
 ---
 
@@ -229,7 +241,7 @@ ScriptableObject-каталог (ассет `Assets/Data/LoadingScreenTheme.asse
 
 1. Добавь дочерний объект с компонентом `Button` в `VerticalLayout`
 2. `MenuHoverEffect` и `MenuSelectionLines` обнаружат её автоматически при следующем запуске — явная регистрация не нужна
-3. Звук hover/click подключится автоматически — их вешает `MainMenuController.WireMenuSounds()` на все кнопки канваса
+3. Звук hover/click подключится автоматически — их вешает `MenuButtonSounds` на все кнопки под корнем меню (в обеих сценах)
 
 ## Добавление нового декоративного элемента
 

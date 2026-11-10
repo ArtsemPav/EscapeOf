@@ -1,4 +1,4 @@
-<!-- version: 4 -->
+<!-- version: 5 -->
 
 ## Overview
 
@@ -142,6 +142,14 @@ LightingSystem.Instance.OnGeneratorReadyChanged += (isReady) => { };
 
 Backwards compatibility: old saves without `isGeneratorReady`/`isPowerActivated` are auto-migrated — if power was on, both flags are set to `true`.
 
+### Fade deduplication
+
+`ApplyToZone` tracks the last applied on/off state per zone (`_appliedZoneStates`) and ignores redundant transitions. Consequences:
+
+- Toggling a switch while master power is OFF does **not** flash the lights — the zone is already dark, so no fade-out runs. (Before the fix, a redundant fade-out reset the lights to full intensity via `StopFlicker()` and re-enabled them for ~`Fade Duration`, producing a flash that died out.)
+- A fade-out only runs when the zone was actually lit.
+- Fade-in/out still runs on real transitions: power toggle, switch toggle of a powered zone, render-suppression changes, and save loading.
+
 ---
 
 ## Lamp
@@ -200,6 +208,8 @@ lamp.OriginalIntensity;                     // max authored intensity among cont
 - `Occasional` — long stable phase → short burst of rapid flicker → restore → repeat
 
 Flicker stops automatically when the light is turned off (switch or panel) and resumes after it is turned back on. It does not conflict with the fade transition.
+
+> Note: toggling a switch while master power is OFF never touches the lights — `LightingSystem` skips redundant fades, so no "flash then die out" occurs on unpowered zones.
 
 ---
 

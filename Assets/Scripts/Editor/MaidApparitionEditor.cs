@@ -29,9 +29,10 @@ public class MaidApparitionEditor : Editor
 
         using (new EditorGUILayout.HorizontalScope())
         {
-            if (GUILayout.Button("Start pose")) maid.EditorPreview(MaidApparition.SpotId.Bag, true);
-            if (GUILayout.Button("Preview: Bag")) maid.EditorPreview(MaidApparition.SpotId.Bag);
-            if (GUILayout.Button("Preview: Glass")) maid.EditorPreview(MaidApparition.SpotId.Glass);
+            if (GUILayout.Button("1: Stand")) maid.EditorPreview(MaidApparition.SpotId.Bag, true);
+            if (GUILayout.Button("2: Hands on bag")) maid.EditorPreview(MaidApparition.SpotId.Bag);
+            if (GUILayout.Button("3: Looks at player")) maid.EditorPreview(MaidApparition.SpotId.Bag, false, true);
+            if (GUILayout.Button("Glass")) maid.EditorPreview(MaidApparition.SpotId.Glass);
             using (new EditorGUI.DisabledScope(!maid.IsEditorPreviewing))
                 if (GUILayout.Button("Reset pose")) maid.EditorResetPreview();
         }
@@ -45,7 +46,7 @@ public class MaidApparitionEditor : Editor
         }
 
         if (changed)
-            maid.EditorPreview(maid.EditorPreviewSpot, maid.EditorPreviewStart);
+            maid.EditorPreview(maid.EditorPreviewSpot, maid.EditorPreviewStart, maid.EditorPreviewLook);
 
         maid.EditorHandGaps(out float left, out float right);
         EditorGUILayout.HelpBox(
@@ -98,7 +99,7 @@ public static class MaidPreviewGuard
         for (int i = list.Count - 1; i >= 0; i--)
         {
             if (list[i] == null) { list.RemoveAt(i); continue; }
-            list[i].EditorPreview(list[i].EditorPreviewSpot, list[i].EditorPreviewStart);
+            list[i].EditorPreview(list[i].EditorPreviewSpot, list[i].EditorPreviewStart, list[i].EditorPreviewLook);
         }
         SceneView.RepaintAll();
     }

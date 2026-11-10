@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Overview
 
@@ -101,6 +101,7 @@ lamp.OriginalIntensity;                // макс. исходная интен�
 - `Lamp` регистрируется в `Awake` через `RegisterZone(ILampZone)`, снимается в `OnDestroy`.
 - Несколько `Lamp` в одной зоне управляются совместно; у каждой свои настройки мерцания.
 - Fade длительностью `LightingSystem.Fade Duration`, performance suppression зон и сейв/лоад — как раньше, `zoneId` не менялись, сейвы совместимы.
+- `LightingSystem` пропускает избыточные фейды: щелчок выключателя при выключенном питании не трогает лампы (раньше это давало вспышку на 0.3 с — фейд-аут сбрасывал интенсивность на полную и включал свет заново).
 - `RoomController.CollectZoneIds()` и `MriUvCutscene` работают через `ILampZone` (`GetComponentInParent<ILampZone>`).
 
 ---

@@ -75,6 +75,10 @@ public class LightingSystem : MonoBehaviour, ISaveable
     // Active fade coroutines per zone
     private readonly Dictionary<string, Coroutine> _fadeCoroutines = new();
 
+    // Last on/off state applied to each zone — prevents redundant fades
+    // (e.g. toggling a switch while power is off must not flash the lights).
+    private readonly Dictionary<string, bool> _appliedZoneStates = new();
+
     // Registered power consumers — notified whenever master power changes.
     private readonly List<IPowerConsumer> _consumers = new();
 
@@ -373,6 +377,16 @@ public class LightingSystem : MonoBehaviour, ISaveable
 
     private void ApplyToZone(string zoneId, bool on)
     {
+        // Skip transitions to a state the zone is already in, and never fade
+        // OUT a zone that was never lit — re-running the fade-out on an
+        // already-dark zone (e.g. toggling a switch while power is off) would
+        // flash the lights to full brightness before fading them again.
+        bool wasOn = _appliedZoneStates.TryGetValue(zoneId, out bool applied) && applied;
+        if (wasOn == on) return;
+        _appliedZoneStates[zoneId] = on;
+
+        if (!wasOn && !on) return;
+
         if (!_zones.TryGetValue(zoneId, out var lights) || lights.Count == 0) return;
 
         if (_fadeCoroutines.TryGetValue(zoneId, out var existing) && existing != null)
