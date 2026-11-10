@@ -20,6 +20,9 @@ public class AudioManager : MonoBehaviour {
     [Tooltip("2D source all one-shot sound effects play through.")]
     [SerializeField] private AudioSource _sfxSource;
 
+    [Tooltip("2D source for menu/UI one-shots; ignores AudioListener pause so menu clicks stay audible while the game is paused.")]
+    [SerializeField] private AudioSource _uiSfxSource;
+
     [Tooltip("SFX AudioMixer with the exposed SFXVolume and MusicVolume parameters.")]
     [SerializeField] private AudioMixer _sfxMixer;
 
@@ -71,6 +74,11 @@ public class AudioManager : MonoBehaviour {
             // already be set in the inspector — only route when it isn't).
             if (_sfxSource != null && !BelongsToCategory(_sfxSource, _sfx2DGroup))
                 RouteToCategory(_sfxSource);
+            if (_uiSfxSource != null) {
+                _uiSfxSource.ignoreListenerPause = true;
+                if (!BelongsToCategory(_uiSfxSource, _sfx2DGroup))
+                    RouteToCategory(_uiSfxSource);
+            }
             UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
         } else {
             Destroy(gameObject);
@@ -186,6 +194,16 @@ public class AudioManager : MonoBehaviour {
     public void PlaySFX(AudioClip clip, float volume) {
         if (clip != null)
             _sfxSource.PlayOneShot(clip, volume);
+    }
+
+    /// <summary>
+    /// Plays a one-shot menu/UI sound on the dedicated UI source that ignores
+    /// AudioListener.pause, so hover/click stay audible while the game is
+    /// paused (AudioListener.pause = true does not hold them back).
+    /// </summary>
+    public void PlayUISFX(AudioClip clip, float volume) {
+        if (clip != null && _uiSfxSource != null)
+            _uiSfxSource.PlayOneShot(clip, volume);
     }
 
     /// <summary>
