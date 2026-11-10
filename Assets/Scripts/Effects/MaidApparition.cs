@@ -20,6 +20,17 @@ public class MaidApparition : MonoBehaviour
 {
     public enum SpotId { Bag, Glass }
 
+    /// <summary>The three short appearances at the body bag. Each one shows a finished pose at once (no movement).</summary>
+    public enum BagStage
+    {
+        /// <summary>Upright next to the bag, arms hanging down.</summary>
+        Standing,
+        /// <summary>Leaning over the bag, both hands on it.</summary>
+        HandsOnBag,
+        /// <summary>Hands on the bag and the face turned to the player.</summary>
+        Looking
+    }
+
     [Serializable]
     public class Spot
     {
@@ -134,6 +145,7 @@ public class MaidApparition : MonoBehaviour
 
     private readonly Dictionary<Transform, Quaternion> _restLocalRotation = new Dictionary<Transform, Quaternion>();
     private Animator _animator;
+    private Renderer[] _renderers = System.Array.Empty<Renderer>();
     private Vector3 _placedLocalPosition;
     private Quaternion _placedLocalRotation;
 
@@ -143,6 +155,8 @@ public class MaidApparition : MonoBehaviour
     private HandGoal _leftGoal, _rightGoal;
     private float _time;
     private float _lean;
+    private float _poseAmount = 1f;   // 0 = relaxed standing, 1 = leaning with the hands on the surface
+    private bool _snapLook;
     private bool _lookOn;
     private float _headYaw, _headYawVelocity;
     private float _lookWeight;
@@ -166,6 +180,7 @@ public class MaidApparition : MonoBehaviour
         _initialized = true;
 
         _animator = _maidRoot.GetComponentInChildren<Animator>(true);
+        _renderers = _maidRoot.GetComponentsInChildren<Renderer>(true);
 
         FindBones();
         _restLocalRotation.Clear();
@@ -220,7 +235,7 @@ public class MaidApparition : MonoBehaviour
         float screamEnv = ScreamEnvelope();
 
         // 1. Lean forward (the spine bones carry the arms and head with them)
-        float lean = _lean * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_time / _spot.leanTime)) - screamEnv * 12f;
+        float lean = (_lean * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(_time / _spot.leanTime)) - screamEnv * 12f) * _poseAmount;
         ApplyLean(lean, right);
 
         // 2. Look at the player: the upper spine takes part of the turn, so the head does not twist off
@@ -237,6 +252,13 @@ public class MaidApparition : MonoBehaviour
                 pitchGoal = Mathf.Clamp(-Mathf.Atan2(to.y, flat.magnitude) * Mathf.Rad2Deg, -35f, 35f);
             }
         }
+        if (_snapLook)
+        {
+            // A short appearance: the head is already turned in the very first frame
+            _headYaw = _lookOn ? yawGoal : 0f;
+            _headYawVelocity = 0f;
+            _snapLook = false;
+        }
         _headYaw = Mathf.SmoothDampAngle(_headYaw, _lookOn ? yawGoal : 0f, ref _headYawVelocity, _headTurnTime, Mathf.Infinity, dt);
         _lookWeight = Mathf.MoveTowards(_lookWeight, _lookOn ? 1f : 0f, dt / _headTurnTime);
 
@@ -248,7 +270,7 @@ public class MaidApparition : MonoBehaviour
         RelaxArms(facing, right);
 
         // Arms: the hands go from the relaxed pose to the surface
-        float armWeight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((_time - _spot.handsDelay) / _spot.handsReachTime));
+        float armWeight = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((_time - _spot.handsDelay) / _spot.handsReachTime)) * _poseAmount;
         Vector3 tremble = screamEnv > 0f ? UnityEngine.Random.insideUnitSphere * (0.004f * screamEnv) : Vector3.zero;
         SolveArm(_lArm, _lFore, _lHand, _leftGoal, armWeight, -1f, facing, right, tremble);
         SolveArm(_rArm, _rFore, _rHand, _rightGoal, armWeight, 1f, facing, right, -tremble);
@@ -285,7 +307,7 @@ public class MaidApparition : MonoBehaviour
     /// Shows the maid at the given spot (she snaps there, the light blink hides the pop).
     /// <paramref name="surfaceObject"/> is the object the hands are put on (the body bag for the Bag spot).
     /// </summary>
-    public void Show(SpotId id, GameObject surfaceObject = null)
+    public void Show(SpotId id, GameObject surfaceObject = null, BagStage stage = BagStage.HandsOnBag)
     {
         if (_maidRoot == null) return;
         EnsureInitialized();
@@ -294,6 +316,8 @@ public class MaidApparition : MonoBehaviour
         if (_spot == null) return;
 
         _maidRoot.gameObject.SetActive(true);
+        foreach (Renderer r in _renderers)
+            if (r != null) r.enabled = true;
         RestorePose();
 
         // Back to the pose she was placed in
@@ -308,16 +332,32 @@ public class MaidApparition : MonoBehaviour
         Renderer surfaceRenderer = surfaceObject != null ? surfaceObject.GetComponentInChildren<Renderer>() : null;
         ComputeHandGoals(id, _spot, collider, surfaceRenderer);
 
-        // Lean as little as the pose asks for, but as much as needed to really reach the surface
-        _lean = FindLean(id == SpotId.Bag ? _bagLean : _glassLean);
+        // Standing is relaxed (no lean, no hands); the other poses lean as little as the pose asks for,
+        // but as much as needed to really reach the surface
+        bool standing = id == SpotId.Bag && stage == BagStage.Standing;
+        _poseAmount = standing ? 0f : 1f;
+        _lean = standing ? 0f : FindLean(id == SpotId.Bag ? _bagLean : _glassLean);
 
-        _time = 0f;
+        // The bag appearances are short: the finished pose is there in the very first frame
+        _time = id == SpotId.Bag ? 100f : 0f;
         _headYaw = 0f;
         _headYawVelocity = 0f;
-        _lookOn = _spot.lookAtPlayerOnShow;
+        _lookOn = id == SpotId.Bag ? stage == BagStage.Looking : _spot.lookAtPlayerOnShow;
         _lookWeight = _lookOn ? 1f : 0f;     // already staring at the player in the very first frame
+        _snapLook = true;
         _screamTime = -1f;
         _visible = true;
+    }
+
+    /// <summary>
+    /// Shows or hides only her meshes (fast, for the strobe): she keeps her pose and exists
+    /// only in the frames where a flash of light is on.
+    /// </summary>
+    public void SetShown(bool shown)
+    {
+        if (!_visible) return;
+        foreach (Renderer r in _renderers)
+            if (r != null) r.enabled = shown;
     }
 
     /// <summary>Hides the maid instantly (the cutscene calls this in the dark gap of a blink).</summary>
@@ -742,17 +782,19 @@ public class MaidApparition : MonoBehaviour
     private bool _previewActiveBefore;
     private SpotId _previewSpot;
     private bool _previewStart;
+    private bool _previewLook;
 
     public bool IsEditorPreviewing => _previewing;
     public SpotId EditorPreviewSpot => _previewSpot;
     public bool EditorPreviewStart => _previewStart;
+    public bool EditorPreviewLook => _previewLook;
 
     /// <summary>
     /// Poses the maid in the final pose of the given spot (hands on the surface), as at the end of the cutscene
     /// movement. Everything is reverted by <see cref="EditorResetPreview"/>.
     /// While the Bag preview is on, moving the MaidHolder instance moves her "placed" position.
     /// </summary>
-    public void EditorPreview(SpotId id, bool startPose = false)
+    public void EditorPreview(SpotId id, bool startPose = false, bool lookPose = false)
     {
         if (_maidRoot == null || Application.isPlaying) return;
 
@@ -774,16 +816,21 @@ public class MaidApparition : MonoBehaviour
 
         _previewSpot = id;
         _previewStart = startPose;
+        _previewLook = lookPose;
         Physics.SyncTransforms();
 
         var cutscene = GetComponentInParent<MriUvCutscene>();
-        Show(id, cutscene != null ? cutscene.BodyBag : null);
+        Show(id, cutscene != null ? cutscene.BodyBag : null,
+             lookPose ? BagStage.Looking : startPose ? BagStage.Standing : BagStage.HandsOnBag);
 
-        // Final pose (hands on the surface, leaned) or the start pose (relaxed, nothing leaned yet); no head turn
+        // Final pose (hands on the surface, leaned), the start pose (relaxed) or the pose with the head turned to the player
         _time = startPose ? 0f : 100f;
-        _lookOn = false;
-        _lookWeight = 0f;
-        _headYaw = 0f;
+        if (!lookPose)
+        {
+            _lookOn = false;
+            _lookWeight = 0f;
+            _headYaw = 0f;
+        }
         RestorePose();
         ApplyPose(0f);
     }

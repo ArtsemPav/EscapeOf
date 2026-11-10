@@ -8307,12 +8307,21 @@ MonoBehaviour:
   _rubberDuck: {fileID: 0}
   _duckPulse: 6
   _maid: {fileID: 1368726089508834835}
-  _maidBagPulse: 3
-  _maidBagLookDelay: 1.2
-  _maidBagLookDuration: 1.4
+  _maidVisibleTime: 0.5
+  _maidStandPulse: 2
+  _maidHandsPulse: 4
+  _maidLookPulse: 5
+  _strobeOn: {x: 0.03, y: 0.06}
+  _strobeOff: {x: 0.02, y: 0.05}
+  _strobeWhiteChance: 0.5
+  _whiteIntensityMultiplier: 2
+  _whiteEmissionColor: {r: 2.5, g: 2.5, b: 2.5, a: 1}
+  _pulseWhitePop: 0.05
   _endJumpscare: 1
-  _scareDarkGap: 0.55
+  _scareDarkGap: 1.9
   _scareDuration: 0.5
+  _scareStrobe: 1
+  _scareSolidStart: 0.15
   _scareHeadBack: 0.15
   _scareShake: 0.4
   _glassThumpClip: {fileID: 8300000, guid: f08db22fd293056a3170fab23d90fbac, type: 3}
@@ -18788,7 +18797,10 @@ GameObject:
   - component: {fileID: 52751002345329037}
   - component: {fileID: 1840110561140572456}
   - component: {fileID: 768705779165786101}
-  m_Layer: 0
+  - component: {fileID: 5651797605688477134}
+  - component: {fileID: 3783855969295495931}
+  - component: {fileID: 6484239372062173934}
+  m_Layer: 6
   m_Name: redB
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -21076,3 +21088,57 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2062156931753243213, guid: 186419cabe1f4854bb9d2cf40f4d9b18, type: 3}
   m_PrefabInstance: {fileID: 6555731360592129188}
   m_PrefabAsset: {fileID: 0}
+--- !u!65 &5651797605688477134
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8059635070601411535}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.04, y: 0.07, z: 0.03}
+  m_Center: {x: 0, y: 0, z: 0.006}
+--- !u!114 &3783855969295495931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8059635070601411535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19f7a20944ba4ee0a30de4d71f0693c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MriCutsceneResetButton
+  _cutscene: {fileID: 1641616520167979036}
+  _hintText: "[DEV] \u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u044E"
+--- !u!114 &6484239372062173934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8059635070601411535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e1d2658ff02cc45a26050cb688e1c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
+  _pressTarget: {fileID: 0}
+  _axis: 1
+  _pressDepth: 0.25
+  _pressDuration: 0.06
+  _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1

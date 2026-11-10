@@ -126,24 +126,53 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
     [Tooltip("The maid apparition. Shown only inside the light flashes; she vanishes in every dark blink.")]
     [SerializeField] private MaidApparition _maid;
 
-    [Tooltip("UV pulse in which she stands at the body bag with her hands on it.")]
-    [SerializeField, Min(0)] private int _maidBagPulse = 3;
+    [Tooltip("How long she is visible at each appearance (the strobe lights flicker meanwhile). The final jumpscare has its own time.")]
+    [SerializeField, Min(0.1f)] private float _maidVisibleTime = 0.5f;
 
-    [Tooltip("Seconds from her appearance at the bag until she turns her head to the player (the hands need about a second to reach the bag).")]
-    [SerializeField, Min(0f)] private float _maidBagLookDelay = 1.2f;
+    [Tooltip("UV pulse of the first appearance: she just stands next to the body bag, arms down.")]
+    [SerializeField, Min(0)] private int _maidStandPulse = 2;
 
-    [Tooltip("Seconds she stares at the player before the light blinks and she vanishes.")]
-    [SerializeField, Min(0.2f)] private float _maidBagLookDuration = 1.4f;
+    [Tooltip("UV pulse of the second appearance: she leans over the bag, both hands on it.")]
+    [SerializeField, Min(0)] private int _maidHandsPulse = 4;
+
+    [Tooltip("UV pulse of the third appearance: hands on the bag and she looks at the player over her shoulder.")]
+    [SerializeField, Min(0)] private int _maidLookPulse = 5;
+
+    [Header("Strobe")]
+    [Tooltip("While she is visible the UV lamps strobe: seconds of light per flicker (min, max).")]
+    [SerializeField] private Vector2 _strobeOn = new Vector2(0.03f, 0.06f);
+
+    [Tooltip("Seconds of darkness per flicker (min, max).")]
+    [SerializeField] private Vector2 _strobeOff = new Vector2(0.02f, 0.05f);
+
+    [Tooltip("Chance that a strobe flash is normal white light instead of UV (0 = UV only, 1 = white only).")]
+    [SerializeField, Range(0f, 1f)] private float _strobeWhiteChance = 0.5f;
+
+    [Tooltip("Brightness of a white flash relative to the normal intensity of the lamp.")]
+    [SerializeField, Min(0f)] private float _whiteIntensityMultiplier = 2f;
+
+    [Tooltip("HDR emission colour of the lamp meshes during a white flash.")]
+    [ColorUsage(false, true)]
+    [SerializeField] private Color _whiteEmissionColor = new Color(2.5f, 2.5f, 2.5f, 1f);
+
+    [Tooltip("Every UV pulse (except the last) starts with a very short white flash of this length in seconds (0 = off).")]
+    [SerializeField, Min(0f)] private float _pulseWhitePop = 0.05f;
 
     [Header("Jumpscare (the very end)")]
     [Tooltip("After the last UV flash (the sign) the light goes dark, then she appears at the glass for a split second and screams.")]
     [SerializeField] private bool _endJumpscare = true;
 
-    [Tooltip("Darkness before the scare. Long enough for the player to relax, short enough to stay tense.")]
-    [SerializeField, Min(0.05f)] private float _scareDarkGap = 0.55f;
+    [Tooltip("Darkness and silence before the scare. The longer it is, the more the player expects it - and the harder it hits.")]
+    [SerializeField, Min(0.05f)] private float _scareDarkGap = 1.9f;
 
     [Tooltip("How long she stays visible at the glass. Keep it short.")]
     [SerializeField, Min(0.1f)] private float _scareDuration = 0.5f;
+
+    [Tooltip("Strobe the lamps while she is at the glass (the first moment stays lit so the hit lands).")]
+    [SerializeField] private bool _scareStrobe = true;
+
+    [Tooltip("Seconds of steady light at the start of the scare before the strobe begins.")]
+    [SerializeField, Min(0f)] private float _scareSolidStart = 0.15f;
 
     [Tooltip("How far the head is thrown back while she screams: 0 = she keeps staring at the player, 1 = full scream pose.")]
     [SerializeField, Range(0f, 1f)] private float _scareHeadBack = 0.15f;
@@ -299,6 +328,26 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         StartCoroutine(CutsceneRoutine());
     }
 
+    /// <summary>
+    /// DEV: puts the room back to the state before the cutscene so it can be played again:
+    /// stops the sequence, restores the lamps, hides the maid / blood / body bag / duck / signs,
+    /// gives the control back and clears the saved "already played" flag. Remove together with the dev button.
+    /// </summary>
+    public void DevResetState()
+    {
+        StopAllCoroutines();
+
+        _maid?.Hide();
+        SetSignsVisible(false);
+        RestoreLamps();
+        ReleaseControl();
+        SetRevealObjectsActive(false);
+
+        _playing = false;
+        _played = false;
+        SaveManager.Instance?.Save();
+    }
+
     // ── Sequence ──────────────────────────────────────────────────────────────
 
     private IEnumerator CutsceneRoutine()
@@ -348,28 +397,24 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
 
             yield return new WaitForSeconds(RandomRange(_pulseOffRange) * (last ? 1.5f : 1f));
 
-            // UV flash
+            // UV flash, hard: it opens with a very short white pop
+            if (_pulseWhitePop > 0f && !last)
+            {
+                SetLampsWhite();
+                yield return new WaitForSeconds(_pulseWhitePop);
+            }
             SetLampsUv();
             SetSignsVisible(true);
             PlayClip(RandomClip(_pulseClips));
             if (last) PlayClip(_humClip);
             RevealDecals(i * decalsPerPulse, decalsPerPulse);
 
-            if (_maid != null && i == _maidBagPulse)
-            {
-                // Hands on the bag, then she looks over her shoulder at the player
-                _maid.Show(MaidApparition.SpotId.Bag, _bodyBag);
-                yield return new WaitForSeconds(_maidBagLookDelay);
+            // She is visible only for a moment (the lamps strobe), then the pulse goes on without her
+            if (_maid != null && TryGetMaidStage(i, out MaidApparition.BagStage stage))
+                yield return MaidWindow(stage);
 
-                _maid.LookAtPlayer(true);
-                PlayClip(_maidLookClip);
-                yield return new WaitForSeconds(_maidBagLookDuration);
-            }
-            else
-            {
-                float onTime = last ? _finalHoldDuration : RandomRange(_pulseOnRange);
-                yield return new WaitForSeconds(onTime);
-            }
+            float onTime = last ? _finalHoldDuration : RandomRange(_pulseOnRange);
+            yield return new WaitForSeconds(onTime);
 
             if (!last)
                 SetSignsVisible(false);
@@ -386,12 +431,16 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
             SetLampsDark();
             yield return new WaitForSeconds(_scareDarkGap);
 
-            SetLampsUv();
+            SetLampsWhite();   // the hit lands in a hard white flash
             _maid.Show(MaidApparition.SpotId.Glass);
             _maid.Scream(_scareDuration, _scareHeadBack, _scareShake);
             PlayClip(_glassThumpClip);
             PlayClip(_screamClip);
-            yield return new WaitForSeconds(_scareDuration);
+
+            if (_scareStrobe)
+                yield return Strobe(_scareDuration, _scareSolidStart, true);
+            else
+                yield return new WaitForSeconds(_scareDuration);
 
             // Cut: dark and gone in the same frame
             SetLampsDark();
@@ -412,6 +461,80 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
         ReleaseControl();
         _playing = false;
         _onFinished?.Invoke();
+    }
+
+    // ── Maid appearances ──────────────────────────────────────────────────────
+
+    private bool TryGetMaidStage(int pulse, out MaidApparition.BagStage stage)
+    {
+        stage = MaidApparition.BagStage.Standing;
+        if (pulse == _maidStandPulse) return true;
+
+        if (pulse == _maidHandsPulse)
+        {
+            stage = MaidApparition.BagStage.HandsOnBag;
+            return true;
+        }
+        if (pulse == _maidLookPulse)
+        {
+            stage = MaidApparition.BagStage.Looking;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// One short appearance at the body bag: she pops in, the lamps strobe for the visible time,
+    /// then she vanishes while the lamps are dark and the pulse goes on.
+    /// </summary>
+    private IEnumerator MaidWindow(MaidApparition.BagStage stage)
+    {
+        _maid.Show(MaidApparition.SpotId.Bag, _bodyBag, stage);
+        if (stage == MaidApparition.BagStage.Looking)
+            PlayClip(_maidLookClip);
+
+        yield return Strobe(_maidVisibleTime, 0f);   // ends dark
+
+        _maid.Hide();
+        yield return new WaitForSeconds(0.06f);
+        SetLampsUv();                                // back to the normal pulse light
+    }
+
+    /// <summary>Flickers the lamps (UV on/off at high speed) for the given time. The lamps are dark at the end.</summary>
+    private IEnumerator Strobe(float duration, float solidStart, bool firstWhite = false)
+    {
+        float end = Time.time + duration;
+        Flash(firstWhite || UnityEngine.Random.value < _strobeWhiteChance);
+
+        if (solidStart > 0f)
+            yield return new WaitForSeconds(Mathf.Min(solidStart, duration));
+
+        bool on = true;
+        while (Time.time < end)
+        {
+            yield return new WaitForSeconds(RandomRange(on ? _strobeOn : _strobeOff));
+            if (Time.time >= end) break;
+
+            on = !on;
+            if (on) Flash(UnityEngine.Random.value < _strobeWhiteChance);
+            else Blackout();
+        }
+
+        Blackout();
+    }
+
+    /// <summary>A flash of light (white or UV). The maid exists only inside the flashes.</summary>
+    private void Flash(bool white)
+    {
+        if (white) SetLampsWhite();
+        else SetLampsUv();
+        _maid?.SetShown(true);
+    }
+
+    private void Blackout()
+    {
+        SetLampsDark();
+        _maid?.SetShown(false);
     }
 
     // ── Player control ────────────────────────────────────────────────────────
@@ -534,6 +657,19 @@ public class MriUvCutscene : MonoBehaviour, ISaveable
             lamp.Light.intensity = lamp.BaseIntensity * _uvIntensityMultiplier;
         }
         SetLampEmission(_uvEmissionColor);
+    }
+
+    /// <summary>Normal white light of the lamps, brighter than usual (a hard flash).</summary>
+    private void SetLampsWhite()
+    {
+        foreach (var lamp in _lamps)
+        {
+            if (lamp.Light == null) continue;
+            lamp.Light.enabled = true;
+            lamp.Light.color = lamp.Color;
+            lamp.Light.intensity = lamp.BaseIntensity * _whiteIntensityMultiplier;
+        }
+        SetLampEmission(_whiteEmissionColor);
     }
 
     private void SetLampsDark()
