@@ -1,103 +1,62 @@
 <!-- version: 1 -->
 
-# Localization System
-
-Система двуязычной локализации (RU/EN) для EscapeOf: тексты UI, подсказки взаимодействия, предметы, записки/книги, титры, мировые надписи.
+Лёгкая собственная система локализации: две строки кода на каждую локализуемую сущность вместо сторонних пакетов. Русский — язык по умолчанию; английский подключён вторым. Тексты и картинки с текстом (страницы ноутбука, фото, белборды) локализуются раздельно.
 
 ## Архитектура
 
-| Компонент                  | Путь                                                | Роль                                                                                                         |
-| -------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `Localization`             | `/Assets/Scripts/Core/Localization.cs`              | Статический доступ: `Get(key)`, `GetFormat(key, args)`, `TryGet(key, out value)`, `Resolve(key, fallback)`   |
-| `LocalizationSettings`     | `/Assets/Scripts/Core/`                             | Текущий язык, событие `LanguageChanged` (на него подписываются UI-компоненты)                                |
-| `LocalizationKeys`         | `/Assets/Scripts/Core/LocalizationKeys.cs`          | Реестр констант ключей — в коде использовать только их, не строковые литералы                                |
-| `Ru.asset` / `En.asset`    | `/Assets/Data/Localization/Resources/Localization/` | Текстовые таблицы (`LocalizedTextTable`), 417 ключей каждая                                                  |
-| `RuSprites.asset`          | там же                                              | Спрайтовая таблица (`LocalizedSpriteTable`) — **пустая**, контент не готов                                   |
-| `EnSprites.asset`          | там же                                              | **Отсутствует** — создать, когда появятся английские спрайты                                                 |
-| `LocalizedTMP`             | `/Assets/Scripts/UI/LocalizedTMP.cs`                | Компонент: подменяет текст любого `TMP_Text` (включая 3D-текст) по ключу `_key`, обновляется при смене языка |
-| `LocalizedImage`           | `/Assets/Scripts/UI/`                               | Компонент: подменяет спрайт по ключу (для картинок с текстом)                                                |
-| `LocalizedTextTableEditor` | `/Assets/Scripts/Editor/`                           | Editor-окно просмотра/поиска таблиц                                                                          |
-
-## Схема ключей
-
-`<область>.<объект>[.<детали>]` — snake_case, нижний регистр.
-
-| Префикс                                                                                       | Область                                                |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `ui.menu`, `ui.loading`, `ui.inventory`, `ui.save`, `ui.journal`, `ui.inspect`, `ui.settings` | Общий UI                                               |
-| `ui.interact`, `ui.drop`                                                                      | Подсказки взаимодействия (двери, рычаги, чтение, drag) |
-| `ui.panel`, `ui.puzzle`, `ui.hint`, `ui.minigame`, `ui.medallion`                             | Загадки и их статусы                                   |
-| `ui.codelock`, `ui.laptop`                                                                    | Замки и ноутбук                                        |
-| `world.plates`, `world.uv`, `world.posters`, `world.chem`, `world.notes`                      | Надписи в мире (таблички, UV-секреты, экраны)          |
-| `item.<AssetName>.name` / `.desc`                                                             | Предметы инвентаря                                     |
-| `note.<prefix>.page<n>[.<i>]`                                                                 | Страницы записок и книг                                |
-| `credits.<name>.title` / `.text`                                                              | Титры                                                  |
-| `journal.category.<id>`                                                                       | Категории журнала                                      |
-| `hints.<id>.key` / `.action`                                                                  | Нижняя панель подсказок инвентаря                      |
-| `popup.*`                                                                                     | Popup-сообщения                                        |
-
-Полный реестр с значениями и местами использования: `/EscapeOf/Assets/Data/Localization/Keys.md`. Записи таблиц отсортированы по группам в этом же порядке — новые ключи дописывать в свою группу.
-
-## Каналы локализации
-
-### 1. Статичный UI-текст — `LocalizedTMP`
-
-Вешается на объект с `TMP_Text` (UGUI и 3D). Поле `_key` → перевод из таблицы. Перерисовка при `LanguageChanged`. Используется в заголовках меню, паузы, настроек, инвентаря, 3D-табличках (`world.*`).
-
-### 2. Динамические подсказки взаимодействия — `Localization.Resolve`
-
-`IInteractable.GetInteractText()` / `GetBlockedHint()` в коде:
-
-```csharp
-return Localization.Resolve(LocalizationKeys.InteractOpenDoor, _openText);
+```
+Assets/Data/Localization
+├── Keys.md                              # реестр ключей (не плодить дубли)
+└── Resources/Localization               # Assets > Create > Escape > ...
+    ├── Ru.asset                         # LocalizedTextTable  — русский текст
+    ├── En.asset                         # LocalizedTextTable  — английский текст
+    └── RuSprites.asset                  # LocalizedSpriteTable — русские спрайты
 ```
 
-Ключ существует → перевод; ключа нет → значение из Inspector (fallback). Паттерн единый для всех интерактиблов.
+**Скрипты:**
 
-### 3. Предметы — `ItemData`
+| Скрипт | Роль |
+|---|---|
+| `Assets/Scripts/Core/LocalizationSettings.cs` | Статика: текущий `Language` в PlayerPrefs (`Settings_Language`), событие `LanguageChanged`, дефолт `Language.Ru` |
+| `Assets/Scripts/Core/Localization.cs` | Статический фасад: `Get(key)`, `GetFormat(key, args...)`, `GetSprite(key)` |
+| `Assets/Scripts/Core/LocalizedTextTable.cs` | ScriptableObject — плоский список ключ → строка для одного языка |
+| `Assets/Scripts/Core/LocalizedSpriteTable.cs` | ScriptableObject — плоский список ключ → Sprite для одного языка |
+| `Assets/Scripts/UI/LocalizedTMP.cs` | Компонент на `TextMeshProUGUI`/`TextMeshPro`: подменяет текст по ключу, живо обновляется при смене языка |
+| `Assets/Scripts/UI/LocalizedImage.cs` | Компонент на `Image`/`RawImage`: подменяет спрайт по ключу (fallback — оригинальный спрайт) |
+| `Assets/Scripts/Editor/LocalizedTextTableEditor.cs` | Кастомный инспектор таблицы: поиск, добавление/удаление записей, сортировка, подсветка дублей ключей, многострочные значения |
 
-Вычисляемые свойства `LocalizedName` / `LocalizedDescription`: ключ = `item.<m_Name ассета>.name` / `.desc`, fallback — исходные поля. Используются в подсказках инвентаря, окне осмотра, `PickableItem`.
+Таблицы грузятся из Resources по имени языка: `Localization/Ru`, `Localization/RuSprites`. При смене языка фасад сбрасывает кэш и перегружает таблицы; все `LocalizedTMP`/`LocalizedImage` на сцене перерисовываются по событию `LanguageChanged`.
 
-### 4. Записки и книги — схема `note.<prefix>`
+## Формат ключей
 
-Контент живёт **в префабах страниц** (запечённый русский TMP). `DocumentData.localizationPrefix` задаёт префикс; при показе `DocumentUI.ApplyLocalizedPageText` (подбор) и `JournalUI.ApplyLocalizedPageText` (журнал) заменяют текст ключами `note.<prefix>.page<n>` (вся страница) или `note.<prefix>.page<n>.<i>` (отдельные TMP). Ключа нет → запечённый текст.
+`<область>.<объект>[.<деталь>]` — snake_case, нижний регистр. Полный реестр — `Assets/Data/Localization/Keys.md`: группы `note.*`, `ui.*`, `hints.*`, `journal.category.*`, `puzzle.*`, `popup.*`, `laptop.*`.
 
-Не вешать `LocalizedTMP` на страницы записок — сломает постраничную схему.
+Правило: ключа нет в таблице → `Localization.Get` логирует warning и возвращает сам ключ (видимая заглушка вместо падения); у спрайтов fallback — исходный sprite.
 
-### 5. Титры — `CreditsEntry`
+## Добавление новой строки
 
-`LocalizedTitle` / `LocalizedText` с ключами `credits.<имя ассета>.title` / `.text`; `EndGameCreditsView` собирает текст из них.
+1. Проверь в `Keys.md`, что ключ ещё не занят.
+2. Открой `Ru.asset` (и `En.asset`) — кастомный инспектор позволяет искать по подстроке и добавлять записи без ручного YAML.
+3. Добавь запись в обе таблицы, обнови `Keys.md`, если заводишь новую группу.
 
-### 6. Категории журнала
+## Локализация записок (note.*)
 
-`JournalSystem.JournalCategory.categoryNameKey` → ключ `journal.category.<id>`; резолв в `JournalUI.ResolveCategoryName`. Сейчас `categoryNameKey` в сцене пустые — кнопки показывают русские имена.
+У каждого `DocumentData` есть поле `localizationPrefix`. Ключи страниц: `note.<prefix>.page<n>` (одна TMP на странице) или `note.<prefix>.page<n>.<i>` (несколько TMP, i — порядок `GetComponentsInChildren`). `DocumentUI` подменяет текст при открытии документа только если ключ существует в таблице — иначе показывается запечённый русский текст. Сами тексты документов в префабах не трогаем.
 
-## Как добавить новый ключ
+## Локализация спрайтов (laptop.*)
 
-1. Выбрать префикс по области (см. схему) — не смешивать области.
-2. Добавить константу в `LocalizationKeys.cs` (не инлайн-литерал).
-3. Добавить запись в `Ru.asset` и `En.asset` **в свою группу** (не в конец файла).
-4. Дописать строку в `Keys.md`.
-5. В коде — `Localization.Resolve(key, fallback)` для подсказок, `Get(key)` для обязательных текстов.
+`LaptopDocumentWindow` (`laptop.<prefix>.page<n>`) и `LaptopImageWindow` (`laptop.<fileId>`) берут спрайты из `LocalizedSpriteTable`; при отсутствии ключа показывается оригинал.
 
-Правка таблиц — через Bezi (`getAsset` + `createOrUpdateAsset` с `assetType: "LocalizedTextTable"`); прямое редактирование `.asset` текстовым инструментом запрещено настройками воркспейса.
+## Смена языка в UI
 
-## Правила проекта
+Кнопка в `SettingsPanelController` циклит enum `Language` через `LocalizationSettings.SetLanguage(...)`; компоненты перерисовываются сами. Значения, которые ставит код (лейблы громкости, `ResolutionButton`, `FrameRateButton`, язык, `WindowModeButton`), `LocalizedTMP` не получает — их обновляет сам контроллер после смены языка.
 
-- Fallback-строки в Inspector остаются русскими — это рабочий механизм, переводить их в коде не нужно.
-- Комментарии и Tooltip'ы в коде не локализуются.
-- Порядок записей в таблице на работу не влияет (поиск по ключу; при дублях берётся первая запись).
+## Статус перевода (En)
 
-## Статус и известные пробелы
+Таблица `En.asset` переведена полностью: UI-строки, подсказки, FTUE, все записки и книги. Руны — по стандартным английским трактовкам Старшего Футарка; подсказки клавиш в FTUE (`        `) и разметка `\\n`/`<b>`/`<sprite>` сохранены. Дубли ключей (`note.ftuenote1.page0.1` встречается 3 раза) обновлены синхронно; дубликаты резолвятся по первой записи (`LocalizedTextTable.TryGet`).
 
-- Текстовая локализация: UI, интерактиблы, загадки, предметы, мировые надписи, титры — **готово** (проверено свипом кириллицы по сценам/префабам/коду).
-- Категории журнала: механизм есть, `categoryNameKey` в `JournalSystem` (Game.unity, `/GameManager`) пустые — заполнить при желании перевода имён («Обучение», «Р. Морро», …).
-- Спрайты с текстом (страницы ноутбука, фото, белборды): `RuSprites` пуст, `EnSprites` отсутствует — контент для художника.
-- Имена файлов ноутбука (`LaptopFileData.fileName`) — контент ассетов, схемой `note.*` не покрываются.
-- `GameConfig.pickUpPrefix` («Взять») — мёртвое поле, нигде не используется.
+## Чеклист при добавлении нового языка
 
-## Проверка
-
-- Свип кириллицы по сценам: скрипт в шелл (`Select-String` по `m_text:.*\\u04` в `Assets/Scenes/*.unity` и префабах) — текст в YAML хранится как `\u04XX`-последовательности.
-- После правок таблиц читать значения обратно (`getAsset`), после правок кода — перекомпиляция и `readConsole`.
-- Визуальная проверка смены языка — Play Mode, переключение в настройках.
+1. Создай `Assets/Data/Localization/Resources/Localization/<Код>.asset` (`Create → Escape → Escape/Localized Text Table`), имя файла = имя enum-значения `Language`.
+2. При наличии спрайтов — аналогично `<Код>Sprites.asset`.
+3. Добавь значение в enum `Language` — именно по нему работает переключатель в настройках.
