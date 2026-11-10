@@ -1,4 +1,4 @@
-<!-- version: 3 -->
+<!-- version: 4 -->
 
 ## Обзор
 
@@ -280,10 +280,12 @@ OnSolved
 ```
 FadeIn фона (unscaled time) → по очереди: fade строки → hold → fade out
   → финальный «Спасибо за игру» → hold
-  → SaveManager.ResetActiveSlot() + DeleteSave(slot 0)
   → вернуть курсор → уничтожить все DontDestroyOnLoad-синглтоны
     (GameManager, SaveManager, AudioManager, InputManager, ResolutionManager, PopupMessageSystem —
     иначе InputManager держит отключённые action maps и меню некликабельно)
+  → yield return null (OnDestroy-флаши SaveManager успевают отработать)
+  → SaveManager.LockSaving() (запрет всех записей сейва, переживает перезапуск игры)
+  → SaveManager.StartNewGame(0) (удаляет файл и бэкапы, снимает запрет, сбрасывает слот)
   → Time.timeScale = 1 → SceneManager.LoadScene("Start")
 ```
 
