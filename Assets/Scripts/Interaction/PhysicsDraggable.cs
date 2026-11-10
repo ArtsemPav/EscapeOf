@@ -131,6 +131,7 @@ public class PhysicsDraggable : MonoBehaviour
 
     private void Awake()
     {
+        ImpactSoundLoadGate.RegisterSceneLoad();
         Body = GetComponent<Rigidbody>();
         _scrapeSource = CreateSfxSource(loop: true);
         _impactSource = CreateSfxSource(loop: false);
@@ -267,6 +268,7 @@ public class PhysicsDraggable : MonoBehaviour
 
         RecordGroundContact(collision);
 
+        if (ImpactSoundLoadGate.ShouldSuppress) return;
         if (_impactClips.Count == 0) return;
         if (Time.time - _lastImpactTime < _impactCooldown) return;
 

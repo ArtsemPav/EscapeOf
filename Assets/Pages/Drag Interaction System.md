@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Обзор
 
@@ -50,6 +50,8 @@ FPSController
 **Drag Audio** — scrape-луп во время скольжения по поверхности: `_scrapeClips` (случайный клип на сессию), `_scrapeVolume 0.7`, `_scrapeFullVolumeSpeed 3`, `_scrapeFadeSpeed 6`, `_scrapeStartSpeed 0.05` (мин. тангенциальная скорость контакта для старта). Громкость и pitch (0.85–1.15) зависят от скорости скольжения.
 
 **Impact Audio** — one-shot при столкновениях (в т.ч. при опускании): `_impactClips`, `_impactVolumeAtMin 0.15` / `_impactVolumeAtMax 1`, `_impactMaxSpeed 5`, `_impactMinSpeed 0.5`, `_impactCooldown 0.1` с, `_impactPitchVariation 0.05` (громче и ниже — для сильных ударов).
+
+**Тишина при загрузке сцены** — оба источника (`_scrapeSource`, `_impactSource`) полностью 3D (`spatialBlend = 1`, `minDistance 1` / `maxDistance 15`). В первую секунду после загрузки сцены импакт-звуки глушатся статическим гейтом `ImpactSoundLoadGate` (`Assets/Scripts/Core/ImpactSoundLoadGate.cs`): `RegisterSceneLoad()` в `Awake`, ранний выход из `OnCollisionEnter` при `ShouldSuppress`. Без гейта предметы, просевшие/передвинутые сейв-рестором при загрузке, играли бы удары, которых игрок не вызвал. `RecordGroundContact` для fall-safety вызывается **до** проверки гейта — работает с первого кадра; scrape-луп гейтом не затрагивается (включается только от скольжения). Подробнее — страница Audio System.
 
 **Fall Safety** — страховка от провала сквозь пол: `_fallReturnDepth 10` (глубже стартовой позиции на столько метров → телепорт назад), `_fallReturnLift 0.5` (подъём над последней «заземлённой» позицией). Позиция последнего контакта с полом (нормаль Y ≥ 0.6) запоминается из коллизий.
 
@@ -200,7 +202,6 @@ closedWorld ──────────────────► openWorld
 ### OnDrag — каждый кадр
 
 ```csharp
-float input = Vector2.Dot(mouseDelta, _screenOpenDir);
 if (_invertAxis) input = -input;
 float maxAmount = _isLockedDrag ? _lockedJiggleAmount : 1f;
 _openAmount = Mathf.Clamp(_openAmount + input * _computedSensitivity, 0f, maxAmount);

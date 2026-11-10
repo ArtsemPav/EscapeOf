@@ -1,4 +1,4 @@
-<!-- version: 4 -->
+<!-- version: 5 -->
 
 ## Audio System
 
@@ -131,6 +131,15 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 ### IdleMusicTrigger.cs (`Assets/Scripts/Core/IdleMusicTrigger.cs`)
 
 Анти-stuck подсказка: если игрок долго бездействует и `MusicDirector.IsDefaultTrackActive`, запрашивает idle-трек через `RequestIdleCueTrack`. Cue никогда не сохраняется как доминантный трек.
+
+### ImpactSoundLoadGate.cs (`Assets/Scripts/Core/ImpactSoundLoadGate.cs`)
+
+Статический «гейт» тишины: глушит импакт-звуки первую секунду (`SettleGraceSeconds = 1f`) после загрузки сцены. Без него предметы, заспавненные чуть внахлёст или на грани равновесия, при первом шаге физики играют удары, которых игрок не вызвал (включая кадр после телепорта сейв-рестором).
+
+- `RegisterSceneLoad()` — фиксирует момент загрузки (по `Time.time`); вызывается из `Awake` подписчиков, каждая загрузка сцены перерегистрируется.
+- `ShouldSuppress` — `true`, пока идёт грейс-период. На scaled-времени, поэтому экран загрузки с `timeScale = 0` корректно продлевает тишину до старта геймплея.
+
+Подписчики: `ImpactSoundEmitter` и `PhysicsDraggable` — оба зовут `RegisterSceneLoad()` в `Awake` и выходят из `OnCollisionEnter` при активном гейте. В `PhysicsDraggable` проверка стоит **после** `RecordGroundContact` — fall-safety (возврат упавшего сквозь пол предмета) работает с первого кадра, глушится только звук. Скрейп-луп не глушится: он включается только от скольжения предмета, которое при загрузке не возникает.
 
 ### InventoryAudio.cs (`Assets/Scripts/Inventory/InventoryAudio.cs`)
 

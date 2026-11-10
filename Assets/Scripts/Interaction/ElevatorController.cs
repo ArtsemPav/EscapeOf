@@ -39,6 +39,9 @@ namespace Escape.Interaction
         [Tooltip("Двери кабины (elevatorDoors_wing_A / _B внутри Elevator).")]
         [SerializeField] private ElevatorDoorPair _cabinDoors;
 
+        [Tooltip("Триггер-коллайдер кабины: draggable-объекты внутри него блокируют закрытие дверей.")]
+        [SerializeField] private Collider _cabinTrigger;
+
         [Header("Floors")]
         [Tooltip("Маркеры этажей. Индекс 0 = подвал, 1 = 1-й этаж, 2 = 2-й этаж. " +
                  "Кабина принимает Y-координату маркера.")]
@@ -199,6 +202,7 @@ namespace Escape.Interaction
         {
             SaveManager.Instance?.Register(this);
 
+            if (_cabinTrigger == null) _cabinTrigger = GetComponent<Collider>();
             CacheDoorStarts();
             CreateAmbientSource();
         }
@@ -297,8 +301,7 @@ namespace Escape.Interaction
             if (_playerFPSController != null)
                 _playerFPSController.SetElevatorMode(true);
 
-            // 1. Wait while there are draggable objects inside — doors cannot close.
-            //    Bounded: if something is stuck inside for too long, proceed anyway.
+            // 1. Wait while a draggable object is inside the cabin — doors cannot close.
             const float dragWaitTimeout = 10f;
             float dragWaited = 0f;
             while (HasDraggablesInside() && dragWaited < dragWaitTimeout)
@@ -307,11 +310,14 @@ namespace Escape.Interaction
                 yield return null;
             }
 
-            if (_draggablesInside.Count > 0)
+            if (HasDraggablesInside())
             {
-                Debug.LogWarning($"[Elevator] Proceeding with {_draggablesInside.Count} draggable(s) " +
-                                 "still inside after timeout — clearing the set so the ride can start.");
-                _draggablesInside.Clear();
+                // Request cancelled: something is still inside the cabin.
+                Debug.Log("[Elevator] Ride cancelled — a draggable object is still inside the cabin.");
+                if (_playerFPSController != null)
+                    _playerFPSController.SetElevatorMode(false);
+                _isBusy = false;
+                yield break;
             }
 
             // 2. Close doors at current floor
@@ -558,12 +564,47 @@ namespace Escape.Interaction
             }
         }
 
-        /// <summary>True when at least one PhysicsDraggable object is inside the elevator cabin.</summary>
+        /// <summary>
+        /// True when a PhysicsDraggable object is physically inside the cabin volume.
+        /// Uses an overlap query against the cabin trigger so objects placed by level
+        /// design or a save block the doors exactly like ones carried in by the player.
+        /// </summary>
         private bool HasDraggablesInside()
         {
-            _draggablesInside.RemoveWhere(d => d == null);
-            return _draggablesInside.Count > 0;
+            if (_cabinTrigger == null) return false;
+
+            Vector3 center, halfExtents;
+            Quaternion orientation;
+
+            if (_cabinTrigger is BoxCollider box)
+            {
+                // Exact oriented box, correct even when the shaft is rotated around Y.
+                center = box.transform.TransformPoint(box.center);
+                halfExtents = Vector3.Scale(box.size, box.transform.lossyScale) * 0.5f;
+                orientation = box.transform.rotation;
+            }
+            else
+            {
+                // Fallback: world AABB of any other collider type.
+                Bounds bounds = _cabinTrigger.bounds;
+                center = bounds.center;
+                halfExtents = bounds.extents;
+                orientation = _cabinTrigger.transform.rotation;
+            }
+
+            int count = Physics.OverlapBoxNonAlloc(
+                center, halfExtents, _overlapBuffer,
+                orientation, ~0, QueryTriggerInteraction.Collide);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (_overlapBuffer[i].GetComponentInParent<PhysicsDraggable>() != null)
+                    return true;
+            }
+            return false;
         }
+
+        private readonly Collider[] _overlapBuffer = new Collider[16];
 
         /// <summary>
         /// Plays a 3D one-shot sound at the cab position with Linear rolloff.

@@ -92,11 +92,11 @@ namespace Escape.Interaction
             }
             else
             {
-                // Рейс принят: горим, пока лифт не приедет на этаж этой кнопки
-                // и не откроет двери. Таймаут — страховка от зависшей корутины.
+                // Рейс принят: горим, пока рейс идёт и лифт не приехал на этаж этой кнопки.
+                // Если рейс отменили (IsBusy стал false без прибытия) — гаснем сразу.
                 const float maxWait = 60f;
                 float waited = 0f;
-                while (waited < maxWait &&
+                while (waited < maxWait && _controller.IsBusy &&
                        !(_controller.CurrentFloor == FloorIndex && _controller.AreDoorsOpen))
                 {
                     waited += Time.deltaTime;

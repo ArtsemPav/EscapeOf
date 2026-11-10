@@ -47,6 +47,7 @@ public class ImpactSoundEmitter : MonoBehaviour
 
     private void Awake()
     {
+        ImpactSoundLoadGate.RegisterSceneLoad();
         _audioSource = gameObject.AddComponent<AudioSource>();
         _audioSource.playOnAwake = false;
         _audioSource.spatialBlend = _spatialBlend;
@@ -58,6 +59,7 @@ public class ImpactSoundEmitter : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        if (ImpactSoundLoadGate.ShouldSuppress) return;
         if (_impactClips == null || _impactClips.Length == 0) return;
         if (Time.time - _lastImpactTime < _cooldown) return;
 
