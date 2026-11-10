@@ -2587,7 +2587,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8576609578865203382, guid: 7dea6ea295ad01443b9e239cf1e7b687, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2560
+      value: 4294967295
       objectReference: {fileID: 0}
     - target: {fileID: 8797605444783588330, guid: 7dea6ea295ad01443b9e239cf1e7b687, type: 3}
       propertyPath: m_Layer
@@ -21561,14 +21561,13 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 23220892765125998, guid: f87ea19ec8f4e174eb4c5dd88e9e2ab7, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2560
+      value: 4294967295
       objectReference: {fileID: 0}
     - target: {fileID: 64677885905195896, guid: f87ea19ec8f4e174eb4c5dd88e9e2ab7, type: 3}
       propertyPath: m_Convex
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 64677885905195896, guid: f87ea19ec8f4e174eb4c5dd88e9e2ab7, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -21580,7 +21579,7 @@ PrefabInstance:
       addedObject: {fileID: 5474748851454985289}
     - targetCorrespondingSourceObject: {fileID: 1256123131733362, guid: f87ea19ec8f4e174eb4c5dd88e9e2ab7, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8718482371129869112}
+      addedObject: {fileID: 4920970815404501076}
   m_SourcePrefab: {fileID: 100100000, guid: f87ea19ec8f4e174eb4c5dd88e9e2ab7, type: 3}
 --- !u!4 &8478052141280955860 stripped
 Transform:
@@ -21653,27 +21652,20 @@ MonoBehaviour:
   _ghostMayThrow: 1
   _fallReturnDepth: 10
   _fallReturnLift: 0.5
---- !u!65 &8718482371129869112
-BoxCollider:
+--- !u!114 &4920970815404501076
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8483715643560880350}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.7578769, y: 0.9966359, z: 1.139342}
-  m_Center: {x: 0.009484499, y: 0.49893498, z: 0.010549515}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75350dc177953b444ab57e1df7587d6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodyStateSaver
+  _saveId: WheelChairBasement
+  _saveVelocities: 0
 --- !u!1001 &8592440446730994279
 PrefabInstance:
   m_ObjectHideFlags: 0

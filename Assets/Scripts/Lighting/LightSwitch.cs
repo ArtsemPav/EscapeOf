@@ -17,11 +17,14 @@ public class LightSwitch : MonoBehaviour, IInteractable
              "the zone will be ON or OFF depending on this value. Ignored when save data exists.")]
     [SerializeField] private bool _defaultSwitchState = true;
 
-    [Tooltip("Text shown when the player looks at the switch while power is on.")]
-    [SerializeField] private string _interactHint = "Выключатель";
+    [Tooltip("Text shown when the player looks at the switch while power is on and the switch is OFF.")]
+    [SerializeField] private string _turnOnHint = "Включить";
+
+    [Tooltip("Text shown when the player looks at the switch while power is on and the switch is ON.")]
+    [SerializeField] private string _turnOffHint = "Выключить";
 
     [Tooltip("Text shown when the player looks at the switch while power is off.")]
-    [SerializeField] private string _noPowerHint = "Нет питания";
+    [SerializeField] private string _noPowerHint = "Нет электричества";
 
     [Header("Visuals")]
     [Tooltip("Optional transform that rotates when the switch toggles (e.g. a lever or button).")]
@@ -61,7 +64,7 @@ public class LightSwitch : MonoBehaviour, IInteractable
             return _noPowerHint;
 
         bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? _defaultSwitchState;
-        return $"{_interactHint} [{(isOn ? "ВКЛ" : "ВЫКЛ")}]";
+        return isOn ? _turnOffHint : _turnOnHint;
     }
 
     public bool IsPickable() => false;
