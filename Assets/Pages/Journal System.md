@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 # Plan: Journal System — Доска с зажимом (редизайн)
 
@@ -87,7 +87,7 @@ public class JournalSystem : MonoBehaviour, ISaveable
 
 - `_unlocked: HashSet<DocumentData>` (+ параллельный `List<DocumentData>` для стабильного порядка сейва).
 - `AddEntry`: `null`/уже разблокирован → выход; иначе добавить в обе коллекции, `OnEntryAdded?.Invoke(data)`, `SaveManager.Instance?.Save()`.
-- `OpenJournal` / `CloseJournal` — **без изменений** из текущей реализации: `GameManager.SetPause` → `UIManager.OpenPanel`, закрытие в обратном порядке.
+- `OpenJournal` / `CloseJournal` — открытие блокируется, если `_unlockedList.Count == 0` (журнал заблокирован, пока игрок не прочитал ни одной записки) или открыт любой другой panel; закрытие в обратном порядке.
 - **SaveData (ISaveable):** без изменений — `SaveId = "journal"`, `List<string> entryIds` из `DocumentData.name`, восстановление через `Resources.FindObjectsOfTypeAll<DocumentData>()` без вызова `OnEntryAdded`/`Save`. Формат данных прежний — старые сейвы совместимы.
 - Категории НЕ сериализуются в сейв (фиксированные, задаются в инспекторе).
 
