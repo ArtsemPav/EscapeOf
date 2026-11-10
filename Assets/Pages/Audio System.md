@@ -1,4 +1,4 @@
-<!-- version: 5 -->
+<!-- version: 6 -->
 
 ## Audio System
 
@@ -33,6 +33,7 @@
 | Поле                      | Тип             | Описание                                                                      |
 | ------------------------- | --------------- | ----------------------------------------------------------------------------- |
 | `_sfxSource`              | AudioSource     | 2D-источник, через который играются все one-shot SFX (категория SFX2D)        |
+| `_uiSfxSource`            | AudioSource     | 2D-источник меню/UI-звуков (`/AudioManager/UISFX` в обеих сценах, шина SFX2D); в `Awake` получает `ignoreListenerPause = true`, поэтому клики меню слышны и в паузе |
 | `_sfxMixer`               | AudioMixer      | SFX AudioMixer с открытыми параметрами SFXVolume / MusicVolume                |
 | `_sfxVolumeParameter`     | string          | Имя параметра SFX-громкости (по умолчанию `"SFXVolume"`)                      |
 | `_musicVolumeParameter`   | string          | Имя параметра громкости музыки (по умолчанию `"MusicVolume"`)                 |
@@ -46,7 +47,8 @@
 
 Публичный API:
 
-- `PlaySFX(AudioClip clip, float volume = 1f)` — one-shot на общем 2D-источнике.
+- `PlaySFX(AudioClip clip, float volume = 1f)` — one-shot на общем 2D-источнике. Подчиняется `AudioListener.pause`: в паузе молчит, а «застрявшие» one-shot'ы выстреливают при снятии паузы — для звуков меню это дефект, поэтому они идут через `PlayUISFX`.
+- `PlayUISFX(AudioClip clip, float volume)` — one-shot на выделенном UI-источнике (`_uiSfxSource`, `ignoreListenerPause = true`): звук меню слышен и при `AudioListener.pause = true` (пауза, потеря фокуса). Используется `MenuButtonSounds` (hover/click в стартовом меню и меню паузы).
 - `PlaySFXExclusive(AudioClip clip, float volume = 1f)` — сначала останавливает все звуки на SFX-источнике (для повторяющихся звуков, которые не должны накладываться сами на себя).
 - `Play3DOneShot(AudioClip clip, Vector3 position, float volume = 1f, float minDistance = 1f, float maxDistance = 10f)` — одноразовый 3D-звук из временного источника (самоуничтожается).
 - `Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance)` — зацикленный пространственный источник, парентится к цели и регистрируется в системе фонового mute. Возвращает `AudioSource`.
@@ -65,7 +67,7 @@
 - `ResolveMixerExternal()` — доступ к микшеру для `SystemSettings`.
 - `RouteSourceToSfxGroup(AudioSource source)` — публичная обёртка маршрутизации для источников компонентов (например drag/scrape-лупы); маршрутизирует по `spatialBlend` в категорию SFX2D/SFX3D.
 
-В `Awake`: сбрасывает статическое состояние tracking'а (`BackgroundTracking.ResetForNewSession`), сбрасывает `AudioListener.pause = false` (наследуемый от перехода сцены, где умирающий геймплейный мир молчит под экраном загрузки) и применяет сохранённые громкости; общий 2D-источник направляется в категорию SFX2D (если он ещё не на ней). Подписывается на `SceneManager.sceneLoaded` и после каждой загрузки сцены направляет все «осиротевшие» AudioSource (без mixer group) в их категорию (SFX2D/SFX3D по `spatialBlend`).
+В `Awake`: сбрасывает статическое состояние tracking'а (`BackgroundTracking.ResetForNewSession`), сбрасывает `AudioListener.pause = false` (наследуемый от перехода сцены, где умирающий геймплейный мир молчит под экраном загрузки) и применяет сохранённые громкости; общий 2D-источник направляется в категорию SFX2D (если он ещё не на ней); UI-источнику (`_uiSfxSource`) выставляется `ignoreListenerPause = true` и выполняется роутинг в SFX2D. Подписывается на `SceneManager.sceneLoaded` и после каждой загрузки сцены направляет все «осиротевшие» AudioSource (без mixer group) в их категорию (SFX2D/SFX3D по `spatialBlend`).
 
 ### MusicDirector.cs (`Assets/Scripts/Core/MusicDirector.cs`)
 
