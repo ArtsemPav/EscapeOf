@@ -1,4 +1,4 @@
-<!-- version: 5 -->
+<!-- version: 6 -->
 
 ## Обзор
 
@@ -199,8 +199,8 @@ Singleton, `[DefaultExecutionOrder(-50)]` — в `Awake` вызывает `Syste
 Меню паузы стилизовано под стартовое меню — те же текстовые пункты, hover-сдвиги и линии-разделители:
 
 - Пункты — `Button` с прозрачным фоном (`Image` alpha 0) и `Text (TMP)`: Arial SDF Bold, UpperCase, 26pt, characterSpacing 5. ColorTint вешается на текст (беж `#E6D9B8` → белый на hover), навигация None.
-- Порядок пунктов: Продолжить, Настройки звука, В главное меню, Выход.
-- Debug-пункты (Сохранить, Загрузить, Удалить дебаг-сейв, Сбросить прогресс) вынесены в отдельную группу `MenuRoot/DebugSection` с приглушённым заголовком `DEBUG`. Скрытием группы управляет один `DebugButtonsBlocker` на самой `DebugSection` — в не-dev сборках (`#if !UNITY_EDITOR && !DEVELOPMENT_BUILD`) группа целиком деактивируется.
+- Порядок пунктов: Продолжить, Настройки звука, В главное меню.
+- Debug-группа `MenuRoot/DebugSection` (Сохранить, Загрузить, Удалить дебаг-сейв, Сбросить прогресс, Выход) с приглушённым заголовком `DEBUG`. Скрытием группы управляет один `DebugButtonsBlocker` на самой `DebugSection` — в не-dev сборках (`#if !UNITY_EDITOR && !DEVELOPMENT_BUILD`) группа целиком деактивируется.
 - На `MenuRoot`: `VerticalLayoutGroup` (spacing 8, MiddleCenter) + `MenuHoverEffect` (slide 10) + `MenuSelectionLines` (Line_Top / Line_Bottom, цвет беж с alpha 0.5) — компоненты переиспользованы из стартового меню, работают на unscaled time, то есть анимируются при `Time.timeScale = 0`.
 - `MenuSelectionLines` выбирает первую кнопку при старте — при открытии паузы линии всегда обрамляют один из пунктов, а не весь список.
 - Фон меню паузы (`/Canvas/MainMenu/Background`) — спрайт `Assets/Sprites/loading/pause.png` (импорт: Sprite / Single).
