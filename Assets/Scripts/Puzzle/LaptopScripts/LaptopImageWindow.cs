@@ -22,12 +22,15 @@ namespace EscapeOf.Puzzle.Laptop
         {
             if (!(file is LaptopImageFile imageFile)) return;
 
-            _imageDisplay.sprite = imageFile.image;
+            // Localized image when the key exists in the current language's sprite table,
+            // the original (untranslated) sprite otherwise.
+            Sprite display = imageFile.GetLocalizedImage();
+            _imageDisplay.sprite = display;
             ResetZoom();
 
-            if (_aspectFitter != null && imageFile.image != null)
+            if (_aspectFitter != null && display != null)
             {
-                float ratio = (float)imageFile.image.texture.width / imageFile.image.texture.height;
+                float ratio = (float)display.texture.width / display.texture.height;
                 _aspectFitter.aspectRatio = ratio;
             }
         }

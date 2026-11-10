@@ -384,6 +384,7 @@ public class DocumentUI : MonoBehaviour
 
         index = Mathf.Clamp(index, 0, _pages.Count - 1);
         _currentPage = index;
+        ApplyLocalizedPageText(index);
 
         // Reset all pages: inactive, base rotation and position.
         for (int i = 0; i < _pages.Count; i++)
@@ -416,6 +417,33 @@ public class DocumentUI : MonoBehaviour
 
         UpdatePageIndicator(index, _pages.Count);
         UpdateNavButtons(index, _pages.Count);
+    }
+
+    /// <summary>
+    /// Soft localization of baked page text: when the document has a localizationPrefix and the
+    /// table contains the page key, the translated string replaces the page's baked TMP text.
+    /// Page key: 'note.<prefix>.page<n>' replaces every TMP of the page; per-TMP keys
+    /// 'note.<prefix>.page<n>.<i>' override individual TMPs. Missing keys keep the baked text —
+    /// notes stay readable until their translation is added.
+    /// </summary>
+    private void ApplyLocalizedPageText(int index)
+    {
+        if (_documentData == null || string.IsNullOrEmpty(_documentData.localizationPrefix)) return;
+
+        string prefix = $"{_documentData.localizationPrefix}.page{index}";
+        string pageKey = $"note.{prefix}";
+        TMP_Text[] texts = _pages[index].GetComponentsInChildren<TMP_Text>(true);
+
+        string pageText = Localization.Get(pageKey);
+        bool hasPageText = pageText != pageKey;
+
+        for (int i = 0; i < texts.Length; i++)
+        {
+            string itemKey = $"{pageKey}.{i}";
+            string itemText = Localization.Get(itemKey);
+            if (itemText != itemKey) texts[i].text = itemText;
+            else if (hasPageText) texts[i].text = pageText;
+        }
     }
 
     /// <summary>Updates the page indicator text ("1 / N" or empty).</summary>

@@ -324,7 +324,7 @@ public class JournalUI : MonoBehaviour
 
             int categoryIndex = i;
             var button = Instantiate(_categoryButtonPrefab, _categoryButtonsContainer);
-            button.Setup(categories[i].categoryName, () => SelectCategory(categoryIndex));
+            button.Setup(ResolveCategoryName(categories[i]), () => SelectCategory(categoryIndex));
             _categoryButtons.Add(button);
             _categoryButtonIndices.Add(categoryIndex);
         }
@@ -332,9 +332,20 @@ public class JournalUI : MonoBehaviour
         HighlightSelectedCategory();
     }
 
-    private void ClearCategoryButtons()
+    /// <summary>
+    /// Returns the localized category name when categoryNameKey is set and the key
+    /// exists in the table; the raw Inspector categoryName otherwise.
+    /// </summary>
+    private static string ResolveCategoryName(JournalSystem.JournalCategory category)
     {
-        for (int i = 0; i < _categoryButtons.Count; i++)
+        if (category == null || string.IsNullOrEmpty(category.categoryNameKey)) return category?.categoryName;
+        string key = $"journal.category.{category.categoryNameKey}";
+        string localized = Localization.Get(key);
+        return localized == key ? category.categoryName : localized;
+    }
+
+    private void ClearCategoryButtons()
+    {        for (int i = 0; i < _categoryButtons.Count; i++)
             if (_categoryButtons[i] != null)
                 Destroy(_categoryButtons[i].gameObject);
 
