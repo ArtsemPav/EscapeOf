@@ -8,5 +8,17 @@ namespace EscapeOf.Puzzle.Laptop
     {
         [Tooltip("Sprite displayed in the image viewer.")]
         public Sprite image;
+
+        [Tooltip("Префикс локализации: ключ — 'laptop.<fileId>'. Когда ключ есть в таблице спрайтов, " +
+                 "переведённая картинка заменяет оригинал. Пусто — используется fileId.")]
+        public string localizationPrefix;
+
+        /// <summary>Returns the localized sprite, or the original when missing.</summary>
+        public Sprite GetLocalizedImage()
+        {
+            string prefix = string.IsNullOrEmpty(localizationPrefix) ? fileId : localizationPrefix;
+            if (string.IsNullOrEmpty(prefix)) return image;
+            return Localization.GetSprite($"laptop.{prefix}") ?? image;
+        }
     }
 }

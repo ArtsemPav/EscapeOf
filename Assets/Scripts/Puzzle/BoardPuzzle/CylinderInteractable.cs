@@ -6,6 +6,7 @@ using UnityEngine;
 public class CylinderInteractable : MonoBehaviour, IInteractable
 {
     [Header("Interaction Settings")]
+    [Tooltip("Fallback hint when the localization key has no entry. Localized via 'ui.interact.rotate'.")]
     [SerializeField] private string _interactText = "Повернуть";
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
@@ -39,7 +40,12 @@ public class CylinderInteractable : MonoBehaviour, IInteractable
     public bool CanInteract() => _pipe != null && !_pipe.IsLocked;
 
     /// <summary>Returns the hint text shown when hovering over this cylinder in puzzle mode.</summary>
-    public string GetInteractText() => _interactText;
+    public string GetInteractText()
+    {
+        string localized = Localization.Get("ui.interact.rotate");
+        // Localization.Get returns the key itself when missing — prefer the Inspector fallback then.
+        return localized == "ui.interact.rotate" ? _interactText : localized;
+    }
 
     public bool IsPickable() => false;
 
