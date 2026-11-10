@@ -3705,13 +3705,81 @@ PrefabInstance:
     - {fileID: 7532703068495984304, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
     - {fileID: 6338434947674035539, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2961173015067514458, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8327562801418390173}
+    - targetCorrespondingSourceObject: {fileID: 3149713668669576265, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7310639311699932016}
   m_SourcePrefab: {fileID: 100100000, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
 --- !u!4 &543057339125659210 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1349016024427199805, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
   m_PrefabInstance: {fileID: 1527275701182008183}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4335218233148202285 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2961173015067514458, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
+  m_PrefabInstance: {fileID: 1527275701182008183}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8327562801418390173
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4335218233148202285}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Procedural
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
+--- !u!1 &4505850105512075070 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3149713668669576265, guid: 2e032f779d808044688bc6c5df7a6bf7, type: 3}
+  m_PrefabInstance: {fileID: 1527275701182008183}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7310639311699932016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4505850105512075070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Procedural
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
 --- !u!1001 &1641672378625660927
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7862,6 +7930,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6938291591337298025}
+    - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3349430489278295879}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8000688788056059820}
@@ -7877,6 +7948,32 @@ GameObject:
   m_PrefabInstance: {fileID: 4277746721206328659}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &6938291591337298025
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4276722505938498529}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Procedural
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
+--- !u!114 &3349430489278295879
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10113,6 +10210,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5179269107942344990}
+    - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8737106817564430996}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5803283246677752747}
@@ -10128,6 +10228,32 @@ GameObject:
   m_PrefabInstance: {fileID: 5861789673327348951}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &5179269107942344990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5862878750676574821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Procedural
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
+--- !u!114 &8737106817564430996
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

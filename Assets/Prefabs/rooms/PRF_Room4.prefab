@@ -4642,9 +4642,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2228377767014738341, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5068027972339882973}
+    - targetCorrespondingSourceObject: {fileID: 2228377767014738341, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 29309687180600649}
     - targetCorrespondingSourceObject: {fileID: 1194454072305808758, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6577711651166558943}
+    - targetCorrespondingSourceObject: {fileID: 1194454072305808758, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1058445464088854253}
   m_SourcePrefab: {fileID: 100100000, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
 --- !u!1 &61469700505381270 stripped
 GameObject:
@@ -4753,12 +4759,64 @@ MonoBehaviour:
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 4
+--- !u!114 &29309687180600649
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3632749777814227679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Room4
+  _extraLights: []
+  _flickerMode: 0
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 0
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 4
 --- !u!1 &4329466460624377356 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1194454072305808758, guid: 3c204e5438d9f1e4382b0472120f1ac7, type: 3}
   m_PrefabInstance: {fileID: 3208488629650695034}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &6577711651166558943
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4329466460624377356}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Room4
+  _extraLights: []
+  _flickerMode: 0
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 0
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 0
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 4
+--- !u!114 &1058445464088854253
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -5871,6 +5929,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 355932698222267089}
+    - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7347622381828699492}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7096267416108498699}
@@ -5920,6 +5981,32 @@ GameObject:
   m_PrefabInstance: {fileID: 3904254139441548788}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &355932698222267089
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3903162907126047558}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Room4
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
+--- !u!114 &7347622381828699492
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

@@ -3710,6 +3710,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 209972502551480425}
+    - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1804415085108198942}
   m_SourcePrefab: {fileID: 100100000, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
 --- !u!23 &2935268774437168561 stripped
 MeshRenderer:
@@ -3727,6 +3730,33 @@ GameObject:
   m_PrefabInstance: {fileID: 2947786998537209561}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &209972502551480425
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2948950828698495083}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Bathroom2ndFloor
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
+  _renderers:
+  - {fileID: 2935268774437168561}
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
+--- !u!114 &1804415085108198942
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -7935,6 +7965,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9088773678523812043, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6153017970622645131}
+    - targetCorrespondingSourceObject: {fileID: 9088773678523812043, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3527700611942281393}
   m_SourcePrefab: {fileID: 100100000, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
 --- !u!1 &1764657245986713752 stripped
 GameObject:
@@ -7942,6 +7975,22 @@ GameObject:
   m_PrefabInstance: {fileID: 7375943926413162579}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &6153017970622645131
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1764657245986713752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2466c2b16a8f2243a09e52a7e04bdbe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioSourceOcclusion
+  _occludedVolumeFactor: 0.1
+  _occludedCutoffHz: 400
+  _occlusionCheckInterval: 0.15
+  _sourceIgnoreRadius: 0.5
+--- !u!114 &3527700611942281393
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -10067,6 +10116,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5277667862297900870}
+    - targetCorrespondingSourceObject: {fileID: 1235368791355058, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1590212586626561330}
     - targetCorrespondingSourceObject: {fileID: 1965288969357466, guid: d5743fce9ffff6b448f179393bc9d6a2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8618515448055036131}
@@ -10116,6 +10168,32 @@ GameObject:
   m_PrefabInstance: {fileID: 8749262691601941000}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &5277667862297900870
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8750427556844055738}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7acba6b0183cb5479e642c847aaab13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lamp
+  _zoneId: Bathroom2ndFloor
+  _extraLights: []
+  _flickerMode: 2
+  _flickerMinMultiplier: 0.1
+  _flickerFrequency: 20
+  _occasionalMinInterval: 3
+  _occasionalMaxInterval: 12
+  _occasionalMinDuration: 0.2
+  _occasionalMaxDuration: 1.2
+  _emissionMode: 1
+  _renderers: []
+  _materialIndices: 
+  _emissionColor: {r: 1, g: 1, b: 1, a: 1}
+  _emissionIntensity: 1
+--- !u!114 &1590212586626561330
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
