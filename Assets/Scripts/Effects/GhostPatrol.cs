@@ -413,7 +413,11 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             _current = _target;
             _target = null;
             _dwellTimer = Random.Range(_dwellTimeRange.x, _dwellTimeRange.y);
-            _switchPrankTimer = 0f;
+            // First prank attempt only after a full interval, not instantly on
+            // arrival — the room stays quiet for a while before activity.
+            _switchPrankTimer = _switchPrankInterval;
+            _throwAttemptTimer = _throwAttemptInterval;
+            _doorAttemptTimer = _doorAttemptInterval;
 
             // Remember where we have just been so PickNextWaypoint skips it.
             _recentWaypoints.Insert(0, _current);
