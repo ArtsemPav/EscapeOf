@@ -14,7 +14,6 @@
 | Префикс | Ассет(ы) |
 |---|---|
 | `book_doctor_safe` | BookDoctorSafe (4 страницы) |
-| `book_morro_dairy` | Book_MorroDairy |
 | `book_scandic_alphabet` | Book_ScandicAlphabet |
 | `dairy_room1_1` … `dairy_room6_2` | DairyRoom1–6, варианты 1/2 |
 | `ftuecontrols` | FTUEControls |
@@ -60,7 +59,8 @@
 |---|---|---|
 | `ui.interact.open_door` | Открыть | DoorInteraction._openText (fallback: Inspector) |
 | `ui.interact.close_door` | Закрыть | DoorInteraction._closeText (fallback: Inspector) |
-| `ui.interact.locked` | Заперто | DrawerDrag._lockedHint (fallback: Inspector) |
+| `ui.interact.locked` | Заперто | DrawerDrag._lockedHint (fallback: Inspector), DoorInteraction._lockedHintKey (дефолт у всех дверей) |
+| `ui.interact.door_jammed` | Дверь нельзя открыть. Заело замок | DoorInteraction (Doormesh Room 7, перебитый ключ) |
 | `ui.interact.read` | Прочитать | DocumentInteraction (fallback: Inspector) |
 | `ui.interact.inspect` | Осмотреть | PuzzleInteractable, FinalDoorPuzzleController, FinalDoorSideInteractable (fallback: Inspector) |
 | `ui.interact.inspect_skull` | Осмотреть череп | ScullPuzzlePhase (fallback: Inspector) |
@@ -116,6 +116,25 @@
 | `ui.interact.enter_code` | Ввести код | CodeLock._interactText (fallback: Inspector) |
 | `ui.laptop.access_granted` / `ui.laptop.wrong_password` | Доступ разрешён / Неверный пароль | LaptopController, LaptopOS |
 
+### 4.1. Файлы ноутбука (`laptop.file.*`)
+
+Уникальный ключ на каждый файл-ассет (`LaptopFileData.fileNameKey`), показывается в заголовке окна и подписи иконки. Fallback — запечённый `fileName`. Спрайтовые ключи ноутбука — см. раздел `laptop.*` ниже.
+
+| Ключ | Значение (Ru) | Ассет |
+|---|---|---|
+| `laptop.file.protocol` | Протокол "Резонанс" | Protocol |
+| `laptop.file.resonance` | Протокол "Резонанс" | Resonans |
+| `laptop.file.med_card_1` … `med_card_7` | Мед карта П1 … П7 | MedCards/Patient1–7 |
+| `laptop.file.personal_file_1` … `personal_file_6` | Личное дело П1 … П6 | PersonalFile/PersonalFile1–6 |
+| `laptop.file.video_analysis` | Анализ реагента | Videos/Video_Analysis |
+| `laptop.file.video_clear_flask` | Очистка колбы | Videos/Video_ClearColba |
+| `laptop.file.video_clear_reagent` | Очистка реагента | Videos/Video_ClearReagent |
+| `laptop.file.video_heating` | Нагревание | Videos/Video_Heating |
+| `laptop.file.video_mixing` | Смешивание | Videos/Video_Mixing |
+| `laptop.file.picture` | Picture | Photos/ImageFdoor |
+| `laptop.file.pentagram` | Pentagram | Photos/ImagePentagram |
+| `laptop.file.new_audio` / `new_document` / `new_image` / `new_text` / `new_text_2` / `new_video` | значения равны запечённым | Tamplate/* |
+
 ### 5. Мир: надписи на стенах и предметах (`world.*`)
 
 | Ключ | Значение (Ru) | Где используется |
@@ -154,3 +173,20 @@
 |---|---|
 | `laptop.<prefix>.page<n>` | LaptopDocumentWindow (n с 0; fallback — оригинальный спрайт) |
 | `laptop.<fileId>` | LaptopImageWindow (или `laptop.<prefix>` при заданном localizationPrefix) |
+
+## Префиксы спрайтов ноутбука (EnSprites.asset)
+
+Таблица `EnSprites.asset` создана с записями-заглушками: ключ → **оригинальный русский
+спрайт**. При появлении EN-версии арта просто замени спрайт в записи — ключи и ассеты
+править не нужно. До замены английский язык показывает русские страницы (fallback).
+
+Файлы-ассеты: `PersonalFile1–6` (личные дела), `Patient1–7` (медкарты, у Patient 7
+страниц нет — записи под будущее), фото `ImageFdoor` / `ImagePentagram`.
+Префиксы заданы в `localizationPrefix` каждого ассета.
+
+| Префикс | Ключи страниц | Оригинальные спрайты |
+|---|---|---|
+| `laptoppersonalfile1` … `laptoppersonalfile6` | `laptop.laptoppersonalfileN.page0` … `.page1` (PF3 — до `.page2`) | MorroPC/Patient N/T_PersonnelFile#NP*Ru.png |
+| `laptopmedcard1` … `laptopmedcard7` | `laptop.laptopmedcardN.page0` … `.page2` (2 и 4 — до `.page3`) | Nursery/Patient N/T_MedicalCard#NP*Ru.png/jpg |
+| `laptoppicturedoor` | `laptop.laptoppicturedoor` (одиночный, LaptopImageWindow) | MorroLaptop/PaintFDoor.png |
+| `laptopfilepentagram` | `laptop.laptopfilepentagram` (одиночный, LaptopImageWindow) | MorroLaptop/PentagramPaint.png |
