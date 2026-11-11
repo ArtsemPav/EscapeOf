@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 3 -->
 
 ## Обзор
 
@@ -7,6 +7,8 @@
 1. **Физическое перетаскивание объектов** — `PhysicsDraggable` + `PhysicsGrabber` (пружинная физика, вес, drag/impact-звуки).
 2. **Скриптовый drag ящиков и дверей** — `DrawerDrag` и `DoorInteraction` (реализуют `IDraggable`), маршрутизация через `FPSController` и интерфейсы `IDraggable`/`IInteractable`.
 3. **Аниматорные двери** — `DoorAnimator` (только визуальная анимация).
+
+Начало открытия двери (`DoorInteraction`) может отслеживаться внешними системами: публичное свойство `IsFullyClosed` (опрос) и статическое событие `DoorOpened` (все двери игры). Пример: демо-режим [@ id="/Pages/Private/Chain Cut System.md" label="Chain Cut System"] — цепь рвётся, когда дверь трогают.
 
 ```
 FPSController
