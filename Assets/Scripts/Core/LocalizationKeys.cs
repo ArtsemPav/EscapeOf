@@ -126,4 +126,16 @@ public static class LocalizationKeys
     public const string JournalCategoryBuravCat = "journal.category.BuravCat";
     public const string JournalCategoryBarretCat = "journal.category.BarretCat";
     public const string JournalCategoryEilerCat = "journal.category.EilerCat";
+
+    // ── Chemical synthesis puzzle ───────────────────────────────────────────
+    public const string SynthesisCentrifugeTitle = "puzzle.synthesis.centrifuge_title";
+    public const string SynthesisCentrifugeDesc = "puzzle.synthesis.centrifuge_desc";
+    public const string SynthesisBurnerTitle = "puzzle.synthesis.burner_title";
+    public const string SynthesisBurnerDesc = "puzzle.synthesis.burner_desc";
+    public const string SynthesisMixerTitle = "puzzle.synthesis.mixer_title";
+    public const string SynthesisMixerDesc = "puzzle.synthesis.mixer_desc";
+    public const string SynthesisAnalyzerTitle = "puzzle.synthesis.analyzer_title";
+    public const string SynthesisAnalyzerDesc = "puzzle.synthesis.analyzer_desc";
+    public const string SynthesisTrashTitle = "puzzle.synthesis.trash_title";
+    public const string SynthesisTrashDesc = "puzzle.synthesis.trash_desc";
 }

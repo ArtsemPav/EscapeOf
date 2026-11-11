@@ -2,30 +2,47 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Tooltip text fields for each device in the Chemical Synthesis puzzle.
+/// Tooltip key fields for each device in the Chemical Synthesis puzzle.
 /// Declared as a serializable class so Unity draws it as a foldout in the Inspector.
-/// Populate the title/description pairs with device-specific text.
+/// Text lives in the localization tables under puzzle.synthesis.*; each field holds a
+/// localization key override — when cleared, the default key from <see cref="LocalizationKeys"/> is used.
 /// </summary>
 [Serializable]
 public class DeviceTooltipInfo
 {
     [Header("Centrifuge")]
-    [TextArea(1, 2)] public string centrifugeTitle;
-    [TextArea(2, 5)] public string centrifugeDescription;
+    [Tooltip("Localization key for the title. Empty — use the default puzzle.synthesis.centrifuge_title.")]
+    public string centrifugeTitleKey = LocalizationKeys.SynthesisCentrifugeTitle;
+    [Tooltip("Localization key for the description. Empty — use the default puzzle.synthesis.centrifuge_desc.")]
+    public string centrifugeDescriptionKey = LocalizationKeys.SynthesisCentrifugeDesc;
 
     [Header("Burner")]
-    [TextArea(1, 2)] public string burnerTitle;
-    [TextArea(2, 5)] public string burnerDescription;
+    [Tooltip("Localization key for the title. Empty — use the default puzzle.synthesis.burner_title.")]
+    public string burnerTitleKey = LocalizationKeys.SynthesisBurnerTitle;
+    [Tooltip("Localization key for the description. Empty — use the default puzzle.synthesis.burner_desc.")]
+    public string burnerDescriptionKey = LocalizationKeys.SynthesisBurnerDesc;
 
     [Header("Mixer")]
-    [TextArea(1, 2)] public string mixerTitle;
-    [TextArea(2, 5)] public string mixerDescription;
+    [Tooltip("Localization key for the title. Empty — use the default puzzle.synthesis.mixer_title.")]
+    public string mixerTitleKey = LocalizationKeys.SynthesisMixerTitle;
+    [Tooltip("Localization key for the description. Empty — use the default puzzle.synthesis.mixer_desc.")]
+    public string mixerDescriptionKey = LocalizationKeys.SynthesisMixerDesc;
 
     [Header("Analyzer")]
-    [TextArea(1, 2)] public string analyzerTitle;
-    [TextArea(2, 5)] public string analyzerDescription;
+    [Tooltip("Localization key for the title. Empty — use the default puzzle.synthesis.analyzer_title.")]
+    public string analyzerTitleKey = LocalizationKeys.SynthesisAnalyzerTitle;
+    [Tooltip("Localization key for the description. Empty — use the default puzzle.synthesis.analyzer_desc.")]
+    public string analyzerDescriptionKey = LocalizationKeys.SynthesisAnalyzerDesc;
 
     [Header("Trash")]
-    [TextArea(1, 2)] public string trashTitle;
-    [TextArea(2, 5)] public string trashDescription;
+    [Tooltip("Localization key for the title. Empty — use the default puzzle.synthesis.trash_title.")]
+    public string trashTitleKey = LocalizationKeys.SynthesisTrashTitle;
+    [Tooltip("Localization key for the description. Empty — use the default puzzle.synthesis.trash_desc.")]
+    public string trashDescriptionKey = LocalizationKeys.SynthesisTrashDesc;
+
+    /// <summary>Resolves a tooltip title: localized text of the stored key.</summary>
+    public string ResolveTitle(string titleKey) => Localization.Get(titleKey);
+
+    /// <summary>Resolves a tooltip description: localized text of the stored key.</summary>
+    public string ResolveDescription(string descriptionKey) => Localization.Get(descriptionKey);
 }

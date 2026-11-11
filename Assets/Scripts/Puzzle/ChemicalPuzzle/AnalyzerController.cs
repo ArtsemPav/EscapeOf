@@ -364,10 +364,10 @@ public class AnalyzerController : MonoBehaviour
         // Resolve identified version — reveals the real name on screen even for unknown flasks.
         ItemData identified  = Identify(_loadedFlask);
         bool   isSuccess    = identified.ItemId == _winItemId;
-        string compoundName = identified.itemName;
-        string description  = string.IsNullOrEmpty(identified.description)
+        string compoundName = identified.LocalizedName;
+        string description  = string.IsNullOrEmpty(identified.LocalizedDescription)
                               ? compoundName
-                              : identified.description;
+                              : identified.LocalizedDescription;
 
         _screen?.ShowResult(compoundName, description, isSuccess);
         PlaySFX(isSuccess ? _successClip : _failClip);

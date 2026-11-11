@@ -112,7 +112,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.8671112, y: 0.04, z: 0.69}
+  m_Size: {x: 0.8671112, y: 0.04, z: 0.88}
   m_Center: {x: 0, y: 0.99, z: -0.029664226}
 --- !u!1 &100002
 GameObject:
@@ -248,14 +248,12 @@ MonoBehaviour:
   _snapSpeed: 8
   _snapThreshold: 0.25
   _isLocked: 0
-  _lockedHint: "\u0417\u0430\u043F\u0435\u0440\u0442\u043E"
   _lockedJiggleAmount: 0.05
   _lockedSnapBackSpeed: 10
   _lockedClip: {fileID: 8300000, guid: c40f82dd819ee134c9acc7537eddb1dd, type: 3}
   _unlockClip: {fileID: 0}
   _openClip: {fileID: 8300000, guid: d036e5fdebf99c94594e146b4ffaa85c, type: 3}
   _openVolume: 0.8
-  _interactText: "\u041F\u043E\u0442\u044F\u043D\u0443\u0442\u044C"
 --- !u!65 &8805863484879740965
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -408,11 +406,8 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
-  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _showBlockedHint: 0
-  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
-    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintKey: ui.interact.door_locked
   _lockedHintCooldown: 2
   _pivot: {fileID: 400004}
   _rotationAxis: 1
@@ -430,6 +425,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
+  _motionLoopMaxDistance: 15
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:

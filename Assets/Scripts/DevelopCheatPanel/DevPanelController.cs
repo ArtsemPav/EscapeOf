@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.InputSystem;
@@ -534,6 +535,8 @@ public class DevPanelController : MonoBehaviour
 
         CreateGameButton(parent, "Activate Building Power", ActivatePower);
 
+        CreateGameButton(parent, "Show Credits", ShowCredits);
+
         CreateGameButton(parent, "Quit Game", () =>
         {
             Log("Quitting game...");
@@ -623,6 +626,48 @@ public class DevPanelController : MonoBehaviour
         object instance = instanceProp?.GetValue(null);
         lightingType.GetMethod("ActivatePower")?.Invoke(instance, null);
         Log("Building power activated.");
+    }
+
+    /// <summary>
+    /// Starts the end-game credits: hides the panel, fades to black, makes the
+    /// credits overlay opaque under it, then plays the credits. Follows the
+    /// mandatory FinalFadeAndCreditsRoutine order from Endings and Credits
+    /// Architecture so the 3D scene never shows through the credits.
+    /// </summary>
+    private void ShowCredits()
+    {
+        EndGameCreditsView creditsView = EndGameCreditsView.Instance;
+        if (creditsView == null)
+        {
+            Log("EndGameCreditsView not found in scene (expected at /Canvas/EndGameCredits).");
+            return;
+        }
+
+        if (ScreenFader.Instance == null)
+        {
+            Log("ScreenFader not found — cannot start credits safely.");
+            return;
+        }
+
+        Log("Starting credits...");
+        Close();
+
+        StartCoroutine(ShowCreditsRoutine(creditsView));
+    }
+
+    /// <summary>Runs the fade-to-black → opaque overlay → credits sequence.</summary>
+    private System.Collections.IEnumerator ShowCreditsRoutine(EndGameCreditsView creditsView)
+    {
+        // 1. ScreenFader to full black.
+        yield return ScreenFader.Instance.FadeIn();
+
+        // 2. Credits overlay opaque under the black (hidden by the fader).
+        // FadeOverlayIn returns null when the overlay is already opaque.
+        Coroutine overlayFade = creditsView.FadeOverlayIn();
+        if (overlayFade != null) yield return overlayFade;
+
+        // 3. Play the entries; the routine ends with its own FadeOut.
+        creditsView.Show();
     }
 
     // ── UI Helpers ────────────────────────────────────────────────────────
