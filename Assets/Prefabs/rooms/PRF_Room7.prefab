@@ -12506,8 +12506,6 @@ MonoBehaviour:
   _disableFlashlightInPuzzle: 0
   _flashlightSupportLights: []
   _requirePower: 0
-  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
-    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -12556,7 +12554,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0437\u0430\u043C\u043E\u043A"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 5
   _controller: {fileID: 24883247885830918}
 --- !u!114 &3111838578225301672
@@ -12578,8 +12576,6 @@ MonoBehaviour:
   _ghostMaterial: {fileID: 0}
   _ghostPrefab: {fileID: 367430760587146104, guid: fd4d54e637de07742b16d5e5e33a3b16, type: 3}
   _ghostSpawnPoint: {fileID: 4061543724982820029}
-  _dropHint: "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C
-    \u043E\u0442\u0432\u0451\u0440\u0442\u043A\u0443"
   _minigamePanel: {fileID: 0}
   _minigame: {fileID: 0}
   _repairStartClip: {fileID: 0}
@@ -13807,7 +13803,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0
@@ -15658,6 +15653,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -15734,10 +15733,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -15767,7 +15762,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 9c09c33c202e93944ab6d55a2ec1ee92, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &7632911590178497018
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15802,6 +15796,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1328205824126278479}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 390813484540622623, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -15878,10 +15876,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -15916,7 +15910,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 42705111862c09e46ba40eb76f9b3b02, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &7934513535268920723
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -17264,6 +17257,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: a72b1781b957d4d43b5ae61c5d1896b4, type: 3}
     - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      propertyPath: _lockedHintKey
+      value: ui.interact.door_jammed
+      objectReference: {fileID: 0}
+    - target: {fileID: 6114417178439168429, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       propertyPath: _lockedHintText
       value: "\u0414\u0432\u0435\u0440\u044C \u043D\u0435\u043B\u044C\u0437\u044F
         \u043E\u0442\u043A\u0440\u044B\u0442\u044C. \u0417\u0430\u0435\u043B\u043E
@@ -17289,6 +17286,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3018493325908883247, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5863283531609545208}
+    - targetCorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5012399229704025195}
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
 --- !u!4 &1851654384926135927 stripped
 Transform:
@@ -17332,6 +17332,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+--- !u!1 &8352456409362049845 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+  m_PrefabInstance: {fileID: 1851654384926526711}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5012399229704025195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8352456409362049845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.ward7
 --- !u!1001 &1992670278313325619
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17574,6 +17592,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 59e82c8f9f45bdf4d860573b54dc073b, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -17646,10 +17668,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -17684,7 +17702,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: b723d53fddcbaff4ca8fc7d17029a044, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &1631917048866065437
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -19538,14 +19555,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 4451360623482977459, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
-    - target: {fileID: 4492372440869039146, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 1801278519735074, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_Name
       value: Paper
@@ -19614,6 +19623,14 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
+    - target: {fileID: 4451360623482977459, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
+    - target: {fileID: 4492372440869039146, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 5774190469570824721, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -19648,7 +19665,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 16910a447567dac409df6260aef6a6a9, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &5269707631423863792
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -19867,6 +19883,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 107891440159468158}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: ea4e70fa0c4b27b42b840151743ba97d, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -19943,10 +19963,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19976,7 +19992,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 39caa28889115604a9b6030badbf3583, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &3698813642562857844
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -20290,7 +20305,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0
@@ -21003,6 +21017,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 390813484540622623, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -21087,10 +21105,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -21120,7 +21134,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 89f4c24673adab74e8cab93340ab11b9, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &2701319826826060223
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -21901,6 +21914,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 926574003347719036, guid: 298b234a8c4f2114d8699424dd9ee02d, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -21977,10 +21994,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -22010,7 +22023,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 517f14862905a4c47b615ca350864715, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &7652703621070914229
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -23158,8 +23170,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room7
   _defaultSwitchState: 1
-  _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 8297486141205432356}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -24925,6 +24937,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 9344d06ddd232944c84c639bd15e9f8e, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -24997,10 +25013,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -25035,7 +25047,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 035be930b883e694882d50df4b5c43f5, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &4716402683884621402
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -25852,6 +25863,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 06379e2d1273dbb4db143534ff33cb1b, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -25928,10 +25943,6 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -25961,7 +25972,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: b737ad4e17e1c8647b772ad25ab79dc1, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &1056083053061082171
 BoxCollider:
   m_ObjectHideFlags: 0

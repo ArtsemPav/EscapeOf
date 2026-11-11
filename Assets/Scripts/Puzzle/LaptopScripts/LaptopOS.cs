@@ -30,7 +30,6 @@ namespace EscapeOf.Puzzle.Laptop
         [Header("Login UI")]
         [SerializeField] private TMP_InputField     _passwordField;
         [SerializeField] private TMP_Text           _statusText;
-        [SerializeField] private string             _errorMessage = "Неверный пароль";
         [SerializeField] private Color              _errorColor   = new Color(0.9f, 0.2f, 0.2f);
         [SerializeField] private RectTransform      _shakeTarget;
         [SerializeField] private float              _shakeStrength = 10f;
@@ -280,7 +279,7 @@ namespace EscapeOf.Puzzle.Laptop
         private IEnumerator ErrorRoutine()
         {
             _isProcessing = true;
-            ShowStatus(Localization.Resolve(LocalizationKeys.LaptopWrongPassword, _errorMessage), _errorColor);
+            ShowStatus(Localization.Get(LocalizationKeys.LaptopWrongPassword), _errorColor);
 
             if (_shakeTarget != null)
                 yield return StartCoroutine(ShakeRoutine());

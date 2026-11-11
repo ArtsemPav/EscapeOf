@@ -21,7 +21,6 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
     [SerializeField] private CinemachineCamera _camera;
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText = "Осмотреть";
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -50,16 +49,13 @@ public class FinalDoorSideInteractable : MonoBehaviour, IInteractable
         _controller.EnterPuzzleMode(_camera);
     }
 
-    /// <summary>Returns the localized statue inspection hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized statue inspection hint.</summary>
     public string GetInteractText()
     {
         if (_controller != null && (_controller.IsSolved || _controller.IsPhase1Completed))
             return string.Empty;
 
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractInspect, out string localizedHint))
-            return localizedHint;
-        return _interactText;
+        return Localization.Get(LocalizationKeys.InteractInspect);
     }
 
     public bool IsPickable() => false;

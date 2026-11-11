@@ -104,7 +104,6 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
     [SerializeField, Min(0.1f)] private float _fadeDuration = 1f;
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText = "Осмотреть череп";
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
     [Header("Sounds")]
@@ -145,15 +144,12 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
             _controller?.EnterPuzzleMode(_scullCamera, this);
     }
 
-    /// <summary>Returns the localized skull inspection hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized skull inspection hint.</summary>
     public string GetInteractText()
     {
         if (_serumPoured) return string.Empty;
 
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractInspectSkull, out string localizedHint))
-            return localizedHint;
-        return _interactText;
+        return Localization.Get(LocalizationKeys.InteractInspectSkull);
     }
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => _crosshairMode;

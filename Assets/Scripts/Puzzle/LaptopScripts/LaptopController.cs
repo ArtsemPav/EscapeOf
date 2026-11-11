@@ -27,8 +27,6 @@ public class LaptopController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _statusText;
 
     [Header("Feedback")]
-    [SerializeField] private string _successMessage = "Доступ разрешён";
-    [SerializeField] private string _errorMessage   = "Неверный пароль";
     [SerializeField] private Color  _successColor   = new Color(0.2f, 0.9f, 0.3f);
     [SerializeField] private Color  _errorColor     = new Color(0.9f, 0.2f, 0.2f);
 
@@ -169,7 +167,7 @@ public class LaptopController : MonoBehaviour
     {
         _isProcessing = true;
 
-        ShowStatus(Localization.Resolve(LocalizationKeys.LaptopAccessGranted, _successMessage), _successColor);
+        ShowStatus(Localization.Get(LocalizationKeys.LaptopAccessGranted), _successColor);
 
         yield return new WaitForSecondsRealtime(1f);
 
@@ -181,7 +179,7 @@ public class LaptopController : MonoBehaviour
     {
         _isProcessing = true;
 
-        ShowStatus(Localization.Resolve(LocalizationKeys.LaptopWrongPassword, _errorMessage), _errorColor);
+        ShowStatus(Localization.Get(LocalizationKeys.LaptopWrongPassword), _errorColor);
 
         if (_shakeTarget != null)
             yield return StartCoroutine(ShakeRoutine());

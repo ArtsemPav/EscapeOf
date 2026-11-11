@@ -12,9 +12,8 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
     private static readonly int BaseMapId       = Shader.PropertyToID("_BaseMap");
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText       = "Нажать";
-    [SerializeField] private string _lockedInteractText = "Заблокировано";
-    [SerializeField] private string _noPowerText        = "Нет питания";
+    [Tooltip("Localization key for the idle hint. Override per instance for a specific label (e.g. 'Поднять картину'). Empty value uses the generic press hint.")]
+    [SerializeField] private string _interactTextKey = LocalizationKeys.InteractPress;
 
     [Header("Linked Columns")]
     [Tooltip("The primary painting column this button controls.")]
@@ -163,12 +162,14 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
     public bool   IsPickable()      => false;
     public bool   UseLMBClick       => true;
 
-    /// <summary>Returns localized hints for power/lock/motion states, or the Inspector fallbacks.</summary>
+    /// <summary>Returns localized hints for power/lock/motion states.</summary>
     public string GetInteractText()
     {
-        if (!enabled)                                        return Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
-        if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving) return Localization.Resolve(LocalizationKeys.InteractLocked, _lockedInteractText);
-        if (_isLockedByPower)                                return Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
-        return Localization.Resolve(LocalizationKeys.InteractPress, _interactText);
+        if (!enabled)                                        return Localization.Get(LocalizationKeys.InteractNoPower);
+        if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving) return Localization.Get(LocalizationKeys.InteractLocked);
+        if (_isLockedByPower)                                return Localization.Get(LocalizationKeys.InteractNoPower);
+        return Localization.Get(string.IsNullOrEmpty(_interactTextKey)
+            ? LocalizationKeys.InteractPress
+            : _interactTextKey);
     }
 }

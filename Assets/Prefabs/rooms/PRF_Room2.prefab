@@ -12539,13 +12539,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6590713483799157437}
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
 --- !u!4 &1750804884815641100 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
   m_PrefabInstance: {fileID: 1750804884815503500}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8221212025914705742 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+  m_PrefabInstance: {fileID: 1750804884815503500}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6590713483799157437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8221212025914705742}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.ward2
 --- !u!1001 &1877426659116936094
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12795,7 +12816,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 0356c626051c26147a4cfaeb83773053, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &6393739512958942223
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13186,7 +13206,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 5eb1f31a805a96a40bde136d47f14cf2, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!4 &454321074407988756 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1731294350829903233, guid: 5869edde7631c1a4ea3f99e3f605192b, type: 3}
@@ -15242,8 +15261,6 @@ MonoBehaviour:
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights: []
   _requirePower: 0
-  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
-    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls: []
@@ -15280,7 +15297,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 1
   _controller: {fileID: 5402129668441465914}
 --- !u!114 &4066731557802550606 stripped
@@ -16225,8 +16242,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room2
   _defaultSwitchState: 0
-  _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 1239373035056609580}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -18395,7 +18412,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 1
   _maxDragDistance: 0
   _holdDistance: 0
@@ -18862,7 +18878,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 6da479b98fd864c41a79705d8ab18613, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &7996839790735236985
 BoxCollider:
   m_ObjectHideFlags: 0

@@ -440,8 +440,9 @@ public class DocumentUI : MonoBehaviour
         for (int i = 0; i < texts.Length; i++)
         {
             string itemKey = $"{pageKey}.{i}";
-            string itemText = Localization.Get(itemKey);
-            if (itemText != itemKey) texts[i].text = itemText;
+            // Per-TMP keys are optional (e.g. a page-number Title keeps its baked text),
+            // so probe with TryGet — Get would log a warning for every intentionally missing key.
+            if (Localization.TryGet(itemKey, out string itemText)) texts[i].text = itemText;
             else if (hasPageText) texts[i].text = pageText;
         }
     }

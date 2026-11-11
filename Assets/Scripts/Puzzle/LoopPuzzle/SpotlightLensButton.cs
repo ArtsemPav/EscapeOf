@@ -16,8 +16,6 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private string _saveId = "lens_button_unique_id";
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText       = "Сменить линзу";
-    [SerializeField] private string _lockedInteractText = "Заблокировано";
 
     [Header("Target Spotlight")]
     [Tooltip("The spotlight (L1, L2 or L4) whose lens this button controls.")]
@@ -105,21 +103,13 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 
     public bool   IsPickable()        => false;
     public bool   UseLMBClick         => true;
-    /// <summary>Returns localized lens/blocked hints, or the Inspector fallbacks.</summary>
+    /// <summary>Returns localized lens/blocked hints.</summary>
     public string GetInteractText()
     {
         if (_isLocked)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            return Localization.TryGet(LocalizationKeys.InteractBlocked, out string localizedBlocked)
-                ? localizedBlocked
-                : _lockedInteractText;
-        }
+            return Localization.Get(LocalizationKeys.InteractBlocked);
 
-        // Keep the Inspector fallback when this localization key is missing.
-        return Localization.TryGet(LocalizationKeys.InteractLensChange, out string localized)
-            ? localized
-            : _interactText;
+        return Localization.Get(LocalizationKeys.InteractLensChange);
     }
 
     // ── Rotation ───────────────────────────────────────────────────────────────

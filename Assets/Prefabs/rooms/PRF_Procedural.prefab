@@ -3950,7 +3950,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0
@@ -5868,8 +5867,6 @@ MonoBehaviour:
   _rotationSpeed: 5
   _switchClip: {fileID: 0}
   _switchVolume: 0.8
-  _textWhenOff: "\u041F\u043E\u0442\u044F\u043D\u0443\u0442\u044C \u0440\u044B\u0447\u0430\u0433"
-  _textWhenOn: "\u0412\u0435\u0440\u043D\u0443\u0442\u044C \u0440\u044B\u0447\u0430\u0433"
   _onToggleOn:
     m_PersistentCalls:
       m_Calls:
@@ -7029,11 +7026,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8194895613470918703}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -7138,7 +7135,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 675ef1c9340ae994bbe3f0cddcb12f91, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &277495600461203853
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8167,9 +8163,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Procedural
   _defaultSwitchState: 0
-  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 1499826378016512208}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -10470,7 +10465,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0
@@ -10793,7 +10787,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4139196059246059766, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5681309236290293963}
   m_SourcePrefab: {fileID: 100100000, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
 --- !u!4 &153978123365490811 stripped
 Transform:
@@ -10816,6 +10813,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c334ec1418c483b4aa7139d87f5f23f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Escape.Core.DoorInteraction
+--- !u!1 &7895257704164274302 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4139196059246059766, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+  m_PrefabInstance: {fileID: 6116160903024889992}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5681309236290293963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7895257704164274302}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.procedural
 --- !u!1001 &6224585000864384018
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11567,7 +11582,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0

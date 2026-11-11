@@ -52,12 +52,10 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     [SerializeField] private Light[] _flashlightSupportLights;
 
     [Header("Interaction (root fallback)")]
-    [SerializeField] private string _interactText = "Осмотреть";
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
     [Tooltip("If true, shows a popup hint when entering puzzle mode.")]
     [SerializeField] private bool _useExitPopup = true;
-    [SerializeField] private string _exitPopupText = "Выход: Esc";
     [SerializeField] private PopupMessageType _exitPopupType = PopupMessageType.Warning;
 
     [Header("Events")]
@@ -349,15 +347,12 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         }
     }
 
-    /// <summary>Returns the localized root inspection hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized root inspection hint.</summary>
     public string GetInteractText()
     {
         if (_isSolved) return string.Empty;
 
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractInspect, out string localizedHint))
-            return localizedHint;
-        return _interactText;
+        return Localization.Get(LocalizationKeys.InteractInspect);
     }
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => _isSolved ? CrosshairMode.Default : _crosshairMode;
@@ -515,8 +510,8 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
 
     private void ShowEntryHint()
     {
-        if (_useExitPopup && !string.IsNullOrEmpty(_exitPopupText))
-            PopupMessageSystem.Instance?.Show(Localization.Resolve(LocalizationKeys.HintExitEsc, _exitPopupText), _exitPopupType, 3f);
+        if (_useExitPopup)
+            PopupMessageSystem.Instance?.Show(Localization.Get(LocalizationKeys.HintExitEsc), _exitPopupType, 3f);
     }
 
     // ── Lens Distortion ────────────────────────────────────────────────────────

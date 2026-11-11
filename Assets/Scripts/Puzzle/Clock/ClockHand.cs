@@ -44,10 +44,6 @@ public class ClockHand : MonoBehaviour, ISaveable
     [Tooltip("Inverts the clockwise sign for the _clockwiseOnly filter only. Enable when the rotation axis points away from the camera (e.g. Vector3.back).")]
     [SerializeField] private bool _invertClockwiseDirection = false;
 
-    [Header("UI Feedback")]
-    [SerializeField] private string _pressHintText  = "Нажать";
-    [SerializeField] private string _rotateHintText = "Вращать";
-
     [Header("Audio")]
     [SerializeField] private AudioClip _tickSound;
     [SerializeField, Range(0f, 1f)] private float _tickVolume = 0.6f;
@@ -396,15 +392,10 @@ public class ClockHand : MonoBehaviour, ISaveable
 
         bool isHolding     = _isGrabbed && mouse.leftButton.isPressed;
         CrosshairMode mode = isHolding ? CrosshairMode.Grab : CrosshairMode.Hand;
-        string hint = Localization.TryGet(LocalizationKeys.InteractRotate, out string localizedRotateHint)
-            ? localizedRotateHint
-            : _rotateHintText;
+        string hint = Localization.Get(LocalizationKeys.InteractRotate);
         if (!isHolding)
         {
-            // Keep the Inspector fallback when this localization key is missing.
-            hint = Localization.TryGet(LocalizationKeys.InteractPress, out string localizedPressHint)
-                ? localizedPressHint
-                : _pressHintText;
+            hint = Localization.Get(LocalizationKeys.InteractPress);
         }
 
         InteractionUI.Instance?.SetCrosshair(mode);

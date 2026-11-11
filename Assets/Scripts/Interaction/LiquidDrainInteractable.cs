@@ -28,9 +28,6 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("If set, the player must have this item to drain the liquid. Not consumed.")]
     [SerializeField] private ItemData _requiredItem;
 
-    [Tooltip("Hint shown when the player lacks the required item.")]
-    [SerializeField] private string _missingItemHint = "Нужен вантуз";
-
     [Header("Audio")]
     [Tooltip("Drain sound played as a one-shot 3D spatial audio. Plays to completion even after the drain animation finishes.")]
     [SerializeField] private AudioClip _drainClip;
@@ -43,9 +40,6 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
 
     [Tooltip("Maximum distance at which the drain sound is still audible.")]
     [SerializeField] private float _drainSoundMaxDistance = 10f;
-
-    [Header("Interaction")]
-    [SerializeField] private string _interactText = "Слить воду";
 
     [Header("Save")]
     [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
@@ -138,14 +132,9 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
         StartDrain();
     }
 
-    /// <summary>Returns the localized drain hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized drain hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractDrainWater, out string localizedHint))
-            return localizedHint;
-        return _interactText;
-    }
+        => Localization.Get(LocalizationKeys.InteractDrainWater);
 
     public bool IsPickable() => false;
 
@@ -165,7 +154,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
     {
         if (_isDrained) return string.Empty;
         if (_requiredItem != null && !InventorySystem.Instance.HasItem(_requiredItem))
-            return Localization.Resolve(LocalizationKeys.HintNeedPlunger, _missingItemHint);
+            return Localization.Get(LocalizationKeys.HintNeedPlunger);
         return string.Empty;
     }
 

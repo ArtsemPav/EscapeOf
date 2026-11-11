@@ -7,7 +7,8 @@ using UnityEngine;
 public class PuzzleInteractable : MonoBehaviour, IInteractable
 {
     [Header("Interaction Settings")]
-    [SerializeField] private string _interactText = "Осмотреть";
+    [Tooltip("Localization key for the inspection hint. Defaults to the generic 'Осмотреть'; override per instance for a specific label (e.g. 'Осмотреть часы').")]
+    [SerializeField] private string _interactTextKey = LocalizationKeys.InteractInspect;
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Hand;
 
     [Header("References")]
@@ -43,16 +44,15 @@ public class PuzzleInteractable : MonoBehaviour, IInteractable
         }
     }
 
-    /// <summary>Returns the localized puzzle inspection hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized puzzle inspection hint.</summary>
     public string GetInteractText()
     {
         if (_controller != null && _controller.IsSolved && !_controller.AllowEnterWhenSolved)
             return string.Empty;
 
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractInspect, out string localizedHint))
-            return localizedHint;
-        return _interactText;
+        return Localization.Get(string.IsNullOrEmpty(_interactTextKey)
+            ? LocalizationKeys.InteractInspect
+            : _interactTextKey);
     }
 
     public bool IsPickable() => false;

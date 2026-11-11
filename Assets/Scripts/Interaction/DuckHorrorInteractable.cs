@@ -61,7 +61,6 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private float _underwaterRippleInterval = 0.4f;
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText = "Нажать на уточку";
 
     [Tooltip("Water splash sound played when the duck is clicked.")]
     [SerializeField] private AudioClip _splashClip;
@@ -99,14 +98,9 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     public bool CanInteract() => !_isBusy && !_horrorTriggered;
 
     public bool IsPickable() => false;
-    /// <summary>Returns the localized duck interaction hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized duck interaction hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractPressDuck, out string localizedHint))
-            return localizedHint;
-        return _interactText;
-    }
+        => Localization.Get(LocalizationKeys.InteractPressDuck);
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
     public string GetBlockedHint() => string.Empty;
 

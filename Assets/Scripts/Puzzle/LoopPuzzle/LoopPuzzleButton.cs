@@ -13,9 +13,8 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     private static readonly int BaseMapId       = Shader.PropertyToID("_BaseMap");
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText       = "Нажать";
-    [SerializeField] private string _lockedInteractText = "Заблокировано";
-    [SerializeField] private string _noPowerText        = "Нет электричества";
+    [Tooltip("Localization key for the idle hint. Override per instance for a specific label (e.g. 'Рубильник S1'). Empty value uses the generic press hint.")]
+    [SerializeField] private string _interactTextKey = LocalizationKeys.InteractPress;
 
     [Header("Indicator")]
     [SerializeField] private Renderer _indicatorRenderer;
@@ -122,11 +121,13 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     public bool IsPickable() => false;
     public bool UseLMBClick  => true;
 
-    /// <summary>Returns localized hints for power/lock/idle states, or the Inspector fallbacks.</summary>
+    /// <summary>Returns localized hints for power/lock/idle states.</summary>
     public string GetInteractText()
     {
-        if (!enabled)       return Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
-        if (IsLocked)       return Localization.Resolve(LocalizationKeys.InteractLocked, _lockedInteractText);
-        return Localization.Resolve(LocalizationKeys.InteractPress, _interactText);
+        if (!enabled)       return Localization.Get(LocalizationKeys.InteractNoPower);
+        if (IsLocked)       return Localization.Get(LocalizationKeys.InteractLocked);
+        return Localization.Get(string.IsNullOrEmpty(_interactTextKey)
+            ? LocalizationKeys.InteractPress
+            : _interactTextKey);
     }
 }

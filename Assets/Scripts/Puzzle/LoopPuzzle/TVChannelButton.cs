@@ -7,8 +7,6 @@ using UnityEngine;
 /// </summary>
 public class TVChannelButton : MonoBehaviour, IInteractable
 {
-    [SerializeField] private string            _interactText  = "Переключить камеру";
-    [SerializeField] private string            _noPowerText   = "Нет электричества";
     [SerializeField] private PeepholeTVCamera  _controller;
 
     /// <summary>Advances to the next camera on the TV.</summary>
@@ -23,8 +21,8 @@ public class TVChannelButton : MonoBehaviour, IInteractable
     public bool   IsPickable()      => false;
     public bool   UseLMBClick       => true;
 
-    /// <summary>Returns the localized camera-switch hint, or the Inspector fallbacks.</summary>
+    /// <summary>Returns the localized camera-switch hint.</summary>
     public string GetInteractText() => enabled
-        ? Localization.Resolve(LocalizationKeys.InteractSwitchCamera, _interactText)
-        : Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
+        ? Localization.Get(LocalizationKeys.InteractSwitchCamera)
+        : Localization.Get(LocalizationKeys.InteractNoPower);
 }

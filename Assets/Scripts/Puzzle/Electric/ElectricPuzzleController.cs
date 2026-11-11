@@ -61,13 +61,6 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
     [Tooltip("GameObject to activate when the puzzle is fully solved (lever pulled).")]
     [SerializeField] private GameObject _solvedObject;
 
-    [Header("Hints")]
-    [Tooltip("Hint shown when the player pulls the lever with correct wires before the generator is running.")]
-    [SerializeField] private string _noGeneratorHint = "Сначала нужно запустить генератор.";
-
-    [Tooltip("Hint shown when the player pulls the lever with the generator running but without the fuse inserted.")]
-    [SerializeField] private string _noFuseHint = "Нужен предохранитель.";
-
     [Header("Lamp")]
     [Tooltip("Renderer on the lamp mesh (pSphere25) whose material is tinted red→green based on puzzle state.")]
     [SerializeField] private Renderer _lampRenderer;
@@ -669,9 +662,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         // Checked before the fuse requirement so the lever still reacts without power.
         if (LightingSystem.Instance != null && !LightingSystem.Instance.IsGeneratorReady)
         {
-            // Keep the Inspector fallback when this localization key is missing.
-            string noGeneratorHint = Localization.Resolve(LocalizationKeys.PuzzleGeneratorFirst, _noGeneratorHint);
-            PopupMessageSystem.Instance?.Show(noGeneratorHint, PopupMessageType.Hint);
+            PopupMessageSystem.Instance?.Show(Localization.Get(LocalizationKeys.PuzzleGeneratorFirst), PopupMessageType.Hint);
             lever.Interact();
             return true;
         }
@@ -681,7 +672,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         if (!_fuseInserted)
         {
             PopupMessageSystem.Instance?.Show(
-                Localization.Resolve(LocalizationKeys.PuzzleNoFuse, _noFuseHint),
+                Localization.Get(LocalizationKeys.PuzzleNoFuse),
                 PopupMessageType.Hint);
             lever.Interact();
             return true;

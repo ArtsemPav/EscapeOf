@@ -17,14 +17,11 @@ public class LightSwitch : MonoBehaviour, IInteractable
              "the zone will be ON or OFF depending on this value. Ignored when save data exists.")]
     [SerializeField] private bool _defaultSwitchState = true;
 
-    [Tooltip("Text shown when the player looks at the switch while power is on and the switch is OFF.")]
-    [SerializeField] private string _turnOnHint = "Включить";
+    [Tooltip("Localization key shown when the player looks at the switch while power is on and the switch is OFF.")]
+    [SerializeField] private string _turnOnHintKey = LocalizationKeys.InteractLightOn;
 
-    [Tooltip("Text shown when the player looks at the switch while power is on and the switch is ON.")]
-    [SerializeField] private string _turnOffHint = "Выключить";
-
-    [Tooltip("Text shown when the player looks at the switch while power is off.")]
-    [SerializeField] private string _noPowerHint = "Нет электричества";
+    [Tooltip("Localization key shown when the player looks at the switch while power is on and the switch is ON.")]
+    [SerializeField] private string _turnOffHintKey = LocalizationKeys.InteractLightOff;
 
     [Header("Visuals")]
     [Tooltip("Optional transform that rotates when the switch toggles (e.g. a lever or button).")]
@@ -62,26 +59,10 @@ public class LightSwitch : MonoBehaviour, IInteractable
     public string GetInteractText()
     {
         if (LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractNoPower, out string localizedNoPowerHint))
-                return localizedNoPowerHint;
-            return _noPowerHint;
-        }
+            return Localization.Get(LocalizationKeys.InteractNoPower);
 
         bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? _defaultSwitchState;
-        if (isOn)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractLightOff, out string localizedTurnOffHint))
-                return localizedTurnOffHint;
-            return _turnOffHint;
-        }
-
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractLightOn, out string localizedTurnOnHint))
-            return localizedTurnOnHint;
-        return _turnOnHint;
+        return Localization.Get(isOn ? _turnOffHintKey : _turnOnHintKey);
     }
 
     public bool IsPickable() => false;

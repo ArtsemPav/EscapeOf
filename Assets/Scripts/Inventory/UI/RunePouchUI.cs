@@ -82,18 +82,12 @@ public class RunePouchUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
         if (_allRunesCollected)
         {
-            // Keep the existing tooltip title when this optional localization key is missing.
-            title = Localization.TryGet(LocalizationKeys.TooltipRuneMaster, out string localizedMasterTitle)
-                ? localizedMasterTitle
-                : "Мастер рун";
+            title = Localization.Get(LocalizationKeys.TooltipRuneMaster);
             description = "";
         }
         else
         {
-            // Keep the existing tooltip title when this optional localization key is missing.
-            title = Localization.TryGet(LocalizationKeys.TooltipRunePouch, out string localizedPouchTitle)
-                ? localizedPouchTitle
-                : "Мешочек с рунами";
+            title = Localization.Get(LocalizationKeys.TooltipRunePouch);
             int collected = InventorySystem.Instance.CollectedRuneCount;
             int total = InventorySystem.Instance.TotalRuneCount;
             description = $"Собрано: {collected} / {total}";

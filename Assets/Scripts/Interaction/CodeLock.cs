@@ -20,13 +20,10 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private int _codeLength = 4;
     [Tooltip("Fixed code used when Randomize On Start is disabled.")]
     [SerializeField] private string _secretCode = "1234";
-    [SerializeField] private string _interactText = "Ввести код";
 
     [Header("Item Requirement (optional)")]
     [Tooltip("If set, the player must have this item to open the panel. It is consumed on unlock.")]
     [SerializeField] private ItemData _requiredItem;
-    [Tooltip("Hint shown when the player lacks the required item.")]
-    [SerializeField] private string _missingItemHint = "Нужен предмет";
 
     [Header("References")]
     [SerializeField] private CodeLockUI _lockUI;
@@ -130,14 +127,9 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
         _lockUI.Open(this);
     }
 
-    /// <summary>Returns the localized enter-code hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized enter-code hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractEnterCode, out string localizedHint))
-            return localizedHint;
-        return _interactText;
-    }
+        => Localization.Get(LocalizationKeys.InteractEnterCode);
     public bool IsPickable() => false;
     public bool UseLMBClick => true;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;
@@ -167,12 +159,7 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
     {
         if (IsUnlocked) return string.Empty;
         if (_requiredItem != null && !InventorySystem.Instance.HasItem(_requiredItem))
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            return Localization.TryGet(LocalizationKeys.InteractMissingItem, out string localizedHint)
-                ? localizedHint
-                : _missingItemHint;
-        }
+            return Localization.Get(LocalizationKeys.InteractMissingItem);
         return string.Empty;
     }
 

@@ -7,8 +7,10 @@ using UnityEngine;
 public class SimpleInteractable : MonoBehaviour, IInteractable
 {
     [Header("UI Feedback")]
-    [SerializeField] private string _idleHintText = "Взаимодействовать";
-    [SerializeField] private string _activeHintText = "Нажать";
+    [Tooltip("Localization key for the idle hint. Override per instance for a specific label (e.g. 'Свернуть').")]
+    [SerializeField] private string _idleHintKey = LocalizationKeys.InteractHorrorDefault;
+    [Tooltip("Localization key for the pressed hint. Override per instance for a specific label (e.g. 'Вращать').")]
+    [SerializeField] private string _activeHintKey = LocalizationKeys.InteractPress;
     [SerializeField] private CrosshairMode _idleCrosshair = CrosshairMode.Hand;
     [SerializeField] private CrosshairMode _activeCrosshair = CrosshairMode.Grab;
     private bool _isPickable = false;
@@ -23,14 +25,18 @@ public class SimpleInteractable : MonoBehaviour, IInteractable
         _onInteract?.Invoke();
     }
 
-    /// <summary>Returns the localized idle/active hint, or the Inspector fallbacks.</summary>
+    /// <summary>Returns the localized idle/active hint.</summary>
     public string GetInteractText()
     {
         if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.isPressed)
         {
-            return Localization.Resolve(LocalizationKeys.InteractPress, _activeHintText);
+            return Localization.Get(string.IsNullOrEmpty(_activeHintKey)
+                ? LocalizationKeys.InteractPress
+                : _activeHintKey);
         }
-        return Localization.Resolve(LocalizationKeys.InteractHorrorDefault, _idleHintText);
+        return Localization.Get(string.IsNullOrEmpty(_idleHintKey)
+            ? LocalizationKeys.InteractHorrorDefault
+            : _idleHintKey);
     }
 
     public bool IsPickable() => _isPickable;

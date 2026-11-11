@@ -843,7 +843,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EscapeOf.Puzzle.Laptop.LaptopDesktopIcon
   _icon: {fileID: 807625256430301273}
   _label: {fileID: 3915685721592628988}
-  _file: {fileID: 11400000, guid: e9d379caa23594e43a94d75a29bde576, type: 2}
+  _file: {fileID: 0}
   _windowManager: {fileID: 2602278261693105102}
   _doubleClickThreshold: 0.35
 --- !u!1 &944314875200932699
@@ -2517,7 +2517,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a7dc25fe0bdf16147838fc320563ca47, type: 2}
   - {fileID: 11400000, guid: b0d725ffb60b6a944a86da5a47a7a536, type: 2}
   - {fileID: 11400000, guid: f4e5788811b3199408255fda8681f3d0, type: 2}
-  - {fileID: 11400000, guid: e9d379caa23594e43a94d75a29bde576, type: 2}
+  - {fileID: 0}
   - {fileID: 11400000, guid: 649892242775a234b95e5494b243a8b3, type: 2}
   - {fileID: 11400000, guid: 06b44e39d6611ff43bcd7f4023b22a39, type: 2}
 --- !u!1 &4566899158983613997
@@ -5339,8 +5339,6 @@ MonoBehaviour:
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights: []
   _requirePower: 1
-  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
-    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls:
@@ -5419,7 +5417,6 @@ MonoBehaviour:
   _desktopScreen: {fileID: 2659122596367859879}
   _passwordField: {fileID: 4771172952002212058}
   _statusText: {fileID: 1182875927535904235}
-  _errorMessage: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C"
   _errorColor: {r: 1, g: 1, b: 1, a: 1}
   _shakeTarget: {fileID: 126421314623101622}
   _shakeStrength: 10
@@ -5461,7 +5458,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 5
   _controller: {fileID: 4972349722228770800}
 --- !u!1 &8518966191615556097
@@ -7561,13 +7558,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2102289940314236235}
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
 --- !u!4 &1851654384926135927 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
   m_PrefabInstance: {fileID: 1851654384926526711}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8352456409362049845 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+  m_PrefabInstance: {fileID: 1851654384926526711}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2102289940314236235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8352456409362049845}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.nurse_room
 --- !u!1001 &2008689187304072598
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9089,9 +9107,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: NurseryRoom
   _defaultSwitchState: 0
-  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 532915104105382746}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -13449,7 +13466,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 1
   _maxDragDistance: 0
   _holdDistance: 0
@@ -14411,7 +14427,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 1b746dccca5882d4491d48a5befe09c9, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &592604187999344210
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -14446,11 +14461,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3783777046583996997}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
@@ -14562,7 +14577,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 19610fbbf195765488688a1988e13bab, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &186774809779974872
 BoxCollider:
   m_ObjectHideFlags: 0

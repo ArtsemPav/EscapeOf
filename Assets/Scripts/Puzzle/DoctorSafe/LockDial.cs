@@ -526,12 +526,7 @@ public class LockDial : MonoBehaviour, ISaveable, IPuzzleDropHandler, IPuzzleDro
 
     /// <summary>Returns the hint text to display when hovering with a dragged item.</summary>
     public string GetDropHint()
-    {
-        // Keep the existing hint when this optional localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.DropOnSafe, out string localizedHint))
-            return localizedHint;
-        return "на сейф";
-    }
+        => Localization.Get(LocalizationKeys.DropOnSafe);
 
     /// <summary>Returns true when the target is compatible with the given item.</summary>
     public bool CanAccept(ItemData item)

@@ -94,8 +94,8 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private float _maxRingTime = 0f;
 
     [Header("Interaction")]
-    [Tooltip("Hint text shown when the player looks at this object while armed.")]
-    [SerializeField] private string _interactHint = "Взаимодействовать";
+    [Tooltip("Localization key for the hint text shown when the player looks at this object while armed. Override per instance for a specific label (e.g. 'Ответить').")]
+    [SerializeField] private string _interactHintKey = LocalizationKeys.InteractHorrorDefault;
 
     [Tooltip("Crosshair mode when looking at this object while armed.")]
     [SerializeField] private CrosshairMode _crosshair = CrosshairMode.Hand;
@@ -282,14 +282,11 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         _onTriggered?.Invoke();
     }
 
-    /// <summary>Returns the localized horror interaction hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized horror interaction hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractHorrorDefault, out string localizedHint))
-            return localizedHint;
-        return _interactHint;
-    }
+        => Localization.Get(string.IsNullOrEmpty(_interactHintKey)
+            ? LocalizationKeys.InteractHorrorDefault
+            : _interactHintKey);
 
     public bool IsPickable() => false;
 

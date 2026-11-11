@@ -145,7 +145,7 @@ public class CodeLockUI : MonoBehaviour
         Color success = Config?.successColor ?? new Color(0.2f, 0.9f, 0.3f);
         _displayText.color = success;
         _statusText.color = success;
-        _statusText.text = Config?.codeLockSuccessText ?? Localization.Get("ui.codelock.success");
+        _statusText.text = Localization.Get(LocalizationKeys.CodeLockSuccess);
         yield return new WaitForSecondsRealtime(1f);
         _isProcessing = false;
         Close();
@@ -158,7 +158,7 @@ public class CodeLockUI : MonoBehaviour
         Color error = Config?.errorColor ?? new Color(0.9f, 0.2f, 0.2f);
         _displayText.color = error;
         _statusText.color = error;
-        _statusText.text = Config?.codeLockWrongText ?? Localization.Get("ui.codelock.wrong");
+        _statusText.text = Localization.Get(LocalizationKeys.CodeLockWrong);
 
         yield return StartCoroutine(ShakeRoutine());
 

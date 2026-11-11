@@ -2200,8 +2200,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9158a6f4d645534599ca5c2fe7ec659, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimpleInteractable
-  _idleHintText: "\u041D\u0430\u0436\u0430\u0442\u044C"
-  _activeHintText: "\u0412\u0440\u0430\u0449\u0430\u0442\u044C"
+  _idleHintKey: ui.interact.horror_default
+  _activeHintKey: ui.interact.press
   _idleCrosshair: 1
   _activeCrosshair: 4
   _onInteract:
@@ -3129,8 +3129,6 @@ MonoBehaviour:
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights: []
   _requirePower: 1
-  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
-    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls:
@@ -3209,7 +3207,6 @@ MonoBehaviour:
   _desktopScreen: {fileID: 9175640786203280575}
   _passwordField: {fileID: 1839695996473849026}
   _statusText: {fileID: 5465995712856613363}
-  _errorMessage: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C"
   _errorColor: {r: 1, g: 1, b: 1, a: 1}
   _shakeTarget: {fileID: 6516804058817683118}
   _shakeStrength: 10
@@ -3251,7 +3248,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 5
   _controller: {fileID: 2211303691644191720}
 --- !u!1 &3460581598392192317
@@ -3368,12 +3365,8 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 0}
-  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
-  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _showBlockedHint: 0
   _lockedHintKey: ui.interact.locked
-  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
-    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
   _lockedHintCooldown: 2
   _pivot: {fileID: 4963987063489460607}
   _rotationAxis: 2
@@ -3958,8 +3951,6 @@ MonoBehaviour:
   _flashlightSupportLights:
   - {fileID: 3681657524848466332}
   _requirePower: 0
-  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
-    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls:
@@ -5671,7 +5662,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EscapeOf.Puzzle.Laptop.LaptopDesktopIcon
   _icon: {fileID: 5801823396730401857}
   _label: {fileID: 7919080961824391908}
-  _file: {fileID: 11400000, guid: e9d379caa23594e43a94d75a29bde576, type: 2}
+  _file: {fileID: 0}
   _windowManager: {fileID: 9199819455057840086}
   _doubleClickThreshold: 0.35
 --- !u!1 &6032191212744834693
@@ -7011,7 +7002,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a7dc25fe0bdf16147838fc320563ca47, type: 2}
   - {fileID: 11400000, guid: b0d725ffb60b6a944a86da5a47a7a536, type: 2}
   - {fileID: 11400000, guid: f4e5788811b3199408255fda8681f3d0, type: 2}
-  - {fileID: 11400000, guid: e9d379caa23594e43a94d75a29bde576, type: 2}
+  - {fileID: 0}
   - {fileID: 11400000, guid: 649892242775a234b95e5494b243a8b3, type: 2}
   - {fileID: 11400000, guid: 06b44e39d6611ff43bcd7f4023b22a39, type: 2}
 --- !u!1 &7438670510355072323
@@ -7479,7 +7470,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 5
   _controller: {fileID: 1678090451758940684}
 --- !u!135 &5807146081034039034
@@ -9660,8 +9651,29 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2832172277237854791, guid: 76a8bf96899e8e442acb2dd0f898dd24, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5335655492815629088}
   m_SourcePrefab: {fileID: 100100000, guid: 76a8bf96899e8e442acb2dd0f898dd24, type: 3}
+--- !u!1 &2416667609915843596 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2832172277237854791, guid: 76a8bf96899e8e442acb2dd0f898dd24, type: 3}
+  m_PrefabInstance: {fileID: 487619994310497867}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5335655492815629088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2416667609915843596}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.morro
 --- !u!4 &7766700979118370573 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7857799112941779270, guid: 76a8bf96899e8e442acb2dd0f898dd24, type: 3}
@@ -17300,9 +17312,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: MorrowOfice
   _defaultSwitchState: 0
-  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 1643694384293580804}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -19219,6 +19230,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4507990684838875519}
     m_Modifications:
+    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5774190469570824721, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
     - target: {fileID: 4492372440869039146, guid: 9ae9cd7e4ee45b942b7d34ad2be02ad5, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 33280
@@ -19303,14 +19322,6 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 0.06
       objectReference: {fileID: 0}
-    - target: {fileID: 5774190469570824721, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -19361,7 +19372,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: c7151e7d29efa484296c382edf542260, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!4 &435894064537696000 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5580759196353101037, guid: 9ae9cd7e4ee45b942b7d34ad2be02ad5, type: 3}
@@ -20400,7 +20410,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: e9f3c656ccefe644bbb4a035afc0785c, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!1001 &5926042680274330387
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -25419,13 +25428,13 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4981670201012050722}
     m_Modifications:
-    - target: {fileID: 5774190469570824721, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5774190469570824721, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
       objectReference: {fileID: 0}
     - target: {fileID: 4492372440869039146, guid: 469d705e85d2b9e4caaf059332b107e7, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -25557,7 +25566,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 548fe2cf293ac4e4cb3174b24739d2be, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!4 &4417490826816428632 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5580759196353101037, guid: 469d705e85d2b9e4caaf059332b107e7, type: 3}

@@ -54,9 +54,6 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
              "A popup hint is shown to the player instead.")]
     [SerializeField] private bool _requirePower = false;
 
-    [Tooltip("Hint message shown when the player tries to enter the puzzle without power.")]
-    [SerializeField] private string _noPowerHint = "Нужно включить свет";
-
     [Header("Events")]
     [Tooltip("Fired when the player enters puzzle mode.")]
     [SerializeField] private UnityEvent OnPuzzleModeEntered;
@@ -267,11 +264,7 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         if (_requirePower && LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
         {
-            // Keep the Inspector fallback when this localization key is missing.
-            string noPowerHint = Localization.TryGet(LocalizationKeys.InteractNeedLights, out string localizedNoPowerHint)
-                ? localizedNoPowerHint
-                : _noPowerHint;
-            PopupMessageSystem.Instance?.Show(noPowerHint, PopupMessageType.Hint, 3f);
+            PopupMessageSystem.Instance?.Show(Localization.Get(LocalizationKeys.InteractNeedLights), PopupMessageType.Hint, 3f);
             return;
         }
 

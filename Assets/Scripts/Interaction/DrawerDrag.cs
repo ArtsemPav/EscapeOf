@@ -10,7 +10,7 @@ using UnityEngine;
 ///   2. Set _openDistance to how far the drawer travels when fully open (in metres).
 ///   3. The closed position is captured automatically from localPosition at Start.
 ///   4. Optionally set _snapThreshold: above it the drawer snaps open on release, below it closes.
-///   5. Set _isLocked = true and optionally _lockedHint for locked drawers used in puzzles.
+///   5. Set _isLocked = true for locked drawers used in puzzles (locked hint comes from localization).
 ///      Call Unlock() from puzzle logic to enable dragging.
 /// </summary>
 public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
@@ -38,8 +38,6 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [Header("Lock")]
     [Tooltip("If true, the drawer is locked and cannot be dragged open until Unlock() is called.")]
     [SerializeField] private bool _isLocked = false;
-    [Tooltip("Hint shown when the player tries to drag a locked drawer.")]
-    [SerializeField] private string _lockedHint = "Заперто";
     [Tooltip("How far a locked drawer can be pulled before it stops (fraction of full open).")]
     [SerializeField] [Range(0f, 0.15f)] private float _lockedJiggleAmount = 0.05f;
     [Tooltip("Speed at which a locked drawer slides back after a jiggle attempt.")]
@@ -52,9 +50,6 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [Header("Audio")]
     [SerializeField] private AudioClip _openClip;
     [SerializeField] [Range(0f, 1f)] private float _openVolume = 0.8f;
-
-    [Header("Interaction")]
-    [SerializeField] private string _interactText = "Потянуть";
 
     private Vector3 _closedLocalPosition;
     private bool _closedPositionCaptured;
@@ -282,20 +277,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
 
     /// <summary>Returns the hint label shown when the player looks at the drawer.</summary>
     public string GetInteractText()
-    {
-        if (_isLocked)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractLocked, out string localizedLockedHint))
-                return localizedLockedHint;
-            return _lockedHint;
-        }
-
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractPull, out string localizedPullHint))
-            return localizedPullHint;
-        return _interactText;
-    }
+        => Localization.Get(_isLocked ? LocalizationKeys.InteractLocked : LocalizationKeys.InteractPull);
 
     public bool IsPickable() => false;
 
@@ -307,15 +289,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
 
     /// <summary>Returns the locked hint when the drawer is locked.</summary>
     public string GetBlockedHint()
-    {
-        if (!_isLocked)
-            return string.Empty;
-
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractLocked, out string localizedLockedHint))
-            return localizedLockedHint;
-        return _lockedHint;
-    }
+        => _isLocked ? Localization.Get(LocalizationKeys.InteractLocked) : string.Empty;
 
     // ── Public API ──────────────────────────────────────────────────────────────
 

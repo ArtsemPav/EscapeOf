@@ -38,17 +38,12 @@ namespace Escape.Core {
 
         [Header("Lock Settings")]
         [SerializeField] private ItemData _requiredKey;
-        [Header("UI Hints")]
-        [SerializeField] private string _openText = "Открыть дверь";
-        [SerializeField] private string _closeText = "Закрыть дверь";
 
         [Header("Blocked Interaction Hint")]
         [Tooltip("Показывать popup-подсказку, когда игрок пытается взаимодействовать с запертой закрытой дверью.")]
         [SerializeField] private bool _showBlockedHint = false;
-        [Tooltip("Ключ локализации подсказки при попытке открыть запертую дверь. Пустое значение — использовать запечённый текст из lockedHintText.")]
-        [SerializeField] private string _lockedHintKey = LocalizationKeys.InteractLocked;
-        [Tooltip("Текст подсказки при попытке открыть запертую дверь (fallback, если ключ локализации не найден).")]
-        [SerializeField] private string _lockedHintText = "Дверь заперта. Нужен ключ.";
+        [Tooltip("Ключ локализации подсказки при попытке открыть запертую дверь. Пустое значение — общий ключ ui.interact.door_locked.")]
+        [SerializeField] private string _lockedHintKey = LocalizationKeys.InteractDoorLocked;
         [Tooltip("Минимальная пауза между повторными подсказками (в секундах), чтобы спам кликов не заваливал экран попапами.")]
         [SerializeField] [Min(0f)] private float _lockedHintCooldown = 2f;
 
@@ -522,22 +517,9 @@ namespace Escape.Core {
             }
         }
 
-        /// <summary>Returns the localized open or close hint, or its Inspector fallback.</summary>
+        /// <summary>Returns the localized open or close hint.</summary>
         public string GetInteractText()
-        {
-            if (_isOpen)
-            {
-                // Keep the Inspector fallback when this localization key is missing.
-                if (Localization.TryGet(LocalizationKeys.InteractCloseDoor, out string localizedCloseHint))
-                    return localizedCloseHint;
-                return _closeText;
-            }
-
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractOpenDoor, out string localizedOpenHint))
-                return localizedOpenHint;
-            return _openText;
-        }
+            => Localization.Get(_isOpen ? LocalizationKeys.InteractCloseDoor : LocalizationKeys.InteractOpenDoor);
         public bool   IsPickable()        => false;
         public bool   UseLMBClick         => false;
 
@@ -554,16 +536,15 @@ namespace Escape.Core {
 
         /// <summary>Shows the locked-door hint popup if enabled, respecting the cooldown
         /// so repeated clicks do not flood the screen with popups. The hint text comes
-        /// from localization via _lockedHintKey; _lockedHintText is the Inspector fallback.</summary>
+        /// from localization via _lockedHintKey (defaults to ui.interact.door_locked).</summary>
         private void ShowLockedHint() {
             if (!_showBlockedHint) return;
             if (Time.unscaledTime - _lastLockedHintTime < _lockedHintCooldown) return;
 
             _lastLockedHintTime = Time.unscaledTime;
-            string hint = string.IsNullOrEmpty(_lockedHintKey)
-                ? _lockedHintText
-                : Localization.Resolve(_lockedHintKey, _lockedHintText);
-            PopupMessageSystem.Instance?.Show(hint);
+            PopupMessageSystem.Instance?.Show(Localization.Get(string.IsNullOrEmpty(_lockedHintKey)
+                ? LocalizationKeys.InteractDoorLocked
+                : _lockedHintKey));
         }
 
         /// <summary>Unlocks the door programmatically without opening it.</summary>

@@ -66,8 +66,9 @@ public class RigidbodyStateSaver : MonoBehaviour, ISaveable
             _rigidbody.linearVelocity = new Vector3(data.velocityX, data.velocityY, data.velocityZ);
             _rigidbody.angularVelocity = new Vector3(data.angularVelocityX, data.angularVelocityY, data.angularVelocityZ);
         }
-        else
+        else if (!_rigidbody.isKinematic)
         {
+            // Kinematic bodies ignore velocity writes (Unity 6 warns about them), so skip them.
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.angularVelocity = Vector3.zero;
         }

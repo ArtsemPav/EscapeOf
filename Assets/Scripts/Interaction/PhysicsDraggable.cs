@@ -22,9 +22,6 @@ public class PhysicsDraggable : MonoBehaviour
     private const float AudioSourceMaxDistance = 15f;
 
     [Header("Drag Behavior")]
-    [Tooltip("Hint shown in the interaction UI when the player looks at this object.")]
-    [SerializeField] private string dragHint = "Тянуть";
-
     [Tooltip("When enabled, the object cannot be tipped over while dragging. X and Z rotation axes are frozen.")]
     [SerializeField] private bool preventTipping = false;
 
@@ -79,9 +76,7 @@ public class PhysicsDraggable : MonoBehaviour
     public Rigidbody Body { get; private set; }
 
     /// <summary>UI hint text displayed while the player hovers over this object.</summary>
-    public string DragHint =>
-        // Keep the Inspector fallback when this localization key is missing.
-        Localization.TryGet(LocalizationKeys.InteractDrag, out string localizedHint) ? localizedHint : dragHint;
+    public string DragHint => Localization.Get(LocalizationKeys.InteractDrag);
 
     /// <summary>Whether rotation on X and Z axes should be frozen while dragging.</summary>
     public bool PreventTipping => preventTipping;

@@ -8,9 +8,6 @@ public class DocumentInteraction : MonoBehaviour, IInteractable
 {
     [SerializeField] private DocumentData _documentData;
 
-    [Tooltip("Текст подсказки при наведении на объект.")]
-    [SerializeField] private string _interactText = "Прочитать";
-
     /// <summary>Opens the document reading panel and registers the journal entry (first read only).</summary>
     public void Interact()
     {
@@ -20,14 +17,9 @@ public class DocumentInteraction : MonoBehaviour, IInteractable
         DocumentUI.Instance.Open(_documentData);
     }
 
-    /// <summary>Returns the localized document interaction hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized document interaction hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractRead, out string localizedHint))
-            return localizedHint;
-        return _interactText;
-    }
+        => Localization.Get(LocalizationKeys.InteractRead);
     public bool IsPickable() => false;
     public bool UseLMBClick => true;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;

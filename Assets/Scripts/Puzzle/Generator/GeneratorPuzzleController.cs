@@ -91,24 +91,10 @@ public class GeneratorPuzzleController : MonoBehaviour,
     [SerializeField] private GeneratorDropSlot[] _dropSlots;
 
     [Header("Common")]
-    [Tooltip("Слой якорей дропа для Raycast (например Interactable Layer).")]
     [SerializeField] private LayerMask _anchorLayer;
 
     [Tooltip("Материал ghost-превью предмета. Если пуст — загружается CardLamp_Ghost.mat из Resources.")]
     [SerializeField] private Material _ghostMaterial;
-
-    [Tooltip("Подсказка при наведении предмета на якорь генератора.")]
-    [SerializeField] private string _dropHint = "Установить в генератор";
-
-    [Header("Missing Item Hints")]
-    [Tooltip("Подсказка при нажатии Cylinder, если не установлен ни один предмет.")]
-    [SerializeField] private string _hintNoItems = "Установите оба предмета в генератор.";
-
-    [Tooltip("Подсказка при нажатии Cylinder, если установлен только первый предмет (Item 1).")]
-    [SerializeField] private string _hintOnlyFirstItem = "Установите второй предмет в генератор.";
-
-    [Tooltip("Подсказка при нажатии Cylinder, если установлен только второй предмет (Item 2).")]
-    [SerializeField] private string _hintOnlySecondItem = "Установите первый предмет в генератор.";
 
     // ── Slot Definition ─────────────────────────────────────────────────────────
 
@@ -588,11 +574,11 @@ public class GeneratorPuzzleController : MonoBehaviour,
         string hint = null;
 
         if (!item1Placed && !item2Placed)
-            hint = Localization.Resolve(LocalizationKeys.HintGenBoth, _hintNoItems);
+            hint = Localization.Get(LocalizationKeys.HintGenBoth);
         else if (item1Placed && !item2Placed)
-            hint = Localization.Resolve(LocalizationKeys.HintGenFirst, _hintOnlyFirstItem);
+            hint = Localization.Get(LocalizationKeys.HintGenFirst);
         else if (!item1Placed && item2Placed)
-            hint = Localization.Resolve(LocalizationKeys.HintGenSecond, _hintOnlySecondItem);
+            hint = Localization.Get(LocalizationKeys.HintGenSecond);
 
         if (!string.IsNullOrEmpty(hint))
             PopupMessageSystem.Instance?.Show(hint, PopupMessageType.Hint);
@@ -613,12 +599,7 @@ public class GeneratorPuzzleController : MonoBehaviour,
 
     /// <summary>Возвращает текст-подсказку при наведении предмета на якорь генератора.</summary>
     public string GetDropHint()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.DropInsertGenerator, out string localizedHint))
-            return localizedHint;
-        return _dropHint;
-    }
+        => Localization.Get(LocalizationKeys.DropInsertGenerator);
 
     /// <summary>True, если предмет подходит для установки и ещё не размещён.</summary>
     public bool CanAccept(ItemData item)

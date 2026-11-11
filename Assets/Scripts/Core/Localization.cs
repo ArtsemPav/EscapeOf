@@ -74,13 +74,6 @@ public static class Localization
         return key;
     }
 
-    /// <summary>
-    /// Returns the translation for the key, or the fallback when the key is missing.
-    /// Standard pattern for Inspector-field fallbacks: localized value wins, serialized text stays as backup.
-    /// </summary>
-    public static string Resolve(string key, string fallback)
-        => TryGet(key, out string value) ? value : fallback;
-
     /// <summary>Returns a formatted string (string.Format over the translated template).</summary>
     public static string GetFormat(string key, params object[] args)
         => string.Format(Get(key), args);

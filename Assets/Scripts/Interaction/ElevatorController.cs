@@ -106,8 +106,6 @@ namespace Escape.Interaction
         [SerializeField] [Min(1f)] private float _autoCloseDelay = 20f;
 
         [Header("Power")]
-        [Tooltip("Подсказка, которую показывают кнопки лифта, когда нет электричества.")]
-        [SerializeField] private string _noPowerHint = "Нет электричества";
 
         public int CurrentFloor { get; private set; }
         public bool IsMoving { get; private set; }
@@ -120,16 +118,7 @@ namespace Escape.Interaction
         public bool IsBusy => _isBusy;
 
         /// <summary>Hint text shown by elevator buttons when power is off.</summary>
-        public string NoPowerHint
-        {
-            get
-            {
-                // Keep the Inspector fallback when this localization key is missing.
-                if (Localization.TryGet(LocalizationKeys.InteractNoPower, out string localizedHint))
-                    return localizedHint;
-                return _noPowerHint;
-            }
-        }
+        public string NoPowerHint => Localization.Get(LocalizationKeys.InteractNoPower);
 
         private bool _isBusy;
         private bool _playerInside;

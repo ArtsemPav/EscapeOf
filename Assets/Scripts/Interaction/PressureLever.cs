@@ -38,8 +38,6 @@ public class PressureLever : MonoBehaviour, IInteractable
     [SerializeField] [Range(0f, 1f)] private float _switchVolume = 0.8f;
 
     [Header("Interaction")]
-    [SerializeField] private string _textWhenOff = "Включить рычаг";
-    [SerializeField] private string _textWhenOn  = "Выключить рычаг";
 
     // ── Runtime state ─────────────────────────────────────────────────────────
 
@@ -153,20 +151,9 @@ public class PressureLever : MonoBehaviour, IInteractable
 
     /// <summary>Returns hint text reflecting the current lever state.</summary>
     public string GetInteractText()
-    {
-        if (IsOn)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractLeverSwitchOff, out string localizedOffHint))
-                return localizedOffHint;
-            return _textWhenOn;
-        }
-
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractLeverSwitchOn, out string localizedOnHint))
-            return localizedOnHint;
-        return _textWhenOff;
-    }
+        => Localization.Get(IsOn
+            ? LocalizationKeys.InteractLeverSwitchOff
+            : LocalizationKeys.InteractLeverSwitchOn);
 
     public bool IsPickable() => false;
     // LMB is already bound to the Interact action in PlayerInputActions.

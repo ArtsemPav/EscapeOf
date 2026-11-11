@@ -10,9 +10,6 @@ public class MriCutsceneButton : MonoBehaviour, IInteractable
 {
     [SerializeField] private MriUvCutscene _cutscene;
 
-    [Header("UI Feedback")]
-    [SerializeField] private string _hintText = "Нажать";
-
     public bool CanInteract() => _cutscene != null && _cutscene.CanStart;
 
     public void Interact()
@@ -21,14 +18,9 @@ public class MriCutsceneButton : MonoBehaviour, IInteractable
             _cutscene.Play();
     }
 
-    /// <summary>Returns the localized press hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized press hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractPress, out string localizedHint))
-            return localizedHint;
-        return _hintText;
-    }
+        => Localization.Get(LocalizationKeys.InteractPress);
 
     public bool IsPickable() => false;
 

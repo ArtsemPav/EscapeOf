@@ -36,10 +36,6 @@ public class LeverInteraction : MonoBehaviour, IInteractable, ISaveable
     [SerializeField] private AudioClip _switchClip;
     [SerializeField, Range(0f, 1f)] private float _switchVolume = 0.8f;
 
-    [Header("Interaction")]
-    [SerializeField] private string _textWhenOff = "Потянуть рычаг";
-    [SerializeField] private string _textWhenOn  = "Вернуть рычаг";
-
     [Header("Events")]
     [Tooltip("Invoked when the lever is switched ON (from OFF to ON).")]
     [SerializeField] private UnityEvent _onToggleOn;
@@ -134,20 +130,7 @@ public class LeverInteraction : MonoBehaviour, IInteractable, ISaveable
 
     /// <summary>Returns the localized hint for the lever's current state.</summary>
     public string GetInteractText()
-    {
-        if (IsOn)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractLeverReturn, out string localizedReturnHint))
-                return localizedReturnHint;
-            return _textWhenOn;
-        }
-
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractLeverPull, out string localizedPullHint))
-            return localizedPullHint;
-        return _textWhenOff;
-    }
+        => Localization.Get(IsOn ? LocalizationKeys.InteractLeverReturn : LocalizationKeys.InteractLeverPull);
 
     public bool IsPickable()  => false;
     public bool UseLMBClick   => false;

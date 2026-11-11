@@ -549,7 +549,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a7dc25fe0bdf16147838fc320563ca47, type: 2}
   - {fileID: 11400000, guid: b0d725ffb60b6a944a86da5a47a7a536, type: 2}
   - {fileID: 11400000, guid: f4e5788811b3199408255fda8681f3d0, type: 2}
-  - {fileID: 11400000, guid: e9d379caa23594e43a94d75a29bde576, type: 2}
+  - {fileID: 0}
   - {fileID: 11400000, guid: 649892242775a234b95e5494b243a8b3, type: 2}
   - {fileID: 11400000, guid: 06b44e39d6611ff43bcd7f4023b22a39, type: 2}
 --- !u!1 &671230598245236946
@@ -2496,7 +2496,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 5
   _controller: {fileID: 9073247854457277507}
 --- !u!1 &3855468802016324109
@@ -3855,8 +3855,6 @@ MonoBehaviour:
   _disableFlashlightInPuzzle: 1
   _flashlightSupportLights: []
   _requirePower: 0
-  _noPowerHint: "\u041D\u0443\u0436\u043D\u043E \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C
-    \u0441\u0432\u0435\u0442"
   OnPuzzleModeEntered:
     m_PersistentCalls:
       m_Calls:
@@ -3935,7 +3933,6 @@ MonoBehaviour:
   _desktopScreen: {fileID: 2021248211658574612}
   _passwordField: {fileID: 8853355479712021353}
   _statusText: {fileID: 2918781159856303704}
-  _errorMessage: "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 \u043F\u0430\u0440\u043E\u043B\u044C"
   _errorColor: {r: 1, g: 1, b: 1, a: 1}
   _shakeTarget: {fileID: 4119334502932730117}
   _shakeStrength: 10
@@ -5847,7 +5844,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6748860d988d8bd44ab791cbb8aaad1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PuzzleInteractable
-  _interactText: "\u041E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C"
+  _interactTextKey: ui.interact.inspect
   _crosshairMode: 5
   _controller: {fileID: 8944889789897899813}
 --- !u!1 &7347108251264061014
@@ -9771,8 +9768,29 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4139196059246059766, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8307959988041156865}
   m_SourcePrefab: {fileID: 100100000, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+--- !u!1 &3307533780865962938 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4139196059246059766, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+  m_PrefabInstance: {fileID: 1483892722544685900}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8307959988041156865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3307533780865962938}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.laboratory
 --- !u!4 &4779486025311306687 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6252119597924741363, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
@@ -15969,7 +15987,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 7b38d81d6fa4def499509bcbb590ace1, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &2871077464187634654
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -17119,7 +17136,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4139196059246059766, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6168040979610141020}
   m_SourcePrefab: {fileID: 100100000, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
 --- !u!4 &1649260159227090390 stripped
 Transform:
@@ -17142,6 +17162,24 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8500119117522696724, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
   m_PrefabInstance: {fileID: 4620874389123015973}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8741984014567359955 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4139196059246059766, guid: 449d8c60432ea6245b0ec41de4c8370f, type: 3}
+  m_PrefabInstance: {fileID: 4620874389123015973}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6168040979610141020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8741984014567359955}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.laboratory
 --- !u!1001 &4707283238569499335
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -20286,6 +20324,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5388190922982622878, guid: c6346ad04a699a149b8121db55629e35, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8948833059129634398}
+    - targetCorrespondingSourceObject: {fileID: 5687646108500148477, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4641770322411560333}
+    - targetCorrespondingSourceObject: {fileID: 2631268979778306379, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4683134383214350256}
   m_SourcePrefab: {fileID: 100100000, guid: c6346ad04a699a149b8121db55629e35, type: 3}
 --- !u!4 &39494936868805452 stripped
 Transform:
@@ -20323,6 +20367,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoadSafeAudioTrigger
   _audioSource: {fileID: 5879811763010492260}
+--- !u!1 &2164902656665264271 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5687646108500148477, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+  m_PrefabInstance: {fileID: 5829297833749897330}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4641770322411560333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2164902656665264271}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.chem.awaiting_sample
 --- !u!114 &5652831438855357203 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 2204291294107247457, guid: c6346ad04a699a149b8121db55629e35, type: 3}
@@ -20339,6 +20401,24 @@ AudioSource:
   m_CorrespondingSourceObject: {fileID: 107130760682190614, guid: c6346ad04a699a149b8121db55629e35, type: 3}
   m_PrefabInstance: {fileID: 5829297833749897330}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8386254790080667961 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2631268979778306379, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+  m_PrefabInstance: {fileID: 5829297833749897330}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4683134383214350256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8386254790080667961}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.chem.centrifuge_ready
 --- !u!114 &8944889789897899813 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 3226673696525262679, guid: c6346ad04a699a149b8121db55629e35, type: 3}
@@ -21766,9 +21846,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Laboratory
   _defaultSwitchState: 0
-  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 8089599115739209597}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}

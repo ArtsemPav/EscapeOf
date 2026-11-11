@@ -10,9 +10,6 @@ using UnityEngine;
 public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
 {
     [Header("Interaction")]
-    [SerializeField] private string _interactTextWhenOn  = "Выключить свет";
-    [SerializeField] private string _interactTextWhenOff = "Включить свет";
-    [SerializeField] private string _lockedInteractText  = "Заблокировано";
 
     [Header("Lighting Zone")]
     [Tooltip("Must match the ZoneId on all Lamp components in the painting room, " +
@@ -53,17 +50,9 @@ public class PaintingRoomLightSwitch : MonoBehaviour, IInteractable
     public string GetInteractText()
     {
         if (_isLocked)
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            return Localization.TryGet(LocalizationKeys.InteractBlocked, out string localizedBlocked)
-                ? localizedBlocked
-                : _lockedInteractText;
-        }
+            return Localization.Get(LocalizationKeys.InteractBlocked);
 
         string key = IsLightOff ? LocalizationKeys.InteractLightSwitchOn : LocalizationKeys.InteractLightOff;
-        string fallback = IsLightOff ? _interactTextWhenOff : _interactTextWhenOn;
-
-        // Keep the Inspector fallback when this localization key is missing.
-        return Localization.TryGet(key, out string localized) ? localized : fallback;
+        return Localization.Get(key);
     }
 }

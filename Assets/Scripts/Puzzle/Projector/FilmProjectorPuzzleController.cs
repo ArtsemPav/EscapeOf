@@ -65,12 +65,6 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
     [Tooltip("Материал ghost-превью предмета. Если пуст — загружается CardLamp_Ghost.mat из Resources.")]
     [SerializeField] private Material _ghostMaterial;
 
-    [Tooltip("Подсказка при наведении предмета на якорь проектора.")]
-    [SerializeField] private string _dropHint = "Установить бабину";
-
-    [Tooltip("Подсказка при нажатии кнопки без установленной бабины.")]
-    [SerializeField] private string _hintNoItem = "Установите бабину в проектор.";
-
     [Header("Stop Button")]
     [Tooltip("Кнопка выключения проектора (Cylinder с ButtonPressAnimation).")]
     [SerializeField] private ButtonPressAnimation _stopButton;
@@ -278,7 +272,7 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
 
         if (!_isPlaced)
         {
-            PopupMessageSystem.Instance?.Show(Localization.Resolve(LocalizationKeys.HintProjector, _hintNoItem), PopupMessageType.Hint);
+            PopupMessageSystem.Instance?.Show(Localization.Get(LocalizationKeys.HintProjector), PopupMessageType.Hint);
             return;
         }
 
@@ -329,12 +323,7 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
 
     /// <summary>Текст-подсказка при наведении предмета на якорь проектора.</summary>
     public string GetDropHint()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.DropInsertReel, out string localizedHint))
-            return localizedHint;
-        return _dropHint;
-    }
+        => Localization.Get(LocalizationKeys.DropInsertReel);
 
     /// <summary>True, если бабина подходит и ещё не установлена.</summary>
     public bool CanAccept(ItemData item)

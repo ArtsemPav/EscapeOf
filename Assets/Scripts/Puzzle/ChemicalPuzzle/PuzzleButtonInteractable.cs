@@ -7,7 +7,8 @@ using UnityEngine;
 /// </summary>
 public class PuzzleButtonInteractable : MonoBehaviour, IInteractable
 {
-    [SerializeField] private string _hintText = "Нажать";
+    [Tooltip("Localization key for the button hint. Override per instance for a specific label (e.g. 'Запустить анализатор'). Empty value uses the generic press hint.")]
+    [SerializeField] private string _hintTextKey = LocalizationKeys.InteractPress;
     [SerializeField] private CrosshairMode _crosshairMode = CrosshairMode.Point;
 
     private ButtonPressAnimation _pressAnimation;
@@ -29,14 +30,11 @@ public class PuzzleButtonInteractable : MonoBehaviour, IInteractable
         _pressAnimation?.Play();
     }
 
-    /// <summary>Returns the localized press hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized press hint.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractPress, out string localizedHint))
-            return localizedHint;
-        return _hintText;
-    }
+        => Localization.Get(string.IsNullOrEmpty(_hintTextKey)
+            ? LocalizationKeys.InteractPress
+            : _hintTextKey);
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => _crosshairMode;
 }

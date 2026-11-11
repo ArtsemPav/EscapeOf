@@ -42,8 +42,6 @@ namespace Escape.Puzzle
         [SerializeField] private Material _greenMaterial;
         [SerializeField] private Material _blackMaterial;
         [SerializeField] private Material _ghostMaterial;
-        [SerializeField] private string _dropHint = "Провести картой";
-        [SerializeField] private string _noPowerHint = "Нужно включить свет";
         [SerializeField] private float _slideDuration = 1.0f;
         [SerializeField] private Vector3 _slideOffset = new Vector3(0, -0.2f, 0);
 
@@ -196,14 +194,9 @@ namespace Escape.Puzzle
 
         // ── IPuzzleDropTarget ──────────────────────────────────────────────────
 
-        /// <summary>Returns the localized card swipe hint, or the Inspector fallback.</summary>
+        /// <summary>Returns the localized card swipe hint.</summary>
         public string GetDropHint()
-        {
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.DropSwipeCard, out string localizedHint))
-                return localizedHint;
-            return _dropHint;
-        }
+            => Localization.Get(LocalizationKeys.DropSwipeCard);
 
         public bool CanAccept(ItemData item) => item == _requiredCard && (_puzzleMode != null && !_puzzleMode.IsSolved);
 
@@ -222,11 +215,7 @@ namespace Escape.Puzzle
 
                 if (!hasPower)
                 {
-                    // Keep the Inspector fallback when this localization key is missing.
-                    string noPowerHint = Localization.TryGet(LocalizationKeys.InteractNeedLights, out string localizedNoPowerHint)
-                        ? localizedNoPowerHint
-                        : _noPowerHint;
-                    PopupMessageSystem.Instance?.Show(noPowerHint, PopupMessageType.Hint, 3f);
+                    PopupMessageSystem.Instance?.Show(Localization.Get(LocalizationKeys.InteractNeedLights), PopupMessageType.Hint, 3f);
                     return false;
                 }
 

@@ -49,6 +49,28 @@ public static class LocalizationKeys
     public const string InteractBreakerInspect = "ui.interact.breaker_inspect";
     public const string InteractSwitch = "ui.interact.switch";
     public const string InteractSwitchCamera = "ui.interact.switch_camera";
+    public const string InteractDoorLocked = "ui.interact.door_locked";
+    public const string InteractInspectChinesBox = "ui.interact.inspect_chines_box";
+    public const string InteractInspectClock = "ui.interact.inspect_clock";
+    public const string InteractInspectBreaker = "ui.interact.inspect_breaker";
+    public const string InteractInspectLock = "ui.interact.inspect_lock";
+    public const string InteractInspectPanel = "ui.interact.inspect_panel";
+    public const string InteractStartAnalyzer = "ui.interact.start_analyzer";
+    public const string InteractStartCentrifuge = "ui.interact.start_centrifuge";
+    public const string InteractAnswerPhone = "ui.interact.answer_phone";
+    public const string InteractSpin = "ui.interact.spin";
+    public const string InteractFold = "ui.interact.fold";
+    public const string InteractLiftPainting = "ui.interact.lift_painting";
+    public const string ElevatorCall = "ui.interact.elevator.call";
+    public const string ElevatorFloor1 = "ui.interact.elevator.floor_1";
+    public const string ElevatorFloor2 = "ui.interact.elevator.floor_2";
+    public const string ElevatorMorgue = "ui.interact.elevator.morgue";
+    public const string BreakerS1 = "ui.interact.breaker_s1";
+    public const string BreakerS2 = "ui.interact.breaker_s2";
+    public const string BreakerS3 = "ui.interact.breaker_s3";
+    public const string BreakerS4 = "ui.interact.breaker_s4";
+    public const string BreakerS5 = "ui.interact.breaker_s5";
+    public const string BreakerMaster = "ui.interact.breaker_master";
 
     // ── UI: context hints (popups) ──────────────────────────────────────────
     public const string HintGenBoth = "ui.hint.gen_both";

@@ -12,12 +12,6 @@ public class GameConfig : ScriptableObject
     [Tooltip("Word shown before the item name when the player looks at a pickable item. Example: 'Взять Ключ'.")]
     public string pickUpPrefix = "Взять";
 
-    [Header("CodeLock Feedback")]
-    [Tooltip("Text shown on the code lock screen when the correct code is entered.")]
-    public string codeLockSuccessText = "Доступ открыт";
-    [Tooltip("Text shown on the code lock screen when the wrong code is entered.")]
-    public string codeLockWrongText = "Неверный код";
-
     [Header("UI Colors")]
     [Tooltip("Color for success messages, correct code highlight, etc.")]
     public Color successColor = new Color(0.2f, 0.9f, 0.3f);

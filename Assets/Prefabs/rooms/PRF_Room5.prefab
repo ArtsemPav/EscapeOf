@@ -3951,7 +3951,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 978644522474280237}
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
 --- !u!4 &1058655480246999940 stripped
 Transform:
@@ -3963,6 +3966,24 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3623173885355038829, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
   m_PrefabInstance: {fileID: 1058655480246862084}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &7271798887407429318 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+  m_PrefabInstance: {fileID: 1058655480246862084}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &978644522474280237
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7271798887407429318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.ward5
 --- !u!1001 &1121707199611505342
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4825,7 +4846,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 2fe2183f2fefd21479d3e1bedaa9448b, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &8013720277342336547
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5858,7 +5878,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 663b103ae5076524881b13d2e2fd0a56, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &8611285706356830088
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5994,6 +6013,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1199574573489911994}
     m_Modifications:
+    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4118868574131736382, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -6058,10 +6081,6 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
-    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -6117,7 +6136,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: db8b2910097fd2e46a2ebbf690aafbaa, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!1001 &3460301829786421667
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6302,6 +6320,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2558556392371781558}
     m_Modifications:
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
     - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
@@ -6378,10 +6400,6 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 0.06
       objectReference: {fileID: 0}
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 908391112148685839, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
     - {fileID: 5172068601950547801, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
@@ -6418,7 +6436,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
   _documentData: {fileID: 11400000, guid: 8ec12937eeed8f04aaf89bb202bbdcc6, type: 2}
-  _interactText: "\u041F\u0440\u043E\u0447\u0438\u0442\u0430\u0442\u044C"
 --- !u!65 &3192618402776838128
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8154,9 +8171,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room5
   _defaultSwitchState: 0
-  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 7988198743192262383}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -10838,7 +10854,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63751595b1adfcd4c8009efbec8d5e7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PhysicsDraggable
-  dragHint: "\u0422\u044F\u043D\u0443\u0442\u044C"
   preventTipping: 0
   _maxDragDistance: 0
   _holdDistance: 0

@@ -19,7 +19,8 @@ namespace Escape.Interaction
         [SerializeField] private ElevatorController _controller;
 
         [Header("UI Hints")]
-        [SerializeField] private string _hintText = "Нажать кнопку";
+        [Tooltip("Localization key for the button hint. Override per instance for a floor-specific label (e.g. 'Морг'). Empty value uses the generic press-button hint.")]
+        [SerializeField] private string _hintTextKey = LocalizationKeys.InteractPressButton;
 
         private bool _lastCallAccepted;
 
@@ -52,10 +53,9 @@ namespace Escape.Interaction
             if (_controller != null && !_controller.HasPower)
                 return _controller.NoPowerHint;
 
-            // Keep the Inspector fallback when this localization key is missing.
-            if (Localization.TryGet(LocalizationKeys.InteractPressButton, out string localizedHint))
-                return localizedHint;
-            return _hintText;
+            return Localization.Get(string.IsNullOrEmpty(_hintTextKey)
+                ? LocalizationKeys.InteractPressButton
+                : _hintTextKey);
         }
 
         public bool IsPickable() => false;

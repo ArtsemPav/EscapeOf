@@ -9,12 +9,6 @@ using UnityEngine;
 /// </summary>
 public class ElectricPanel : MonoBehaviour, IInteractable
 {
-    [Tooltip("Text shown when looking at the panel while power is ON.")]
-    [SerializeField] private string _hintPoweredOn = "Щиток [Питание ВКЛ]";
-
-    [Tooltip("Text shown when looking at the panel while power is OFF.")]
-    [SerializeField] private string _hintPoweredOff = "Щиток [Питание ВЫКЛ]";
-
     [Header("Visuals")]
     [Tooltip("Indicator light that glows when power is active (e.g. a small emissive mesh renderer).")]
     [SerializeField] private Renderer _powerIndicator;
@@ -28,10 +22,6 @@ public class ElectricPanel : MonoBehaviour, IInteractable
     [Header("Audio")]
     [SerializeField] private AudioClip _powerOnClip;
     [SerializeField] private AudioClip _powerOffClip;
-
-    [Header("Hints")]
-    [Tooltip("Text shown when looking at the panel before the electric puzzle has been solved.")]
-    [SerializeField] private string _hintNotActivated = "Щиток [Нет питания]";
 
     // ── IInteractable ─────────────────────────────────────────────────────────
 
@@ -62,12 +52,12 @@ public class ElectricPanel : MonoBehaviour, IInteractable
     {
         var ls = LightingSystem.Instance;
         if (ls == null || (ls.IsPowerActivated && ls.IsGeneratorReady && ls.IsPowered))
-            return Localization.Resolve(LocalizationKeys.PanelBreakerOn, _hintPoweredOn);
+            return Localization.Get(LocalizationKeys.PanelBreakerOn);
 
         if (!ls.IsPowerActivated || !ls.IsGeneratorReady)
-            return Localization.Resolve(LocalizationKeys.PanelBreakerNoPower, _hintNotActivated);
+            return Localization.Get(LocalizationKeys.PanelBreakerNoPower);
 
-        return Localization.Resolve(LocalizationKeys.PanelBreakerOff, _hintPoweredOff);
+        return Localization.Get(LocalizationKeys.PanelBreakerOff);
     }
 
     public bool IsPickable() => false;

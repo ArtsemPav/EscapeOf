@@ -1,4 +1,4 @@
-<!-- version: 3 -->
+<!-- version: 4 -->
 
 Лёгкая собственная система локализации: две строки кода на каждую локализуемую сущность вместо сторонних пакетов. Русский — язык по умолчанию; английский подключён вторым. Тексты и картинки с текстом (страницы ноутбука, фото, белборды) локализуются раздельно.
 
@@ -6,7 +6,7 @@
 
 ```
 Assets/Data/Localization
-├── Keys.md                              # реестр ключей (не плодить дубли)
+├── Keys.md                              # человеческий реестр ключей (не плодить дубли)
 └── Resources/Localization               # Assets > Create > Escape > ...
     ├── Ru.asset                         # LocalizedTextTable  — русский текст
     ├── En.asset                         # LocalizedTextTable  — английский текст
@@ -15,33 +15,37 @@ Assets/Data/Localization
 
 **Скрипты:**
 
-| Скрипт | Роль |
-|---|---|
-| `Assets/Scripts/Core/LocalizationSettings.cs` | Статика: текущий `Language` в PlayerPrefs (`Settings_Language`), событие `LanguageChanged`, дефолт `Language.Ru` |
-| `Assets/Scripts/Core/Localization.cs` | Статический фасад: `Get(key)`, `GetFormat(key, args...)`, `GetSprite(key)` |
-| `Assets/Scripts/Core/LocalizedTextTable.cs` | ScriptableObject — плоский список ключ → строка для одного языка |
-| `Assets/Scripts/Core/LocalizedSpriteTable.cs` | ScriptableObject — плоский список ключ → Sprite для одного языка |
-| `Assets/Scripts/UI/LocalizedTMP.cs` | Компонент на `TextMeshProUGUI`/`TextMeshPro`: подменяет текст по ключу, живо обновляется при смене языка |
-| `Assets/Scripts/UI/LocalizedImage.cs` | Компонент на `Image`/`RawImage`: подменяет спрайт по ключу (fallback — оригинальный спрайт) |
+| Скрипт                                              | Роль                                                                                                                         |
+| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `Assets/Scripts/Core/LocalizationSettings.cs`       | Статика: текущий `Language` в PlayerPrefs (`Settings_Language`), событие `LanguageChanged`, дефолт `Language.Ru`             |
+| `Assets/Scripts/Core/Localization.cs`               | Статический фасад: `Get(key)`, `TryGet(key, out value)`, `GetFormat(key, args...)`, `GetSprite(key)`                          |
+| `Assets/Scripts/Core/LocalizationKeys.cs`           | Константы всех ключей текста (`ui.interact.*`, `note.*`, …) — в коде не пишем ключи строками                                 |
+| `Assets/Scripts/Core/LocalizedTextTable.cs`         | ScriptableObject — плоский список ключ → строка для одного языка                                                             |
+| `Assets/Scripts/Core/LocalizedSpriteTable.cs`       | ScriptableObject — плоский список ключ → Sprite для одного языка                                                             |
+| `Assets/Scripts/UI/LocalizedTMP.cs`                 | Компонент на `TextMeshProUGUI`/`TextMeshPro`: подменяет текст по ключу, живо обновляется при смене языка                     |
+| `Assets/Scripts/UI/LocalizedImage.cs`               | Компонент на `Image`/`RawImage`: подменяет спрайт по ключу (fallback — оригинальный спрайт)                                  |
 | `Assets/Scripts/Editor/LocalizedTextTableEditor.cs` | Кастомный инспектор таблицы: поиск, добавление/удаление записей, сортировка, подсветка дублей ключей, многострочные значения |
+| `Assets/Scripts/Editor/LocalizationKeysValidator.cs`| Валидатор: `Tools → Localization → Validate Keys` проверяет, что каждая константа из `LocalizationKeys` есть в Ru и En        |
+
 
 Таблицы грузятся из Resources по имени языка: `Localization/Ru`, `Localization/RuSprites`. При смене языка фасад сбрасывает кэш и перегружает таблицы; все `LocalizedTMP`/`LocalizedImage` на сцене перерисовываются по событию `LanguageChanged`.
 
 ## Формат ключей
 
-`<область>.<объект>[.<деталь>]` — snake_case, нижний регистр. Полный реестр — `Assets/Data/Localization/Keys.md`: группы `note.*`, `ui.*`, `hints.*`, `journal.category.*`, `puzzle.*`, `popup.*`, `laptop.*`.
+`<область>.<объект>[.<деталь>]` — snake_case, нижний регистр. Полный реестр — `Assets/Data/Localization/Keys.md`: группы `note.*`, `ui.*`, `hints.*`, `journal.category.*`, `puzzle.*`, `popup.*`, `laptop.*`. В коде ключ берётся только константой из `LocalizationKeys.cs` — строковые литералы не используем.
 
-Правило: ключа нет в таблице → `Localization.Get` логирует warning и возвращает сам ключ (видимая заглушка вместо падения); у спрайтов fallback — исходный sprite.
+Правило: ключа нет в таблице → `Localization.Get` логирует warning и возвращает сам ключ (видимая заглушка вместо падения); `TryGet` молчит и возвращает false — им пользуются для **опциональных** ключей; у спрайтов fallback — исходный sprite.
 
 ## Добавление новой строки
 
-1. Проверь в `Keys.md`, что ключ ещё не занят.
+1. Проверь в `Keys.md`, что ключ ещё не занят, и заведи константу в `LocalizationKeys.cs`, если её нет.
 2. Открой `Ru.asset` (и `En.asset`) — кастомный инспектор позволяет искать по подстроке и добавлять записи без ручного YAML.
 3. Добавь запись в обе таблицы, обнови `Keys.md`, если заводишь новую группу.
+4. Прогони `Tools → Localization → Validate Keys` — он упадёт, если константа осталась без записи хоть в одной таблице.
 
 ## Локализация записок (note.*)
 
-У каждого `DocumentData` есть поле `localizationPrefix`. Ключи страниц: `note.<prefix>.page<n>` (одна TMP на странице) или `note.<prefix>.page<n>.<i>` (несколько TMP, i — порядок `GetComponentsInChildren`). `DocumentUI` подменяет текст при открытии документа только если ключ существует в таблице — иначе показывается запечённый русский текст. Сами тексты документов в префабах не трогаем.
+У каждого `DocumentData` есть поле `localizationPrefix`. Ключи страниц: `note.<prefix>.page<n>` (вся страница одной TMP) или `note.<prefix>.page<n>.<i>` (per-TMP, i — порядок `GetComponentsInChildren`, **с нуля**: `.0` — первый TMP, обычно Title с номером страницы, `.1` — Content). `DocumentUI` и `JournalUI` при открытии документа зондируют ключи через `TryGet`: ключа нет → показывается запечённый текст TMP (никаких warning'ов — per-TMP ключи опциональны по дизайну). Сами тексты документов в префабах не трогаем.
 
 ## Локализация документов ноутбука (laptop.*)
 
@@ -53,14 +57,15 @@ Assets/Data/Localization
 
 `LaptopDocumentWindow` (`laptop.<prefix>.page<n>`) и `LaptopImageWindow` (`laptop.<fileId>`) берут спрайты из `LocalizedSpriteTable`; при отсутствии ключа показывается оригинал.
 
-## Паттерн «serialized текст + ключ»
+## Паттерн «ключ в инспекторе»
 
-У текстовых полей в скриптах-интеракторах (например, `DoorInteraction._lockedHintText`) парное serialized-поле ключа локализации, по умолчанию равное общему ключу из `LocalizationKeys`:
+У интеракторов нет serialized-полей с текстом — только ключ локализации (по умолчанию — общий ключ из `LocalizationKeys`):
 
-- Поле ключа пустое → показывается запечённый Inspector-текст (локализация отключена осознанно).
-- Ключ заполнен → `Localization.Resolve(key, fallback)` возвращает строку из таблицы, при отсутствии ключа — fallback-текст.
+- `_interactTextKey` заполнен → `Localization.Get(_interactTextKey)` возвращает строку таблицы.
+- Ключ перебит в инспекторе на отдельный ключ → объект получает уникальную подсказку (пример: `DoorInteraction` двери Room 7 → `ui.interact.door_jammed` вместо дефолтного `ui.interact.door_locked`).
+- Пустая строка → код подставляет дефолтный ключ из константы (`string.IsNullOrEmpty(key) ? LocalizationKeys.InteractPress : key`).
 
-Так все объекты по умолчанию используют одну строку таблицы, а уникальный текст конкретного объекта подключается одним из двух способов: перебить ключ в инспекторе на отдельный ключ (пример: `DoorInteraction` двери Room 7 → `ui.interact.door_jammed` вместо дефолтного `ui.interact.locked`) или очистить ключ, оставив запечённый текст.
+Текст существует в одном источнике — таблицах; уникальные подписи конкретных объектов (кнопки лифта, рубильники, химические кнопки) подключаются собственными ключами `ui.interact.*`, назначенными в инспекторе префаба.
 
 ## Смена языка в UI
 
@@ -68,7 +73,7 @@ Assets/Data/Localization
 
 ## Статус перевода (En)
 
-Таблица `En.asset` переведена полностью: UI-строки, подсказки, FTUE, все записки и книги. Руны — по стандартным английским трактовкам Старшего Футарка; подсказки клавиш в FTUE (`        `) и разметка `\\n`/`<b>`/`<sprite>` сохранены. Дубли ключей (`note.ftuenote1.page0.1` встречается 3 раза) обновлены синхронно; дубликаты резолвятся по первой записи (`LocalizedTextTable.TryGet`).
+Таблица `En.asset` переведена полностью: UI-строки, подсказки, FTUE, все записки и книги; наборы ключей Ru и En идентичны (по 457 записей, сверены автоматически). Руны — по стандартным английским трактовкам Старшего Футарка; подсказки клавиш в FTUE и разметка `\n`/`<b>`/`<font>`/`<sprite>` сохранены. Дубликаты ключей резолвятся по первой записи (`LocalizedTextTable.TryGet`).
 
 ## Чеклист при добавлении нового языка
 

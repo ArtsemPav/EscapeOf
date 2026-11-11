@@ -58,7 +58,7 @@ public class MetamorfCylinderButton : MonoBehaviour, IInteractable
 
     public bool CanInteract() => !_isAnimating;
 
-    public string GetInteractText() => Localization.Get("ui.interact.rotate");
+    public string GetInteractText() => Localization.Get(LocalizationKeys.InteractRotate);
 
     public bool IsPickable() => false;
 

@@ -34,9 +34,6 @@ public class JournalUI : MonoBehaviour
     [Tooltip("Вертикальный сдвиг верхней страницы в стопке.")]
     [SerializeField] private float _pageStackOffset = 0.1f;
 
-    [Tooltip("Угол наклона перевернутой (прочитанной) страницы, градусы по Z.")]
-    [SerializeField] private float _flippedZAngle = 180f;
-
     [Tooltip("Сдвиг кадра влево: насколько стопка прижата к правой границе кадра (в ширинах листа). Больше — правее, 0.16 — край листа на границе.")]
     [SerializeField, Range(0f, 0.3f)] private float _stackRightShift = 0.16f;
 
@@ -454,8 +451,9 @@ public class JournalUI : MonoBehaviour
         for (int i = 0; i < texts.Length; i++)
         {
             string itemKey = $"{pageKey}.{i}";
-            string itemText = Localization.Get(itemKey);
-            if (itemText != itemKey) texts[i].text = itemText;
+            // Per-TMP keys are optional (e.g. a page-number Title keeps its baked text),
+            // so probe with TryGet — Get would log a warning for every intentionally missing key.
+            if (Localization.TryGet(itemKey, out string itemText)) texts[i].text = itemText;
             else if (hasPageText) texts[i].text = pageText;
         }
     }

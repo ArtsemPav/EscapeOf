@@ -615,7 +615,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &3980264261304704323
 Transform:
   m_ObjectHideFlags: 0
@@ -7398,8 +7398,29 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3623173885355038829, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2183986918910525064}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2326734252114128752}
   m_SourcePrefab: {fileID: 100100000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+--- !u!1 &3468106761292928254 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7663867640634582978, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
+  m_PrefabInstance: {fileID: 6519725423693951804}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2326734252114128752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3468106761292928254}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.plates.switchgear
 --- !u!4 &6519725423693818300 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 400000, guid: 27e6949f6248bbe4aa353a53f0863fbd, type: 3}
@@ -7646,11 +7667,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.w
-      value: -0.16720058
+      value: -0.16720062
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.037816297
+      value: 0.03781631
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.y
@@ -7658,7 +7679,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0.2622265
+      value: -0.26222652
       objectReference: {fileID: 0}
     - target: {fileID: 1252246966265298594, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -7879,6 +7900,10 @@ PrefabInstance:
     - target: {fileID: 3719414771469201966, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: Lens.FieldOfView
       value: 41
+      objectReference: {fileID: 0}
+    - target: {fileID: 3719414771469201966, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
+      propertyPath: Priority.Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3781018861747702647, guid: 1430d1fb2e06f8742842a509292dcd16, type: 3}
       propertyPath: m_Layer
@@ -9853,9 +9878,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Electric
   _defaultSwitchState: 1
-  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 4948779886118386833}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}

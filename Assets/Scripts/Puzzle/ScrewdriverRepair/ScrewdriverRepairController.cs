@@ -59,10 +59,6 @@ public class ScrewdriverRepairController : MonoBehaviour,
     [Tooltip("Точка спавна ghost-превью. Если пуст — используется позиция _targetCollider.")]
     [SerializeField] private Transform _ghostSpawnPoint;
 
-    [Header("Drop Hint")]
-    [Tooltip("Подсказка при наведении отвёртки на ремонтируемый объект.")]
-    [SerializeField] private string _dropHint = "Использовать отвёртку";
-
     [Header("Minigame")]
     [Tooltip("Панель UI мини-игры в Canvas сцены. Должна содержать компонент ScrewdriverMinigamePanel.")]
     [SerializeField] private GameObject _minigamePanel;
@@ -106,14 +102,9 @@ public class ScrewdriverRepairController : MonoBehaviour,
 
     // ── IPuzzleDropTarget ────────────────────────────────────────────────────────
 
-    /// <summary>Returns the localized screwdriver drop hint, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized screwdriver drop hint.</summary>
     public string GetDropHint()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.DropUseScrewdriver, out string localizedHint))
-            return localizedHint;
-        return _dropHint;
-    }
+        => Localization.Get(LocalizationKeys.DropUseScrewdriver);
 
     public bool CanAccept(ItemData item)
     {

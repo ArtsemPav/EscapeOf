@@ -29,7 +29,8 @@ public class ElectricLever : MonoBehaviour, IInteractable
     private float _pullVolume = 0.8f;
 
     [Header("Interaction")]
-    [SerializeField] private string _interactText = "Дернуть рычаг";
+    [Tooltip("Localization key for the pull hint. Keep the default; override only for a custom label.")]
+    [SerializeField] private string _interactTextKey = LocalizationKeys.InteractLeverPull;
 
     // ── Events ────────────────────────────────────────────────────────────────
 
@@ -58,14 +59,11 @@ public class ElectricLever : MonoBehaviour, IInteractable
     public void SetInteractionEnabled(bool enabled) => _interactionEnabled = enabled;
 
     public bool CanInteract()               => _interactionEnabled && !_isPulled;
-    /// <summary>Returns the localized hint for pulling the lever, or the Inspector fallback.</summary>
+    /// <summary>Returns the localized hint for pulling the lever.</summary>
     public string GetInteractText()
-    {
-        // Keep the Inspector fallback when this localization key is missing.
-        if (Localization.TryGet(LocalizationKeys.InteractLeverPull, out string localizedHint))
-            return localizedHint;
-        return _interactText;
-    }
+        => Localization.Get(string.IsNullOrEmpty(_interactTextKey)
+            ? LocalizationKeys.InteractLeverPull
+            : _interactTextKey);
     public bool IsPickable()                => false;
     public bool UseLMBClick                 => false;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
