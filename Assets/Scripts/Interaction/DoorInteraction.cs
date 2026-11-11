@@ -45,7 +45,9 @@ namespace Escape.Core {
         [Header("Blocked Interaction Hint")]
         [Tooltip("Показывать popup-подсказку, когда игрок пытается взаимодействовать с запертой закрытой дверью.")]
         [SerializeField] private bool _showBlockedHint = false;
-        [Tooltip("Текст подсказки при попытке открыть запертую дверь.")]
+        [Tooltip("Ключ локализации подсказки при попытке открыть запертую дверь. Пустое значение — использовать запечённый текст из lockedHintText.")]
+        [SerializeField] private string _lockedHintKey = LocalizationKeys.InteractLocked;
+        [Tooltip("Текст подсказки при попытке открыть запертую дверь (fallback, если ключ локализации не найден).")]
         [SerializeField] private string _lockedHintText = "Дверь заперта. Нужен ключ.";
         [Tooltip("Минимальная пауза между повторными подсказками (в секундах), чтобы спам кликов не заваливал экран попапами.")]
         [SerializeField] [Min(0f)] private float _lockedHintCooldown = 2f;
@@ -520,7 +522,22 @@ namespace Escape.Core {
             }
         }
 
-        public string GetInteractText()   => _isOpen ? _closeText : _openText;
+        /// <summary>Returns the localized open or close hint, or its Inspector fallback.</summary>
+        public string GetInteractText()
+        {
+            if (_isOpen)
+            {
+                // Keep the Inspector fallback when this localization key is missing.
+                if (Localization.TryGet(LocalizationKeys.InteractCloseDoor, out string localizedCloseHint))
+                    return localizedCloseHint;
+                return _closeText;
+            }
+
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractOpenDoor, out string localizedOpenHint))
+                return localizedOpenHint;
+            return _openText;
+        }
         public bool   IsPickable()        => false;
         public bool   UseLMBClick         => false;
 
@@ -536,13 +553,17 @@ namespace Escape.Core {
         // ── Public API ───────────────────────────────────────────────────────────
 
         /// <summary>Shows the locked-door hint popup if enabled, respecting the cooldown
-        /// so repeated clicks do not flood the screen with popups.</summary>
+        /// so repeated clicks do not flood the screen with popups. The hint text comes
+        /// from localization via _lockedHintKey; _lockedHintText is the Inspector fallback.</summary>
         private void ShowLockedHint() {
             if (!_showBlockedHint) return;
             if (Time.unscaledTime - _lastLockedHintTime < _lockedHintCooldown) return;
 
             _lastLockedHintTime = Time.unscaledTime;
-            PopupMessageSystem.Instance?.Show(_lockedHintText);
+            string hint = string.IsNullOrEmpty(_lockedHintKey)
+                ? _lockedHintText
+                : Localization.Resolve(_lockedHintKey, _lockedHintText);
+            PopupMessageSystem.Instance?.Show(hint);
         }
 
         /// <summary>Unlocks the door programmatically without opening it.</summary>

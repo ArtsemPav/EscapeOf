@@ -15,8 +15,11 @@ public class JournalSystem : MonoBehaviour, ISaveable
     [Serializable]
     public class JournalCategory
     {
-        [Tooltip("Текст на кнопке категории слева.")]
+        [Tooltip("Текст на кнопке категории слева. Ключ 'journal.category.<id>' из таблицы локализации переопределяет его, когда задан и существует.")]
         public string categoryName;
+
+        [Tooltip("Ключ локализации названия категории, например 'weapons'. Полный ключ: journal.category.<id>. Пусто — используется categoryName.")]
+        public string categoryNameKey;
 
         [Tooltip("Документы категории в фиксированном порядке — определяют порядок страниц в стопке.")]
         public List<DocumentData> documents = new List<DocumentData>();

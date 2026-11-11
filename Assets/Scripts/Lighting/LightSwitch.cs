@@ -58,13 +58,30 @@ public class LightSwitch : MonoBehaviour, IInteractable
         PlayAudio(newState);
     }
 
+    /// <summary>Returns the localized hint for the current switch and power state.</summary>
     public string GetInteractText()
     {
         if (LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractNoPower, out string localizedNoPowerHint))
+                return localizedNoPowerHint;
             return _noPowerHint;
+        }
 
         bool isOn = LightingSystem.Instance?.GetZoneSwitchState(_zoneId) ?? _defaultSwitchState;
-        return isOn ? _turnOffHint : _turnOnHint;
+        if (isOn)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractLightOff, out string localizedTurnOffHint))
+                return localizedTurnOffHint;
+            return _turnOffHint;
+        }
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractLightOn, out string localizedTurnOnHint))
+            return localizedTurnOnHint;
+        return _turnOnHint;
     }
 
     public bool IsPickable() => false;

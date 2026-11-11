@@ -28,7 +28,7 @@ namespace EscapeOf.Puzzle.Laptop
             _isClosing = false;
             FileData = file;
             if (_windowTitle != null)
-                _windowTitle.text = file.fileName;
+                _windowTitle.text = file.DisplayName;
 
             gameObject.SetActive(true);
             OnOpen(file);

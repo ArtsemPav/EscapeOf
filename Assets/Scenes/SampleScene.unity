@@ -5934,6 +5934,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   _sfxSource: {fileID: 1798465259}
+  _uiSfxSource: {fileID: 0}
   _sfxMixer: {fileID: 0}
   _sfxVolumeParameter: SFXVolume
   _musicVolumeParameter: MusicVolume
@@ -14247,6 +14248,7 @@ GameObject:
   - component: {fileID: 1256589149}
   - component: {fileID: 1256589151}
   - component: {fileID: 1256589150}
+  - component: {fileID: 1256589152}
   m_Layer: 0
   m_Name: HintText
   m_TagString: Untagged
@@ -14374,6 +14376,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1256589148}
   m_CullTransparentMesh: 1
+--- !u!114 &1256589152
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1256589148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: ui.inspect.hint
 --- !u!1 &1271420135
 GameObject:
   m_ObjectHideFlags: 0
@@ -15920,6 +15935,7 @@ GameObject:
   - component: {fileID: 1362191736}
   - component: {fileID: 1362191738}
   - component: {fileID: 1362191737}
+  - component: {fileID: 1362191739}
   m_Layer: 0
   m_Name: Title
   m_TagString: Untagged
@@ -16046,6 +16062,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1362191735}
   m_CullTransparentMesh: 1
+--- !u!114 &1362191739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1362191735}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: ui.codelock.title
 --- !u!1001 &1373594831
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17346,6 +17375,7 @@ GameObject:
   - component: {fileID: 1549554383}
   - component: {fileID: 1549554385}
   - component: {fileID: 1549554384}
+  - component: {fileID: 1549554386}
   m_Layer: 0
   m_Name: HintText
   m_TagString: Untagged
@@ -17473,6 +17503,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1549554382}
   m_CullTransparentMesh: 1
+--- !u!114 &1549554386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1549554382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: ui.medallion.hint
 --- !u!1 &1552750853
 GameObject:
   m_ObjectHideFlags: 0
@@ -18608,13 +18651,17 @@ MonoBehaviour:
   hints:
   - key: "\u041B\u041A\u041C"
     action: "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u043F\u0440\u0435\u0434\u043C\u0435\u0442"
+    localizationKey: drag
   - key: "\u041B\u041A\u041C + \u0442\u0430\u0449\u0438\u0442\u044C"
     action: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0440\u0435\u0434\u043C\u0435\u0442"
+    localizationKey: rotate
   - key: "\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C \u043D\u0430
       \u0441\u043B\u043E\u0442"
     action: "\u041E\u0431\u044A\u0435\u0434\u0438\u043D\u0438\u0442\u044C / \u043A\u0440\u0430\u0444\u0442"
+    localizationKey: combine
   - key: Tab / I
     action: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0438\u043D\u0432\u0435\u043D\u0442\u0430\u0440\u044C"
+    localizationKey: close
   hintsPerRow: 2
   separator: "  \u2014  "
   columnGap: '          '
@@ -19895,7 +19942,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: FirstRoom
   _defaultSwitchState: 1
-  _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
+  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
+  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 86122564}
   _handleRotationOn: {x: -20, y: 0, z: 0}
@@ -21824,6 +21872,7 @@ GameObject:
   - component: {fileID: 2016133198}
   - component: {fileID: 2016133200}
   - component: {fileID: 2016133199}
+  - component: {fileID: 2016133201}
   m_Layer: 0
   m_Name: TitleText
   m_TagString: Untagged
@@ -21952,6 +22001,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2016133197}
   m_CullTransparentMesh: 1
+--- !u!114 &2016133201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2016133197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: ui.inventory.title
 --- !u!1 &2020063254
 GameObject:
   m_ObjectHideFlags: 0
@@ -24048,8 +24110,50 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5687646108500148477, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2179333236673146857}
+    - targetCorrespondingSourceObject: {fileID: 2631268979778306379, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2179333236673146856}
   m_SourcePrefab: {fileID: 100100000, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+--- !u!1 &2179333236673146854 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2631268979778306379, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+  m_PrefabInstance: {fileID: 2179333236673146853}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &2179333236673146855 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5687646108500148477, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+  m_PrefabInstance: {fileID: 2179333236673146853}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2179333236673146856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2179333236673146854}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.chem.centrifuge_ready
+--- !u!114 &2179333236673146857
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2179333236673146855}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.chem.awaiting_sample
 --- !u!1001 &2670328589774576913
 PrefabInstance:
   m_ObjectHideFlags: 0

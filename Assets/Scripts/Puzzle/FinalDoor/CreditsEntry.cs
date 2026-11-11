@@ -22,4 +22,28 @@ public class CreditsEntry : ScriptableObject
 
     /// <summary>Main text of this credits line.</summary>
     public string Text => _text;
+
+    /// <summary>
+    /// Localized heading. Key: credits.&lt;asset name&gt;.title; falls back to <see cref="Title"/> when missing.
+    /// </summary>
+    public string LocalizedTitle
+    {
+        get
+        {
+            string key = $"credits.{name}.title";
+            return Localization.TryGet(key, out string localized) ? localized : _title;
+        }
+    }
+
+    /// <summary>
+    /// Localized body text. Key: credits.&lt;asset name&gt;.text; falls back to <see cref="Text"/> when missing.
+    /// </summary>
+    public string LocalizedText
+    {
+        get
+        {
+            string key = $"credits.{name}.text";
+            return Localization.TryGet(key, out string localized) ? localized : _text;
+        }
+    }
 }

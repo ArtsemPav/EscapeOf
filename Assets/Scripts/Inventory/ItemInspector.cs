@@ -461,7 +461,7 @@ private bool _ignoreInputThisFrame;
         probe.clearFlags      = UnityEngine.Rendering.ReflectionProbeClearFlags.SolidColor;
         probe.backgroundColor = new Color(0.35f, 0.35f, 0.4f, 1f); // Светло-серый/голубой фон для бликов
 
-        itemNameText.text = item.itemName;
+        itemNameText.text = item.LocalizedName;
 
         // В режиме превью из инвентаря название не показываем —
         // игрок уже видел его в тултипе слота.
@@ -473,7 +473,7 @@ private bool _ignoreInputThisFrame;
 
         if (descriptionText != null)
         {
-            descriptionText.text    = hideTexts ? string.Empty : item.description;
+            descriptionText.text    = hideTexts ? string.Empty : item.LocalizedDescription;
             descriptionText.gameObject.SetActive(!hideTexts);
         }
 

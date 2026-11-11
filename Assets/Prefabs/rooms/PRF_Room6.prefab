@@ -1262,6 +1262,7 @@ GameObject:
   - component: {fileID: 2834597300791532380}
   - component: {fileID: 4289376725156103159}
   - component: {fileID: 6457606365267691922}
+  - component: {fileID: 7054503086697341637}
   m_Layer: 0
   m_Name: UVText (1)
   m_TagString: Untagged
@@ -1452,6 +1453,19 @@ MonoBehaviour:
   maxVisibleDistance: 4
   emissionColor: {r: 0, g: 0.5, b: 2, a: 1}
   emissionIntensity: 2
+--- !u!114 &7054503086697341637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5112329845180216014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fff6310a0827abd4ca38145c45db99cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedTMP
+  _key: world.uv.room6
 --- !u!1 &5585304857449563247
 GameObject:
   m_ObjectHideFlags: 0
@@ -8041,7 +8055,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Room6
   _defaultSwitchState: 0
-  _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
+  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
+  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 7723564350556568231}
   _handleRotationOn: {x: -20, y: 0, z: 0}

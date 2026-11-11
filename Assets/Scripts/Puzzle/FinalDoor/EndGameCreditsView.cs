@@ -188,11 +188,11 @@ public class EndGameCreditsView : MonoBehaviour
         SceneManager.LoadScene(_startSceneName);
     }
 
-    /// <summary>Title above text, or the text alone when the title is empty.</summary>
+    /// <summary>Title above text, or the text alone when the title is empty. Uses localized values.</summary>
     private static string ComposeEntryText(CreditsEntry entry)
     {
-        string title = entry.Title;
-        string text = entry.Text;
+        string title = entry.LocalizedTitle;
+        string text = entry.LocalizedText;
         bool hasTitle = !string.IsNullOrWhiteSpace(title);
         bool hasText = !string.IsNullOrWhiteSpace(text);
 

@@ -12,6 +12,11 @@ public class DocumentData : ScriptableObject
     [Tooltip("Если включено — это короткая записка: только 1 страница, без стрелок навигации и анимации переворота.")]
     public bool isNote;
 
+    [Tooltip("Префикс локализации страниц: ключи 'note.<prefix>.page<n>' (n с 0, по порядку сортировки Pages). " +
+             "Когда ключ есть в таблице строк, переведённый текст заменяет запечённый TMP-текст страницы; " +
+             "пока ключа нет — показывается оригинал. Пусто — документ не локализуется.")]
+    public string localizationPrefix;
+
     [Header("Visual")]
     [Tooltip("3D-префаб документа (книга, журнал, записка). Текст запечён внутри как дочерние TextMeshPro (3D) объекты.")]
     public GameObject documentPrefab;

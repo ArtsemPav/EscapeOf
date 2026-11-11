@@ -282,7 +282,14 @@ public class HorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         _onTriggered?.Invoke();
     }
 
-    public string GetInteractText() => _interactHint;
+    /// <summary>Returns the localized horror interaction hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractHorrorDefault, out string localizedHint))
+            return localizedHint;
+        return _interactHint;
+    }
 
     public bool IsPickable() => false;
 

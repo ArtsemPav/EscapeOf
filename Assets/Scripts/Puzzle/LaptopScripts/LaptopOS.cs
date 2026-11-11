@@ -280,7 +280,7 @@ namespace EscapeOf.Puzzle.Laptop
         private IEnumerator ErrorRoutine()
         {
             _isProcessing = true;
-            ShowStatus(_errorMessage, _errorColor);
+            ShowStatus(Localization.Resolve(LocalizationKeys.LaptopWrongPassword, _errorMessage), _errorColor);
 
             if (_shakeTarget != null)
                 yield return StartCoroutine(ShakeRoutine());

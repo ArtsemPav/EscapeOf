@@ -349,7 +349,16 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         }
     }
 
-    public string GetInteractText() => _isSolved ? string.Empty : _interactText;
+    /// <summary>Returns the localized root inspection hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        if (_isSolved) return string.Empty;
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractInspect, out string localizedHint))
+            return localizedHint;
+        return _interactText;
+    }
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => _isSolved ? CrosshairMode.Default : _crosshairMode;
 
@@ -507,7 +516,7 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
     private void ShowEntryHint()
     {
         if (_useExitPopup && !string.IsNullOrEmpty(_exitPopupText))
-            PopupMessageSystem.Instance?.Show(_exitPopupText, _exitPopupType, 3f);
+            PopupMessageSystem.Instance?.Show(Localization.Resolve(LocalizationKeys.HintExitEsc, _exitPopupText), _exitPopupType, 3f);
     }
 
     // ── Lens Distortion ────────────────────────────────────────────────────────

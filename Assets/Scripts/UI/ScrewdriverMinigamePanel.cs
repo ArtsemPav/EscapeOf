@@ -507,8 +507,8 @@ public class ScrewdriverMinigamePanel : MonoBehaviour
         if (_missCounterText == null) return;
 
         if (_maxMisses > 0)
-            _missCounterText.text = $"Промахи: {_misses}/{_maxMisses}";
+            _missCounterText.text = Localization.GetFormat("ui.minigame.misses_limited", _misses, _maxMisses);
         else
-            _missCounterText.text = $"Промахи: {_misses}";
+            _missCounterText.text = Localization.GetFormat("ui.minigame.misses", _misses);
     }
 }

@@ -62,8 +62,9 @@ namespace EscapeOf.Puzzle.Laptop
 
             // Collect valid pages first so a null sprite never leaves a trailing separator.
             List<Sprite> validPages = new List<Sprite>();
-            foreach (Sprite sprite in _docFile.pages)
+            for (int i = 0; i < _docFile.pages.Length; i++)
             {
+                Sprite sprite = _docFile.GetLocalizedPage(i);
                 if (sprite != null) validPages.Add(sprite);
             }
 

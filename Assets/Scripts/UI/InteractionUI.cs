@@ -92,7 +92,7 @@ public class InteractionUI : MonoBehaviour
     /// </summary>
     public void ShowDragHint(string itemName, string targetHint)
     {
-        string text = $"Применить {itemName} {targetHint}";
+        string text = Localization.GetFormat("ui.interact.apply", itemName, targetHint);
         SetHint(true, text, isPickable: false, CrosshairMode.ItemDrag);
     }
 

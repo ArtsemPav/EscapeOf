@@ -588,11 +588,11 @@ public class GeneratorPuzzleController : MonoBehaviour,
         string hint = null;
 
         if (!item1Placed && !item2Placed)
-            hint = _hintNoItems;
+            hint = Localization.Resolve(LocalizationKeys.HintGenBoth, _hintNoItems);
         else if (item1Placed && !item2Placed)
-            hint = _hintOnlyFirstItem;
+            hint = Localization.Resolve(LocalizationKeys.HintGenFirst, _hintOnlyFirstItem);
         else if (!item1Placed && item2Placed)
-            hint = _hintOnlySecondItem;
+            hint = Localization.Resolve(LocalizationKeys.HintGenSecond, _hintOnlySecondItem);
 
         if (!string.IsNullOrEmpty(hint))
             PopupMessageSystem.Instance?.Show(hint, PopupMessageType.Hint);
@@ -612,7 +612,13 @@ public class GeneratorPuzzleController : MonoBehaviour,
     // ── IPuzzleDropTarget ───────────────────────────────────────────────────────
 
     /// <summary>Возвращает текст-подсказку при наведении предмета на якорь генератора.</summary>
-    public string GetDropHint() => _dropHint;
+    public string GetDropHint()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.DropInsertGenerator, out string localizedHint))
+            return localizedHint;
+        return _dropHint;
+    }
 
     /// <summary>True, если предмет подходит для установки и ещё не размещён.</summary>
     public bool CanAccept(ItemData item)

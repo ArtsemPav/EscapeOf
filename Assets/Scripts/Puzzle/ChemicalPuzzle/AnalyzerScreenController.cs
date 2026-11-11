@@ -25,7 +25,7 @@ public class AnalyzerScreenController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI _descriptionText;
     [SerializeField] private TextMeshProUGUI _verdictText;
 
-    private const string SuccessVerdict = "СИНТЕЗ УСПЕШЕН";
+    private const string SuccessVerdictKey = "puzzle.synthesis.success";
 
     private void Awake() => ShowIdle();
 
@@ -90,7 +90,7 @@ public class AnalyzerScreenController : MonoBehaviour
             _descriptionText.text = description;
 
         if (_verdictText != null)
-            _verdictText.text = isSuccess ? SuccessVerdict : string.Empty;
+            _verdictText.text = isSuccess ? Localization.Get(SuccessVerdictKey) : string.Empty;
     }
 
     // ── Private ────────────────────────────────────────────────────────────────

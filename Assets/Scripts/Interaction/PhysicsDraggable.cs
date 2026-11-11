@@ -79,7 +79,9 @@ public class PhysicsDraggable : MonoBehaviour
     public Rigidbody Body { get; private set; }
 
     /// <summary>UI hint text displayed while the player hovers over this object.</summary>
-    public string DragHint => dragHint;
+    public string DragHint =>
+        // Keep the Inspector fallback when this localization key is missing.
+        Localization.TryGet(LocalizationKeys.InteractDrag, out string localizedHint) ? localizedHint : dragHint;
 
     /// <summary>Whether rotation on X and Z axes should be frozen while dragging.</summary>
     public bool PreventTipping => preventTipping;

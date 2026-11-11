@@ -24,6 +24,10 @@ public class SettingsPanelController : MonoBehaviour
     [SerializeField] private TMP_Text _frameRateLabel;
     [SerializeField] private Button _windowModeButton;
     [SerializeField] private TMP_Text _windowModeLabel;
+    [Header("Language")]
+    [Tooltip("Optional button that cycles the UI language.")]
+    [SerializeField] private Button _languageButton;
+    [SerializeField] private TMP_Text _languageLabel;
 
     private int _resolutionIndex;
     private bool _initialized;
@@ -32,8 +36,8 @@ public class SettingsPanelController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (_musicLabel != null && string.IsNullOrEmpty(_musicBaseText)) _musicBaseText = _musicLabel.text;
-        if (_sfxLabel != null && string.IsNullOrEmpty(_sfxBaseText)) _sfxBaseText = _sfxLabel.text;
+        if (_musicLabel != null && string.IsNullOrEmpty(_musicBaseText)) _musicBaseText = Localization.Get("ui.settings.music_volume");
+        if (_sfxLabel != null && string.IsNullOrEmpty(_sfxBaseText)) _sfxBaseText = Localization.Get("ui.settings.sfx_volume");
         if (_musicSlider != null)
         {
             _musicSlider.SetValueWithoutNotify(SystemSettings.MusicVolume);
@@ -48,6 +52,9 @@ public class SettingsPanelController : MonoBehaviour
         }
         if (_resetSoundButton != null)
             _resetSoundButton.onClick.AddListener(ResetSoundToDefaults);
+        if (_languageButton != null)
+            _languageButton.onClick.AddListener(CycleLanguage);
+        LocalizationSettings.LanguageChanged += OnLanguageChanged;
         RefreshVolumeLabels();
         // Cycle buttons (resolution/fps/window mode) are wired via persistent onClick
         // calls in the scene — do NOT add code listeners too, or every click
@@ -55,6 +62,7 @@ public class SettingsPanelController : MonoBehaviour
         RefreshResolutionLabel();
         RefreshFrameRateLabel();
         RefreshWindowModeLabel();
+        RefreshLanguageLabel();
     }
 
     private void OnDisable()
@@ -62,6 +70,22 @@ public class SettingsPanelController : MonoBehaviour
         if (_musicSlider != null) _musicSlider.onValueChanged.RemoveListener(SystemSettings.SetMusicVolume);
         if (_sfxSlider != null) _sfxSlider.onValueChanged.RemoveListener(SystemSettings.SetSfxVolume);
         if (_resetSoundButton != null) _resetSoundButton.onClick.RemoveListener(ResetSoundToDefaults);
+        if (_languageButton != null) _languageButton.onClick.RemoveListener(CycleLanguage);
+        LocalizationSettings.LanguageChanged -= OnLanguageChanged;
+    }
+
+    /// <summary>Refreshes localized labels when the language changes at runtime.</summary>
+    private void OnLanguageChanged()
+    {
+        // Base texts captured from the scene are in the old language; drop them so
+        // the next refresh uses the localized volume label templates instead.
+        _musicBaseText = _musicLabel != null ? Localization.Get("ui.settings.music_volume") : null;
+        _sfxBaseText = _sfxLabel != null ? Localization.Get("ui.settings.sfx_volume") : null;
+        RefreshVolumeLabels();
+        RefreshWindowModeLabel();
+        RefreshResolutionLabel();
+        RefreshFrameRateLabel();
+        RefreshLanguageLabel();
     }
 
     /// <summary>Clears both saved volume preferences and refreshes the sliders to the defaults.</summary>
@@ -76,13 +100,12 @@ public class SettingsPanelController : MonoBehaviour
     /// <summary>Marks untouched volume labels with a "(default)" hint so the player sees which values are defaults.</summary>
     private void RefreshVolumeLabels()
     {
+        string suffix = Localization.Get("ui.settings.default_suffix");
         if (_musicLabel != null)
-            _musicLabel.text = (SystemSettings.IsMusicVolumeDefault ? _musicBaseText + DEFAULT_SUFFIX : _musicBaseText);
+            _musicLabel.text = (SystemSettings.IsMusicVolumeDefault ? _musicBaseText + suffix : _musicBaseText);
         if (_sfxLabel != null)
-            _sfxLabel.text = (SystemSettings.IsSfxVolumeDefault ? _sfxBaseText + DEFAULT_SUFFIX : _sfxBaseText);
+            _sfxLabel.text = (SystemSettings.IsSfxVolumeDefault ? _sfxBaseText + suffix : _sfxBaseText);
     }
-
-    private const string DEFAULT_SUFFIX = " (по умолчанию)";
     private string _musicBaseText;
     private string _sfxBaseText;
 
@@ -141,9 +164,9 @@ public class SettingsPanelController : MonoBehaviour
 
         string label = SystemSettings.FullScreenMode switch
         {
-            UnityEngine.FullScreenMode.FullScreenWindow => "ОКНО: БЕЗ РАМКИ (ПОЛНЫЙ ЭКРАН)",
-            UnityEngine.FullScreenMode.Windowed => "ОКНО: ОКОННЫЙ РЕЖИМ",
-            _ => "ОКНО: " + SystemSettings.FullScreenMode,
+            UnityEngine.FullScreenMode.FullScreenWindow => Localization.Get("ui.settings.window.borderless"),
+            UnityEngine.FullScreenMode.Windowed => Localization.Get("ui.settings.window.windowed"),
+            _ => Localization.Get("ui.settings.window") + " " + SystemSettings.FullScreenMode,
         };
         _windowModeLabel.text = label;
     }
@@ -165,12 +188,27 @@ public class SettingsPanelController : MonoBehaviour
         if (_resolutionIndex >= resolutions.Count)
             _resolutionIndex = Mathf.Max(0, resolutions.Count - 1);
 
-        _resolutionLabel.text = "РАЗРЕШЕНИЕ: " + resolutions[_resolutionIndex].ToString();
+        _resolutionLabel.text = Localization.Get("ui.settings.resolution") + " " + resolutions[_resolutionIndex].ToString();
     }
 
     private void RefreshFrameRateLabel()
     {
         if (_frameRateLabel != null)
-            _frameRateLabel.text = "КАДРЫ В СЕКУНДУ: " + Application.targetFrameRate;
+            _frameRateLabel.text = Localization.Get("ui.settings.framerate") + " " + Application.targetFrameRate;
+    }
+
+    /// <summary>Switches to the next available language and refreshes all labels immediately.</summary>
+    public void CycleLanguage()
+    {
+        Language[] languages = (Language[])Enum.GetValues(typeof(Language));
+        int current = Array.IndexOf(languages, LocalizationSettings.Current);
+        LocalizationSettings.SetLanguage(languages[(current + 1) % languages.Length]);
+        RefreshLanguageLabel();
+    }
+
+    private void RefreshLanguageLabel()
+    {
+        if (_languageLabel != null)
+            _languageLabel.text = Localization.Get("ui.settings.language") + " " + LocalizationSettings.Current;
     }
 }

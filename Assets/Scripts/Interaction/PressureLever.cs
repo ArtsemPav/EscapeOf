@@ -152,7 +152,21 @@ public class PressureLever : MonoBehaviour, IInteractable
     }
 
     /// <summary>Returns hint text reflecting the current lever state.</summary>
-    public string GetInteractText() => IsOn ? _textWhenOn : _textWhenOff;
+    public string GetInteractText()
+    {
+        if (IsOn)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractLeverSwitchOff, out string localizedOffHint))
+                return localizedOffHint;
+            return _textWhenOn;
+        }
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractLeverSwitchOn, out string localizedOnHint))
+            return localizedOnHint;
+        return _textWhenOff;
+    }
 
     public bool IsPickable() => false;
     // LMB is already bound to the Interact action in PlayerInputActions.

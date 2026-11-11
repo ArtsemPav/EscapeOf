@@ -23,13 +23,14 @@ public class SimpleInteractable : MonoBehaviour, IInteractable
         _onInteract?.Invoke();
     }
 
+    /// <summary>Returns the localized idle/active hint, or the Inspector fallbacks.</summary>
     public string GetInteractText()
     {
         if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.isPressed)
         {
-            return _activeHintText;
+            return Localization.Resolve(LocalizationKeys.InteractPress, _activeHintText);
         }
-        return _idleHintText;
+        return Localization.Resolve(LocalizationKeys.InteractHorrorDefault, _idleHintText);
     }
 
     public bool IsPickable() => _isPickable;
