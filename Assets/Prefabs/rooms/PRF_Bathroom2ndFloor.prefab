@@ -2938,7 +2938,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1034131442851085900, guid: 3ae4d3f6b584f654eaa2f595c1b6e68b, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 384
+      value: 768
       objectReference: {fileID: 0}
     - target: {fileID: 2167029450823992611, guid: 3ae4d3f6b584f654eaa2f595c1b6e68b, type: 3}
       propertyPath: m_LocalScale.x
@@ -4238,8 +4238,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: Bathroom2ndFloor
   _defaultSwitchState: 0
-  _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
-  _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
+  _turnOnHintKey: ui.interact.light_on
+  _turnOffHintKey: ui.interact.light_off
   _switchHandle: {fileID: 532915104105382746}
   _handleRotationOn: {x: -20, y: 0, z: 0}
   _handleRotationOff: {x: 80, y: 0, z: 0}
@@ -5651,15 +5651,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.9605716
+      value: 1.9597216
       objectReference: {fileID: 0}
     - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.00000020023435
+      value: 0.000007974117
       objectReference: {fileID: 0}
     - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 11.906281
+      value: 11.905451
       objectReference: {fileID: 0}
     - target: {fileID: 7791352645141674196, guid: b83d0e407d7a9564d9ac2a121357781f, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6255,11 +6255,8 @@ MonoBehaviour:
   _openMode: 1
   _openDuration: 0.5
   _requiredKey: {fileID: 0}
-  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043A\u0440\u044B\u0448\u043A\u0443"
-  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u043A\u0440\u0443\u0448\u043A\u0443"
   _showBlockedHint: 0
-  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
-    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintKey: ui.interact.door_locked
   _lockedHintCooldown: 2
   _pivot: {fileID: 5752597229142812644}
   _rotationAxis: 0
@@ -10405,15 +10402,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6839406644804700601, guid: c701e4587f8a2ca4e8c2f668bace0c5e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.9605718
+      value: 1.9605635
       objectReference: {fileID: 0}
     - target: {fileID: 6839406644804700601, guid: c701e4587f8a2ca4e8c2f668bace0c5e, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.0000015626263
+      value: 0.000003886941
       objectReference: {fileID: 0}
     - target: {fileID: 6839406644804700601, guid: c701e4587f8a2ca4e8c2f668bace0c5e, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 9.906282
+      value: 9.905452
       objectReference: {fileID: 0}
     - target: {fileID: 6839406644804700601, guid: c701e4587f8a2ca4e8c2f668bace0c5e, type: 3}
       propertyPath: m_LocalRotation.w
