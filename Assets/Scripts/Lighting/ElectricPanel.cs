@@ -57,15 +57,17 @@ public class ElectricPanel : MonoBehaviour, IInteractable
         PlayAudio(isPowered);
     }
 
+    /// <summary>Returns the localized breaker hint for the current power state.</summary>
     public string GetInteractText()
     {
         var ls = LightingSystem.Instance;
-        if (ls == null) return _hintPoweredOn;
+        if (ls == null || (ls.IsPowerActivated && ls.IsGeneratorReady && ls.IsPowered))
+            return Localization.Resolve(LocalizationKeys.PanelBreakerOn, _hintPoweredOn);
 
         if (!ls.IsPowerActivated || !ls.IsGeneratorReady)
-            return _hintNotActivated;
+            return Localization.Resolve(LocalizationKeys.PanelBreakerNoPower, _hintNotActivated);
 
-        return ls.IsPowered ? _hintPoweredOn : _hintPoweredOff;
+        return Localization.Resolve(LocalizationKeys.PanelBreakerOff, _hintPoweredOff);
     }
 
     public bool IsPickable() => false;

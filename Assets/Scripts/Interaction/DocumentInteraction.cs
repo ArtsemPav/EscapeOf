@@ -20,7 +20,14 @@ public class DocumentInteraction : MonoBehaviour, IInteractable
         DocumentUI.Instance.Open(_documentData);
     }
 
-    public string GetInteractText() => _interactText;
+    /// <summary>Returns the localized document interaction hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractRead, out string localizedHint))
+            return localizedHint;
+        return _interactText;
+    }
     public bool IsPickable() => false;
     public bool UseLMBClick => true;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Read;

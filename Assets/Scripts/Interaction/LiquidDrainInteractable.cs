@@ -138,7 +138,14 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
         StartDrain();
     }
 
-    public string GetInteractText() => _interactText;
+    /// <summary>Returns the localized drain hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractDrainWater, out string localizedHint))
+            return localizedHint;
+        return _interactText;
+    }
 
     public bool IsPickable() => false;
 
@@ -158,7 +165,7 @@ public class LiquidDrainInteractable : MonoBehaviour, IInteractable, ISaveable
     {
         if (_isDrained) return string.Empty;
         if (_requiredItem != null && !InventorySystem.Instance.HasItem(_requiredItem))
-            return _missingItemHint;
+            return Localization.Resolve(LocalizationKeys.HintNeedPlunger, _missingItemHint);
         return string.Empty;
     }
 

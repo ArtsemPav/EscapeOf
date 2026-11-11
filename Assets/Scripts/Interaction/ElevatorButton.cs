@@ -46,10 +46,15 @@ namespace Escape.Interaction
             _lastCallAccepted = _controller.MoveToFloor(_floorIndex);
         }
 
+        /// <summary>Returns the localized button hint or the controller's localized power hint.</summary>
         public string GetInteractText()
         {
             if (_controller != null && !_controller.HasPower)
                 return _controller.NoPowerHint;
+
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractPressButton, out string localizedHint))
+                return localizedHint;
             return _hintText;
         }
 

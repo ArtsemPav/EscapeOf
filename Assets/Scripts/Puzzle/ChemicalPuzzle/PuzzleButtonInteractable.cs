@@ -29,7 +29,14 @@ public class PuzzleButtonInteractable : MonoBehaviour, IInteractable
         _pressAnimation?.Play();
     }
 
-    public string GetInteractText() => _hintText;
+    /// <summary>Returns the localized press hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractPress, out string localizedHint))
+            return localizedHint;
+        return _hintText;
+    }
     public bool IsPickable() => false;
     public CrosshairMode GetCrosshairMode() => _crosshairMode;
 }

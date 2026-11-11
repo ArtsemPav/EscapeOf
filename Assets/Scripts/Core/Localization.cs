@@ -52,16 +52,34 @@ public static class Localization
                              "Raw keys will be shown instead of strings.");
     }
 
-    /// <summary>Returns the translated string for the key, or the key itself when missing.</summary>
-    public static string Get(string key)
+    /// <summary>
+    /// Resolves the translated string for the key without logging a warning on
+    /// missing keys. Returns false and the key itself when the key is missing —
+    /// use for probing optional keys; <see cref="Get"/> for mandatory ones.
+    /// </summary>
+    public static bool TryGet(string key, out string value)
     {
         EnsureInitialized();
 
-        if (_textTable != null && _textTable.TryGet(key, out string value)) return value;
+        value = key;
+        return _textTable != null && _textTable.TryGet(key, out value);
+    }
+
+    /// <summary>Returns the translated string for the key, or the key itself when missing.</summary>
+    public static string Get(string key)
+    {
+        if (TryGet(key, out string value)) return value;
 
         Debug.LogWarning($"[Localization] Missing key '{key}' for language '{_loadedLanguage}'.");
         return key;
     }
+
+    /// <summary>
+    /// Returns the translation for the key, or the fallback when the key is missing.
+    /// Standard pattern for Inspector-field fallbacks: localized value wins, serialized text stays as backup.
+    /// </summary>
+    public static string Resolve(string key, string fallback)
+        => TryGet(key, out string value) ? value : fallback;
 
     /// <summary>Returns a formatted string (string.Format over the translated template).</summary>
     public static string GetFormat(string key, params object[] args)

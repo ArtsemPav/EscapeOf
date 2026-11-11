@@ -121,10 +121,12 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     public bool IsPickable() => false;
     public bool UseLMBClick  => true;
+
+    /// <summary>Returns localized hints for power/lock/idle states, or the Inspector fallbacks.</summary>
     public string GetInteractText()
     {
-        if (!enabled)       return _noPowerText;
-        if (IsLocked)       return _lockedInteractText;
-        return _interactText;
+        if (!enabled)       return Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
+        if (IsLocked)       return Localization.Resolve(LocalizationKeys.InteractLocked, _lockedInteractText);
+        return Localization.Resolve(LocalizationKeys.InteractPress, _interactText);
     }
 }

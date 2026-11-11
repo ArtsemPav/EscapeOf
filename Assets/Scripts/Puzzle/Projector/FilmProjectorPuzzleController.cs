@@ -278,7 +278,7 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
 
         if (!_isPlaced)
         {
-            PopupMessageSystem.Instance?.Show(_hintNoItem, PopupMessageType.Hint);
+            PopupMessageSystem.Instance?.Show(Localization.Resolve(LocalizationKeys.HintProjector, _hintNoItem), PopupMessageType.Hint);
             return;
         }
 
@@ -328,7 +328,13 @@ public class FilmProjectorPuzzleController : MonoBehaviour,
     public bool CanExitPuzzle() => true;
 
     /// <summary>Текст-подсказка при наведении предмета на якорь проектора.</summary>
-    public string GetDropHint() => _dropHint;
+    public string GetDropHint()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.DropInsertReel, out string localizedHint))
+            return localizedHint;
+        return _dropHint;
+    }
 
     /// <summary>True, если бабина подходит и ещё не установлена.</summary>
     public bool CanAccept(ItemData item)

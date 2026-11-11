@@ -99,7 +99,14 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     public bool CanInteract() => !_isBusy && !_horrorTriggered;
 
     public bool IsPickable() => false;
-    public string GetInteractText() => _interactText;
+    /// <summary>Returns the localized duck interaction hint, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractPressDuck, out string localizedHint))
+            return localizedHint;
+        return _interactText;
+    }
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;
     public string GetBlockedHint() => string.Empty;
 

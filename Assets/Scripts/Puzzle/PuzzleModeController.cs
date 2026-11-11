@@ -267,7 +267,11 @@ public class PuzzleModeController : MonoBehaviour, ISaveable
 
         if (_requirePower && LightingSystem.Instance != null && !LightingSystem.Instance.IsPowered)
         {
-            PopupMessageSystem.Instance?.Show(_noPowerHint, PopupMessageType.Hint, 3f);
+            // Keep the Inspector fallback when this localization key is missing.
+            string noPowerHint = Localization.TryGet(LocalizationKeys.InteractNeedLights, out string localizedNoPowerHint)
+                ? localizedNoPowerHint
+                : _noPowerHint;
+            PopupMessageSystem.Instance?.Show(noPowerHint, PopupMessageType.Hint, 3f);
             return;
         }
 

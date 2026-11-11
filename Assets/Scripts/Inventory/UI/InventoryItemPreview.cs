@@ -121,8 +121,8 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
         _currentItem = item;
         DestroyModel();
 
-        if (itemNameText    != null) itemNameText.text    = item.itemName;
-        if (descriptionText != null) descriptionText.text = item.description;
+        if (itemNameText    != null) itemNameText.text    = item.LocalizedName;
+        if (descriptionText != null) descriptionText.text = item.LocalizedDescription;
 
         if (item.inspectionPrefab != null)
             SpawnModel(item.inspectionPrefab, item.useCustomPreviewRotation ? item.previewRotation : initialRotation);

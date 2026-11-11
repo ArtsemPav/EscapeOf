@@ -7,9 +7,38 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "NewItem", menuName = "Inventory/Item Data")]
 public class ItemData : ScriptableObject
 {
+    /// <summary>Localization key prefix for item texts: item.&lt;asset name&gt;.name / .desc.</summary>
+    public const string LocalizationKeyPrefix = "item.";
+
     [Header("Identity")]
     public string itemName;
     [TextArea] public string description;
+
+    /// <summary>
+    /// Localized item name. Key: item.&lt;asset name&gt;.name in the current language's
+    /// text table; falls back to the serialized <see cref="itemName"/> when the key is missing.
+    /// </summary>
+    public string LocalizedName
+    {
+        get
+        {
+            string key = $"{LocalizationKeyPrefix}{name}.name";
+            return Localization.TryGet(key, out string localized) ? localized : itemName;
+        }
+    }
+
+    /// <summary>
+    /// Localized item description. Key: item.&lt;asset name&gt;.desc in the current
+    /// language's text table; falls back to the serialized <see cref="description"/> when missing.
+    /// </summary>
+    public string LocalizedDescription
+    {
+        get
+        {
+            string key = $"{LocalizationKeyPrefix}{name}.desc";
+            return Localization.TryGet(key, out string localized) ? localized : description;
+        }
+    }
 
     [Header("Save")]
     [Tooltip("Stable identifier used by the save system. Auto-uses the asset file name if left empty. Never rename the asset file after saving.")]

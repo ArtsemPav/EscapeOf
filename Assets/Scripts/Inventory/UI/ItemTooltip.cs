@@ -43,8 +43,8 @@ public class ItemTooltip : MonoBehaviour
     {
         if (item == null) return;
 
-        itemNameText.text    = item.itemName;
-        descriptionText.text = item.description;
+        itemNameText.text    = item.LocalizedName;
+        descriptionText.text = item.LocalizedDescription;
         descriptionText.gameObject.SetActive(true);
         itemNameText.alignment = TMPro.TextAlignmentOptions.TopLeft;
         panel.gameObject.SetActive(true);

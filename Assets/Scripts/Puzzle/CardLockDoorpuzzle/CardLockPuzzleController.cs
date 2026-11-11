@@ -196,7 +196,14 @@ namespace Escape.Puzzle
 
         // ── IPuzzleDropTarget ──────────────────────────────────────────────────
 
-        public string GetDropHint() => _dropHint;
+        /// <summary>Returns the localized card swipe hint, or the Inspector fallback.</summary>
+        public string GetDropHint()
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.DropSwipeCard, out string localizedHint))
+                return localizedHint;
+            return _dropHint;
+        }
 
         public bool CanAccept(ItemData item) => item == _requiredCard && (_puzzleMode != null && !_puzzleMode.IsSolved);
 
@@ -215,7 +222,11 @@ namespace Escape.Puzzle
 
                 if (!hasPower)
                 {
-                    PopupMessageSystem.Instance?.Show(_noPowerHint, PopupMessageType.Hint, 3f);
+                    // Keep the Inspector fallback when this localization key is missing.
+                    string noPowerHint = Localization.TryGet(LocalizationKeys.InteractNeedLights, out string localizedNoPowerHint)
+                        ? localizedNoPowerHint
+                        : _noPowerHint;
+                    PopupMessageSystem.Instance?.Show(noPowerHint, PopupMessageType.Hint, 3f);
                     return false;
                 }
 

@@ -2,17 +2,17 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Replaces the text of a TextMeshProUGUI with the translation of its key.
-/// Add next to an existing TMP component and put the localization key into the
-/// text field (or the component's key field). Refreshes live on language change.
+/// Replaces the text of any TMP_Text (TextMeshProUGUI or 3D TextMeshPro) with the
+/// translation of its key. Add next to an existing TMP component and put the
+/// localization key into the text field (or the component's key field).
+/// Refreshes live on language change.
 /// </summary>
-[RequireComponent(typeof(TextMeshProUGUI))]
 public class LocalizedTMP : MonoBehaviour
 {
     [Tooltip("Localization key, e.g. 'ui.hints.lmb'.")]
     [SerializeField] private string _key;
 
-    private TextMeshProUGUI _text;
+    private TMP_Text _text;
 
     public string Key
     {
@@ -20,11 +20,11 @@ public class LocalizedTMP : MonoBehaviour
         set => _key = value;
     }
 
-    private void Awake() => _text = GetComponent<TextMeshProUGUI>();
+    private void Awake() => _text = GetComponent<TMP_Text>();
 
     private void OnEnable()
     {
-        if (_text == null) _text = GetComponent<TextMeshProUGUI>();
+        if (_text == null) _text = GetComponent<TMP_Text>();
         LocalizationSettings.LanguageChanged += Refresh;
         Refresh();
     }
@@ -38,3 +38,4 @@ public class LocalizedTMP : MonoBehaviour
             _text.text = Localization.Get(_key);
     }
 }
+

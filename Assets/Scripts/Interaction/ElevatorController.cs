@@ -120,7 +120,16 @@ namespace Escape.Interaction
         public bool IsBusy => _isBusy;
 
         /// <summary>Hint text shown by elevator buttons when power is off.</summary>
-        public string NoPowerHint => _noPowerHint;
+        public string NoPowerHint
+        {
+            get
+            {
+                // Keep the Inspector fallback when this localization key is missing.
+                if (Localization.TryGet(LocalizationKeys.InteractNoPower, out string localizedHint))
+                    return localizedHint;
+                return _noPowerHint;
+            }
+        }
 
         private bool _isBusy;
         private bool _playerInside;

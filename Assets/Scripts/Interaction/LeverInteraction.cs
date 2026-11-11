@@ -132,7 +132,22 @@ public class LeverInteraction : MonoBehaviour, IInteractable, ISaveable
         SaveManager.Instance?.Save();
     }
 
-    public string GetInteractText() => IsOn ? _textWhenOn : _textWhenOff;
+    /// <summary>Returns the localized hint for the lever's current state.</summary>
+    public string GetInteractText()
+    {
+        if (IsOn)
+        {
+            // Keep the Inspector fallback when this localization key is missing.
+            if (Localization.TryGet(LocalizationKeys.InteractLeverReturn, out string localizedReturnHint))
+                return localizedReturnHint;
+            return _textWhenOn;
+        }
+
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractLeverPull, out string localizedPullHint))
+            return localizedPullHint;
+        return _textWhenOff;
+    }
 
     public bool IsPickable()  => false;
     public bool UseLMBClick   => false;

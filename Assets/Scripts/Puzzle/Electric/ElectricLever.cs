@@ -58,7 +58,14 @@ public class ElectricLever : MonoBehaviour, IInteractable
     public void SetInteractionEnabled(bool enabled) => _interactionEnabled = enabled;
 
     public bool CanInteract()               => _interactionEnabled && !_isPulled;
-    public string GetInteractText()         => _interactText;
+    /// <summary>Returns the localized hint for pulling the lever, or the Inspector fallback.</summary>
+    public string GetInteractText()
+    {
+        // Keep the Inspector fallback when this localization key is missing.
+        if (Localization.TryGet(LocalizationKeys.InteractLeverPull, out string localizedHint))
+            return localizedHint;
+        return _interactText;
+    }
     public bool IsPickable()                => false;
     public bool UseLMBClick                 => false;
     public CrosshairMode GetCrosshairMode() => CrosshairMode.Hand;

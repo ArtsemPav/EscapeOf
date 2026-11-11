@@ -6,6 +6,7 @@ using UnityEngine;
 /// Assign this component to the HintsBar GameObject inside InventoryPanel.
 /// Hints are displayed in rows of HintsPerRow items. All text is configurable
 /// via the Inspector so it can be localised without code changes.
+/// Rebuilds on language change so the bar follows the current language live.
 /// </summary>
 public class InventoryHints : MonoBehaviour
 {
@@ -44,6 +45,10 @@ public class InventoryHints : MonoBehaviour
     {
         BuildHintsText();
     }
+
+    private void OnEnable() => LocalizationSettings.LanguageChanged += BuildHintsText;
+
+    private void OnDisable() => LocalizationSettings.LanguageChanged -= BuildHintsText;
 
     /// <summary>Resolves one hint field: the localized value when the key exists, the raw text otherwise.</summary>
     private static string Resolve(string raw, string localizationKey, string suffix)

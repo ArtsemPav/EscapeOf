@@ -162,11 +162,13 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
 
     public bool   IsPickable()      => false;
     public bool   UseLMBClick       => true;
+
+    /// <summary>Returns localized hints for power/lock/motion states, or the Inspector fallbacks.</summary>
     public string GetInteractText()
     {
-        if (!enabled)                                            return _noPowerText;
-        if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving)     return _lockedInteractText;
-        if (_isLockedByPower)                                    return _noPowerText;
-        return _interactText;
+        if (!enabled)                                        return Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
+        if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving) return Localization.Resolve(LocalizationKeys.InteractLocked, _lockedInteractText);
+        if (_isLockedByPower)                                return Localization.Resolve(LocalizationKeys.InteractNoPower, _noPowerText);
+        return Localization.Resolve(LocalizationKeys.InteractPress, _interactText);
     }
 }

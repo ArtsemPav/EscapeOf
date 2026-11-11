@@ -208,7 +208,7 @@ public class PickableItem : MonoBehaviour, IInteractable, ISaveable
     }
 
     /// <summary>Returns the interaction prompt shown to the player.</summary>
-    public string GetInteractText() => itemData != null ? itemData.itemName : string.Empty;
+    public string GetInteractText() => itemData != null ? itemData.LocalizedName : string.Empty;
 
     public bool IsPickable() => true;
     public bool UseLMBClick => true;
