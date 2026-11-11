@@ -71,6 +71,15 @@ public class EndGameCreditsView : MonoBehaviour
             _canvasGroup.alpha = 0f;
             _canvasGroup.blocksRaycasts = false;
         }
+
+        // Clear any text left in the label from the editor (e.g. a stale
+        // "thanks" string saved in the scene): otherwise it is visible over
+        // the black overlay during the fade-in, before the first entry fades.
+        if (_creditsLabel != null)
+        {
+            _creditsLabel.text = string.Empty;
+            _creditsLabel.alpha = 0f;
+        }
     }
 
     private void OnDestroy()

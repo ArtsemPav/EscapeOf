@@ -763,32 +763,32 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         {
             case HoveredDevice.Centrifuge:
                 ItemTooltip.Instance?.Show(
-                    _deviceTooltips.centrifugeTitle,
-                    _deviceTooltips.centrifugeDescription,
+                    _deviceTooltips.ResolveTitle(_deviceTooltips.centrifugeTitleKey),
+                    _deviceTooltips.ResolveDescription(_deviceTooltips.centrifugeDescriptionKey),
                     mousePos);
                 break;
             case HoveredDevice.Burner:
                 ItemTooltip.Instance?.Show(
-                    _deviceTooltips.burnerTitle,
-                    _deviceTooltips.burnerDescription,
+                    _deviceTooltips.ResolveTitle(_deviceTooltips.burnerTitleKey),
+                    _deviceTooltips.ResolveDescription(_deviceTooltips.burnerDescriptionKey),
                     mousePos);
                 break;
             case HoveredDevice.Mixer:
                 ItemTooltip.Instance?.Show(
-                    _deviceTooltips.mixerTitle,
-                    _deviceTooltips.mixerDescription,
+                    _deviceTooltips.ResolveTitle(_deviceTooltips.mixerTitleKey),
+                    _deviceTooltips.ResolveDescription(_deviceTooltips.mixerDescriptionKey),
                     mousePos);
                 break;
             case HoveredDevice.Analyzer:
                 ItemTooltip.Instance?.Show(
-                    _deviceTooltips.analyzerTitle,
-                    _deviceTooltips.analyzerDescription,
+                    _deviceTooltips.ResolveTitle(_deviceTooltips.analyzerTitleKey),
+                    _deviceTooltips.ResolveDescription(_deviceTooltips.analyzerDescriptionKey),
                     mousePos);
                 break;
             case HoveredDevice.Trash:
                 ItemTooltip.Instance?.Show(
-                    _deviceTooltips.trashTitle,
-                    _deviceTooltips.trashDescription,
+                    _deviceTooltips.ResolveTitle(_deviceTooltips.trashTitleKey),
+                    _deviceTooltips.ResolveDescription(_deviceTooltips.trashDescriptionKey),
                     mousePos);
                 break;
         }
