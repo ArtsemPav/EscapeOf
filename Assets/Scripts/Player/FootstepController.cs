@@ -15,10 +15,6 @@ public class FootstepController : MonoBehaviour
     [Tooltip("Footstep profile used when the player is not inside any FootstepZone.")]
     [SerializeField] private FootstepProfile defaultProfile;
 
-    [Header("Jump")]
-    [SerializeField] private AudioClip jumpClip;
-    [SerializeField] private AudioClip landClip;
-
     [Header("Volume")]
     [SerializeField] [Range(0f, 1f)] private float walkVolume   = 0.5f;
     [SerializeField] [Range(0f, 1f)] private float runVolume    = 0.7f;
@@ -113,19 +109,23 @@ public class FootstepController : MonoBehaviour
     {
         // FPSController already guards against jumping in mid-air,
         // so no redundant IsGrounded check needed here.
-        if (jumpClip != null)
-            PlayClip(jumpClip, jumpVolume, 0f);
+        // Jump clip comes from the active surface profile, falling back to the default profile.
+        AudioClip clip = _currentProfile != null ? _currentProfile.JumpClip : null;
+        if (clip == null && defaultProfile != null) clip = defaultProfile.JumpClip;
+        if (clip == null) return;
+
+        PlayClip(clip, jumpVolume, 0f);
     }
 
     /// <summary>
     /// Plays the landing clip of the current surface's profile, falling back to the
-    /// shared landClip when the profile has none. Volume scales by impact speed.
+    /// default profile's clip when the active profile has none. Volume scales by impact speed.
     /// </summary>
     private void OnLanded(float fallSpeed)
     {
-        // Prefer the active surface profile's landing sound; fall back to the shared clip.
+        // Prefer the active surface profile's landing sound; fall back to the default profile's clip.
         AudioClip clip = _currentProfile != null ? _currentProfile.LandClip : null;
-        if (clip == null) clip = landClip;
+        if (clip == null && defaultProfile != null) clip = defaultProfile.LandClip;
         if (clip == null) return;
 
         // Volume scales with impact speed: quiet for small falls,

@@ -36,8 +36,12 @@ public class FootstepProfile : ScriptableObject
     [Tooltip("Seconds to skip at the start of each clip. Use to trim silence so the impact hits exactly when the foot lands.")]
     [SerializeField] [Range(0f, 0.5f)] private float startOffset;
 
+    [Header("Jump")]
+    [Tooltip("Sound played when the player jumps on this surface. If empty, the default profile's jump clip is used.")]
+    [SerializeField] private AudioClip jumpClip;
+
     [Header("Landing")]
-    [Tooltip("Sound played when the player lands on this surface. If empty, the controller's fallback land clip is used.")]
+    [Tooltip("Sound played when the player lands on this surface. If empty, the default profile's land clip is used.")]
     [SerializeField] private AudioClip landClip;
 
     public BlendMode Mode           => blendMode;
@@ -45,6 +49,7 @@ public class FootstepProfile : ScriptableObject
     public AudioClip[] RightClips   => rightClips;
     public float VolumeMultiplier   => volumeMultiplier;
     public float StartOffset        => startOffset;
+    public AudioClip JumpClip       => jumpClip;
     public AudioClip LandClip       => landClip;
 
     /// <summary>Returns a random clip for the requested foot, or null if the array is empty.</summary>
