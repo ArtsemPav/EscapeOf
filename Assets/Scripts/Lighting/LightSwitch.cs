@@ -101,7 +101,7 @@ public class LightSwitch : MonoBehaviour, IInteractable
         // must NOT be heard at full volume on the second floor. Falls back
         // to the shared 2D SFX source only when there is no AudioManager.
         if (AudioManager.Instance != null)
-            AudioManager.Instance.Play3DOneShot(clip, transform.position, 1f, 1f, 15f);
+            AudioManager.Instance.Play3DOneShot(clip, transform.position, 1f, 0.5f, 6f);
         else
             AudioSource.PlayClipAtPoint(clip, transform.position);
     }

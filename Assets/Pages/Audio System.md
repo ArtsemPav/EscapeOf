@@ -1,4 +1,4 @@
-<!-- version: 6 -->
+<!-- version: 7 -->
 
 ## Audio System
 
@@ -51,7 +51,7 @@
 - `PlayUISFX(AudioClip clip, float volume)` — one-shot на выделенном UI-источнике (`_uiSfxSource`, `ignoreListenerPause = true`): звук меню слышен и при `AudioListener.pause = true` (пауза, потеря фокуса). Используется `MenuButtonSounds` (hover/click в стартовом меню и меню паузы).
 - `PlaySFXExclusive(AudioClip clip, float volume = 1f)` — сначала останавливает все звуки на SFX-источнике (для повторяющихся звуков, которые не должны накладываться сами на себя).
 - `Play3DOneShot(AudioClip clip, Vector3 position, float volume = 1f, float minDistance = 1f, float maxDistance = 10f)` — одноразовый 3D-звук из временного источника (самоуничтожается).
-- `Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance)` — зацикленный пространственный источник, парентится к цели и регистрируется в системе фонового mute. Возвращает `AudioSource`.
+- `Play3DLoop(AudioClip clip, Transform target, float volume, float minDistance, float maxDistance)` — зацикленный пространственный источник, парентится к цели и регистрируется в системе фонового mute. Возвращает `AudioSource`. Rolloff — Linear: `maxDistance` — жёсткий порог тишины (как в `Play3DOneShot`; логарифмический rolloff по умолчанию игнорирует `maxDistance`).
 - `RegisterLoopSource(AudioSource source, float volume)` / `UnregisterLoopSource(AudioSource source)` — управление уже существующими источниками в tracking-системе.
 - `PlayBackgroundLayer(AudioClip clip, float volume = 1f, float fadeDuration = -1f)` — зацикленный 2D-слой (сердцебиение, гул) с независимым фейдом. Прежний слой дофейдивается перед запуском нового (иначе фейд бы «тёк»).
 - `StopBackgroundLayer(float fadeDuration = -1f)` — фейд-аут и уничтожение слоя.

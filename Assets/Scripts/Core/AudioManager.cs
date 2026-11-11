@@ -112,6 +112,11 @@ public class AudioManager : MonoBehaviour {
         source.clip = clip;
         source.volume = volume;
         source.spatialBlend = 1f;
+        // Linear rolloff makes maxDistance a hard cutoff: the source is truly
+        // silent beyond it. The default Logarithmic rolloff ignores maxDistance
+        // and fades only as 1/distance, so clicks stay faintly audible floors
+        // away (no audio occlusion in Unity — geometry does not block sound).
+        source.rolloffMode = AudioRolloffMode.Linear;
         source.minDistance = minDistance;
         source.maxDistance = maxDistance;
         source.playOnAwake = false;
@@ -233,6 +238,10 @@ public class AudioManager : MonoBehaviour {
         source.clip = clip;
         source.volume = volume;
         source.spatialBlend = 1f; // Полное 3D
+        // Linear rolloff makes maxDistance a hard cutoff: the source is truly
+        // silent beyond it (same as Play3DOneShot). The default Logarithmic
+        // rolloff ignores maxDistance and fades only as 1/distance.
+        source.rolloffMode = AudioRolloffMode.Linear;
         source.minDistance = minDistance;
         source.maxDistance = maxDistance;
         source.loop = true;

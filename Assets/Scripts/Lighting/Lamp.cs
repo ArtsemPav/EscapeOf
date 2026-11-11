@@ -92,6 +92,20 @@ public class Lamp : MonoBehaviour, ILampZone
     [Tooltip("HDR intensity of the glow. Values above 1 bloom when a volume is present.")]
     [SerializeField, Min(0f)] private float _emissionIntensity = 4f;
 
+    [Header("Audio (optional)")]
+    [Tooltip("Looping sound (hum/buzz) played while the lamp is on. Leave empty for a silent lamp. " +
+             "Plays as a spatial 3D loop through AudioManager (routed to the SFX3D bus, faded with background mutes).")]
+    [SerializeField] private AudioClip _audioClip;
+
+    [Tooltip("Volume of the lamp sound loop.")]
+    [SerializeField, Range(0f, 1f)] private float _audioVolume = 1f;
+
+    [Tooltip("Distance at which the lamp sound is at full volume.")]
+    [SerializeField, Min(0.01f)] private float _audioMinDistance = 1f;
+
+    [Tooltip("Distance at which the lamp sound falls silent (hard linear cutoff).")]
+    [SerializeField, Min(0.1f)] private float _audioMaxDistance = 10f;
+
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
     private const string EmissionKeyword = "_EMISSION";
 
@@ -124,6 +138,7 @@ public class Lamp : MonoBehaviour, ILampZone
     private Material[] _materials;
     private Coroutine _flickerCoroutine;
     private float _multiplier = 1f;
+    private AudioSource _audioSource;
 
     // ── Unity ─────────────────────────────────────────────────────────────────
 
@@ -141,6 +156,7 @@ public class Lamp : MonoBehaviour, ILampZone
     private void OnDestroy()
     {
         LightingSystem.Instance?.UnregisterZone(this);
+        StopAudio();
     }
 
     /// <summary>
@@ -208,6 +224,7 @@ public class Lamp : MonoBehaviour, ILampZone
 
         if (on) StartFlicker(); else StopFlicker();
         ApplyEmission(on ? 1f : 0f);
+        ApplyAudio(on);
     }
 
     /// <summary>
@@ -244,6 +261,72 @@ public class Lamp : MonoBehaviour, ILampZone
             if (entry.Light != null)
                 entry.Light.intensity = entry.OriginalIntensity;
         }
+    }
+
+    // ── Audio ─────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Starts or stops the optional lamp sound loop to match the given on state.
+    /// The loop is created as a child of this lamp through AudioManager's
+    /// Play3DLoop, so it is spatial, routed to the SFX3D bus and faded by the
+    /// background tracking system (MuteBackground/UnmuteBackground).
+    /// </summary>
+    private void ApplyAudio(bool on)
+    {
+        if (_audioClip == null) return;
+
+        if (on)
+        {
+            if (_audioSource == null)
+            {
+                _audioSource = AudioManager.Instance != null
+                    ? AudioManager.Instance.Play3DLoop(_audioClip, transform, _audioVolume, _audioMinDistance, _audioMaxDistance)
+                    : CreateFallbackAudioSource();
+            }
+            else if (!_audioSource.isPlaying)
+            {
+                _audioSource.Play();
+            }
+        }
+        else
+        {
+            StopAudio();
+        }
+    }
+
+    /// <summary>Fallback when no AudioManager exists in the scene: a plain local looping source.</summary>
+    private AudioSource CreateFallbackAudioSource()
+    {
+        var source = gameObject.AddComponent<AudioSource>();
+        source.clip = _audioClip;
+        source.loop = true;
+        source.spatialBlend = 1f;
+        // Linear rolloff so maxDistance is a hard cutoff, matching Play3DLoop.
+        source.rolloffMode = AudioRolloffMode.Linear;
+        source.volume = _audioVolume;
+        source.minDistance = _audioMinDistance;
+        source.maxDistance = _audioMaxDistance;
+        source.playOnAwake = false;
+        source.Play();
+        return source;
+    }
+
+    /// <summary>Stops and releases the lamp sound loop. Safe to call when no sound was started.</summary>
+    private void StopAudio()
+    {
+        if (_audioSource == null) return;
+        if (AudioManager.Instance != null)
+        {
+            // Handles both Play3DLoop-created sources and pre-configured ones.
+            AudioManager.Instance.UnregisterLoopSource(_audioSource);
+            if (_audioSource != null) Destroy(_audioSource.gameObject);
+        }
+        else
+        {
+            _audioSource.Stop();
+            Destroy(_audioSource);
+        }
+        _audioSource = null;
     }
 
     // ── Flicker ───────────────────────────────────────────────────────────────

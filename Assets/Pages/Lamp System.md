@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 3 -->
 
 ## Overview
 
@@ -70,6 +70,18 @@ CeilingSpot (чужой свет)       # указать в Extra Lights → у�
 | `Material Indices` | Слот материала на рендерер (элемент i → renderers[i]). Вне диапазона → слот 0. |
 | `Emission Color` | Цвет свечения, умножается на emissive-карту. |
 | `Emission Intensity` | HDR-интенсивность. Больше 1 — bloom при наличии Volume. |
+| `Audio Clip` | Опциональный зацикленный звук лампы (гул/жужжание). Пусто — лампа беззвучна. |
+| `Audio Volume` | Громкость звука (0–1). |
+| `Audio Min/Max Distance` | Дистанции 3D-звука (linear rolloff, жёсткое затухание за max). |
+
+---
+
+## Звук (опционально)
+
+- `Audio Clip` задан → лампа при `SetActive(true)` запускает 3D-цикл через `AudioManager.Play3DLoop` (источник — ребёнок лампы, шина SFX3D, попадает под background-tracking: приглушается при `MuteBackground`, например в режиме стетоскопа).
+- При `SetActive(false)` и в `OnDestroy` — `UnregisterLoopSource` + удаление источника.
+- Без `AudioManager` в сцене — фолбэк на локальный `AudioSource` с теми же параметрами.
+- Звук не привязан к мерцанию: играет ровно, пока лампа логически включена.
 
 ---
 
