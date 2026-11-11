@@ -448,8 +448,8 @@ public class JournalUI : MonoBehaviour
         string pageKey = $"note.{data.localizationPrefix}.page{pageIndex}";
         TMP_Text[] texts = page.GetComponentsInChildren<TMP_Text>(true);
 
-        string pageText = Localization.Get(pageKey);
-        bool hasPageText = pageText != pageKey;
+        // Optional whole-page key: present only when every TMP of the page shares one text.
+        bool hasPageText = Localization.TryGet(pageKey, out string pageText);
 
         for (int i = 0; i < texts.Length; i++)
         {

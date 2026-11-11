@@ -434,8 +434,8 @@ public class DocumentUI : MonoBehaviour
         string pageKey = $"note.{prefix}";
         TMP_Text[] texts = _pages[index].GetComponentsInChildren<TMP_Text>(true);
 
-        string pageText = Localization.Get(pageKey);
-        bool hasPageText = pageText != pageKey;
+        // Optional whole-page key: present only when every TMP of the page shares one text.
+        bool hasPageText = Localization.TryGet(pageKey, out string pageText);
 
         for (int i = 0; i < texts.Length; i++)
         {
@@ -695,6 +695,10 @@ public class DocumentUI : MonoBehaviour
     private IEnumerator PageFlipRoutine(int fromIndex, int toIndex, bool forward)
     {
         _isAnimating = true;
+
+        // Localize the target page before it becomes visible — localization is
+        // applied at ShowPage for the opened page only, so flips must re-apply it.
+        ApplyLocalizedPageText(toIndex);
 
         if (forward)
         {
