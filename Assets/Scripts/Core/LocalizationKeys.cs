@@ -113,4 +113,17 @@ public static class LocalizationKeys
     public const string PuzzleFifteenMove = "ui.puzzle.fifteen.move";
     public const string PuzzleGeneratorFirst = "ui.puzzle.generator_first";
     public const string PuzzleNoFuse = "ui.puzzle.no_fuse";
+
+    // ── Journal category labels ─────────────────────────────────────────────
+    /// <summary>Prefix for journal category labels: journal.category.&lt;categoryNameKey&gt;.</summary>
+    public const string JournalCategoryPrefix = "journal.category.";
+    public const string JournalCategoryLearningCat = "journal.category.LearningCat";
+    public const string JournalCategoryMorrowCat = "journal.category.MorrowCat";
+    public const string JournalCategoryVeinCat = "journal.category.VeinCat";
+    public const string JournalCategorySuCat = "journal.category.SuCat";
+    public const string JournalCategoryHibaCat = "journal.category.HibaCat";
+    public const string JournalCategoryPirsCat = "journal.category.PirsCat";
+    public const string JournalCategoryBuravCat = "journal.category.BuravCat";
+    public const string JournalCategoryBarretCat = "journal.category.BarretCat";
+    public const string JournalCategoryEilerCat = "journal.category.EilerCat";
 }
