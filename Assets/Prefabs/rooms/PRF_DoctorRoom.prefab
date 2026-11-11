@@ -1960,6 +1960,7 @@ GameObject:
   - component: {fileID: 6932058322109603479}
   - component: {fileID: 8999284287539943244}
   - component: {fileID: 6951352146009958267}
+  - component: {fileID: 3453421011948122363}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -2024,6 +2025,20 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &3453421011948122363
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2202912339556873776}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c278be94eb58d1449b7d6cc9b708624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedImage
+  _key: laptop.wallpaper_login
+  _fallbackSprite: {fileID: 21300000, guid: 07aa0ec90438f9249baa2f41cc95ac21, type: 3}
 --- !u!1 &2258175307040256857
 GameObject:
   m_ObjectHideFlags: 0
@@ -3356,6 +3371,7 @@ MonoBehaviour:
   _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _showBlockedHint: 0
+  _lockedHintKey: ui.interact.locked
   _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
     \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
   _lockedHintCooldown: 2
@@ -5669,6 +5685,7 @@ GameObject:
   - component: {fileID: 8039335500346822875}
   - component: {fileID: 8463631585619210719}
   - component: {fileID: 6129840719866952622}
+  - component: {fileID: 5522779430564113030}
   m_Layer: 0
   m_Name: Background
   m_TagString: Untagged
@@ -5733,6 +5750,20 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &5522779430564113030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6032191212744834693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c278be94eb58d1449b7d6cc9b708624, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LocalizedImage
+  _key: laptop.wallpaper_desktop
+  _fallbackSprite: {fileID: 21300000, guid: 67b4958b8e129144385f750f75094c27, type: 3}
 --- !u!1 &6105322118783757830
 GameObject:
   m_ObjectHideFlags: 0
@@ -17269,7 +17300,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightSwitch
   _zoneId: MorrowOfice
   _defaultSwitchState: 0
-  _interactHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C"
+  _turnOnHint: "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
+  _turnOffHint: "\u0412\u044B\u043A\u043B\u044E\u0447\u0438\u0442\u044C"
   _noPowerHint: "\u041D\u0435\u0442 \u043F\u0438\u0442\u0430\u043D\u0438\u044F"
   _switchHandle: {fileID: 1643694384293580804}
   _handleRotationOn: {x: -20, y: 0, z: 0}
@@ -19266,6 +19298,10 @@ PrefabInstance:
     - target: {fileID: 6146684655915795732, guid: 9ae9cd7e4ee45b942b7d34ad2be02ad5, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 33280
+      objectReference: {fileID: 0}
+    - target: {fileID: 7877143702991089789, guid: 9ae9cd7e4ee45b942b7d34ad2be02ad5, type: 3}
+      propertyPath: m_fontSize
+      value: 0.06
       objectReference: {fileID: 0}
     - target: {fileID: 5774190469570824721, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -25467,6 +25503,10 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 33280
       objectReference: {fileID: 0}
+    - target: {fileID: 7877143702991089789, guid: 469d705e85d2b9e4caaf059332b107e7, type: 3}
+      propertyPath: m_fontSize
+      value: 0.06
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -26599,7 +26639,9 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 33280
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 54765271615074284, guid: 81d853af469682b4ea94324303cd2a66, type: 3}
+    - {fileID: 64058671968768638, guid: 81d853af469682b4ea94324303cd2a66, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

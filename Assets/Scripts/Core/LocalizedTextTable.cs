@@ -25,6 +25,19 @@ public class LocalizedTextTable : ScriptableObject
 
     private Dictionary<string, string> _lookup;
 
+    /// <summary>Editor-only helper: sets the value for a key (adds the entry if missing) and invalidates the lookup.</summary>
+    public void SetValueForEdit(string key, string value)
+    {
+        OnEnable();
+        for (int i = 0; i < entries.Count; i++)
+        {
+            if (entries[i].key == key) { entries[i].value = value; _lookup = null; OnEnable(); return; }
+        }
+        entries.Add(new TextEntry { key = key, value = value });
+        _lookup = null;
+        OnEnable();
+    }
+
     /// <summary>Builds the lookup dictionary once per play session / asset load.</summary>
     private void OnEnable()
     {

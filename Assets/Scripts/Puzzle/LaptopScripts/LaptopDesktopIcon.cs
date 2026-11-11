@@ -28,7 +28,7 @@ namespace EscapeOf.Puzzle.Laptop
 
             if (_file == null) return;
             if (_icon  != null) _icon.sprite = _file.fileIcon;
-            if (_label != null) _label.text  = _file.fileName;
+            if (_label != null) _label.text  = _file.DisplayName;
         }
 
         private void OnClicked()

@@ -61,6 +61,8 @@ public static class LocalizationKeys
     // ── UI: laptop ──────────────────────────────────────────────────────────
     public const string LaptopAccessGranted = "ui.laptop.access_granted";
     public const string LaptopWrongPassword = "ui.laptop.wrong_password";
+    /// <summary>Prefix for laptop file display names: laptop.file.&lt;id&gt;.</summary>
+    public const string LaptopFilePrefix = "laptop.file.";
 
     // ── UI: drop hints ──────────────────────────────────────────────────────
     public const string DropSwipeCard = "ui.drop.swipe_card";
