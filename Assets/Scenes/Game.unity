@@ -21172,6 +21172,14 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 7534817990010337489, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: _triggerZones.Array.data[2].VisibleRooms.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7534817990010337489, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+      propertyPath: '_triggerZones.Array.data[2].VisibleRooms.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2064101634}
     - target: {fileID: 7551795046519509026, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
       propertyPath: _runSpeed
       value: 7
@@ -22973,28 +22981,28 @@ MonoBehaviour:
   _patrolSpeedMultiplierRange: {x: 1, y: 1.6}
   _speedChangeIntervalRange: {x: 5, y: 12}
   _speedBlendDuration: 2
-  _switchFlipChance: 0.25
+  _switchFlipChance: 0.15
   _switchOffPreference: 0.7
   _switchInteractRadius: 10
-  _switchFlipCooldown: 90
-  _switchPrankInterval: 30
-  _throwChance: 0.25
+  _switchFlipCooldown: 180
+  _switchPrankInterval: 45
+  _throwChance: 0.15
   _throwSearchRadius: 6
   _throwSpeedRange: {x: 4, y: 7}
   _throwUpwardSpeedRange: {x: 1.5, y: 3.5}
   _maxThrowableMass: 15
   _pileDetectionRadius: 2
   _pileMinCount: 3
-  _throwCooldown: 120
-  _throwAttemptInterval: 40
-  _doorChance: 0.5
+  _throwCooldown: 240
+  _throwAttemptInterval: 60
+  _doorChance: 0.3
   _doorSearchRadius: 8
   _doorSlamChance: 0.3
   _nudgeFractionRange: {x: 0.25, y: 0.5}
   _nudgeDurationRange: {x: 0.8, y: 1.5}
   _slamDurationRange: {x: 0.6, y: 1}
-  _doorCooldown: 60
-  _doorAttemptInterval: 12
+  _doorCooldown: 150
+  _doorAttemptInterval: 45
   _huntUnlockPuzzle: {fileID: 147814335}
   _visionCheckInterval: 0.15
 --- !u!82 &1975935955
@@ -24028,6 +24036,17 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2064101634 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8479196830118734615, guid: c40a59123f32a114d81785bc8adeb1e2, type: 3}
+  m_PrefabInstance: {fileID: 1777402938}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31f7f6272ec384d4098d7596f23445ea, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RoomController
 --- !u!1 &2067256572
 GameObject:
   m_ObjectHideFlags: 0
