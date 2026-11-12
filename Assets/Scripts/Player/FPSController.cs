@@ -22,6 +22,10 @@ public class FPSController : MonoBehaviour, ISaveable
              "micro-leave-ground events (stairs, slopes, small bumps) and the " +
              "isGrounded flicker while sliding along walls.")]
     [SerializeField] private float minAirTimeForLanding = 0.15f;
+    [Tooltip("Minimal downward speed (m/s) at impact for a landing to register. Real jumps land " +
+             "at ~jumpForce m/s and higher, while stair micro-falls stay below ~3.5 m/s — " +
+             "this filters out the false landing sounds while running on stairs.")]
+    [SerializeField] private float minFallSpeedForLanding = 4f;
 
     [Header("Crouching")]
     [SerializeField] private float standingHeight = 2f;
@@ -570,7 +574,7 @@ public class FPSController : MonoBehaviour, ISaveable
         {
             // Fire landing event if the character was airborne long enough
             // (a real fall/jump, not a flicker while sliding on a wall).
-            if (_airTime >= minAirTimeForLanding)
+            if (_airTime >= minAirTimeForLanding && -_verticalVelocity >= minFallSpeedForLanding)
                 OnLanded?.Invoke(-_verticalVelocity);
 
             _airTime = 0f;
