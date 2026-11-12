@@ -525,7 +525,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &6214179184120725281
 Transform:
   m_ObjectHideFlags: 0
@@ -557,8 +557,15 @@ MonoBehaviour:
   _cutLinkName: Chain0
   _cutImpulse: 0.3
   _linkMass: 0.2
-  _swingLimit: 60
-  _twistLimit: 40
+  _solverIterations: 30
+  _solverVelocityIterations: 15
+  _maxDepenetrationVelocity: 0.5
+  _projectionDistance: 0.02
+  _projectionAngle: 30
+  _initialDropSpeed: 1.5
+  _dropSoundDelay: 0.5
+  _settleTimeout: 2
+  _linkOrder: 0
   _demoDoorTugBreak: 1
   _demoDoor: {fileID: 0}
   _demoBreakDelay: 0.05
@@ -2157,11 +2164,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2300000, guid: e0313b7c18c89044da25699e1e6aef3b, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2560
+      value: 16777728
       objectReference: {fileID: 0}
     - target: {fileID: 2300002, guid: e0313b7c18c89044da25699e1e6aef3b, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2560
+      value: 16777728
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3973,7 +3980,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2300000, guid: 67c506bb6cd81e6468fe475ab3f5e35b, type: 3}
       propertyPath: m_RenderingLayerMask
-      value: 2560
+      value: 16777728
       objectReference: {fileID: 0}
     - target: {fileID: 2300000, guid: 67c506bb6cd81e6468fe475ab3f5e35b, type: 3}
       propertyPath: 'm_Materials.Array.data[2]'
