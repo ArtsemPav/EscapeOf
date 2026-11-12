@@ -9,7 +9,7 @@ using UnityEngine;
 public static class ImpactSoundLoadGate
 {
     /// <summary>Seconds after a scene load during which collision sounds are suppressed.</summary>
-    private const float SettleGraceSeconds = 1f;
+    private const float SettleGraceSeconds = 3f;
 
     /// <summary>Scaled time (Time.time) of the most recent scene-load registration.</summary>
     private static float _sceneLoadTime;

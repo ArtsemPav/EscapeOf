@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 3 -->
 
 ## Обзор
 
@@ -102,7 +102,7 @@ Elevator (root, Collider isTrigger)      # триггер входа игрок�
 
 | Поле                                          | Описание                                                                                               |
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `_ambientClip` / `_ambientVolume`             | Эмбиент в кабине, играет всегда (default: 0.5); при потере питания громкость → 0                       |
+| `_ambientClip` / `_ambientVolume`             | Эмбиент в кабине — играет только пока игрок внутри и есть питание (default: 0.5)                       |
 | `_ambientMinDistance` / `_ambientMaxDistance` | Дистанции эмбиента (default: 1 / 3)                                                                    |
 | `_musicFadeDuration`                          | Время «приглушения» игровой музыки при входе/выходе (`MusicDirector.DuckActiveTrack`) (default: 2 сек) |
 
@@ -145,7 +145,7 @@ MoveSequence:
 
 **Триггер и питание:**
 
-- `OnTriggerEnter/Exit(FPSController)`: отмена/запуск авто-закрытия, `MusicDirector.DuckActiveTrack` (музыка приглушается в лифте).
+- `OnTriggerEnter/Exit(FPSController)`: отмена/запуск авто-закрытия, `MusicDirector.DuckActiveTrack` (музыка приглушается в лифте), старт/стоп эмбиента через `UpdateAmbientState`.
 - `HasDraggablesInside()`: физический `Physics.OverlapBoxNonAlloc` по объёму `_cabinTrigger` (для `BoxCollider` — точный ориентированный бокс; иначе — мировые bounds), ищет `PhysicsDraggable` в родителях найденных коллайдеров. Предмет в кабине (любым способом) блокирует закрытие дверей; после 10 с ожидания рейс отменяется.
 - `OnPowerStateChanged(isPowered)`: `HasPower = isPowered`; эмбиент заглушается/возвращается. Регистрация в `LightingSystem.RegisterConsumer` — состояние приходит сразу при регистрации.
 - Авто-закрытие: через `_autoCloseDelay`, не срабатывает при игроке внутри или идущей поездке.
@@ -200,6 +200,39 @@ MoveSequence:
 
 ---
 
+## Звук лифта и настройки импорта клипов
+
+Источники звука (все — 3D, Linear rolloff, без doppler/reverb, регистрируются в `AudioManager`):
+
+```
+ElevatorAmbient (создаётся в Awake, ребёнок кабины)
+└── S_ElevatorSound.aif — эмбиент кабины, 3D-луп (min 1 / max 5 м)
+    играет ТОЛЬКО пока игрок внутри триггера и есть питание
+    (OnTriggerEnter → UpdateAmbientState → Play())
+
+Elevator3DLoop (создаётся на время MoveCabin, уничтожается по прибытии)
+└── S_ElevatorRide02.aif — гул хода, 3D-луп
+
+One-shot через AudioManager.Play3DOneShot (позиция кабины)
+├── S_Dooropen.aif — старт открытия/закрытия дверей (AnimateDoors)
+└── S_ElevatorBellDing.aif — прибытие на этаж
+```
+
+Отдельно от SFX вход/выход из триггера вызывает `MusicDirector.DuckActiveTrack` — игровая музыка плавно приглушается до 0 и восстанавливается до 1 (корутина по `unscaledDeltaTime`, фриза не даёт).
+
+**Настройки импорта** (файлы в `Assets/sound/elevator/`) — важны, чтобы не было фриза при входе в лифт:
+
+| Клип | Размер | Load Type | Load In Background | Preload Audio Data |
+| --- | --- | --- | --- | --- |
+| `S_ElevatorSound.aif` (эмбиент-луп) | 26 МБ / ~2.5 мин | **Streaming** | **true** | false |
+| `S_ElevatorRide02.aif` (луп хода) | 5 МБ | **Streaming** | **true** | false |
+| `S_Dooropen.aif` | 0.5 МБ | DecompressOnLoad | false | **true** |
+| `S_ElevatorBellDing.aif` | 0.5 МБ | DecompressOnLoad | false | **true** |
+
+Почему так: эмбиент стартует ровно в момент входа в триггер. При `DecompressOnLoad` без прелоада Unity в этот кадр на **главном потоке** загружает и полностью декомпрессирует клип — 26 МБ Vorbis давали многосекундный фриз. `Streaming` декодирует на рабочем потоке, `Load In Background` убирает блокировку загрузки. Короткие one-shot'ы оставлены на `DecompressOnLoad` + `preloadAudioData` — они малы и декомпрессируются заранее.
+
+---
+
 ## Взаимодействие с другими системами
 
 
@@ -218,3 +251,4 @@ MoveSequence:
 - Двери — кинематический лерп: если предмет «прорвался» в зону закрытия, створки пройдут сквозь него.
 - При отмене рейса по таймауту двери остаются в исходном состоянии, гравитация игрока возвращается, `_isBusy` сбрасывается — повторный вызов возможен сразу.
 - Свечение свитча — подмена `sharedMaterial`; эмиссию `elevatorMat_emit` смотреть при выключенном пост-процессинге не обязательно — она видна и в базовом виде.
+- Длинные аудио-лупы лифта (`S_ElevatorSound`, `S_ElevatorRide02`) обязаны быть в `Streaming + Load In Background` — при возврате на `DecompressOnLoad` без прелоада возвращается фриз при входе в кабину (декомпрессия на главном потоке в кадре первого `Play()`).

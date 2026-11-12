@@ -52,6 +52,11 @@ public class DelayedActionSequence : MonoBehaviour
         }
         _sequenceRoutine = null;
 
+        // Restored transitions (e.g. removed walls) can drop props that were already
+        // lying still in the saved state; extend the impact-sound grace so the
+        // re-settle replays silently.
+        ImpactSoundLoadGate.RegisterSceneLoad();
+
         if (_actions == null)
         {
             return;

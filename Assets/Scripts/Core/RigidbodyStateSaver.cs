@@ -69,6 +69,9 @@ public class RigidbodyStateSaver : MonoBehaviour, ISaveable
         else if (!_rigidbody.isKinematic)
         {
             // Kinematic bodies ignore velocity writes (Unity 6 warns about them), so skip them.
+            // Do NOT Sleep() here: rigidbody.position/rotation sync to the Transform on the
+            // next physics step, and a body put to sleep before that step never updates the
+            // visible pose (it stays at the pre-teleport position).
             _rigidbody.linearVelocity = Vector3.zero;
             _rigidbody.angularVelocity = Vector3.zero;
         }

@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Обзор
 
@@ -224,3 +224,12 @@ HandleSolved()
 - Если **Tick Clip** имеет Load Type Streaming, `AnalyzePeaks` не сможет прочитать сэмплы — маятник перейдёт на фолбэк-частоту.
 - При загрузке решённой загадки визуальное состояние восстанавливается без звука: `StartOnSolve` — тик без звона и маятник качается; `StopOnSolve` — маятник остановлен; сдвиг применяется мгновенно, без анимации.
 - Решение загадки внутри `ProcessInput` может вызвать выход из режима загадки в том же кадре — `ClockHand.Update` перепроверяет `_puzzleMode.IsActive`, чтобы не перезаписать сброшенный курсор UI.
+
+## Интеграция с открытием прохода (Room 4)
+
+Пример из сцены `Game.unity` (`/Env/2ndFloor/Room 4`): решение загадки часов открывает проход в Room 5.
+
+- События `PuzzleModeController` (`OnPuzzleSolved` / `OnPuzzleSolvedRestored`) ведут на `DelayedActionSequence` (`Assets/Scripts/Core/DelayedActionSequence.cs`). Решение: через 10 секунд скрываются две полустены (`GameObjectActiveSetter.SetActiveState`), включается `ProemDoor` и открывается `OcclusionPortal` (`OcclusionPortalOpener.SetOpenState`).
+- Параллельно с той же задержкой запускается пылевой эффект `FX_DustPuff_Room4To5` (префаб `Assets/Prefabs/vfx/PRF_FallDustBurst.prefab`) через `ParticleSystemActivator.ActivateAndPlay` (`Assets/Scripts/Effects/ParticleSystemActivator.cs`) — компонент включает выключенный объект и вызывает `ParticleSystem.Play()` (Play On Awake отключён, чтобы пыль не срабатывала при загрузке).
+- При восстановлении решённой загадки событие ведёт на отдельную мгновенную последовательность (`RunInstant`): стена перестраивается сразу, пыль не проигрывается. `RunInstant` дополнительно вызывает `ImpactSoundLoadGate.RegisterSceneLoad()` — расширяет окно тишины для импакт-звуков (см. Audio System).
+- Физические объекты вокруг (часы `mansionClock`, подушка и шлем в Room 5) несут `RigidbodyStateSaver` — лежачие позы после падения сохраняются и восстанавливаются при загрузке. `DelayedSaveAfterSettle` (`Assets/Scripts/Core/DelayedSaveAfterSettle.cs`) откладывает `Save()` после решения, чтобы снять позы уже после физического падения; на восстановлении сохраняет мгновенно.

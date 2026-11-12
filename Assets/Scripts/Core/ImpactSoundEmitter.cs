@@ -29,6 +29,9 @@ public class ImpactSoundEmitter : MonoBehaviour
     [Tooltip("Seconds between impacts during which new impacts are ignored.")]
     [SerializeField] private float _cooldown = 0.15f;
 
+    [Tooltip("If enabled, a new impact sound is skipped while the previous one is still playing, so overlapping copies of the same clip are never stacked.")]
+    [SerializeField] private bool _skipWhilePlaying = true;
+
     [Header("Spatial")]
     [Tooltip("3D spread of the sound. 1 = fully positional (default).")]
     [SerializeField] [Range(0f, 1f)] private float _spatialBlend = 1f;
@@ -62,6 +65,7 @@ public class ImpactSoundEmitter : MonoBehaviour
         if (ImpactSoundLoadGate.ShouldSuppress) return;
         if (_impactClips == null || _impactClips.Length == 0) return;
         if (Time.time - _lastImpactTime < _cooldown) return;
+        if (_skipWhilePlaying && _audioSource.isPlaying) return;
 
         float impactVelocity = collision.relativeVelocity.magnitude;
         if (impactVelocity < _minImpactVelocity) return;
