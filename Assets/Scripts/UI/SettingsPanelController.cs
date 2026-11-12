@@ -209,6 +209,6 @@ public class SettingsPanelController : MonoBehaviour
     private void RefreshLanguageLabel()
     {
         if (_languageLabel != null)
-            _languageLabel.text = Localization.Get("ui.settings.language") + " " + LocalizationSettings.Current;
+            _languageLabel.text = Localization.Get(LocalizationKeys.SettingsLanguage) + " " + LocalizationSettings.Current.DisplayName();
     }
 }

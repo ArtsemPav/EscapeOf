@@ -1,4 +1,4 @@
-<!-- version: 6 -->
+<!-- version: 7 -->
 
 Лёгкая собственная система локализации: две строки кода на каждую локализуемую сущность вместо сторонних пакетов. Русский — язык по умолчанию; английский подключён вторым. Тексты и картинки с текстом (страницы ноутбука, фото, белборды) локализуются раздельно.
 
@@ -66,10 +66,6 @@ Assets/Data/Localization
 
 Тексты устройств (тултипы центрифуги, горелки, миксера, анализатора, раковины) хранятся в таблицах под `puzzle.synthesis.<device>_title/.desc`. `DeviceTooltipInfo` содержит только поля-ключи (`centrifugeTitleKey`, …) с дефолтами из `LocalizationKeys` — текстовых полей нет; `ChemicalSynthesisController.ShowDeviceTooltip` резолвит их через `ResolveTitle/ResolveDescription`. Результат анализа (`AnalyzerController`) показывает `ItemData.LocalizedName/LocalizedDescription` — имена соединений идут по ключам `item.<имя ассета колбы>.name/.desc` (в т.ч. `Unknown*` варианты). Вердикт успеха — `puzzle.synthesis.success`.
 
-## Локализация предметов (item.*)
-
-Имя и описание предмета строятся из **имени ассета**: ключ `item.<имя ассета>.name/.desc` (`ItemDataSO.LocalizationKeyPrefix = "item."`). При отсутствии ключа — фолбэк на серийные `itemName`/`description`. Правило: имя ассета — только латиница; кириллица в имени (например, кириллическая «С» вместо `C`) попадает в ключ и ломает поиск, а `ItemId` в ассете задан явно и от имени файла не зависит. Пример: `DataCanister.asset` → `item.DataCanister.name`.
-
 ## Паттерн «ключ в инспекторе»
 
 У интеракторов нет serialized-полей с текстом — только ключ локализации (по умолчанию — общий ключ из `LocalizationKeys`):
@@ -80,18 +76,27 @@ Assets/Data/Localization
 
 Текст существует в одном источнике — таблицах; уникальные подписи конкретных объектов (кнопки лифта, рубильники, химические кнопки) подключаются собственными ключами `ui.interact.*`, назначенными в инспекторе префаба.
 
+## Локализация предметов (item.*)
+
+Имя и описание предмета строятся из **имени ассета**: ключ `item.<имя ассета>.name/.desc` (`ItemDataSO.LocalizationKeyPrefix = "item."`). При отсутствии ключа — фолбэк на серийные `itemName`/`description`. Правило: имя ассета — только латиница; кириллица в имени (например, кириллическая «С» вместо `C`) попадает в ключ и ломает поиск, а `ItemId` в ассете задан явно и от имени файла не зависит. Пример: `DataCanister.asset` → `item.DataCanister.name`.
+
 ## Смена языка в UI
 
 Кнопка в `SettingsPanelController` циклит enum `Language` через `LocalizationSettings.SetLanguage(...)`; компоненты перерисовываются сами. Значения, которые ставит код (лейблы громкости, `ResolutionButton`, `FrameRateButton`, язык, `WindowModeButton`), `LocalizedTMP` не получает — их обновляет сам контроллер после смены языка.
 
+## Строка «Язык: …» в настройках
+
+Строку целиком собирает `SettingsPanelController.RefreshLanguageLabel`: префикс — ключ `ui.settings.language` («ЯЗЫК:» / «LANGUAGE:»), название — `LocalizationSettings.Current.DisplayName()`. Метод расширения `LanguageExtensions.DisplayName` (`Language.cs`) берёт **самоназвание** языка из таблицы по ключу `ui.settings.language_name.<имя enum>` («РУССКИЙ», «ENGLISH» — значения одинаковы в обеих таблицах, самоназвания не зависят от текущего языка UI); при отсутствии ключа — фолбэк на имя enum. Новый язык получает строку автоматически, достаточно добавить ключ `ui.settings.language_name.<Имя>` в обе таблицы и константу-префикс не трогать (`LocalizationKeys.LanguageNamePrefix`).
+
 ## Статус перевода (En)
 
-Таблица `En.asset` переведена полностью: UI-строки, подсказки, FTUE, все записки, книги и категории журнала; наборы ключей Ru и En идентичны (по 481 записи, сверены автоматически — одинаковые наборы, без пустых значений и дублей). Руны — по стандартным английским трактовкам Старшего Футарка; подсказки клавиш в FTUE и разметка `\n`/`<b>`/`<font>`/`<sprite>` сохранены. Дубликаты ключей резолвятся по первой записи (`LocalizedTextTable.TryGet`). Последняя синхронизация: `ui.interact.horror_phone` (Pick up the receiver), `ui.interact.press_safe` (Rotate), `laptop.file.new_document` → File, ключ канистры нормализован в `item.DataCanister.name`.
+Таблица `En.asset` переведена полностью: UI-строки, подсказки, FTUE, все записки, книги и категории журнала; наборы ключей Ru и En идентичны (по 484 записи, сверены автоматически — одинаковые наборы, без пустых значений и дублей). Руны — по стандартным английским трактовкам Старшего Футарка; подсказки клавиш в FTUE и разметка `\n`/`<b>`/`<font>`/`<sprite>` сохранены. Дубликаты ключей резолвятся по первой записи (`LocalizedTextTable.TryGet`). Последняя синхронизация: `ui.interact.horror_phone` (Pick up the receiver), `ui.interact.press_safe` (Rotate), `laptop.file.new_document` → File, ключ канистры нормализован в `item.DataCanister.name`, добавлены самоназвания языков `ui.settings.language_name.*`.
 
 ## Чеклист при добавлении нового языка
 
 1. Создай `Assets/Data/Localization/Resources/Localization/<Код>.asset` (`Create → Escape → Escape/Localized Text Table`), имя файла = имя enum-значения `Language`.
 2. При наличии спрайтов — аналогично `<Код>Sprites.asset`.
 3. Добавь значение в enum `Language` — именно по нему работает переключатель в настройках.
+4. Добавь самоназвание `ui.settings.language_name.<Имя enum>` в обе таблицы (в обеих — одинаковое нативное написание).
 
 &nbsp;

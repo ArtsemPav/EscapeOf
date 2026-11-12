@@ -16,6 +16,9 @@ public static class LocalizationKeys
     public const string SettingsSfxVolume = "ui.settings.sfx_volume";
     public const string SettingsLanguage = "ui.settings.language";
 
+    /// <summary>Prefix for displayed language names: ui.settings.language_name.&lt;enum name&gt;.</summary>
+    public const string LanguageNamePrefix = "ui.settings.language_name.";
+
     // ── UI: interaction hints ───────────────────────────────────────────────
     public const string InteractApply = "ui.interact.apply";
     public const string InteractRotate = "ui.interact.rotate";
