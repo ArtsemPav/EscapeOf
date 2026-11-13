@@ -19,6 +19,7 @@ namespace EscapeOf.Puzzle.Laptop
         [SerializeField] private LaptopAudioWindow    _audioWindowPrefab;
         [SerializeField] private LaptopVideoWindow    _videoWindowPrefab;
         [SerializeField] private LaptopDocumentWindow _documentWindowPrefab;
+        [SerializeField] private LaptopSlotMachineWindow _slotMachineWindowPrefab;
 
         [Header("All Files")]
         [Tooltip("All LaptopFileData assets available on this desktop. Used to restore the open window on load.")]
@@ -142,6 +143,7 @@ namespace EscapeOf.Puzzle.Laptop
             else if (file is LaptopAudioFile) prefab = _audioWindowPrefab;
             else if (file is LaptopVideoFile) prefab = _videoWindowPrefab;
             else if (file is LaptopDocumentFile) prefab = _documentWindowPrefab;
+            else if (file is LaptopSlotMachineFile) prefab = _slotMachineWindowPrefab;
 
             if (prefab == null)
             {

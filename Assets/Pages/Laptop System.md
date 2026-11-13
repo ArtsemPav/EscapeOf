@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 ## Обзор
 
@@ -147,6 +147,7 @@ IPowerConsumer.OnPowerStateChanged(true):
 | `_audioWindowPrefab`    | Префаб аудиоплеера (`LaptopAudioWindow`)                                                          |
 | `_videoWindowPrefab`    | Префаб видеоплеера (`LaptopVideoWindow`)                                                          |
 | `_documentWindowPrefab` | Префаб многостраничного документа (`LaptopDocumentWindow`)                                        |
+| `_slotMachineWindowPrefab` | Префаб мини-игры слот-машины (`LaptopSlotMachineWindow`)                                       |
 | `_allFiles`             | Все `LaptopFileData`-ассеты этого рабочего стола — нужен для `TryOpenFileById` при загрузке сейва |
 
 
@@ -201,6 +202,7 @@ IPowerConsumer.OnPowerStateChanged(true):
 | `LaptopAudioWindow`    | `LaptopAudioWindow.cs`    | `_timeDisplay`, `_playButton` / `_pauseButton` / `_stopButton`, `_progressSlider`, `_visualizerMaterial`, `_smoothness` 15, `_spectrumMultiplier` 50, `_audioSource` | Play/Pause/Stop, слайдер перемотки, спектр-визуализатор: 8 полос → `Material.SetFloatArray("_Bands")` для UI/шейдерного визуализатора                |
 | `LaptopVideoWindow`    | `LaptopVideoWindow.cs`    | `_videoDisplay` (RawImage), `_timeDisplay`, кнопки Play/Pause/Stop, `_progressSlider`, `_videoPlayer` (VideoPlayer)                                                  | VideoPlayer рендерит в runtime `RenderTexture` размером с клип; текстура освобождается в `OnClose`/`OnDestroy`                                       |
 | `LaptopDocumentWindow` | `LaptopDocumentWindow.cs` | `_pageTemplate` (Image-шаблон), `_pageCounter` (TMP_Text), `_scrollRect`                                                                                             | Инстанцирует страницу на каждый спрайт `pages[]` с `AspectRatioFitter`, между страницами — чёрный разделитель (8 px), счётчик страниц, скролл наверх |
+| `LaptopSlotMachineWindow` | `LaptopSlotMachineWindow.cs` | `_reelViewports` (3 маскированных окна), `_balanceText`, `_betText`, `_winText`, `_messageText`, `_spinButton`, `_increaseBetButton` / `_decreaseBetButton`, `_paytableButton`, `_popupOverlay` + титул/сабтайтл, `_betOptions` 1/2/5 | Мини-игра слот-машины; файл — `LaptopSlotMachineFile`. Подробно: [@ id="/Pages/Private/Slot Machine Minigame System.md" label="Slot Machine Minigame System"] |
 
 
 `LaptopAudioWindow` и `LaptopVideoWindow` переопределяют `OnPuzzleExited()` — пауза воспроизведения при выходе из puzzle mode. Аудиоисточник без mixer-группы маршрутизируется в SFX-шину `AudioManager`.
@@ -235,7 +237,8 @@ LaptopFileData (abstract ScriptableObject)
 ├── LaptopImageFile      — image: Sprite
 ├── LaptopAudioFile      — clip: AudioClip
 ├── LaptopVideoFile      — clip: VideoClip
-└── LaptopDocumentFile   — pages: Sprite[]   (многостраничный документ)
+├── LaptopDocumentFile   — pages: Sprite[]   (многостраничный документ)
+└── LaptopSlotMachineFile — конфиг мини-игры слот-машины (символы, ленты, пейтабл, экономика)
 ```
 
 **Поля базового класса `LaptopFileData**`
@@ -256,7 +259,7 @@ LaptopFileData (abstract ScriptableObject)
 
 ## Как добавить контент (новый файл)
 
-1. ПКМ в Project → `Create → Laptop → Text File / Image File / Audio File / Video File / Document File`.
+1. ПКМ в Project → `Create → Laptop → Text File / Image File / Audio File / Video File / Document File / Slot Machine Config`.
 2. Заполнить `fileName`, `fileIcon` и контент.
 3. Нажать **Set Random File ID** в инспекторе (один раз).
 4. Добавить ассет в массив `_allFiles` окна `LaptopWindowManager`.
