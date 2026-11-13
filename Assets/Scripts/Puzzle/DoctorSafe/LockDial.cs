@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// Direction of dial rotation.
 /// </summary>
-public enum RotationDirection { Clockwise, CounterClockwise }
+public enum RotationDirection { CounterClockwise, Clockwise }
 
 /// <summary>
 /// Represents one step in a combination lock sequence.
