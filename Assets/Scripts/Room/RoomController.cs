@@ -131,12 +131,22 @@ public class RoomController : MonoBehaviour
 
         foreach (var renderer in renderers)
         {
-            // Dynamic physics props (draggables) never cull with the room — the player
-            // can carry them out of the room's volume before it gets suppressed.
-            if (renderer != null && renderer.transform.GetComponentInParent<PhysicsDraggable>() != null)
+            if (renderer == null) continue;
+
+            // Signs own their visibility (flashlight-cone shaders). Room culling must
+            // never force-enable them: a re-enabled sign renders with a stale cone
+            // mask from its MaterialPropertyBlock and glows in fragments under the
+            // wrong flashlight lens after the room is culled and reactivated.
+            if (renderer.GetComponent<HiddenWallSign>() != null ||
+                renderer.GetComponent<HiddenWallSignTMP>() != null)
                 continue;
 
-            if (renderer != null && renderer.enabled)
+            // Dynamic physics props (draggables) never cull with the room — the player
+            // can carry them out of the room's volume before it gets suppressed.
+            if (renderer.transform.GetComponentInParent<PhysicsDraggable>() != null)
+                continue;
+
+            if (renderer.enabled)
                 managed.Add(renderer);
         }
 

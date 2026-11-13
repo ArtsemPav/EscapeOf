@@ -2513,6 +2513,7 @@ MonoBehaviour:
   _audioWindowPrefab: {fileID: 5576505466544408403, guid: f5dada0c397132d43abd254a7332d924, type: 3}
   _videoWindowPrefab: {fileID: 3553811217456162597, guid: 523cc1c626700ab48ab51e666555e56f, type: 3}
   _documentWindowPrefab: {fileID: 7579156776587020393, guid: 111babcd062eee9499ac30a7208b087c, type: 3}
+  _slotMachineWindowPrefab: {fileID: 0}
   _allFiles:
   - {fileID: 11400000, guid: a7dc25fe0bdf16147838fc320563ca47, type: 2}
   - {fileID: 11400000, guid: b0d725ffb60b6a944a86da5a47a7a536, type: 2}
@@ -12686,6 +12687,18 @@ PrefabInstance:
       propertyPath: _crosshairMode
       value: 5
       objectReference: {fileID: 0}
+    - target: {fileID: 931945493246045418, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
+      propertyPath: _lockedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+    - target: {fileID: 931945493246045418, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 185b601f094e52746ac9729f0e5cd2ac, type: 3}
+    - target: {fileID: 931945493246045418, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: c871e353816a4d4418220d784741e0ac, type: 3}
     - target: {fileID: 1744180957122676802, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.76
@@ -12726,6 +12739,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2226650384349381668, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
+      propertyPath: _lockedClip
+      value: 
+      objectReference: {fileID: 8300000, guid: e949d0fa44da85a44b395a2e706624b6, type: 3}
+    - target: {fileID: 2226650384349381668, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
+      propertyPath: _openLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 185b601f094e52746ac9729f0e5cd2ac, type: 3}
+    - target: {fileID: 2226650384349381668, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
+      propertyPath: _closeLoopClip
+      value: 
+      objectReference: {fileID: 8300000, guid: c871e353816a4d4418220d784741e0ac, type: 3}
     - target: {fileID: 6106111436314474271, guid: 23ab684728cb1a94785e45ce396dee8a, type: 3}
       propertyPath: m_Name
       value: NurseryLock
@@ -14334,10 +14359,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8858818614643377830}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 576
-      objectReference: {fileID: 0}
     - target: {fileID: 2879961062843070990, guid: fdb3e8181552f864e8786669edff860b, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 1536
@@ -14418,6 +14439,10 @@ PrefabInstance:
       propertyPath: m_fontSize
       value: 0.05
       objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 576
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -14481,10 +14506,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3783777046583996997}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 1333348191198451093, guid: ac746fdbd764b2e43bdb0839f20c5187, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 1536
@@ -14556,6 +14577,10 @@ PrefabInstance:
     - target: {fileID: 8760755627493391531, guid: ac746fdbd764b2e43bdb0839f20c5187, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 1536
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
       objectReference: {fileID: 0}
     - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
       propertyPath: m_RenderingLayerMask
