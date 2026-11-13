@@ -166,22 +166,22 @@ public class HiddenWallSignTMP : MonoBehaviour
         // unsubscribed was missed, so keep retrying the subscription here.
         if (!_subscribed) TrySubscribe();
 
-        // Self-heal: every visible frame re-check the actual flashlight state.
-        // Fixes the "sign glows in Normal mode" bug: the object was visible
-        // (UV flashlight / forced pulse), was deactivated by room culling or a
-        // cutscene, missed the mode-change event while inactive, and came back
-        // with renderer enabled still true.
-        if (_isVisible)
+        // Unconditional self-heal: re-check the actual flashlight state every frame,
+        // not only while the sign thinks it is visible. Room culling (RoomController.
+        // SetGeometryActive) force-enables managed renderers on room reactivation —
+        // including this sign's renderer with a stale cone MaterialPropertyBlock,
+        // which made fragments of the sign glow under the wrong flashlight lens.
         {
             var controllerNow = FlashlightController.Instance;
             bool shouldBeVisible = _shaderFound && (
                 (controllerNow != null && controllerNow.IsOn && controllerNow.CurrentMode == visibleInMode)
                 || _forcedAmount > 0f);
-            if (!shouldBeVisible)
+            if (shouldBeVisible != _isVisible)
             {
-                _isVisible = false;
-                _tmp.enabled = false;
-                return;
+                _isVisible = shouldBeVisible;
+                _tmp.enabled = shouldBeVisible;
+                if (!shouldBeVisible)
+                    return;
             }
         }
 
