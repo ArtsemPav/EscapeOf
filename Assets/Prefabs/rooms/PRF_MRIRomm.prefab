@@ -5838,6 +5838,10 @@ MonoBehaviour:
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
+  _audioClip: {fileID: 0}
+  _audioVolume: 1
+  _audioMinDistance: 1
+  _audioMaxDistance: 10
 --- !u!1 &2961868614162821234
 GameObject:
   m_ObjectHideFlags: 0
@@ -6440,6 +6444,10 @@ MonoBehaviour:
   _materialIndices: 
   _emissionColor: {r: 1, g: 1, b: 1, a: 1}
   _emissionIntensity: 1
+  _audioClip: {fileID: 0}
+  _audioVolume: 1
+  _audioMinDistance: 1
+  _audioMaxDistance: 10
 --- !u!1 &3161374881417270869
 GameObject:
   m_ObjectHideFlags: 0
@@ -7979,10 +7987,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MriUvCutscene
   _saveId: mri_room_uv_cutscene
   _lookTarget: {fileID: 7372808215669727795}
-  _turnSmoothTime: 0.7
-  _turnTimeout: 3
+  _turnSmoothTime: 0.45
+  _turnTimeout: 2
   _startDelay: 0.25
-  _holdAfterTurn: 0.5
+  _holdAfterTurn: 0.2
   _lampLights:
   - {fileID: 2926923716538084300}
   - {fileID: 3040124718587275743}
@@ -7993,7 +8001,7 @@ MonoBehaviour:
   _uvIntensityMultiplier: 1.6
   _uvEmissionColor: {r: 1.2, g: 0.2, b: 4, a: 1}
   _signsRoot: {fileID: 7372808215669727795}
-  _preFlickerDuration: 0.9
+  _preFlickerDuration: 0.5
   _pulseCount: 7
   _pulseOnRange: {x: 0.15, y: 0.45}
   _pulseOffRange: {x: 0.1, y: 0.35}
@@ -8318,15 +8326,15 @@ MonoBehaviour:
   _whiteEmissionColor: {r: 2.5, g: 2.5, b: 2.5, a: 1}
   _pulseWhitePop: 0.05
   _continuousStrobe: 1
-  _strobeDuration: 9
+  _strobeDuration: 5
   _blinkTime: {x: 0.08, y: 0.12}
   _blinkWhiteChance: 0.3
   _dollEveryNthFlash: 5
-  _strobeBagTime: 1.5
-  _strobeStandTime: 1.5
-  _strobeHandsTime: 4.5
-  _strobeLookTime: 7
-  _strobeDuckTime: 8
+  _strobeBagTime: 0.8
+  _strobeStandTime: 0.8
+  _strobeHandsTime: 2.2
+  _strobeLookTime: 3.4
+  _strobeDuckTime: 4.4
   _endJumpscare: 1
   _scareDarkGap: 1.9
   _scareDuration: 0.5
@@ -16803,7 +16811,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MriCutsceneButton
   _cutscene: {fileID: 1641616520167979036}
-  _hintText: "\u041D\u0430\u0436\u0430\u0442\u044C"
 --- !u!114 &3647543677264640471
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18889,6 +18896,60 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &5651797605688477134
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8059635070601411535}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 3
+  m_Size: {x: 0.04, y: 0.07, z: 0.03}
+  m_Center: {x: 0, y: 0, z: 0.006}
+--- !u!114 &3783855969295495931
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8059635070601411535}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19f7a20944ba4ee0a30de4d71f0693c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MriCutsceneResetButton
+  _cutscene: {fileID: 1641616520167979036}
+  _hintText: "[DEV] \u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u044E"
+--- !u!114 &6484239372062173934
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8059635070601411535}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17e1d2658ff02cc45a26050cb688e1c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
+  _pressTarget: {fileID: 0}
+  _axis: 1
+  _pressDepth: 0.25
+  _pressDuration: 0.06
+  _returnDuration: 0.12
+  _pressClip: {fileID: 0}
+  _pressVolume: 1
 --- !u!1 &8130022843380145806
 GameObject:
   m_ObjectHideFlags: 0
@@ -21098,57 +21159,3 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2062156931753243213, guid: 186419cabe1f4854bb9d2cf40f4d9b18, type: 3}
   m_PrefabInstance: {fileID: 6555731360592129188}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &5651797605688477134
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8059635070601411535}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.04, y: 0.07, z: 0.03}
-  m_Center: {x: 0, y: 0, z: 0.006}
---- !u!114 &3783855969295495931
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8059635070601411535}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 19f7a20944ba4ee0a30de4d71f0693c7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MriCutsceneResetButton
-  _cutscene: {fileID: 1641616520167979036}
-  _hintText: "[DEV] \u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0430\u043D\u0438\u043C\u0430\u0446\u0438\u044E"
---- !u!114 &6484239372062173934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8059635070601411535}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 17e1d2658ff02cc45a26050cb688e1c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ButtonPressAnimation
-  _pressTarget: {fileID: 0}
-  _axis: 1
-  _pressDepth: 0.25
-  _pressDuration: 0.06
-  _returnDuration: 0.12
-  _pressClip: {fileID: 0}
-  _pressVolume: 1
