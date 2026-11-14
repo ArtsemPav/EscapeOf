@@ -6,6 +6,9 @@ using UnityEngine;
 /// and plays a tick sound as a 3D one-shot at each extreme position.
 /// The tempo (beats per minute) is randomly changed once every
 /// _tempoChangeIntervalMinutes minutes within [_minBpm, _maxBpm].
+/// The tick plays through the object's own persistent AudioSource registered
+/// with AudioManager, so mute flows (MuteAmbience during the ending cutscene,
+/// MuteBackground events) silence it together with the rest of the world.
 /// </summary>
 public class MetronomeNeedle : MonoBehaviour
 {
@@ -30,6 +33,10 @@ public class MetronomeNeedle : MonoBehaviour
     [SerializeField, Min(1f)] private float _maxBpm = 110f;
 
     [Header("Sound")]
+    [Tooltip("Persistent AudioSource playing the tick one-shots. Lives on this object, " +
+             "so scene-wide mute sweeps (e.g. the ending's MuteAmbience) can pause it.")]
+    [SerializeField] private AudioSource _tickSource;
+
     [Tooltip("Tick clip played on every extreme position as a 3D one-shot at the needle position.")]
     [SerializeField] private AudioClip _tickSound;
 
@@ -60,6 +67,18 @@ public class MetronomeNeedle : MonoBehaviour
         _initialLocalRotation = transform.localRotation;
         _currentAngle = 0f;
         _secondsSinceLastTempoChange = 0f;
+
+        // Hand the tick source over to AudioManager: routes it to the SFX3D bus
+        // and tracks it, so MuteBackground/MuteAmbience flows silence the metronome.
+        // Spatial settings stay driven by the inspector fields.
+        if (_tickSource != null)
+        {
+            _tickSource.spatialBlend = 1f;
+            _tickSource.rolloffMode = AudioRolloffMode.Linear;
+            _tickSource.minDistance = _tickMinDistance;
+            _tickSource.maxDistance = _tickMaxDistance;
+            AudioManager.Instance?.RegisterLoopSource(_tickSource, _tickVolume);
+        }
     }
 
     private void Update()
@@ -114,17 +133,17 @@ public class MetronomeNeedle : MonoBehaviour
 
     // ── Sound ──────────────────────────────────────────────────────────────────
 
-    /// <summary>Plays the tick as a 3D one-shot at the needle's world position through AudioManager.</summary>
+    /// <summary>Plays the tick as a 3D one-shot at the needle's position through the object's own registered AudioSource.</summary>
     private void PlayTick()
     {
-        if (_tickSound == null)
+        if (_tickSource == null || _tickSound == null)
             return;
 
-        AudioManager.Instance?.Play3DOneShot(
-            _tickSound,
-            transform.position,
-            _tickVolume,
-            _tickMinDistance,
-            _tickMaxDistance);
+        // Skip scheduling while the source is paused by a mute sweep — queued
+        // one-shot voices would otherwise burst out when the source unpauses.
+        if (AudioListener.pause)
+            return;
+
+        _tickSource.PlayOneShot(_tickSound, _tickVolume);
     }
 }
