@@ -25,6 +25,10 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
     [Tooltip("Optional override. If not assigned, searched automatically via GetComponentInParent.")]
     [SerializeField] private LoopPuzzlePowerCircuit _powerCircuit;
 
+    [Tooltip("Power state source. If not assigned, searched automatically via GetComponentInParent. " +
+             "Column stays locked until ALL spotlights are powered (the switch part of the puzzle is solved).")]
+    [SerializeField] private LoopPuzzleController _puzzleController;
+
     [Header("Indicator")]
     [SerializeField] private Renderer _indicatorRenderer;
 
@@ -40,8 +44,9 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
     // ── Lock flags (independent reasons to block interaction) ──────────────────
     private bool _isLockedByPuzzle;
     private bool _isLockedByPower = true; // locked until S6 is ON
+    private bool _isLockedBySpotlights = true; // locked until all spotlights are powered
 
-    private bool IsBlocked => _isLockedByPuzzle || _isLockedByPower || PaintingColumn.IsAnyMoving;
+    private bool IsBlocked => _isLockedByPuzzle || _isLockedByPower || _isLockedBySpotlights || PaintingColumn.IsAnyMoving;
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
@@ -65,6 +70,9 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
         if (_powerCircuit == null)
             _powerCircuit = GetComponentInParent<LoopPuzzlePowerCircuit>();
 
+        if (_puzzleController == null)
+            _puzzleController = GetComponentInParent<LoopPuzzleController>();
+
         if (_powerCircuit != null)
         {
             _powerCircuit.OnMasterToggled += OnMasterPowerToggled;
@@ -75,6 +83,16 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
             _isLockedByPower = false;
             Debug.LogWarning("[PaintingColumnTrigger] LoopPuzzlePowerCircuit not found in parents. Power lock disabled.", this);
         }
+
+        if (_puzzleController != null)
+        {
+            _puzzleController.OnAllSpotlightsPoweredChanged += OnAllSpotlightsPoweredChanged;
+            _isLockedBySpotlights = !_puzzleController.AreAllSpotlightsPowered;
+        }
+        else
+        {
+            Debug.LogWarning("[PaintingColumnTrigger] LoopPuzzleController not found in parents. Spotlight lock disabled.", this);
+        }
     }
 
     private void OnDestroy()
@@ -84,6 +102,9 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
 
         if (_powerCircuit != null)
             _powerCircuit.OnMasterToggled -= OnMasterPowerToggled;
+
+        if (_puzzleController != null)
+            _puzzleController.OnAllSpotlightsPoweredChanged -= OnAllSpotlightsPoweredChanged;
     }
 
     // ── Power ──────────────────────────────────────────────────────────────────
@@ -93,6 +114,15 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
         _isLockedByPower = !isOn;
 
         if (_isLockedByPower)
+            SetGlow(false);
+    }
+
+    /// <summary>Called when the "all spotlights powered" state changes.</summary>
+    private void OnAllSpotlightsPoweredChanged(bool allPowered)
+    {
+        _isLockedBySpotlights = !allPowered;
+
+        if (_isLockedBySpotlights)
             SetGlow(false);
     }
 
@@ -167,6 +197,7 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
     {
         if (!enabled)                                        return Localization.Get(LocalizationKeys.InteractNoPower);
         if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving) return Localization.Get(LocalizationKeys.InteractLocked);
+        if (_isLockedBySpotlights)                           return Localization.Get(LocalizationKeys.InteractLocked);
         if (_isLockedByPower)                                return Localization.Get(LocalizationKeys.InteractNoPower);
         return Localization.Get(string.IsNullOrEmpty(_interactTextKey)
             ? LocalizationKeys.InteractPress

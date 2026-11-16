@@ -81,6 +81,12 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
     private bool _isSolved;
     private bool _roomLightOff;
 
+    /// <summary>True when every spotlight in _conditions is currently powered.</summary>
+    public bool AreAllSpotlightsPowered { get; private set; }
+
+    /// <summary>Raised when the "all spotlights powered" state changes. True = all powered.</summary>
+    public event Action<bool> OnAllSpotlightsPoweredChanged;
+
     // Cached from save data — used to restore the solved visual state on load.
     private bool[] _savedSwitchStates;
     private int[]  _savedConditionLenses;
@@ -156,6 +162,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
 
         SubscribeToEvents();
         RefreshAllSymbols();
+        UpdateAllSpotlightsPowered();
     }
 
     private void OnDestroy()
@@ -265,6 +272,8 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
     private void OnAnyStateChanged()
     {
         RefreshAllSymbols();
+        UpdateAllSpotlightsPowered();
+
         // Win condition is checked in OnAnyColumnMovingChanged when all columns stop.
         // For non-column state changes (spotlights, power, room light) check immediately
         // but only if no columns are currently moving.
@@ -280,6 +289,29 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             RefreshAllSymbols();
             CheckWinCondition();
         }
+    }
+
+    /// <summary>
+    /// Recomputes whether all condition spotlights are powered and fires
+    /// OnAllSpotlightsPoweredChanged on change. Column buttons (Q1–Q4) stay
+    /// locked until this becomes true — the player must solve the switch
+    /// phase (S1–S5) before adjusting painting heights.
+    /// </summary>
+    private void UpdateAllSpotlightsPowered()
+    {
+        bool allPowered = true;
+        foreach (var cond in _conditions)
+        {
+            if (cond.spotlight != null && !cond.spotlight.IsPowered)
+            {
+                allPowered = false;
+                break;
+            }
+        }
+
+        if (AreAllSpotlightsPowered == allPowered) return;
+        AreAllSpotlightsPowered = allPowered;
+        OnAllSpotlightsPoweredChanged?.Invoke(allPowered);
     }
 
     private void OnMasterToggled(bool isOn)
@@ -532,6 +564,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             _roomLightOff = !LightingSystem.Instance.GetZoneSwitchState(_roomLightZoneId);
 
         RefreshAllSymbols();
+        UpdateAllSpotlightsPowered();
         SaveManager.Instance?.Save();
         Debug.Log("[LoopPuzzleController] Puzzle reset.");
     }
@@ -550,6 +583,7 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
             cond.column?.ResetToInitialState();
 
         HideAllSymbols();
+        UpdateAllSpotlightsPowered();
     }
 
     // ── Cheats ─────────────────────────────────────────────────────────────────
