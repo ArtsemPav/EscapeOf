@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Редактор локализации — текстовые таблицы</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --border: #d9dee5; --text: #1c2733;
+    --muted: #67727e; --accent: #2563eb; --accent-soft: #e8effd;
+    --dirty: #b45309; --dirty-bg: #fef3e2; --missing-bg: #fdecec; --ok: #15803d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { position: sticky; top: 0; z-index: 5; background: var(--panel); border-bottom: 1px solid var(--border); padding: 10px 16px; }
+  .hrow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0; }
+  .spacer { flex: 1; }
+  button, .btn { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .45; cursor: default; }
+  #status { color: var(--muted); font-size: 12.5px; margin-top: 6px; white-space: pre-wrap; }
+  #status .warn { color: var(--dirty); }
+  .drop-hint { border: 2px dashed var(--border); border-radius: 8px; margin: 24px auto; max-width: 560px; padding: 36px; text-align: center; color: var(--muted); background: var(--panel); }
+  body.dragover .drop-hint, .drop-hint.dragover { border-color: var(--accent); background: var(--accent-soft); }
+  .toolbar { display: flex; gap: 10px; align-items: center; padding: 10px 16px; flex-wrap: wrap; }
+  .toolbar input[type=search] { font: inherit; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; min-width: 260px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; border-right: 1px solid var(--border); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .seg button:disabled { color: var(--muted); }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border-bottom: 1px solid var(--border); padding: 6px 10px; vertical-align: top; }
+  thead th { position: sticky; top: 0; background: var(--panel); text-align: left; font-size: 12.5px; color: var(--muted); border-bottom: 2px solid var(--border); padding-top: 0; }
+  td.key { font-family: Consolas, monospace; font-size: 12.5px; color: var(--muted); white-space: nowrap; width: 1%; }
+  td.cell { width: 41%; }
+  textarea { width: 100%; font: inherit; border: 1px solid transparent; border-radius: 4px; background: transparent; resize: vertical; padding: 4px 6px; min-height: 32px; }
+  textarea:hover { border-color: var(--border); background: var(--panel); }
+  textarea:focus { outline: 2px solid var(--accent); background: var(--panel); }
+  td.dirty-cell textarea { background: var(--dirty-bg); }
+  td.missing-cell textarea { background: var(--missing-bg); }
+  td.key .del { visibility: hidden; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0 4px; font-size: 13px; }
+  tr:hover td.key .del { visibility: visible; }
+  tr:hover td.key .del:hover { color: #c0392b; }
+  .missing { color: #c0392b; font-size: 12px; }
+  .hint { max-width: 860px; margin: 0 auto; padding: 0 16px 8px; color: var(--muted); font-size: 12.5px; }
+  details { max-width: 860px; margin: 4px auto 12px; padding: 0 16px; }
+  details summary { cursor: pointer; color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+  /* --- предпросмотр верстки --- */
+  .preview { min-height: 30px; padding: 4px 6px; border: 1px dashed var(--border); border-radius: 4px; background: #fbfcfe; white-space: pre-wrap; }
+  .nlmark { color: #b78900; background: #fdf6e3; border-radius: 3px; font: 11px Consolas, monospace; padding: 0 3px; margin: 0 1px; user-select: none; }
+  .tabmark { color: #8a6d00; background: #fdf6e3; border-radius: 3px; font: 11px Consolas, monospace; padding: 0 5px; margin: 0 1px; border-left: 1px solid #e0c878; user-select: none; }
+  .preview b, .preview strong { font-weight: 700; }
+  .tagchip { display: inline-block; background: var(--accent-soft); color: var(--accent); border-radius: 3px; font: 11px Consolas, monospace; padding: 0 4px; margin: 0 1px; }
+  .spritechip { display: inline-block; background: #e7f5ec; color: var(--ok); border: 1px solid #bfe3cd; border-radius: 3px; font: 11px Consolas, monospace; padding: 0 4px; margin: 0 1px; }
+  /* --- панель тегов в режиме правки --- */
+  .cellbar { display: flex; gap: 4px; flex-wrap: wrap; margin: 4px 0; align-items: center; }
+  .cellbar button { padding: 2px 7px; font-size: 12px; }
+  .cellbar select { font: inherit; font-size: 12px; padding: 2px 4px; border: 1px solid var(--border); border-radius: 4px; max-width: 150px; }
+  .cellbar .fontopt { font-size: 13px; }
+  .cellbar input[type=color] { width: 26px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 4px; background: var(--panel); }
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>Редактор локализации</h1>
+    <span class="spacer"></span>
+    <button id="btnLoad">Загрузить файлы…</button>
+    <button id="btnAdd">Добавить ключ</button>
+    <button id="btnSaveRu" class="primary" disabled>Сохранить Ru.asset</button>
+    <button id="btnSaveEn" class="primary" disabled>Сохранить En.asset</button>
+    <input type="file" id="fileInput" accept=".asset,.txt" multiple hidden>
+  </div>
+  <div id="status">Файлы не загружены.</div>
+</header>
+
+<div class="drop-hint" id="dropHint">
+  <b>Перетащите сюда Ru.asset и En.asset</b><br>
+  (или нажмите «Загрузить файлы…»). Файлы лежат в<br>
+  <code>Assets/Data/Localization/Resources/Localization/</code>
+</div>
+
+<div class="hint">
+  Правьте текст в ячейках — правки сохраняются в файлы по кнопкам «Сохранить …» вверху.
+  Ключи менять нельзя, они используются в игре. Ячейка по умолчанию показывает <b>предпросмотр вёрстки</b>
+  (жирный, курсив, цвета, шрифты — как в игре); клик по ячейке открывает режим правки с тегами
+  <code>&lt;b&gt;</code>, <code>&lt;i&gt;</code>, <code>&lt;color=…&gt;</code>, <code>&ltfont=…&gt;</code> и панелью форматирования.
+  Теги и переводы строк нужно сохранять как есть. Ячейку с правкой видно по оранжевой подсветке до момента сохранения.
+</div>
+
+<div class="toolbar" id="toolbar" hidden>
+  <input type="search" id="search" placeholder="Поиск по ключу или тексту…">
+  <select id="filter">
+    <option value="all">Все записи</option>
+    <option value="missing">Незаполненные (пусто или нет ключа)</option>
+    <option value="changed">Только изменённые</option>
+  </select>
+  <div class="seg" id="viewSeg"></div>
+</div>
+
+<div id="tableWrap"></div>
+<details id="help">
+  <summary>Как передать правки разработчику</summary>
+  <p>1. Нажмите «Сохранить Ru.asset» / «Сохранить En.asset» — браузер скачает обновлённые файлы.<br>
+  2. Отправьте файлы разработчику.<br>
+  3. Разработчик заменит ими файлы в папке <code>Assets/Data/Localization/Resources/Localization/</code> проекта — Unity подхватит правки автоматически.</p>
+</details>
+<footer>Редактор работает офлайн, файлы никуда не отправляются.</footer>
+
+<script>
+"use strict";
+/*ENGINE-START*/
+// --- Разбор и сборка Unity YAML таблицы LocalizedTextTable (key/value) ---
+
+// Разбивает текст .asset на шапку (до "  entries:") и список записей.
+function parseUnityTable(text) {
+  const src = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const lines = src.split("\n");
+  let entriesIdx = -1;
+  let inlineRest = "";
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^  entries:(.*)$/);
+    if (m) { entriesIdx = i; inlineRest = m[1].trim(); break; }
+  }
+  if (entriesIdx < 0) throw new Error("Не найден блок 'entries' — это не текстовая таблица локализации.");
+  const header = lines.slice(0, entriesIdx + 1);
+  const headerText = header.join("\n");
+  if (!/LocalizedTextTable/.test(headerText)) {
+    throw new Error("Это не текстовая таблица (LocalizedTextTable). Таблицы спрайтов этим редактором не правятся.");
+  }
+  if (inlineRest && inlineRest !== "[]") throw new Error("Неожиданное содержимое 'entries: " + inlineRest + "'");
+  const nameMatch = headerText.match(/^  m_Name: (.*)$/m);
+  const tableName = nameMatch ? nameMatch[1].trim() : "";
+  const entries = [];
+  let i = entriesIdx + 1;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (line.trim() === "") { i++; continue; }
+    const keyMatch = line.match(/^  - key: (.*)$/);
+    if (!keyMatch) throw new Error("Не удалось разобрать строку " + (i + 1) + ": \"" + line + "\"");
+    const key = decodeKey(keyMatch[1]);
+    i++;
+    let value = "";
+    const vMatch = i < lines.length ? lines[i].match(/^    value:(?: (.*))?$/) : null;
+    if (vMatch) {
+      const res = parseScalar(vMatch[1] === undefined ? "" : vMatch[1], lines, i + 1);
+      value = res.value; i = res.next;
+    }
+    entries.push({ key: key, value: value });
+  }
+  return { header: header, tableName: tableName, entries: entries };
+}
+
+function decodeKey(raw) {
+  const t = raw.trim();
+  if (t.length >= 2 && t[0] === "\"" && t[t.length - 1] === "\"") return unescapeDouble(t.slice(1, -1));
+  return t;
+}
+
+// Разбирает значение скаляра (double-quoted / single-quoted / plain) с учётом переноса строк.
+function parseScalar(first, lines, idx) {
+  if (first[0] === "\"") return parseQuoted(first, lines, idx, "\"");
+  if (first[0] === "'") return parseQuoted(first, lines, idx, "'");
+  // plain: продолжение — строки с отступом 6 пробелов, конец — новая запись или EOF
+  const segs = [first];
+  let i = idx;
+  while (i < lines.length && (lines[i].slice(0, 6) === "      " || lines[i].trim() === "")) {
+    segs.push(lines[i]); i++;
+  }
+  while (segs.length && segs[segs.length - 1].trim() === "") segs.pop();
+  // Значение может содержать escape-последовательности (\uXXXX, \") без кавычек —
+  // тогда Unity пишет фактические переводы строк как «\n» прямо внутри строки,
+  // а переносы физических строк схлопываются в пробелы. Разбираем аккуратно:
+  // физические переносы — в пробелы, escape-последовательности — в реальные символы.
+  if (/\\\\[uUxnt]|\\[uUx]|\\["'nt]/.test(segs.join(""))) {
+    // ГРУНД-ТРУuth (проверено чтением через Unity): в этих значениях Unity хранит
+    // ЛИТЕРАЛЬНЫЙ текст «\n», «\t» (бэкслэш + буква) — это не переносы строк!
+    // Разворачиваем только \uXXXX, \" и \\, а \n и \t оставляем как текст.
+    const joined = foldLines(segs, true);
+    const value = joined
+      .split("\\u").join("%%U%%")
+      .split("\\U").join("%%Ub%%")
+      .split("\\x").join("%%X%%")
+      .replace(/\\(["'nt])/g, function (_, c) { return c === "n" ? "\\n" : c === "t" ? "\\t" : c; })
+      .split("%%U%%").join("\\u")
+      .split("%%Ub%%").join("\\U")
+      .split("%%X%%").join("\\x");
+    return { value: value, next: i };
+  }
+  // Однокавычный скаляр, начинающийся с \ — Unity пишет в нём escape-последовательности
+  // (\t, \n, \uXXXX) как текст. Разбираем их в реальные символы (кейс En-таблицы:
+  // value: '\tListen carefully...' — где физические переносы схлопываются, а \n — нет).
+  const joined = foldLines(segs, false);
+  if (/\\[uUx]|\\["]/.test(joined)) {
+    // \n и \t остаются литералами (гринд-труth Unity), разворачиваем остальное
+    const value = joined
+      .split("\\u").join("%%U%%")
+      .split("\\\\").join("%%BS%%")
+      .split("\\\"").join("%%Q%%")
+      .split("%%U%%").join("\\u")
+      .split("%%BS%%").join("\\")
+      .split("%%Q%%").join("\"");
+    return { value: value, next: i };
+  }
+  return { value: joined, next: i };
+}
+
+function parseQuoted(first, lines, idx, q) {
+  const segs = [first];
+  let i = idx, done = false;
+  while (!done) {
+    if (q === "\"") done = hasUnescapedDoubleQuoteEnd(segs[segs.length - 1]);
+    else done = segs.length === 1
+      ? hasSingleQuoteEnd(segs[segs.length - 1])
+      : /'(?!')$/.test(segs[segs.length - 1]);    if (done) break;
+    if (i >= lines.length) throw new Error("Незакрытая кавычка в значении (проверьте исходный файл).");
+    segs.push(lines[i]); i++;  }
+  // снять кавычки: первую — с первого сегмента, последнюю — с последнего
+  segs[0] = segs[0].slice(1);
+  const last = segs.length - 1;
+  if (q === "\"") segs[last] = segs[last].replace(/"$/, "");
+  else segs[last] = stripSingleEnd(segs[last], segs.length === 1);
+  // YAML folding: в многострочном скаляре один перенос схлопывается в пробел,
+  // несколько подряд — в переводы строк; затем идут escape-последовательности (\n, \t, \uXXXX).
+  let folded = foldLines(segs, q === "\"");
+  if (q === "\"") folded = unescapeDouble(folded);
+  else {
+    // одинарные кавычки: '' -> ', пока пары не кончатся
+    while (folded.indexOf("''") >= 0) folded = folded.split("''").join("'");
+    // ОСОБЕННОСТЬ EN.ASSET: часть однокавычных значений хранит литеральный текст
+    // «\n»/«\t» (гринд-труth Unity, см. гринд-труth выше). Но большинство однокавычных
+    // значений — это обычный текст с НАСТОЯЩИМИ переносами (folding). Отличить можно
+    // только по контексту: если Unity хотел записать литеральный «\n», он писал бы
+    // удвоенный слэш «\\n». Одинарный «\n» внутри однокавычного скаляра в этом файле
+    // встречается только в записи book_doctor_safe, где он и был литералом исходно.
+    // Решение: НЕ разворачиваем \n и \t в однокавычных — они остаются как есть.
+  }
+  return { value: folded, next: i };
+}
+function hasUnescapedDoubleQuoteEnd(s) {
+  let bs = 0;
+  for (let k = s.length - 1; k >= 0; k--) { if (s[k] === "\\") bs++; else break; }
+  return s.length >= 1 && s[s.length - 1] === "\"" && bs % 2 === 0 && s.length > 1;
+}
+
+function hasSingleQuoteEnd(s) {
+  // первый сегмент: закрывающая кавычка даёт нечётное число ' в конце
+  // (чётное — это пары '' внутри текста)
+  let count = 0;
+  for (let k = s.length - 1; k >= 0 && s[k] === "'"; k--) count++;
+  return count % 2 === 1;
+}
+
+function stripSingleEnd(s, isOneSeg) {
+  // снять закрывающую кавычку с учётом того, что '' внутри — контент
+  for (let k = s.length - 1; k >= 0; k--) {
+    if (s[k] !== "'") continue;
+    if (k > 0 && s[k - 1] === "'") { k--; continue; } // '' = контент
+    return s.slice(0, k);
+  }
+  return s;
+}
+
+// Склейка перенесённых строк YAML: 1 перенос -> пробел, n пустых строк -> n переводов строки.
+// В double-quoted скаляре (Unity всегда пишет значения в нём) пробелы — самостоятельные
+// символы и не «съедаются» при склейке; в plain/single-quoted концевые пробелы строк
+// по спецификации YAML отбрасываются.
+function foldLines(segs, keepSpaces) {
+  const stripped = segs.map(function (l, idx) {
+    // первый сегмент начинается сразу после "value: " и не имеет отступа продолжения;
+    // у строк-продолжений срезается только отступ (6 пробелов), а при keepSpaces=false
+    // ещё и концевые пробелы (спецификация YAML для plain / single-quoted)
+    const lead = idx === 0 ? l : l.replace(/^ {6}/, "");
+    return keepSpaces ? lead : lead.replace(/[ \t]+$/, "");
+  });
+  let out = "", blanks = 0;
+  for (let k = 0; k < stripped.length; k++) {
+    const l = stripped[k];
+    if (l === "") { blanks++; continue; }
+    if (out === "") out = l;
+    else {
+      // стык строк: хвостовой пробел предыдущей строки + перенос схлопываются в один пробел
+      const joiner = blanks > 0 ? "\n".repeat(blanks) : (keepSpaces && /[ \t]$/.test(out) ? "" : " ");
+      out += joiner + l;
+    }
+    blanks = 0;
+  }
+  if (blanks > 0 && out !== "") out += "\n".repeat(blanks);
+  return out;
+}
+
+function unescapeDouble(s) {
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c !== "\\") { out += c; continue; }
+    const n = s[++i];
+    if (n === undefined) break;
+    if (n === "u") { out += String.fromCharCode(parseInt(s.substr(i + 1, 4), 16)); i += 4; }
+    else if (n === "x") { out += String.fromCharCode(parseInt(s.substr(i + 1, 2), 16)); i += 2; }
+    else if (n === "U") { out += String.fromCodePoint(parseInt(s.substr(i + 1, 8), 16)); i += 8; }
+    else if (n === "n") out += "\n";
+    else if (n === "t") out += "\t";
+    else if (n === "r") out += "\r";
+    else if (n === "0") out += "\0";
+    else out += n; // \" \\ \' и прочие
+  }
+  return out;
+}
+
+// --- Сборка файла обратно в стиле Unity ---
+
+function escapeDouble(s) {
+  let out = "";
+  for (const ch of s) {
+    const cp = ch.codePointAt(0);
+    if (cp > 0xffff) out += "\\U" + cp.toString(16).padStart(8, "0");
+    else if (ch === "\n") out += "\\n";
+    else if (ch === "\t") out += "\\t";
+    else if (ch === "\r") out += "\\r";
+    else if (cp < 0x20) out += "\\u" + cp.toString(16).padStart(4, "0");
+    else if (ch === "\"") out += "\\\"";
+    else if (ch === "\\") out += "\\\\";
+    else if (cp > 0x7e) out += "\\u" + cp.toString(16).padStart(4, "0");
+    else out += ch;
+  }
+  return out;
+}
+
+// Токенизация экранированной строки: escape-последовательности не рвём при переносе.
+function tokenizeEscaped(esc) {
+  const tokens = [];
+  let i = 0;
+  while (i < esc.length) {
+    if (esc[i] === "\\") {
+      const n = esc[i + 1];
+      let len = 2;
+      if (n === "u") len = 6; else if (n === "x") len = 4; else if (n === "U") len = 10;
+      tokens.push(esc.substr(i, len)); i += len;
+    } else {
+      // группируем подряд идущие обычные символы (кроме пробелов и \) в один токен
+      let j = i + 1;
+      while (j < esc.length && esc[j] !== "\\" && esc[j] !== " ") j++;
+      tokens.push(esc.slice(i, j)); i = j;
+    }
+  }
+  return tokens;
+}
+
+function emitValue(value) {
+  const esc = escapeDouble(value);
+  const WIDTH = 92;
+  if (esc.length <= WIDTH) return "\"" + esc + "\"";
+  // Разбиение длинной строки: перенос возможен только в позиции пробела и только
+  // если он не завершает последовательность пробелов (по спецификации YAML пробелы
+  // перед переносом схлопываются, поэтому разрыв ставится ровно на пробеле).
+  const tokens = tokenizeEscaped(esc);
+  const lines = [];
+  let cur = "";
+  for (let k = 0; k < tokens.length; k++) {
+    const t = tokens[k];
+    if (t === " ") {
+      const prevIsSpace = k > 0 && tokens[k - 1] === " ";
+      const nextIsSpace = k + 1 < tokens.length && tokens[k + 1] === " ";
+      if (!prevIsSpace && !nextIsSpace && cur.length >= WIDTH) {
+        lines.push(cur + t); // пробел остаётся в конце строки: folding при разборе
+        cur = "";            // съедает его и даёт ровно один пробел
+      } else cur += t;
+    } else cur += t;
+  }
+  if (cur !== "") lines.push(cur);
+  return "\"" + lines.join("\n      ") + "\"";
+}
+
+function emitKey(key) {
+  if (/^[A-Za-z0-9_.\-]+$/.test(key)) return key;
+  return "\"" + escapeDouble(key) + "\"";
+}
+
+function serializeUnityTable(table) {
+  const out = table.header.slice();
+  for (const e of table.entries) {
+    out.push("  - key: " + emitKey(e.key));
+    out.push("    value: " + emitValue(e.value));
+  }
+  return out.join("\n") + "\n";
+}
+/*ENGINE-END*/
+
+// ======================= Интерфейс =======================
+
+/*FONTS-START*/
+// Соответствие имён TMP font-ассетов проекта файлам шрифтов в папке fonts/.
+// TMP-тег <font="Имя"> использует имя ассета из "Assets/TextMesh Pro/Resources/Fonts & Materials".
+const TMP_FONTS = [
+  { asset: "Arial SDF",              file: "fonts/Arial.ttf" },
+  { asset: "LiberationSans SDF",     file: "fonts/LiberationSans.ttf" },
+  { asset: "Neucha-Regular SDF",     file: "fonts/Neucha-Regular.ttf" },
+  { asset: "Comforter-Regular SDF",  file: "fonts/Comforter-Regular.ttf" },
+  { asset: "LC Chalk SDF",           file: "fonts/LC Chalk.ttf" },
+  { asset: "Outhouse SDF",           file: "fonts/Outhouse.otf" },
+  { asset: "ShantellSans-Regular SDF",  file: "fonts/ShantellSans-Regular.ttf" },
+  { asset: "ShantellSans-Bold SDF",     file: "fonts/ShantellSans-Bold.ttf" },
+  { asset: "ShantellSans-Light SDF",    file: "fonts/ShantellSans-Light.ttf" },
+  { asset: "ShantellSans-Medium SDF",   file: "fonts/ShantellSans-Medium.ttf" },
+  { asset: "ShantellSans-SemiBold SDF", file: "fonts/ShantellSans-SemiBold.ttf" },
+  { asset: "ShantellSans-ExtraBold SDF",file: "fonts/ShantellSans-ExtraBold.ttf" },
+  { asset: "ShantellSans-Italic SDF",   file: "fonts/ShantellSans-Italic.ttf" },
+  { asset: "ShantellSans-BoldItalic SDF",     file: "fonts/ShantellSans-BoldItalic.ttf" },
+  { asset: "ShantellSans-LightItalic SDF",    file: "fonts/ShantellSans-LightItalic.ttf" },
+  { asset: "ShantellSans-MediumItalic SDF",   file: "fonts/ShantellSans-MediumItalic.ttf" },
+  { asset: "ShantellSans-SemiBoldItalic SDF", file: "fonts/ShantellSans-SemiBoldItalic.ttf" },
+  { asset: "ShantellSans-ExtraBoldItalic SDF",file: "fonts/ShantellSans-ExtraBoldItalic.ttf" }
+];
+(function registerFonts() {
+  let css = "";
+  for (const f of TMP_FONTS) {
+    css += "@font-face { font-family: \"" + f.asset + "\"; src: url(\"" + f.file + "\"); }\n";
+  }
+  const style = document.createElement("style");
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
+function fontFamilyFor(assetName) {
+  for (const f of TMP_FONTS) if (f.asset === assetName) return "'" + f.asset + "'";
+  return null;
+}
+/*FONTS-END*/
+
+/*ENGINE-END*/
+
+// --- Рендер TMP-тегов в HTML-предпросмотр ---
+// Поддерживаются: <b> <i> <u> <s> <color=…> <size=N> <mark=…> <font="…"> <sprite …>,
+// а также superscript/subscript. Неизвестные теги показываются чипом, чтобы их было видно.
+function tmpToHtml(text) {
+  // Превью = «как в игре»: некоторые записи хранят «\n» и «\t» как литеральный текст —
+  // TMP в игре отобразит их как перенос/табуляцию. Разворачиваем перед рендером,
+  // чтобы в превью не было сырых «\n».
+  text = unescapeDouble(text);
+  let out = "";
+  let i = 0;
+  const stack = [];
+  function esc(s) {
+    return s.replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  // видимые маркеры переводов строк и табуляций, чтобы вёрстку было видно как в игре
+  function escKeepBreaks(s) {
+    return esc(s).replace(/\n/g, '<span class="nlmark">&para;</span>\n')
+                 .replace(/\t/g, '<span class="tabmark">&rarr;</span>');
+  }
+  while (i < text.length) {
+    const lt = text.indexOf("<", i);
+    if (lt < 0) { out += escKeepBreaks(text.slice(i)); break; }
+    out += escKeepBreaks(text.slice(i, lt));
+    const gt = text.indexOf(">", lt);
+    if (gt < 0) { out += esc(text.slice(lt)); break; }
+    const tag = text.slice(lt + 1, gt);
+    i = gt + 1;
+    if (tag[0] === "/") {
+      // закрывающий тег — закрываем ближайший открытый span
+      const open = stack.pop();
+      out += open ? "</span>" : "";
+      continue;
+    }
+    const nameMatch = tag.match(/^([a-zA-Z]+)/);
+    if (!nameMatch) { out += esc("<" + tag + ">"); continue; }
+    const name = nameMatch[1].toLowerCase();
+    const rest = tag.slice(name.length);
+    let style = "", chip = null;
+    if (name === "b") style = "font-weight:700";
+    else if (name === "i") style = "font-style:italic";
+    else if (name === "u") style = "text-decoration:underline";
+    else if (name === "s" || name === "strike") style = "text-decoration:line-through";
+    else if (name === "sup") style = "vertical-align:super;font-size:0.7em";
+    else if (name === "sub") style = "vertical-align:sub;font-size:0.7em";
+    else if (name === "mark") {
+      const m = rest.match(/^\s*=?\s*#([0-9a-fA-F]{3,8})/) || rest.match(/^\s*=\s*"?([a-zA-Z]+)"?/);
+      style = "background:" + colorToCss(m ? "#" + m[1].replace(/"/g, "").trim() : "#ffff00");
+    }
+    else if (name === "color") {
+      const m = rest.match(/^\s*=\s*(#?[0-9a-fA-F]{3,8})/) || rest.match(/^\s*=\s*"?([a-zA-Z]+)"?/);
+      style = "color:" + colorToCss(m ? m[1] : "#ff0000");
+    }
+    else if (name === "size") {
+      const m = rest.match(/^\s*=\s*"?([+-]?\d+(?:\.\d+)?)"?/);
+      if (m) style = "font-size:" + (parseFloat(m[1]) / 36) + "em";
+      else style = "font-size:1.2em";
+    }
+    else if (name === "font") {
+      const m = rest.match(/^\s*=\s*"?([^">]+)"?/);
+      const fam = m ? fontFamilyFor(m[1]) : null;
+      style = "font-family:" + (fam ? fam : "monospace");
+    }
+    else if (name === "sprite") {
+      const nm = rest.match(/name="([^"]*)"/);
+      out += '<span class="spritechip">🖼' + esc(nm ? nm[1] : tag) + "</span>";
+      continue;
+    }
+    else { out += '<span class="tagchip">&lt;' + esc(tag) + "&gt;</span>"; continue; }
+    stack.push(name);
+    out += "<span data-tmp=\"" + esc(name) + "\" style=\"" + style + "\">" + (chip ? chip : "");
+  }
+  while (stack.length) out += "</span>", stack.pop();
+  // Литеральные «\n» / «\t» уже развёрнуты в начале tmpToHtml; реальные переводы
+  // строк показываются маркером ¶ в escKeepBreaks.
+  return out;
+}
+
+function colorToCss(v) {
+  if (!v) return "#ff0000";
+  v = String(v).replace(/"/g, "").trim();
+  if (v[0] === "#") {
+    // TMP поддерживает #RGB, #RGBA, #RRGGBB, #RRGGBBAA
+    let hex = v.slice(1);
+    if (hex.length === 3 || hex.length === 4) hex = hex.split("").map(function (c) { return c + c; }).join("");
+    if (hex.length >= 6) return "#" + hex.slice(0, 6);
+    return v;
+  }
+  return v; // именованные цвета CSS совпадают с TMP (red, green, …)
+}
+
+// ======================= Интерфейс =======================
+
+const state = { tables: {}, orig: {}, dirty: false };
+const $ = function (id) { return document.getElementById(id); };
+
+function normalizeLang(name, fallback) {
+  if (/^ru$/i.test(name)) return "Ru";
+  if (/^en$/i.test(name)) return "En";
+  return name || fallback || "?";
+}
+
+function loadFileText(fileName, text) {
+  const table = parseUnityTable(text);
+  const lang = normalizeLang(table.tableName, fileName.replace(/\.asset$/i, ""));
+  state.tables[lang] = table;
+  state.orig[lang] = {};
+  for (const e of table.entries) state.orig[lang][e.key] = e.value;
+}
+
+function mergedKeys() {
+  const seen = new Set(), keys = [];
+  for (const lang of ["Ru", "En"]) {
+    const t = state.tables[lang];
+    if (!t) continue;
+    for (const e of t.entries) if (!seen.has(e.key)) { seen.add(e.key); keys.push(e.key); }
+  }
+  return keys;
+}
+
+function valueOf(lang, key) {
+  const t = state.tables[lang];
+  if (!t) return null;
+  for (const e of t.entries) if (e.key === key) return e.value;
+  return null;
+}
+
+function setEntry(lang, key, value) {
+  const t = state.tables[lang];
+  if (!t) return;
+  for (const e of t.entries) if (e.key === key) { e.value = value; return; }
+  t.entries.push({ key: key, value: value });
+}
+
+function isChanged(lang, key) {
+  const o = state.orig[lang];
+  if (!(key in o)) return valueOf(lang, key) !== null;
+  return o[key] !== valueOf(lang, key);
+}
+
+function isMissing(lang, key) {
+  const v = valueOf(lang, key);
+  return v === null || v === "";
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function langsLoaded() { return Object.keys(state.tables).filter(function (k) { return state.tables[k]; }); }
+
+function renderViewSeg() {
+  const langs = ["Ru", "En"].filter(function (l) { return state.tables[l]; });
+  const seg = $("viewSeg");
+  const mode = seg.dataset.mode || "both";
+  const items = [["both", "Оба"]].concat(langs.map(function (l) { return [l, l === "Ru" ? "Русский" : "English"]; }));
+  seg.innerHTML = items.map(function (it) {
+    return '<button data-mode="' + it[0] + '"' + (mode === it[0] ? ' class="active"' : "") + (state.tables[it[0]] ? "" : " disabled") + ">" + it[1] + "</button>";
+  }).join("");
+}
+
+function renderTable() {
+  const wrap = $("tableWrap");
+  if (!langsLoaded().length) { wrap.innerHTML = ""; $("toolbar").hidden = true; return; }
+  $("toolbar").hidden = false;
+  renderViewSeg();
+  const mode = $("viewSeg").dataset.mode || "both";
+  const showRu = mode !== "En" && state.tables.Ru;
+  const showEn = mode !== "Ru" && state.tables.En;
+  const q = $("search").value.trim().toLowerCase();
+  const filter = $("filter").value;
+  let rows = mergedKeys();
+  if (q) {
+    // поиск — по «чистому» тексту без тегов (как видно в превью) и по ключу
+    const bare = function (s) { return s.replace(/<\/?[a-zA-Z][^>]*>/g, "").toLowerCase(); };
+    rows = rows.filter(function (k) {
+      return k.toLowerCase().indexOf(q) >= 0 ||
+        (showRu && bare(valueOf("Ru", k) || "").indexOf(q) >= 0) ||
+        (showEn && bare(valueOf("En", k) || "").indexOf(q) >= 0);
+    });
+  }
+  if (filter === "missing") rows = rows.filter(function (k) {
+    return (showRu && isMissing("Ru", k)) || (showEn && isMissing("En", k));
+  });
+  if (filter === "changed") rows = rows.filter(function (k) {
+    return (showRu && isChanged("Ru", k)) || (showEn && isChanged("En", k));
+  });
+
+  const head = "<tr><th>Ключ</th>" + (showRu ? "<th>Русский (Ru.asset)</th>" : "") + (showEn ? "<th>English (En.asset)</th>" : "") + "</tr>";
+  const body = rows.map(function (k) {
+    let h = '<tr><td class="key">' + escapeHtml(k) +
+      '<button class="del" title="Удалить ключ из обеих таблиц" data-del="' + escapeHtml(k) + '">✕</button></td>';
+    if (showRu) h += cell("Ru", k);
+    if (showEn) h += cell("En", k);
+    return h + "</tr>";
+  }).join("");
+  wrap.innerHTML = "<table><thead>" + head + "</thead><tbody>" + body + "</tbody></table>";
+  wrap.querySelectorAll("textarea").forEach(autoGrow);
+  updateStatus();
+}
+function cell(lang, key) {
+  const v = valueOf(lang, key);
+  const missing = v === null;
+  const changed = isChanged(lang, key);
+  const cls = (changed ? "dirty-cell" : "") + (missing || v === "" ? " missing-cell" : "");
+  const text = missing ? "" : v;
+  const kh = escapeHtml(key);
+  return '<td class="cell ' + cls + '">' +
+    (missing ? '<span class="missing">нет ключа в таблице — введите текст, чтобы добавить</span>' : "") +
+    '<div class="preview" data-pv-lang="' + lang + '" data-pv-key="' + kh + '" title="Клик — редактировать">' + tmpToHtml(text) + "</div>" +
+    '<div class="editor" data-ed-lang="' + lang + '" data-ed-key="' + kh + '" hidden>' +
+      cellBar() +
+      '<textarea data-lang="' + lang + '" data-key="' + kh + '" spellcheck="false" placeholder="' +
+      (missing ? "Добавить перевод" : "") + '">' + escapeHtml(text) + "</textarea>" +
+    "</div></td>";
+}
+
+// Панель тегов над textarea в режиме правки
+function cellBar() {
+  const fontOpts = TMP_FONTS.map(function (f) {
+    return '<option value="' + escapeHtml(f.asset) + '" style="font-family:\'' + escapeHtml(f.asset) + '\'">' + escapeHtml(f.asset) + "</option>";
+  }).join("");
+  return '<div class="cellbar">' +
+    '<button type="button" data-wrap="b" title="Жирный: <b>…</b>"><b>Ж</b></button>' +
+    '<button type="button" data-wrap="i" title="Курсив: <i>…</i>"><i>К</i></button>' +
+    '<button type="button" data-wrap="u" title="Подчёркнутый: <u>…</u>"><u>Ч</u></button>' +
+    '<button type="button" data-wrap="s" title="Зачёркнутый: <s>…</s>"><s>З</s></button>' +
+    '<input type="color" value="#ff0000" data-color title="Цвет текста: <color=#…>">' +
+    '<button type="button" data-wrap="mark" title="Выделение фоном: <mark=#…>">Фон</button>' +
+    '<select data-font><option value="">Шрифт…</option>' + fontOpts + "</select>" +
+    '<button type="button" data-striptags title="Убрать все теги из ячейки">✕ теги</button>' +
+    "</div>";
+}
+
+function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = (ta.scrollHeight + 2) + "px"; }
+
+function updateStatus() {
+  const parts = [];
+  let changed = 0, missRu = 0, missEn = 0;
+  const keys = mergedKeys();
+  for (const k of keys) {
+    if (isChanged("Ru", k) || isChanged("En", k)) changed++;
+    if (state.tables.Ru && isMissing("Ru", k)) missRu++;
+    if (state.tables.En && isMissing("En", k)) missEn++;
+  }
+  if (state.tables.Ru) parts.push("Ru: " + state.tables.Ru.entries.length + " записей, не заполнено " + missRu);
+  if (state.tables.En) parts.push("En: " + state.tables.En.entries.length + " записей, не заполнено " + missEn);
+  parts.push("изменено: " + changed);
+  const dups = findDuplicates();
+  let s = parts.join(" · ");
+  if (dups.length) s += ' · <span class="warn">ВНИМАНИЕ, дубликаты ключей: ' + escapeHtml(dups.join(", ")) + "</span>";
+  if (changed) s += " · <span class='warn'>есть несохранённые правки</span>";
+  $("status").innerHTML = s;
+}
+
+function findDuplicates() {
+  const seen = new Set(), dups = new Set();
+  for (const lang of ["Ru", "En"]) {
+    const t = state.tables[lang];
+    if (!t) continue;
+    const local = new Set();
+    for (const e of t.entries) {
+      if (local.has(e.key)) dups.add(e.key);
+      local.add(e.key);
+    }
+  }
+  return Array.from(dups);
+}
+
+function download(name, text) {
+  const blob = new Blob([text], { type: "application/octet-stream" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+}
+
+function saveTable(lang) {
+  const t = state.tables[lang];
+  if (!t) return;
+  closeAllEditors();
+  download(lang + ".asset", serializeUnityTable(t));
+  state.orig[lang] = {};
+  for (const e of t.entries) state.orig[lang][e.key] = e.value;
+  renderTable();
+}
+
+// --- события ---
+
+$("fileInput").addEventListener("change", function () { loadFiles(this.files); this.value = ""; });
+$("btnLoad").addEventListener("click", function () { $("fileInput").click(); });
+$("btnSaveRu").addEventListener("click", function () { saveTable("Ru"); });
+$("btnSaveEn").addEventListener("click", function () { saveTable("En"); });
+$("search").addEventListener("input", renderTable);
+$("filter").addEventListener("change", renderTable);
+$("viewSeg").addEventListener("click", function (e) {
+  const b = e.target.closest("button[data-mode]");
+  if (!b) return;
+  $("viewSeg").dataset.mode = b.dataset.mode;
+  renderTable();
+});
+
+$("tableWrap").addEventListener("input", function (e) {
+  const ta = e.target;
+  if (!(ta instanceof HTMLTextAreaElement)) return;
+  setEntry(ta.dataset.lang, ta.dataset.key, ta.value);
+  autoGrow(ta);
+  updateStatus();
+});
+
+// --- Клик по предпросмотру: открыть режим правки ---
+// --- Клик по предпросмотру: открыть режим правки. Фокус ушёл — вернуть превью ---
+$("tableWrap").addEventListener("click", function (e) {
+  const pv = e.target.closest(".preview");
+  if (pv) {
+    // закрываем любую другую открытую ячейку
+    closeAllEditors();
+    const ed = pv.parentElement.querySelector(".editor");
+    if (ed) {
+      pv.hidden = true;
+      ed.hidden = false;
+      const ta = ed.querySelector("textarea");
+      autoGrow(ta);
+      ta.focus();
+    }
+  }
+});
+
+// Фокус ушёл из textarea (клик в другую ячейку, Tab, другое поле) — показать превью
+$("tableWrap").addEventListener("focusout", function (e) {
+  if (!(e.target instanceof HTMLTextAreaElement)) return;
+  const ed = e.target.closest(".editor");
+  if (!ed || ed.hidden) return;
+  // задержка на микротаск: клики по панели тегов успевают отработать до закрытия
+  setTimeout(function () {
+    if (ed.hidden) return;
+    const active = document.activeElement;
+    if (active && ed.contains(active)) return; // фокус остался в этой ячейке (панель)
+    closeEditor(ed);
+  }, 0);
+});
+
+// Закрыть редактор ячейки: показать предпросмотр
+function closeEditor(ed) {
+  ed.hidden = true;
+  const pv = ed.parentElement.querySelector(".preview");
+  if (pv) {
+    const ta = ed.querySelector("textarea");
+    pv.innerHTML = tmpToHtml(ta.value);
+    pv.hidden = false;
+  }
+}
+
+// Закрыть все открытые редакторы (например, перед перерисовкой)
+function closeAllEditors() {
+  document.querySelectorAll(".editor:not([hidden])").forEach(closeEditor);
+}
+
+// --- Панель тегов: обёртка выделения / всей ячейки тегом ---
+function getActiveCellbarCell(bar) { return bar.closest(".editor"); }
+
+function wrapSelection(ta, openTag, closeTag) {
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const v = ta.value;
+  if (s === e) {
+    // нет выделения — оборачиваем весь текст
+    ta.value = v.length ? openTag + v + closeTag : openTag + closeTag;
+    ta.selectionStart = openTag.length;
+    ta.selectionEnd = ta.value.length - closeTag.length;
+  } else {
+    const inner = v.slice(s, e);
+    // если выделение уже обёрнуто — снимаем тег
+    if (v.slice(0, s).endsWith(openTag) && v.slice(e).startsWith(closeTag)) {
+      ta.value = v.slice(0, s - openTag.length) + inner + v.slice(e + closeTag.length);
+      ta.selectionStart = s - openTag.length;
+      ta.selectionEnd = e - openTag.length;
+    } else {
+      ta.value = v.slice(0, s) + openTag + inner + closeTag + v.slice(e);
+      ta.selectionStart = s + openTag.length;
+      ta.selectionEnd = e + openTag.length;
+    }
+  }
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+  ta.focus();
+}
+
+$("tableWrap").addEventListener("click", function (e) {
+  const bar = e.target.closest(".cellbar");
+  if (!bar) return;
+  const ed = getActiveCellbarCell(bar);
+  if (!ed) return;
+  const ta = ed.querySelector("textarea");
+  const wrapBtn = e.target.closest("button[data-wrap]");
+  if (wrapBtn) {
+    const t = wrapBtn.dataset.wrap;
+    if (t === "mark") {
+      const c = prompt("Цвет фона (hex или имя, напр. #ffff00):", "#ffff00");
+      if (c === null) return;
+      wrapSelection(ta, "<mark=" + c + ">", "</mark>");
+    } else {
+      wrapSelection(ta, "<" + t + ">", "</" + t + ">");
+    }
+    return;
+  }
+  if (e.target.closest("button[data-striptags]")) {
+    ta.value = ta.value.replace(/<\/?[a-zA-Z][^>]*>/g, "");
+    ta.dispatchEvent(new Event("input", { bubbles: true }));
+    return;
+  }
+});
+
+$("tableWrap").addEventListener("change", function (e) {
+  const bar = e.target.closest(".cellbar");
+  if (!bar) return;
+  const ed = getActiveCellbarCell(bar);
+  const ta = ed.querySelector("textarea");
+  if (e.target.matches("select[data-font]")) {
+    const font = e.target.value;
+    if (!font) return;
+    wrapSelection(ta, '<font="' + font + '">', "</font>");
+    e.target.value = "";
+    return;
+  }
+  if (e.target.matches("input[data-color]")) {
+    wrapSelection(ta, "<color=" + e.target.value + ">", "</color>");
+    return;
+  }
+});
+
+$("tableWrap").addEventListener("click", function (e) {
+  const del = e.target.closest("button[data-del]");
+  if (!del) return;
+  const key = del.dataset.del;
+  if (!confirm("Удалить ключ \"" + key + "\" из обеих таблиц?")) return;
+  for (const lang of ["Ru", "En"]) {
+    const t = state.tables[lang];
+    if (!t) continue;
+    t.entries = t.entries.filter(function (x) { return x.key !== key; });
+  }
+  renderTable();
+});
+
+$("btnAdd").addEventListener("click", function () {
+  const key = prompt("Новый ключ (например ui.shop.title):");
+  if (!key) return;
+  if (!/^[A-Za-z0-9_.\-]+$/.test(key)) { alert("Ключ может содержать только латиницу, цифры, точку, дефис и подчёркивание."); return; }
+  for (const lang of ["Ru", "En"]) if (state.tables[lang]) setEntry(lang, key, "");
+  $("search").value = key;
+  $("filter").value = "all";
+  renderTable();
+  const pv = document.querySelector(".preview[data-pv-key=\"" + key + "\"]");
+  if (pv) pv.click();
+});
+
+function loadFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  let pending = files.length;
+  files.forEach(function (f) {
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        loadFileText(f.name, String(reader.result));
+      } catch (err) {
+        alert("Файл " + f.name + ": " + err.message);
+      }
+      if (--pending === 0) afterLoad();
+    };
+    reader.readAsText(f, "utf-8");
+  });
+}
+
+function afterLoad() {
+  $("dropHint").hidden = true;
+  $("btnSaveRu").disabled = !state.tables.Ru;
+  $("btnSaveEn").disabled = !state.tables.En;
+  renderTable();
+}
+
+document.addEventListener("dragover", function (e) { e.preventDefault(); document.body.classList.add("dragover"); });
+document.addEventListener("dragleave", function (e) { if (e.relatedTarget === null) document.body.classList.remove("dragover"); });
+document.addEventListener("drop", function (e) {
+  e.preventDefault();
+  document.body.classList.remove("dragover");
+  if (e.dataTransfer && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+});
+
+window.addEventListener("beforeunload", function (e) {
+  let changed = false;
+  for (const k of mergedKeys()) if (isChanged("Ru", k) || isChanged("En", k)) { changed = true; break; }
+  if (changed) { e.preventDefault(); e.returnValue = ""; }
+});
+</script>
+</body>
+</html>
