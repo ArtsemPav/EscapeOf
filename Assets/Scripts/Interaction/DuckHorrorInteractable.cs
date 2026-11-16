@@ -3,7 +3,9 @@ using UnityEngine;
 
 /// <summary>
 /// Interactive rubber duck for the toilet horror event.
-/// The duck is initially invisible — it appears when the master power turns on.
+/// The duck is initially invisible — it only appears when the player delivers
+/// a draggable RubberDuck from the pantry into the toilet
+/// (detected by <see cref="DuckToiletTrigger"/>, which calls <see cref="DeliverFromToilet"/>).
 /// The player clicks the duck to make it dive underwater and resurface with buoyancy.
 /// After <see cref="MaxDives"/> clicks, the duck dives and does not return;
 /// instead a horror event is triggered via <see cref="HorrorSystem.Trigger"/>.
@@ -60,6 +62,19 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     [Tooltip("Interval between underwater ripples in seconds.")]
     [SerializeField] private float _underwaterRippleInterval = 0.4f;
 
+    [Header("Delivery")]
+    [Tooltip("Draggable duck in the pantry. Hidden and deactivated when delivered into the toilet.")]
+    [SerializeField] private GameObject _pantryDuck;
+
+    [Tooltip("Depth below the water surface where the delivered duck starts its surfacing rise (local Y units).")]
+    [SerializeField] private float _deliveryStartDepth = 0.45f;
+
+    [Tooltip("Strength of the splash ripple when the event duck surfaces after delivery.")]
+    [SerializeField] private float _deliveryRippleStrength = 2.5f;
+
+    [Tooltip("Volume of the splash sound played when the event duck surfaces.")]
+    [SerializeField, Range(0f, 1f)] private float _deliverySplashVolume = 1f;
+
     [Header("Interaction")]
 
     [Tooltip("Water splash sound played when the duck is clicked.")]
@@ -83,7 +98,7 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     private int _diveCount;
     private bool _isBusy;
     private bool _horrorTriggered;
-    private bool _isShown;
+    private bool _delivered;
 
     private Renderer _liquidRenderer;
     private MaterialPropertyBlock _rippleBlock;
@@ -93,6 +108,30 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
 
     public string SaveId => _saveId;
     public bool UseLMBClick => true;
+
+    /// <summary>Draggable pantry duck GameObject consumed on delivery.</summary>
+    public GameObject PantryDuck => _pantryDuck;
+
+    /// <summary>True once the draggable duck has been delivered into the toilet.</summary>
+    public bool HasBeenDelivered => _delivered;
+
+    /// <summary>True once the horror jumpscare has played (the duck is gone for good).</summary>
+    public bool HorrorTriggered => _horrorTriggered;
+
+    /// <summary>
+    /// Restores the delivered state during save loading, without animation or
+    /// extra saving: the duck appears in the toilet, the pantry duck stays hidden.
+    /// Used by <see cref="DuckToiletTrigger"/> as a consistency fallback.
+    /// </summary>
+    public void RestoreDelivered()
+    {
+        if (_horrorTriggered) return;
+        _delivered = true;
+        SetVisible(true);
+        if (_pantryDuck != null)
+            _pantryDuck.SetActive(false);
+        _soundZone?.SetLureActive(true);
+    }
 
     /// <summary>Returns true when the duck is ready to be interacted with.</summary>
     public bool CanInteract() => !_isBusy && !_horrorTriggered;
@@ -195,77 +234,60 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         _rippleSlot = (_rippleSlot + 1) % RippleSlotCount;
     }
 
-    private void OnEnable()
-    {
-        if (LightingSystem.Instance != null)
-            LightingSystem.Instance.OnPowerChanged += OnPowerChanged;
-    }
-
-    private void OnDisable()
-    {
-        if (LightingSystem.Instance != null)
-            LightingSystem.Instance.OnPowerChanged -= OnPowerChanged;
-    }
-
-    private void Start()
-    {
-        // If power is already on, show the duck immediately
-        // (unless the horror was already triggered — handled by LoadSaveData).
-        if (LightingSystem.Instance != null && LightingSystem.Instance.IsPowered)
-            OnPowerChanged(true);
-    }
-
-    private void Update()
-    {
-        // Safety net: if the horror event has already been triggered,
-        // ensure the duck stays hidden no matter what re-enabled it.
-        if (_horrorTriggered)
-        {
-            bool needsHide = false;
-            if (_renderers != null)
-            {
-                foreach (Renderer r in _renderers)
-                {
-                    if (r != null && r.enabled)
-                    {
-                        r.enabled = false;
-                        needsHide = true;
-                    }
-                }
-            }
-            if (_collider != null && _collider.enabled)
-            {
-                _collider.enabled = false;
-                needsHide = true;
-            }
-            if (needsHide)
-                _isShown = false;
-            return;
-        }
-
-        // Fallback: if power is on but the duck is not shown (missed event),
-        // force-show it so the player can interact.
-        if (!_isShown &&
-            LightingSystem.Instance != null && LightingSystem.Instance.IsPowered)
-        {
-            SetVisible(true);
-        }
-    }
-
     private void OnDestroy()
     {
         SaveManager.Instance?.Unregister(this);
     }
 
-    private void OnPowerChanged(bool isPowered)
+    /// <summary>
+    /// Called by <see cref="DuckToiletTrigger"/> when the player drops the draggable
+    /// pantry duck into the toilet. The pantry duck is hidden, and this duck
+    /// surfaces from the water with a splash. No-op if already delivered
+    /// or the horror event has already played.
+    /// </summary>
+    public void DeliverFromToilet()
     {
-        if (isPowered && !_isShown && !_horrorTriggered)
-            SetVisible(true);
+        if (_delivered || _horrorTriggered) return;
+        _delivered = true;
+
+        if (_pantryDuck != null)
+            _pantryDuck.SetActive(false);
+
+        // Splash as the delivered duck hits the toilet water.
+        if (_splashClip != null)
+            AudioManager.Instance?.PlaySFX(_splashClip, _deliverySplashVolume);
+
+        // Persist immediately — the pantry duck must stay gone even if the
+        // session ends before the surfacing animation finishes.
+        SaveManager.Instance?.Save();
+
+        StartCoroutine(DeliveryRoutine());
+    }
+
+    /// <summary>Plays the surfacing animation after delivery, then enables the lure sound.</summary>
+    private IEnumerator DeliveryRoutine()
+    {
+        // Duck starts fully submerged below the water surface.
+        SetLocalY(_surfaceLocalPos.y - _deliveryStartDepth);
+        SetVisible(true);
+
+        // Ripple + splash as the duck starts rising, then periodic underwater ripples.
+        TriggerRipple(_deliveryRippleStrength);
+        yield return UnderwaterRippleRoutine(_underwaterDuration);
+
+        // Splash sound as the duck pops out of the water.
+        if (_splashClip != null)
+            AudioManager.Instance?.PlaySFX(_splashClip, _deliverySplashVolume);
+
+        // Buoyant pop out of the water (same animation as the dive surfacing).
+        yield return SurfaceRoutine(_deliveryStartDepth);
+
+        // Now the duck is in the toilet — the lure sound may start calling the player.
+        _soundZone?.SetLureActive(true);
     }
 
     private void SetVisible(bool visible)
     {
-        _isShown = visible;
         foreach (Renderer r in _renderers)
             r.enabled = visible;
         if (_collider != null)
@@ -317,7 +339,7 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         TriggerRipple(_surfaceRippleStrength);
 
         // Surface with buoyant pop.
-        yield return SurfaceRoutine();
+        yield return SurfaceRoutine(_diveDepth);
         _isBusy = false;
     }
 
@@ -335,13 +357,14 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     }
 
     /// <summary>
-    /// Simulates a hollow rubber duck full of air: fast buoyant rise,
-    /// momentum overshoot above the surface, then damped bounces as it settles.
+    /// Simulates a hollow rubber duck full of air: fast buoyant rise from
+    /// <paramref name="startDepth"/> below the surface, momentum overshoot
+    /// above the surface, then damped bounces as it settles.
     /// All rotations are applied as offsets on top of the base local rotation.
     /// </summary>
-    private IEnumerator SurfaceRoutine()
+    private IEnumerator SurfaceRoutine(float startDepth)
     {
-        float startY = _surfaceLocalPos.y - _diveDepth;
+        float startY = _surfaceLocalPos.y - startDepth;
         float peakY = _surfaceLocalPos.y + _surfaceOvershoot;
 
         float phase1Dur = Mathf.Max(_surfaceDuration * 0.25f, 0.01f);
@@ -416,7 +439,7 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         {
             diveCount = _diveCount,
             horrorTriggered = _horrorTriggered,
-            isShown = _isShown
+            delivered = _delivered
         });
     }
 
@@ -426,6 +449,7 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
         SaveData data = JsonUtility.FromJson<SaveData>(json);
         _diveCount = data.diveCount;
         _horrorTriggered = data.horrorTriggered;
+        _delivered = _horrorTriggered || data.delivered;
 
         if (_horrorTriggered)
         {
@@ -435,6 +459,14 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
             // Deactivate the entire GameObject so nothing can re-enable
             // the renderer or collider. Update() safety net won't be needed.
             gameObject.SetActive(false);
+            return;
+        }
+
+        if (_delivered)
+        {
+            // Duck was delivered but the horror has not played yet —
+            // it stays in the toilet and can be clicked; pantry duck stays hidden.
+            RestoreDelivered();
         }
     }
 
@@ -443,6 +475,6 @@ public class DuckHorrorInteractable : MonoBehaviour, IInteractable, ISaveable
     {
         public int diveCount;
         public bool horrorTriggered;
-        public bool isShown;
+        public bool delivered;
     }
 }

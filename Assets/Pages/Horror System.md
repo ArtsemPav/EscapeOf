@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 4 -->
 
 Система хоррор-событий состоит из двух компонентов: `**HorrorSystem**` — singleton-координатор, и `**HorrorEvent**` — один хоррор-момент с настраиваемым триггером и эффектом. Смотри также [@ id="/Pages/Private/Code Locks.md" label="Code Locks"] — там описана интеграция с кодовым замком.
 
@@ -469,7 +469,7 @@ GhostAgent (сцена, корень)         # двигающийся объе�
 | `Event_RunPastDoor`  | `run_past_door`      | `OnPlayerEnterZone` + FlashLight + electric puzzle | `AppearThenDisappearAfterDelay` | `MaidHolder` (горничная)      |
 | `Event_VentMaid`     | `vent_maid`          | `OnManual`                                         | `AppearAndStay`                 | `/Env/Vent/Horror/MaidHolder` |
 | `Event_RatScare`     | `rat_scare`          | `OnManual` ← `CrouchTrigger`                       | `AppearAndStay`                 | `/Laboratory/Puzzle/Rat/Rat`  |
-| `Event_DuckHorror`   | `duck_horror`        | `OnManual` ← клики по утке                         | `AppearThenDisappearAfterDelay` | `duckHorror` (утка с глазами) |
+| `Event_DuckHorror`   | `duck_horror`        | `OnManual` ← DuckToiletTrigger (драгбл-утка в унитазе) | `AppearThenDisappearAfterDelay` | `duckHorror` (утка с глазами) |
 | `Event_EntityAppear` | `entity_appear`      | `OnPlayerEnterZone`                                | `AppearThenDisappearAfterDelay` | **null** — не настроено       |
 | `Event_UVPentagram`  | — (свой скрипт)      | `CanTriggerZone` (банка корма)                     | Секвенция `UVPentagramSequence` | `CatHorror` (13 котов + свет) |
 | `Event_NurseryExit`  | `nursery_exit_scare` | `OnPuzzleSolved` (NurseryLock)                     | `AppearAndStay`                 | **null** — звонок телефона    |
@@ -542,15 +542,24 @@ Env/2ndFloor/Corridor2stF/Horror
 
 ## Резиновая утка — Event_DuckHorror (`duck_horror`)
 
-Хоррор-событие в ванной 2-го этажа. Резиновая утка в туалете: изначально невидима, появляется при включении питания. Игрок кликает на неё — утка ныряет под воду и выныривает с плавучестью. После нескольких кликов — финальное погружение и скример.
+Хоррор-событие в ванной 2-го этажа. Игрок должен **принести из кладовой (Pantry 2, 1-й этаж) драгбл-утку** и бросить её в унитаз. Драгбл-утка исчезает, а из воды с плеском и рипплами всплывает ивентовая утка. Дальше игрок кликает на неё: утка ныряет под воду и выныривает с плавучестью. После нескольких кликов — финальное погружение и скример.
+
+> Ивент **не зависит от питания** — раньше утка появлялась при включении света, теперь единственное условие — доставка драгбл-утки в туалет.
 
 **Цепочка:**
 
 ```
-Питание включено → утка появляется
-Игрок кликает утку N раз (DuckHorrorInteractable, IInteractable)
-  └─ Ныряние: _diveDepth=0.12, _diveDuration=0.5, всплытие через _underwaterDuration=1.4
-  └─ После MaxDives кликов — финальное погружение _finalUnderwaterDuration=2.5
+Игрок приносит драгбл-утку из кладовой (/Env/1stFloor/Pantry 2/Props/RubberDuck, PhysicsDraggable)
+  └─ Бросает в унитаз → DuckTrigger (BoxCollider trigger под водой в чаше)
+       └─ DuckToiletTrigger.OnTriggerEnter: Rigidbody брошенного = драгбл-утка
+            └─ DuckHorrorInteractable.DeliverFromToilet()
+                 ├─ Драгбл-утка SetActive(false)
+                 ├─ Ивентовая утка видима + всплытие с плеском (SurfaceRoutine) и рипплом
+                 ├─ DuckSoundZone.SetLureActive(true) — приманка включается
+                 └─ Сейв (доставка сохраняется)
+Игрок кликает ивентовую утку N раз (DuckHorrorInteractable, IInteractable)
+  └─ Ныряние: _diveDepth=0.4, _diveDuration=0.5, всплытие через _underwaterDuration=1.4
+  └─ После MaxDives (3) кликов — финальное погружение _finalUnderwaterDuration=2.5
        └─ HorrorSystem.Instance.Trigger("duck_horror")
             └─ HorrorEvent.Activate()
                  ├─ Target: /Env/2ndFloor/Bathroom2ndFloor/Puzzle/DuckHorror/duckHorror
@@ -559,12 +568,17 @@ Env/2ndFloor/Corridor2stF/Horror
                  └─ Disappear Delay = 1 с — утка исчезает через секунду после появления
 ```
 
-- **Триггер:** `OnManual` — срабатывает только из `DuckHorrorInteractable` (`Assets/Scripts/Interaction/DuckHorrorInteractable.cs`).
+- **DuckToiletTrigger** (`Assets/Scripts/Effects/DuckToiletTrigger.cs`, ISaveable `duck_toilet_trigger`) — на объекте `DuckTrigger`. Работает как `CanTriggerZone` (банка кота): `OnTriggerEnter` сверяет `attachedRigidbody` с драгбл-уткой, грейс-период `_startGracePeriod = 2` с после загрузки сцены. Ссылки на драгбл-утку и ивентовую утку резолвит в рантайме (`FindFirstObjectByType`) — триггер живёт в префабе комнаты `PRF_Bathroom2ndFloor` и не держит хрупких сериализованных ссылок на сцену.
+- **DuckHorrorInteractable** — новые поля секции **Delivery**: `_pantryDuck` (драгбл-утка, деактивируется при доставке), `_deliveryStartDepth = 0.45` (глубина старта всплытия), `_deliveryRippleStrength = 2.5`, `_deliverySplashVolume = 1`. Метод `DeliverFromToilet()` вызывает триггер. Из скрипта убрана подписка на `LightingSystem` — видимость управляется только доставкой.
+- **Сейв** (`duck_horror_interactable`): `diveCount`, `horrorTriggered`, `delivered`. При `horrorTriggered` — утка скрыта навсегда, GameObject деактивирован. При `delivered` без хоррора — утка сразу видима в туалете, драгбл-утка скрыта, приманка активна.
+- **Появление при доставке:** утка выставляется под воду (`_deliveryStartDepth` ниже поверхности, до включения рендереров) → рипплы на воде `_underwaterDuration` с → плеск + всплытие (`SurfaceRoutine`) с overshoot и затухающими бонсами → включается приманка, сейв.
+- **DuckSoundZone** — больше не `IPowerConsumer`. Приманка (луп `S_DuckInvite.aif`) **молчит, пока игрок несёт драгбл-утку**, и включается только после всплытия ивентовой утки (`SetLureActive(true)`): если игрок принёс утку и ушёл, не докликав — туалет зовёт его обратно.
 - **Эффект:** `AppearThenDisappearAfterDelay` (1 с).
-- **Звук и перекрытия:** у уточки два звука, и оба теперь глушатся перекрытиями (`AudioOcclusionUtility` — raycast от источника к камере; путь перекрыт перекрытием/стеной/закрытой дверью → тише + low-pass):
+- **Звук и перекрытия:** у уточки два звука, и оба глушатся перекрытиями (`AudioOcclusionUtility` — raycast от источника к камере; путь перекрыт перекрытием/стеной/закрытой дверью → тише + low-pass):
+  - Плеск доставки/нырков/всплытия (`_splashClip`, `S_WaterSplashEffect.aif`) — через `AudioManager.PlaySFX` (глобально, 2D).
   - Крик скримера (`AudioSource` на `duckHorror`, `S_DduckJump.aif`) — компонент `AudioSourceOcclusion` (`Assets/Scripts/Effects/AudioSourceOcclusion.cs`): `_occludedVolumeFactor = 0.1`, `_occludedCutoffHz = 400`.
-  - Завлекающий луп `DuckSoundZone` (`Assets/Scripts/Interaction/DuckSoundZone.cs`) — непрерывное (градиентное) приглушение: raycast от утки к камере, путь перекрыт → «muffle» плавно нарастает с расстоянием (`_muffleStartDistance = 2` → `_muffleFullDistance = 6`), на дальней дистанции звук — `_volume × _farOccludedVolumeFactor (0.07)` с low-pass `_farOccludedCutoffHz = 600`. Вблизи стены почти не глушат, чем дальше — тем тише и глуже, без резких вкл/выкл. Геометрия ближе `_sourceIgnoreRadius (0.5)` к утке игнорируется — иначе чаша унитаза «глушила» бы звук всегда.
-- `DuckHorrorInteractable` также `ISaveable` — прогресс ныряний сохраняется.
+  - Завлекающий луп `DuckSoundZone` (`Assets/Scripts/Interaction/DuckSoundZone.cs`) — непрерывное (градиентное) приглушение: raycast от утки к камере, путь перекрыт → «muffle» плавно нарастает с расстоянием (`_muffleStartDistance = 3` → `_muffleFullDistance = 10`), на дальней дистанции звук — `_volume × _farOccludedVolumeFactor (0.2)` с low-pass `_farOccludedCutoffHz = 600`. Слышимость до `_maxDistance = 15` м (линейный спад, жёсткое отсечение за радиусом). Вблизи стены почти не глушат, чем дальше — тем тише и глуже, без резких вкл/выкл. Геометрия ближе `_sourceIgnoreRadius (0.5)` к утке игнорируется — иначе чаша унитаза «глушила» бы звук всегда.
+- `DuckHorrorInteractable` также `ISaveable` — прогресс ныряний и доставка сохраняются.
 
 ---
 

@@ -1,5 +1,58 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5863387212338377473
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3827952118440123004}
+  - component: {fileID: 9079227500480240437}
+  m_Layer: 6
+  m_Name: DuckTrigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3827952118440123004
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5863387212338377473}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2892237313151586240}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &9079227500480240437
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5863387212338377473}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.7637487, y: 0.49644616, z: 0.69225454}
+  m_Center: {x: 0.06726674, y: -0.035055663, z: 0.012237664}
 --- !u!1 &6419021125603067785
 GameObject:
   m_ObjectHideFlags: 0
@@ -71,11 +124,15 @@ MonoBehaviour:
   _minDistance: 2
   _maxDistance: 12
   _volume: 0.7
+  _muffleStartDistance: 2
+  _muffleFullDistance: 6
+  _farOccludedVolumeFactor: 0.1
+  _farOccludedCutoffHz: 600
+  _sourceIgnoreRadius: 0.5
   _checkOcclusion: 1
   _occlusionMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  _activeWhenDuckShown: 1
 --- !u!1 &7716004357735485441
 GameObject:
   m_ObjectHideFlags: 0
@@ -86,7 +143,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2892237313151586240}
   m_Layer: 6
-  m_Name: DuckHorror
+  m_Name: PRF_DuckHorror
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -109,6 +166,7 @@ Transform:
   - {fileID: 6871798909468920969}
   - {fileID: 3094256078512381721}
   - {fileID: 8460609128151470705}
+  - {fileID: 3827952118440123004}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &3220691905868886198
@@ -211,7 +269,6 @@ MonoBehaviour:
   _surfaceRippleStrength: 2
   _underwaterRippleStrength: 0.5
   _underwaterRippleInterval: 0.4
-  _interactText: "\u041D\u0430\u0436\u0430\u0442\u044C \u043D\u0430 \u0443\u0442\u043E\u0447\u043A\u0443"
   _splashClip: {fileID: 8300000, guid: 8b7f559c070ec6a40a210abad284f8cc, type: 3}
   _splashVolume: 0.8
   _horrorEventId: duck_horror

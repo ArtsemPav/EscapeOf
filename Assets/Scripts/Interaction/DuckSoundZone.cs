@@ -3,21 +3,22 @@ using UnityEngine;
 /// <summary>
 /// Plays a looping 3D duck sound to lure the player when the duck is NOT visible.
 /// Uses distance-based hearing range instead of a trigger zone:
-///   - Player within hearing range AND duck not visible → sound fades in (lure).
+///   - Lure enabled (duck delivered into the toilet) AND duck not visible → sound fades in (lure).
 ///   - Duck visible (in frustum and unoccluded) → sound fades out (player found it).
 ///   - Player outside hearing range → sound stops.
-///   - Master power OFF → sound stops entirely.
+/// The lure is enabled only after delivery — see <see cref="SetLureActive"/> called
+/// by <see cref="DuckHorrorInteractable.DeliverFromToilet"/>; while the player still
+/// carries the draggable pantry duck, the toilet is silent.
 /// The lure is CONTINUOUSLY occlusion-aware: every check interval the direct
 /// path from the duck to the player camera is raycast, and a muffle value
 /// (0 = clear, 1 = fully muffled) blends smoothly toward its target. A blocked
 /// path barely muffles the sound up close and muffles it progressively with
 /// range — the farther the duck is behind walls/floors, the quieter and duller
 /// the squeak, without any hard audible on/off steps.
-/// Implements IPowerConsumer to receive power state from LightingSystem.
 /// The AudioSource follows the duck's position so the sound stays spatially accurate.
 /// </summary>
 [RequireComponent(typeof(Collider))]
-public class DuckSoundZone : MonoBehaviour, IPowerConsumer
+public class DuckSoundZone : MonoBehaviour
 {
     private const float FadeDuration = 1.5f;
     private const float CheckInterval = 0.2f;
@@ -73,7 +74,7 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     private AudioLowPassFilter _lowPass;
     private Coroutine _checkRoutine;
     private bool _soundActive;
-    private bool _isPowered;
+    private bool _lureActive;
 
     // Fade in/out progress: 0 = silent, 1 = lure volume. Blended every tick,
     // replacing start/stop coroutines so there is a single volume writer.
@@ -97,7 +98,6 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     private void OnEnable()
     {
         EnsureAudioSource();
-        LightingSystem.Instance?.RegisterConsumer(this);
         _checkRoutine = StartCoroutine(DistanceCheckLoop());
     }
 
@@ -105,16 +105,17 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
     {
         StopSoundImmediate();
         StopCheckRoutine();
-        LightingSystem.Instance?.UnregisterConsumer(this);
     }
 
     /// <summary>
-    /// IPowerConsumer: called by LightingSystem when master power changes,
-    /// and once immediately on registration with the current state.
+    /// Enables or disables the lure. Called by DuckHorrorInteractable once the
+    /// event duck has surfaced in the toilet; also used on save-load restore.
     /// </summary>
-    public void OnPowerStateChanged(bool isPowered)
+    public void SetLureActive(bool active)
     {
-        _isPowered = isPowered;
+        _lureActive = active;
+        if (!active)
+            StopSoundImmediate();
     }
 
     /// <summary>Creates and configures the AudioSource if it doesn't exist.</summary>
@@ -228,18 +229,18 @@ public class DuckSoundZone : MonoBehaviour, IPowerConsumer
 
     /// <summary>
     /// Returns true if the lure sound should be playing:
-    /// power on, duck renderer enabled, player within hearing range, duck not visible.
+    /// lure enabled (duck delivered), player within hearing range, duck not visible.
     /// </summary>
     private bool ShouldPlaySound()
     {
-        // Master power must be on.
-        if (!_isPowered)
+        // The lure only starts after the duck has been delivered into the toilet.
+        if (!_lureActive)
             return false;
 
         if (_playerCamera == null || _soundTarget == null)
             return false;
 
-        // Duck must be visible (renderer enabled) — power is on but duck hidden = no sound.
+        // Duck must be visible (renderer enabled) — duck hidden = no sound.
         if (_duckRenderer != null && !_duckRenderer.enabled)
             return false;
 
