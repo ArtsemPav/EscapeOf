@@ -545,6 +545,7 @@ MonoBehaviour:
   _audioWindowPrefab: {fileID: 5576505466544408403, guid: f5dada0c397132d43abd254a7332d924, type: 3}
   _videoWindowPrefab: {fileID: 3553811217456162597, guid: 523cc1c626700ab48ab51e666555e56f, type: 3}
   _documentWindowPrefab: {fileID: 7579156776587020393, guid: 111babcd062eee9499ac30a7208b087c, type: 3}
+  _slotMachineWindowPrefab: {fileID: 0}
   _allFiles:
   - {fileID: 11400000, guid: a7dc25fe0bdf16147838fc320563ca47, type: 2}
   - {fileID: 11400000, guid: b0d725ffb60b6a944a86da5a47a7a536, type: 2}
@@ -15733,6 +15734,10 @@ PrefabInstance:
       value: 100
       objectReference: {fileID: 0}
     - target: {fileID: 7372049741542161170, guid: bdf6964e5278059429bf9f5c6bec6b4c, type: 3}
+      propertyPath: _resetSoundVolume
+      value: 0.67
+      objectReference: {fileID: 0}
+    - target: {fileID: 7372049741542161170, guid: bdf6964e5278059429bf9f5c6bec6b4c, type: 3}
       propertyPath: _steamAudioSource
       value: 
       objectReference: {fileID: 261183428819426351}
@@ -15898,10 +15903,6 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 520
       objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 359750447998592583, guid: 106214a3872eeb0478690dbeac54cd06, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 4608
@@ -15916,7 +15917,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 6082467202452056713, guid: 106214a3872eeb0478690dbeac54cd06, type: 3}
       propertyPath: m_fontSize
-      value: 0.07
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 7815177911968194528, guid: 106214a3872eeb0478690dbeac54cd06, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -15977,6 +15978,10 @@ PrefabInstance:
     - target: {fileID: 8379696065384654361, guid: 106214a3872eeb0478690dbeac54cd06, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -20191,6 +20196,10 @@ PrefabInstance:
       value: 70.2961
       objectReference: {fileID: 0}
     - target: {fileID: 631601556610848675, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: _scanLoopVolume
+      value: 0.506
+      objectReference: {fileID: 0}
+    - target: {fileID: 631601556610848675, guid: c6346ad04a699a149b8121db55629e35, type: 3}
       propertyPath: _flaskPlacementScale
       value: 1.3
       objectReference: {fileID: 0}
@@ -20441,6 +20450,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8913682823754969470, guid: c6346ad04a699a149b8121db55629e35, type: 3}
+      propertyPath: _buttonClip
+      value: 
+      objectReference: {fileID: 8300000, guid: aa77b075c6beb8a4e8443eb470b9782d, type: 3}
     - target: {fileID: 8913682823754969470, guid: c6346ad04a699a149b8121db55629e35, type: 3}
       propertyPath: _flaskPlacementScale
       value: 1.3
