@@ -45,6 +45,12 @@ public class GhostFootsteps : MonoBehaviour
     [Tooltip("CHASE steps are silent closer than this distance (meters). Kept tiny so the approaching hunt is always audible.")]
     [SerializeField] private float _chaseAudibleMinDistance = 1.5f;
 
+    [Tooltip("PATROL steps: 0-1 chance a step is actually voiced. Low value = walking is usually silent; the player hears the ghost only a couple of times per game. 1 = every step voiced (too chatty).")]
+    [SerializeField, Range(0f, 1f)] private float _patrolAudibilityChance = 0.06f;
+
+    [Tooltip("CHASE steps: 0-1 chance a step is voiced. The hunt is rare and dramatic — its steps stay fully audible (1 = every step).")]
+    [SerializeField, Range(0f, 1f)] private float _chaseAudibilityChance = 1f;
+
     [Tooltip("Volume multiplier for distant PATROL steps — the muffled 'someone walking in another room' ambience.")]
     [SerializeField, Range(0f, 1f)] private float _patrolVolumeFactor = 0.6f;
 
@@ -153,6 +159,12 @@ public class GhostFootsteps : MonoBehaviour
         // approaching hunt stays audible right up to the catch.
         float minDistance = chasing ? _chaseAudibleMinDistance : _audibleMinDistance;
         if (distance < minDistance) return;
+
+        // Rarity gate: patrol steps are almost always dropped (the ghost walks
+        // in silence); the player hears them only a couple of times per game.
+        // Chase steps are always voiced — a hunt must sound like a hunt.
+        float audibility = chasing ? _chaseAudibilityChance : _patrolAudibilityChance;
+        if (Random.value > audibility) return;
 
         // Occlusion check (raycast, cached between steps): is the direct path
         // to the player blocked by a floor slab / wall / closed door? A ghost
