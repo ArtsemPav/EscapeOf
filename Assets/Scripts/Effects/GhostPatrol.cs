@@ -128,6 +128,14 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [Tooltip("Puzzle that unlocks the hunt. While unsolved, the ghost only patrols, stomps and flips switches — it never chases the player. Assign the clock puzzle's PuzzleModeController here. Leave empty to hunt from the start.")]
     [SerializeField] private PuzzleModeController _huntUnlockPuzzle;
 
+    [Header("Manifestation Limit")]
+
+    [Tooltip("Max mist reveals within the rolling window below. The ghost still hunts normally — only the visible mist is suppressed. 0 = unlimited.")]
+    [SerializeField, Min(0)] private int _manifestationLimitPerWindow = 6;
+
+    [Tooltip("Length of the rolling manifestation window in seconds. 14400 = 4 hours.")]
+    [SerializeField, Min(1f)] private float _manifestationWindowSeconds = 14400f;
+
     [Header("Performance")]
 
     [Tooltip("Seconds between vision raycasts while patrolling/searching. The chase checks every frame — a hunt must not lose the player to a timing gap. No perceptible difference in behaviour, saves per-frame RaycastAll pressure.")]
@@ -173,6 +181,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// <summary>Next Time.time at which the patrol/search vision check runs.</summary>
     private float _nextVisionCheckTime;
 
+    /// <summary>Timestamps (Time.time) of recent manifestations inside the rolling window.</summary>
+    private readonly List<float> _manifestationTimes = new List<float>();
+
     /// <summary>Reusable buffer for the vision raycast (no per-frame allocations).</summary>
     private static readonly RaycastHit[] VisionHits = new RaycastHit[24];
 
@@ -202,14 +213,39 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// </summary>
     public event Action OnAgentManifested;
 
-    /// <summary>Raises OnAgentManifested safely (no listeners is fine).</summary>
+    /// <summary>
+    /// Raises OnAgentManifested safely (no listeners is fine). Suppressed while
+    /// the rolling manifestation window is full: the ghost still hunts and
+    /// catches the player, but the visible mist reveal stays hidden. Time
+    /// checks use unscaled time semantics via Time.time (pauses included) so
+    /// cutscenes/pauses do not consume the budget while the game is frozen.
+    /// </summary>
     private void Manifest()
     {
+        PruneManifestationWindow();
+
+        if (_manifestationTimes.Count >= _manifestationLimitPerWindow)
+        {
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostPatrol] Manifest suppressed — limit {_manifestationLimitPerWindow} per {_manifestationWindowSeconds:F0}s window reached.", this);
+            }
+            return;
+        }
+
+        _manifestationTimes.Add(Time.time);
+
         OnAgentManifested?.Invoke();
         if (_debugLogging)
         {
             Debug.Log("[GhostPatrol] Manifested (mist reveal).", this);
         }
+    }
+
+    /// <summary>Drops manifestation timestamps that fell outside the rolling window.</summary>
+    private void PruneManifestationWindow()
+    {
+        _manifestationTimes.RemoveAll(t => Time.time - t > _manifestationWindowSeconds);
     }
 
     private void Awake()
