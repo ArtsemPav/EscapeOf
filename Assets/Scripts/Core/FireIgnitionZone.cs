@@ -111,7 +111,8 @@ public class FireIgnitionZone : MonoBehaviour, ISaveable
     {
         if (_triggered || other.GetComponentInParent<FPSController>() == null) return;
         _triggered = true;
-        SaveManager.Instance?.Save();
+        // Checkpoint-only saving: the ignition state is minor state — captured by
+        // the next checkpoint, pause save or quiet autosave.
         StartCoroutine(IgniteSequence());
     }
 

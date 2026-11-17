@@ -471,20 +471,18 @@ namespace Escape.Core {
                 return;
             }
 
-            // Fling to fully open or closed on a sharp release.
-            // Checked after trivial so micro-movements never trigger a fling.
+            // Checkpoint-only saving: door drag state is minor — it will be captured
+            // by the next puzzle/item/key checkpoint, pause save or quiet autosave.
             if (_flingThreshold > 0f && Mathf.Abs(_velocity) >= _flingThreshold) {
                 _flingTarget = _velocity > 0f ? 1f : 0f;
                 _flinging    = true;
                 _isOpen      = _flingTarget > 0.5f;
                 _velocity    = 0f;
-                SaveManager.Instance?.Save();
                 LogDragEnd();
                 return;
             }
 
             _isOpen = _openFraction > 0.5f;
-            SaveManager.Instance?.Save();
             LogDragEnd();
         }
 
@@ -674,7 +672,8 @@ namespace Escape.Core {
             _isUnlockAnimating = false;
             _velocity          = 0f;
 
-            SaveManager.Instance?.Save();
+            // Ghost prank: minor scripted state — no checkpoint save here; the move
+            // will be captured by the next checkpoint, pause save or quiet autosave.
             return true;
         }
 
@@ -709,6 +708,8 @@ namespace Escape.Core {
                 return;
             }
 
+            // Checkpoint-only saving: click toggles are minor state — captured by
+            // the next checkpoint (puzzle/item/key), pause save or quiet autosave.
             _clickTarget       = _isOpen ? 0f : 1f;
             _isOpen            = _clickTarget > 0.5f;
             _isClickAnimating  = true;
@@ -721,7 +722,6 @@ namespace Escape.Core {
             _isUnlockAnimating = false;
             _velocity          = 0f;
 
-            SaveManager.Instance?.Save();
             LogDragEnd();
         }
 

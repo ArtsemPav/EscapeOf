@@ -354,6 +354,10 @@ namespace Escape.Interaction
 
             _isBusy = false;
 
+            // Checkpoint save: the elevator ride is a progression event — persist
+            // the new floor (and the player position inside the cab).
+            SaveManager.Instance?.Save();
+
             // 8. If player already left, start auto-close timer
             if (_playerTransform == null)
                 StartAutoCloseTimer();

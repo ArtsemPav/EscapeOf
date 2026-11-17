@@ -523,9 +523,8 @@ public class FlashlightController : MonoBehaviour, ISaveable
             }
         }
 
-        if (wasOn != on && !_restoringState)
-            SaveManager.Instance?.Save();
-
+        // Checkpoint-only saving: flashlight state is minor — captured by the next
+        // checkpoint (puzzle/item/key), pause save or quiet autosave.
         OnModeChanged?.Invoke(CurrentMode);
     }
 

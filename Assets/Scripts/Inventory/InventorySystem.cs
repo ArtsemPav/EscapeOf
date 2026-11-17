@@ -192,15 +192,22 @@ public class InventorySystem : MonoBehaviour, ISaveable
         SaveManager.Instance?.Register(this);
     }
 
-    /// <summary>Builds a "item1, item2, руны: a, b" snapshot of the current inventory for logging.</summary>
+    /// <summary>Builds a "item1, item2, руны: a, b" snapshot of the current inventory for logging.
+    /// Items sharing the same display name get a 1-based occurrence suffix —
+    /// "Монета Харона (1), Монета Харона (2)" — so log readers can tell them apart.</summary>
     private string BuildStateSnapshot()
     {
+        var nameCounts = new System.Collections.Generic.Dictionary<string, int>();
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < _slots.Length; i++)
         {
             if (_slots[i] == null) continue;
             if (sb.Length > 0) sb.Append(", ");
-            sb.Append(string.IsNullOrEmpty(_slots[i].itemName) ? _slots[i].ItemId : _slots[i].itemName);
+            string name = string.IsNullOrEmpty(_slots[i].itemName) ? _slots[i].ItemId : _slots[i].itemName;
+            nameCounts.TryGetValue(name, out int occurrence);
+            nameCounts[name] = occurrence + 1;
+            sb.Append(name);
+            if (occurrence > 0) sb.Append(" (").Append(occurrence + 1).Append(')');
         }
 
         if (_collectedRuneIds.Count > 0)
@@ -250,7 +257,8 @@ public class InventorySystem : MonoBehaviour, ISaveable
                 OnRunesChanged?.Invoke();
                 OnInventoryChanged?.Invoke();
                 NotifyStateChanged();
-                SaveManager.Instance?.Save();
+                // Checkpoint-only saving: rune pickup is minor state — captured by the
+                // next checkpoint (puzzle/item/key), pause save or quiet autosave.
             }
             return true;
         }
@@ -266,7 +274,9 @@ public class InventorySystem : MonoBehaviour, ISaveable
         _slots[0] = item;
         OnInventoryChanged?.Invoke();
         NotifyStateChanged();
-        SaveManager.Instance?.Save();
+        // Checkpoint-only saving: runtime item churn (crafting, pouring, combining)
+        // is minor state — the item itself saves via PickableItem; everything else
+        // is captured by the next checkpoint, pause save or quiet autosave.
         return true;
     }
 
@@ -288,7 +298,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
                 OnRunesChanged?.Invoke();
                 OnInventoryChanged?.Invoke();
                 NotifyStateChanged();
-                SaveManager.Instance?.Save();
+                // Checkpoint-only saving: rune removal is minor state.
                 return true;
             }
             return false;
@@ -301,7 +311,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             CompactSlots();
             OnInventoryChanged?.Invoke();
             NotifyStateChanged();
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: runtime item churn is minor state.
             return true;
         }
         return false;
@@ -320,7 +330,8 @@ public class InventorySystem : MonoBehaviour, ISaveable
         CompactSlots();
         OnInventoryChanged?.Invoke();
         NotifyStateChanged();
-        SaveManager.Instance?.Save();
+        // Checkpoint-only saving: slot clearing is minor state — captured by the
+        // next checkpoint, pause save or quiet autosave.
         return true;
     }
 
@@ -338,7 +349,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             _slots[slotIndex] = item;
             OnInventoryChanged?.Invoke();
             NotifyStateChanged();
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: runtime item churn is minor state.
             return true;
         }
         return AddItem(item); // fallback: slot 0, existing items shift right
@@ -357,7 +368,7 @@ public class InventorySystem : MonoBehaviour, ISaveable
             _slots[i] = to;
             OnInventoryChanged?.Invoke();
             NotifyStateChanged();
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: item replacement (crafting) is minor state.
             return true;
         }
         return false;
@@ -480,7 +491,8 @@ public class InventorySystem : MonoBehaviour, ISaveable
         CompactSlots();
         OnInventoryChanged?.Invoke();
         NotifyStateChanged();
-        SaveManager.Instance?.Save();
+        // Checkpoint-only saving: compaction accompanies item churn — captured by
+        // the next checkpoint, pause save or quiet autosave.
     }
 
     /// <summary>

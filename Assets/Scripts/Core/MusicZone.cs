@@ -37,7 +37,8 @@ public class MusicZone : MonoBehaviour {
         Debug.Log($"{LOG_PREFIX} '{name}' request for '{_zoneTrack.name}' -> {(accepted ? "ACCEPTED" : "REJECTED by director")}");
         if (accepted) {
             _hasTriggered = true;
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: the triggered track is minor state — captured
+            // by the next checkpoint, pause save or quiet autosave.
         }
     }
 

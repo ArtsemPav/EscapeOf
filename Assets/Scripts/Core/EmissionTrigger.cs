@@ -82,11 +82,10 @@ public class EmissionTrigger : MonoBehaviour, ISaveable
         return "/" + path;
     }
 
-    /// <summary>Records the emission state and queues a save checkpoint (only when saving is enabled).</summary>
+    /// <summary>Records the emission state (no checkpoint save — minor state, captured
+    /// by the next checkpoint, pause save or quiet autosave).</summary>
     private void NotifyStateChanged()
     {
-        if (!_saveState) return;
-        SaveManager.Instance?.Save();
     }
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────

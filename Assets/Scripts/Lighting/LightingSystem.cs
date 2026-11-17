@@ -324,7 +324,8 @@ public class LightingSystem : MonoBehaviour, ISaveable
         OnZoneSwitchChanged?.Invoke(zoneId, on);
 
         ApplyToZone(zoneId, IsZoneActive(zoneId));
-        SaveManager.Instance?.Save();
+        // Checkpoint-only saving: light switches are minor state — captured by the
+        // next checkpoint (puzzle/item/key), pause save or quiet autosave.
     }
 
     /// <summary>Toggles the switch for a zone. Returns the new switch state.</summary>
