@@ -46,6 +46,8 @@ namespace Escape.Core {
         [SerializeField] private string _lockedHintKey = LocalizationKeys.InteractDoorLocked;
         [Tooltip("Минимальная пауза между повторными подсказками (в секундах), чтобы спам кликов не заваливал экран попапами.")]
         [SerializeField] [Min(0f)] private float _lockedHintCooldown = 2f;
+        [Tooltip("Минимальная пауза между повторными звуками дёрганой запертой двери (в секундах), чтобы спам кликов не миксовал один и тот же звук.")]
+        [SerializeField] [Min(0f)] private float _lockedSoundCooldown = 1.5f;
 
         [Header("Pivot")]
         [Tooltip("Transform двери, который физически вращается. Обычно — родительский объект с петлёй.")]
@@ -129,6 +131,7 @@ namespace Escape.Core {
         private float   _dragStartFraction;
         private Camera  _dragCamera;
         private float   _lastLockedHintTime = -999f; // время последней подсказки о запертой двери
+        private float   _lastLockedSoundTime = -999f; // время последнего звука дёрганой запертой двери
 
         // Pending load state: applied in Start() after _closedLocalEulerY is initialized
         private bool    _hasPendingLoad;
@@ -371,8 +374,7 @@ namespace Escape.Core {
             // Locked door: play locked sound and prevent any movement.
             if (_isLocked && !_isOpen) {
                 ProgressLogger.Log("drag_locked", $"дверь {name}: заперта");
-                if (AudioManager.Instance != null)
-                    AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
+                PlayLockedSound();
                 ShowLockedHint();
                 _isDragging = true;
                 return;
@@ -509,7 +511,7 @@ namespace Escape.Core {
                 }
                 else {
                     // Заперта, ключа нет — вместо молчания показываем подсказку.
-                    AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
+                    PlayLockedSound();
                     ShowLockedHint();
                 }
             }
@@ -543,6 +545,16 @@ namespace Escape.Core {
             PopupMessageSystem.Instance?.Show(Localization.Get(string.IsNullOrEmpty(_lockedHintKey)
                 ? LocalizationKeys.InteractDoorLocked
                 : _lockedHintKey));
+        }
+
+        /// <summary>Plays the locked-door rattle sound, respecting _lockedSoundCooldown
+        /// so rapid clicks/mashes on a shut locked door do not stack the same one-shot.</summary>
+        private void PlayLockedSound() {
+            if (Time.unscaledTime - _lastLockedSoundTime < _lockedSoundCooldown) return;
+
+            _lastLockedSoundTime = Time.unscaledTime;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
         }
 
         /// <summary>Unlocks the door programmatically without opening it.</summary>
@@ -703,8 +715,7 @@ namespace Escape.Core {
             if (_isLocked && !_isOpen) {
                 ProgressLogger.Log("drag_locked", $"дверь {name}: заперта (клик)");
                 // Positional rattle, not a global 2D SFX.
-                if (AudioManager.Instance != null)
-                    AudioManager.Instance.Play3DOneShot(_lockedClip, transform.position, _motionVolume, 1f, 15f);
+                PlayLockedSound();
                 return;
             }
 
