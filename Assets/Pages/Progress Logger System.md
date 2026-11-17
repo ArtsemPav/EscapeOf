@@ -55,13 +55,13 @@
 | `session_start`        | запуск игры                              | версия                                             |
 | `scene_loaded`         | каждая загрузка сцены                    | имя сцены                                          |
 | `room_enter`           | игрок физически вошёл в комнату          | имя комнаты                                        |
-| `inventory_changed`    | изменение инвентаря                      | имена предметов + руны                             |
+| `inventory_changed`    | изменение инвентаря                      | имена предметов + руны. Одинаковые имена получают суффикс вхождения: «Монета Харона (2)» = вторая такая же монета в инвентаре |
 | `puzzle_solved`        | решение паззла                           | SaveId                                             |
 | `puzzle_failed`        | неудачная попытка                        | SaveId + ввод (код и т.п.)                         |
 | `puzzle_exit_unsolved` | закрыл паззл, не решив                   | SaveId                                             |
 | `drag_end`             | отпустил драгбл-объект — чем закончилось | `ящик/дверь <имя>: открыт/закрыт/промежуточно (%)` |
 | `drag_locked`          | тянет запертый ящик/дверь                | имя объекта                                        |
-| `game_saved`           | игрок сохранился                         | —                                                  |
+| `game_saved`           | записан чекпоинт-сейв                    | —. Тихий автосейв (раз в 10 мин) НЕ логируется — см. Save System |
 
 
 ## Как читать спотыкания
@@ -74,7 +74,7 @@
 
 - **Комнаты (визиты)** — `RoomVisibilityManager.CurrentRoomChanged` (физическое положение игрока).
 - **Инвентарь** — `InventorySystem.OnInventoryStateChanged` (все точки изменения, включая руны; дубликаты отфильтрованы).
-- **Сохранения** — `SaveManager.OnSaved` → `game_saved` (маркер на таймлайне).
+- **Сохранения** — `SaveManager.OnSaved` → `game_saved` (маркер на таймлайне). Сейв-система работает в чекпоинт-режиме (паззлы, подбор, отпирание, ивенты, лифт, пауза) — `game_saved` в логе появляется только на этих моментах; тихий автосейв (`fireOnSaved: false`) в лог не попадает.
 - **puzzle_solved** — через `PuzzleModeController` (все базовые паззлы) + автономные: Board → `board_puzzle`, Fifteen → `_saveId`, Metamorf → `metamorf_puzzle`, финальная дверь → `final_door_phase1_medallions`, `final_door_phase2_scull_complete`.
 - **puzzle_failed** — `CodeLockUI.ErrorRoutine` (неверный код), `ElectricPuzzleController` (рывок рычага на неверной схеме).
 - **puzzle_exit_unsolved** — `PuzzleModeController.ExitPuzzleMode` при `!_isSolved`.
