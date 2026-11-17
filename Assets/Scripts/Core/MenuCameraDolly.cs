@@ -46,10 +46,11 @@ public class MenuCameraDolly : MonoBehaviour
         _restingRotation = transform.rotation;
     }
 
-    private void Start()
-    {
-        StartArrival();
-    }
+    // The arrival beat is NOT auto-played anymore: the splash sequence covers
+    // the first seconds of the scene, so the drift would run hidden under it.
+    // SplashController.OnSplashFinished triggers StartArrival instead — the
+    // camera enters the room exactly when the black splash dissolves. If no
+    // splash exists, the camera simply rests at its scene pose.
 
     /// <summary>
     /// Places the camera at the offset start pose and drifts it into the
