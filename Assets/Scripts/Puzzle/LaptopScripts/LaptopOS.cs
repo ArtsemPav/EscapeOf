@@ -23,6 +23,10 @@ namespace EscapeOf.Puzzle.Laptop
         [Tooltip("Correct password to unlock the desktop.")]
         [SerializeField] private string _password = "1234";
 
+        [Header("Password Input")]
+        [Tooltip("Maximum number of characters allowed in the password field.")]
+        [SerializeField] private int _maxPasswordLength = 12;
+
         [Header("Screens")]
         [SerializeField] private GameObject _loginScreen;
         [SerializeField] private GameObject _desktopScreen;
@@ -96,6 +100,9 @@ namespace EscapeOf.Puzzle.Laptop
 
         private void Start()
         {
+            if (_passwordField != null)
+                _passwordField.characterLimit = _maxPasswordLength;
+
             // Apply saved screen state immediately so the render texture
             // shows the correct screen before the player enters puzzle mode.
             // OnPowerStateChanged already handles initial state during Awake
