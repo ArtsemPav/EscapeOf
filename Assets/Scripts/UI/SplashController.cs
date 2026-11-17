@@ -1,15 +1,16 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.InputSystem;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// In-scene splash sequence: crossfades a series of logo images over a black
 /// background on top of the main menu, then hides the splash overlay so the
-/// menu beneath becomes visible and interactive. Any key/click skips the
-/// current (and remaining) logos. Attach to the splash canvas root.
-/// OnSplashFinished fires once the splash fully dissolves — subscribers can
-/// start their own intro beats (e.g. the menu camera arrival) at that moment.
+/// menu beneath becomes visible and interactive. The sequence cannot be
+/// skipped — it always plays to the end. Attach to the splash canvas root.
+/// OnSplashFinished fires when the background starts dissolving into the
+/// menu — subscribers can start their own intro beats (e.g. the menu camera
+/// arrival) in sync with the reveal.
 /// </summary>
 public class SplashController : MonoBehaviour
 {
@@ -23,11 +24,14 @@ public class SplashController : MonoBehaviour
     [Tooltip("How long each fully-visible logo holds before fading out, in seconds.")]
     [SerializeField, Min(0f)] private float _logoDisplaySeconds = 1.6f;
 
+    [Tooltip("Extra display seconds added to the FIRST logo in the array (it appears from full black, so it reads as shorter).")]
+    [SerializeField, Min(0f)] private float _firstLogoExtraSeconds = 1f;
+
     [Tooltip("How long the black splash screen dissolves into the menu after the last logo, in seconds.")]
     [SerializeField, Min(0.01f)] private float _menuRevealSeconds = 0.8f;
 
-    [Tooltip("How much faster fades run while the player is skipping (e.g. 4 = 4x speed).")]
-    [SerializeField, Min(1f)] private float _skipSpeedFactor = 4f;
+    [Tooltip("Black pause after each logo's fade-out, in seconds (breathing room between logos).")]
+    [SerializeField, Min(0f)] private float _pauseAfterFadeOutSeconds = 0.5f;
 
     [Header("Logos")]
     [Tooltip("Logo CanvasGroups shown in order, one after another.")]
@@ -39,28 +43,25 @@ public class SplashController : MonoBehaviour
     [Tooltip("Root object hidden when the sequence ends (the splash canvas).")]
     [SerializeField] private GameObject _splashRoot;
 
-    [Tooltip("Fires once the splash has fully dissolved and the canvas is hidden.")]
+    [Tooltip("Fires when the background starts dissolving into the menu (camera arrival hooks here).")]
     [SerializeField] private UnityEvent _onSplashFinished;
 
-    /// <summary>Raised when the splash sequence ends (after the dissolve, with the canvas hide).</summary>
+    [Tooltip("EventSystem disabled while the splash plays (blocks keyboard/gamepad menu input). Re-enabled when the menu is revealed.")]
+    [SerializeField] private EventSystem _eventSystem;
+
+    /// <summary>Raised when the splash background starts dissolving into the menu.</summary>
     public event System.Action SplashFinished;
 
     private Coroutine _sequence;
-    private bool _skipped;
     private bool _splashFinishedRaised;
 
     private void Start()
     {
-        _sequence = StartCoroutine(PlaySequence());
-    }
+        // Menu keyboard/gamepad input stays dead until the menu is revealed;
+        // mouse clicks are already blocked by the splash background image.
+        if (_eventSystem != null) _eventSystem.enabled = false;
 
-    /// <summary>Skip on any key, click, or gamepad button press.</summary>
-    private void Update()
-    {
-        bool anyInput = (Keyboard.current?.anyKey.wasPressedThisFrame ?? false)
-                        || (Mouse.current?.leftButton.wasPressedThisFrame ?? false)
-                        || (Gamepad.current?.buttonSouth.wasPressedThisFrame ?? false);
-        if (anyInput) _skipped = true;
+        _sequence = StartCoroutine(PlaySequence());
     }
 
     private IEnumerator PlaySequence()
@@ -70,32 +71,28 @@ public class SplashController : MonoBehaviour
             if (logo != null) logo.alpha = 0f;
         }
 
-        foreach (var logo in _logos)
+        for (int i = 0; i < _logos.Length; i++)
         {
+            var logo = _logos[i];
             if (logo == null) continue;
 
             yield return Fade(logo, 0f, 1f, _fadeInSeconds);
 
-            float wait = 0f;
-            while (wait < _logoDisplaySeconds && !_skipped)
-            {
-                wait += Time.unscaledDeltaTime;
-                yield return null;
-            }
+            // The first logo fades in from full black and reads as shorter,
+            // so it gets extra hold time to even out the perceived rhythm.
+            float displaySeconds = _logoDisplaySeconds + (i == 0 ? _firstLogoExtraSeconds : 0f);
 
-            // The arrival/camera beats start HERE — in parallel with the last
-            // logo's fade-out (or with an accelerated skip fade), so the menu
-            // is already drifting into place while the logo dissolves.
-            bool isLast = logo == _logos[_logos.Length - 1];
-            if (isLast || _skipped)
-            {
-                RaiseSplashFinished();
-            }
+            yield return new WaitForSecondsRealtime(displaySeconds);
 
-            // Skip must still fade the logo out — just faster (no hard pop).
             yield return Fade(logo, 1f, 0f, _fadeOutSeconds);
-            if (_skipped) break;
+
+            // Black pause between logos — a standalone beat, not part of fades.
+            yield return new WaitForSecondsRealtime(_pauseAfterFadeOutSeconds);
         }
+
+        // The camera arrival starts HERE — simultaneously with the background
+        // dissolve, so the menu is already drifting into place as it appears.
+        RaiseSplashFinished();
 
         // Dissolve the whole splash (black background included) into the menu,
         // then hide the canvas. The player never sees a hard cut.
@@ -105,6 +102,10 @@ public class SplashController : MonoBehaviour
         }
 
         if (_splashRoot != null) _splashRoot.SetActive(false);
+
+        // The menu is revealed: restore keyboard/gamepad navigation and clicks.
+        if (_eventSystem != null) _eventSystem.enabled = true;
+
         RaiseSplashFinished();
     }
 
@@ -123,8 +124,7 @@ public class SplashController : MonoBehaviour
         float t = 0f;
         while (t < durationSeconds)
         {
-            // While skipping, fades run faster instead of being cut off.
-            t += Time.unscaledDeltaTime * (_skipped ? _skipSpeedFactor : 1f);
+            t += Time.unscaledDeltaTime;
             group.alpha = Mathf.Lerp(from, to, Mathf.Clamp01(t / durationSeconds));
             yield return null;
         }

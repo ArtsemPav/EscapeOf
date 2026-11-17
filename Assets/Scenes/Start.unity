@@ -16397,10 +16397,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SplashController
   _fadeInSeconds: 1.2
-  _fadeOutSeconds: 1.2
-  _logoDisplaySeconds: 2.5
-  _menuRevealSeconds: 1.2
-  _skipSpeedFactor: 4
+  _fadeOutSeconds: 1.5
+  _logoDisplaySeconds: 1.5
+  _firstLogoExtraSeconds: 2.5
+  _menuRevealSeconds: 2
+  _pauseAfterFadeOutSeconds: 0.5
   _logos:
   - {fileID: 2011460931}
   - {fileID: 566684925}
@@ -16421,6 +16422,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  _eventSystem: {fileID: 898444594}
 --- !u!225 &1634927664
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -17356,7 +17358,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MenuCameraDolly
   _arrivalBackDistance: 2.4
   _arrivalDropHeight: 0
-  _arrivalDurationSeconds: 3
+  _arrivalDurationSeconds: 2
   _loadingPushDistance: 3
   _loadingPushDurationSeconds: 2.5
   _exitRetreatDurationSeconds: 2.2

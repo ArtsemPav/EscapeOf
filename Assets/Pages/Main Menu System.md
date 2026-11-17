@@ -1,8 +1,8 @@
-<!-- version: 7 -->
+<!-- version: 8 -->
 
 ## Обзор
 
-Главное меню рендерится поверх сцены в режиме `ScreenSpaceCamera` через `Main Camera`. Переходы между экранами идут через общий `ScreenFader` (фейд в чёрное, подмена панели, обратный фейд). Переход в игру — через фейковый экран загрузки с фоновой подгрузкой сцены.
+Стартовая сцена (`Start.unity`) открывается сплэш-экраном (см. [Splash Screen System](Splash%20Screen%20System.md)): логотипы поверх чёрного фона, версия билда, затем растворение в главное меню с синхронным прилётом камеры. Главное меню рендерится поверх сцены в режиме `ScreenSpaceCamera` через `Main Camera`. Переходы между экранами идут через общий `ScreenFader` (фейд в чёрное, подмена панели, обратный фейд). Переход в игру — через фейковый экран загрузки с фоновой подгрузкой сцены.
 
 ---
 
@@ -18,7 +18,14 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera) + MainMenuCo
     │   └── Btn_Exit        Button → MainMenuController.OnExit
     ├── Corner_Detail       Угловой декор (нижний) — _bottomFrameElements
     ├── Corner_Line1        Декоративная линия (floating)
-    └── Corner_Line2        Декоративная линия (floating)
+    ├── Corner_Line2        Декоративная линия (floating)
+    └── VersionText         TMP + BuildVersionLabel — версия билда, левый нижний угол
+
+SplashCanvas                Canvas (ScreenSpaceOverlay, sortingOrder 100) + SplashController + CanvasGroup
+├── BlackBackground         Чёрный Image на весь экран, raycastTarget — блокирует клики в меню
+├── LogoCompany             Image + CanvasGroup — логотип компании
+├── LogoGame                Image + CanvasGroup — логотип игры
+└── VersionText             TMP + BuildVersionLabel — версия видна весь сплэш
 ```
 
 ---
@@ -62,6 +69,17 @@ MainMenuCanvas              Canvas (ScreenSpaceCamera, Main Camera) + MainMenuCo
 | `_hoverVolume` / `_clickVolume` | `0.7`        | Громкость на SFX-шине                                              |
 
 
+### `BuildVersionLabel` — `Assets/Scripts/UI/BuildVersionLabel.cs`
+
+Пишет версию билда (`Application.version` = Project Settings → Player → Version) в TMP-лейбл в `Awake()`. Вешается на любой экран: `MainMenuCanvas/MAIN/VersionText` и `SplashCanvas/VersionText` в Start.unity. Формат: `_prefix + Application.version` (префикс пустой, версия уже содержит `v.`). `Awake()` срабатывает и на неактивном объекте — экраны могут стартовать выключенными.
+
+
+| Поле            | По умолчанию | Описание                                    |
+| --------------- | ------------ | ------------------------------------------- |
+| `_versionLabel` | —            | TMP-лейбл для версии                        |
+| `_prefix`       | `""`         | Префикс (пустой — версия уже содержит `v.`) |
+
+
 ### Переход в игру (`BeginGameTransition`)
 
 ```
@@ -80,16 +98,17 @@ Wake-up intro триггерится самим `SaveManager`: после очи
 
 ### `MenuCameraDolly` — `Assets/Scripts/Core/MenuCameraDolly.cs`
 
-На камере меню. «Прибытие» в сцену: камера стартует со смещением назад (по view-направлению, чуть ниже) и плавно дрейфует в rest-позу с ease-out, пока стартовый фейд открывает сцену. Также проигрывает короткий push-forward при переходе к экрану загрузки (`BeginLoadingPush`, ease-in quad).
+На камере меню (`/Main Camera`). «Прибытие» в сцену: камера стартует со смещением назад (по view-направлению, чуть ниже) и плавно дрейфует в rest-позу с ease-out. **Автозапуск при старте сцены убран** — прилёт триггерится событием сплэша (`SplashController` → On Splash Finished → `StartArrival`), чтобы дрейф не отыгрывал под чёрным сплэшем: камера выезжает одновременно с растворением фона в меню. Также проигрывает короткий push-forward при переходе к экрану загрузки (`BeginLoadingPush`, ease-in quad) и retreat при выходе (`BeginExitRetreat`, ease-in cubic).
 
 
-| Поле                          | По умолчанию | Описание                                                   |
-| ----------------------------- | ------------ | ---------------------------------------------------------- |
-| `_arrivalBackDistance`        | `2.2`        | Насколько позади rest-позы стартует камера (м)             |
-| `_arrivalDropHeight`          | `0.35`       | Вертикальный сдвиг стартовой позы вниз (м)                 |
-| `_arrivalDurationSeconds`     | `4`          | Длительность дрейфа (синхронизирована со стартовым фейдом) |
-| `_loadingPushDistance`        | `1.2`        | Дистанция push-forward при переходе (м)                    |
-| `_loadingPushDurationSeconds` | `1.2`        | Длительность push (должна закончиться под фейдом)          |
+| Поле                          | В сцене | Описание                                                          |
+| ----------------------------- | ------- | ----------------------------------------------------------------- |
+| `_arrivalBackDistance`        | `2.4`   | Насколько позади rest-позы стартует камера (м)                    |
+| `_arrivalDropHeight`          | `0`     | Вертикальный сдвиг стартовой позы вниз (м)                        |
+| `_arrivalDurationSeconds`     | `3`     | Длительность дрейфа прилёта (с)                                   |
+| `_loadingPushDistance`        | `3`     | Дистанция push-forward при переходе (м)                           |
+| `_loadingPushDurationSeconds` | `2.5`   | Длительность push (должна закончиться под фейдом)                 |
+| `_exitRetreatDurationSeconds` | `2.2`   | Длительность отъезда камеры при выходе (фейд синхронизирован с ней) |
 
 
 При `OnDisable` камера мгновенно возвращается в rest-позу. Всё на `Time.unscaledDeltaTime` (с ограничением кадра 0.05 с против хичей).
