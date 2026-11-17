@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 Инвентарь — это три независимых слоя: **данные** (ScriptableObjects), **логика** (`InventorySystem`) и **UI** (`InventoryUI` + слоты). Слои общаются через событие `OnInventoryChanged` — UI не знает о логике, логика не знает о UI.
 
@@ -134,7 +134,7 @@ Singleton на GameObject в сцене. Хранит `ItemData[] _slots` — м
 public event Action OnInventoryChanged;          // любое изменение слотов или рун
 public event Action OnRunesChanged;              // изменился набор собранных рун
 public event Action OnCrafted;                   // рецепт успешно исполнен (слушает InventoryAudio)
-public event Action<string> OnInventoryStateChanged; // снапшот "0:ItemKey,1:ItemRope, руны: a" для логов
+public event Action<string> OnInventoryStateChanged; // снапшот "Монета Харона, Монета Харона (2), руны: a" для логов
 ```
 
 UI подписывается в `Start` и отписывается в `OnDisable` (оба события).
@@ -155,10 +155,16 @@ UI подписывается в `Start` и отписывается в `OnDisab
 | `bool ClearSlot(slotIndex, bool reserve = false)` | Очищает слот и компактирует (`reserve` — legacy-параметр, механизм резерваций удалён)                  |
 | `bool PlaceItemAt(slotIndex, item)`               | Кладёт в указанный пустой слот; при занятом — фолбэк в `AddItem`                                       |
 | `bool ReplaceItem(from, to)`                      | Заменяет предмет в первом найденном слоте, позиция сохраняется (компакции нет)                         |
-| `void Compact()`                                  | Компакция всех слотов + `OnInventoryChanged` + сейв (после отложенного крафта)                         |
+| `void Compact()`                                  | Компакция всех слотов + `OnInventoryChanged` (после отложенного крафта)                                 |
 | `void ReleaseAllReservations()`                   | No-op для обратной совместимости (резервации удалён)                                                   |
 | `void ClearAll()`                                 | Очищает все слоты и руны (сброс сохранения)                                                            |
 | `int MaxSlots` / `ItemData[] AllItems`            | Число слотов / база ассетов (для dev-панели)                                                           |
+
+### Сохранение инвентаря (чекпоинт-модель)
+
+Сериализация — по `_itemId` (`slotIds`), восстановление через `FindItemById` по `_allItems`: **`itemId` должны быть уникальны между ассетами**. Одинаковые визуально предметы (две монеты Харона `Coin 1`/`Coin 2`) различаются по ID — сейв-ID их `PickableItem` тоже разные (`pickable_Coin_1`, `pickable_Coin_2`).
+
+Инвентарь **не вызывает `Save()` сам** (кроме как через `PickableItem` при подборе) — содержимое фиксируется чекпоинтами: решение паззла, отпирание двери ключом, сейв на паузу, тихий автосейв. Подробно — в [@ id="/Pages/Private/Save System.md" label="Save System"].
 | `ItemData FindItemByIdPublic(id)`                 | Поиск предмета по ItemId (для dev-панели)                                                              |
 
 
