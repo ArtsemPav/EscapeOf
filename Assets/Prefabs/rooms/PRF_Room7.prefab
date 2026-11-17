@@ -15653,10 +15653,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -15667,7 +15663,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 2
+      value: PRF_NoteFtue 1
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -15729,9 +15725,25 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
+    - target: {fileID: 7798029124072390190, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
+      propertyPath: m_fontSharedMaterials.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7798029124072390190, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
+      propertyPath: 'm_fontSharedMaterials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 5576045523593430123, guid: bfbb510e7909fa4498061f0b47ae4571, type: 2}
+    - target: {fileID: 7798029124072390190, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
+      propertyPath: 'm_fontSharedMaterials.Array.data[1]'
+      value: 
+      objectReference: {fileID: -4645198975744443302, guid: 053f99d0487a055409ae3a5d2ad349d0, type: 2}
     - target: {fileID: 8364651449374800482, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -15743,6 +15755,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5481453462216338500, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7632911590178497018}
+    - targetCorrespondingSourceObject: {fileID: 5481453462216338500, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1917251955843138840}
   m_SourcePrefab: {fileID: 100100000, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
 --- !u!1 &6680623588381555147 stripped
 GameObject:
@@ -15783,6 +15798,23 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.21000002, y: 0.03, z: 0.29000002}
   m_Center: {x: -0.0000009536743, y: 0.000508, z: 0.0000009536743}
+--- !u!114 &1917251955843138840
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6680623588381555147}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e27714b5d52d0b4a9e933850c9e5aba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NoteLightDimmer
+  ambientBrightness: 0.06
+  lightResponse: 0.6
+  smoothSpeed: 25
+  pagesContainerName: Pages
+  tintSprites: 0
 --- !u!4 &6683235824226625329 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5484188839685649086, guid: 78987d2cc092e33428ae739fc9d2aef8, type: 3}
@@ -15796,10 +15828,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1328205824126278479}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 390813484540622623, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -15875,6 +15903,10 @@ PrefabInstance:
     - target: {fileID: 7079273059343857031, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -17596,10 +17628,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 59e82c8f9f45bdf4d860573b54dc073b, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -17610,7 +17638,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: 59e82c8f9f45bdf4d860573b54dc073b, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 8
+      value: PRF_NoteFtue 7
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: 59e82c8f9f45bdf4d860573b54dc073b, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -17669,6 +17697,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6063111162243156807, guid: 59e82c8f9f45bdf4d860573b54dc073b, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
@@ -19563,6 +19595,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
+    - target: {fileID: 4451360623482977459, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
+    - target: {fileID: 4492372440869039146, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
     - target: {fileID: 1801278519735074, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_Name
       value: Paper
@@ -19632,14 +19672,6 @@ PrefabInstance:
       value: 640
       objectReference: {fileID: 0}
     - target: {fileID: 5774190469570824721, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
-    - target: {fileID: 4451360623482977459, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
-    - target: {fileID: 4492372440869039146, guid: a7be8cc0c04a4c747a2bcc07c01631dd, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
@@ -19891,10 +19923,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 107891440159468158}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: ea4e70fa0c4b27b42b840151743ba97d, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -19905,7 +19933,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: ea4e70fa0c4b27b42b840151743ba97d, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 4
+      value: PRF_NoteFtue 3
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: ea4e70fa0c4b27b42b840151743ba97d, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -19967,9 +19995,17 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
+    - target: {fileID: 7798029124072390190, guid: ea4e70fa0c4b27b42b840151743ba97d, type: 3}
+      propertyPath: m_fontSize
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 8398271420924737099, guid: ea4e70fa0c4b27b42b840151743ba97d, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -19999,7 +20035,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e629cf5caec07b7479014c67344b875a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DocumentInteraction
-  _documentData: {fileID: 11400000, guid: 39caa28889115604a9b6030badbf3583, type: 2}
+  _documentData: {fileID: 11400000, guid: ccf0859dd9accbc47875bfbe5c816480, type: 2}
 --- !u!65 &3698813642562857844
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -21025,9 +21061,13 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
+    - target: {fileID: 390813484540622623, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7079273059343857031, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 0fc3672044e77214d889bd9836310d96, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -21039,7 +21079,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: 0fc3672044e77214d889bd9836310d96, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 6
+      value: PRF_NoteFtue 5
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: 0fc3672044e77214d889bd9836310d96, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -21105,13 +21145,9 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 390813484540622623, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7079273059343857031, guid: 7b46da8c20b6d3944960456f13004d1b, type: 3}
-      propertyPath: m_IsActive
-      value: 0
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -21922,10 +21958,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 926574003347719036, guid: 298b234a8c4f2114d8699424dd9ee02d, type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -21940,7 +21972,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: 298b234a8c4f2114d8699424dd9ee02d, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 7
+      value: PRF_NoteFtue 6
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: 298b234a8c4f2114d8699424dd9ee02d, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -21999,6 +22031,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6063111162243156807, guid: 298b234a8c4f2114d8699424dd9ee02d, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
@@ -24945,10 +24981,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 9344d06ddd232944c84c639bd15e9f8e, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -24959,7 +24991,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: 9344d06ddd232944c84c639bd15e9f8e, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 10
+      value: PRF_NoteFtue 8
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: 9344d06ddd232944c84c639bd15e9f8e, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -25018,6 +25050,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6063111162243156807, guid: 9344d06ddd232944c84c639bd15e9f8e, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
       objectReference: {fileID: 0}
@@ -25871,10 +25907,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4877970621788075365}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 640
-      objectReference: {fileID: 0}
     - target: {fileID: 4553432467629007481, guid: 06379e2d1273dbb4db143534ff33cb1b, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 640
@@ -25885,7 +25917,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
     - target: {fileID: 5481453462216338500, guid: 06379e2d1273dbb4db143534ff33cb1b, type: 3}
       propertyPath: m_Name
-      value: PRF_PaperNoteFtue 3
+      value: PRF_NoteFtue 2
       objectReference: {fileID: 0}
     - target: {fileID: 5481453462216338500, guid: 06379e2d1273dbb4db143534ff33cb1b, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -25950,6 +25982,10 @@ PrefabInstance:
     - target: {fileID: 8364651449374800482, guid: 06379e2d1273dbb4db143534ff33cb1b, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 640
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
