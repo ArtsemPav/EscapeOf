@@ -84,9 +84,9 @@ public class RotateOnTrigger : MonoBehaviour, ISaveable
         {
             transform.localRotation = _targetRotation;
             _isRotating = false;
-            
-            // Save state once rotation is complete
-            SaveManager.Instance?.Save();
+
+            // Checkpoint-only saving: a finished rotation is minor state — captured
+            // by the next checkpoint, pause save or quiet autosave.
         }
     }
 

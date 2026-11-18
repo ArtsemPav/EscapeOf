@@ -1,4 +1,4 @@
-<!-- version: 3 -->
+<!-- version: 5 -->
 
 ## Обзор
 
@@ -224,7 +224,9 @@ else
 
 ### Запертый ящик
 
-При `_isLocked` тяга дёргает ящик только до `_lockedJiggleAmount` (0.05), играет `_lockedClip`, подсказка — `_lockedHint` («Заперто»), иконка прицела `CrosshairMode.Locked`. После отпускания плавно возвращается (`_lockedSnapBackSpeed 10`).
+При `_isLocked` тяга дёргает ящик только до `_lockedJiggleAmount` (0.05), играет `_lockedClip`, подсказка — «Заперто», иконка прицела `CrosshairMode.Locked`. После отпускания плавно возвращается (`_lockedSnapBackSpeed 10`).
+
+Звук запертого ящика (`_lockedClip`) играет с кулдауном `_lockedSoundCooldown` (1.5 с, по `Time.unscaledTime`) — как у `DoorInteraction`: спам-клики ЛКМ по запертому ящику не миксуют повторные звуки. Кулдаун применяется и к старту драга, и к повторному рывку внутри драга (у рывка дополнительно свой кулдаун смены направления 0.4 с).
 
 ### Публичный API
 
@@ -255,6 +257,7 @@ else
 | `_lockedHint`                 | `Заперто`    | Подсказка запертого ящика                           |
 | `_lockedJiggleAmount`         | `0.05`       | Насколько поддаётся (0–0.15)                        |
 | `_lockedSnapBackSpeed`        | `10`         | Скорость возврата после рывка                       |
+| `_lockedSoundCooldown`        | `1.5`        | Пауза между звуками запертого ящика (с)             |
 | `_lockedClip` / `_unlockClip` | —            | Звуки запертого ящика и разблокировки               |
 | `_openClip` / `_openVolume`   | — / `0.8`    | Звук движения ящика                                 |
 | `_interactText`               | `Потянуть`   | Подсказка при наведении                             |
@@ -291,7 +294,7 @@ _grabOffsetWorld = Quaternion.AngleAxis(-currentOpenAngle, axisWorld) * offset;
 
 `_grabOffsetWorld` хранится в **мировых координатах в системе закрытой двери** (pivot = 0°). Если бы offset хранился в текущем положении, `OnDrag` вращал бы его дважды → инверсия направления при открытой двери. Мир (а не transform меша) — из-за отрицательных localScale при FBX-импорте.
 
-Запертая и закрытая дверь не двигается — только звук `_lockedClip` и лог. Анимация `UnlockAndOpen` приоткрывает дверь до `_unlockAjarFraction` со скоростью `_unlockAjarSpeed` (0.6 fraction/сек) — новые драги игнорируются до её окончания.
+Запертая и закрытая дверь не двигается — только звук `_lockedClip`, лог и popup-подсказка (если включена). Звук и подсказка дребезжащей запертой двери играют **с кулдауном**: `_lockedSoundCooldown` (1.5 с, по `Time.unscaledTime`) и `_lockedHintCooldown` (2 с) — спам-клики ЛКМ по запертой двери не миксуют повторные звуки. Анимация `UnlockAndOpen` приоткрывает дверь до `_unlockAjarFraction` со скоростью `_unlockAjarSpeed` (0.6 fraction/сек) — новые драги игнорируются до её окончания.
 
 ### OnDrag — вычисление delta
 
@@ -345,7 +348,7 @@ float deltaFraction = Mathf.Clamp(
 | `_openLoopClip`  | Луп, пока дверь движется в сторону открытия (`_motionVolume 0.7`) |
 | `_closeLoopClip` | Луп, пока движется в сторону закрытия                             |
 | `_latchClip`     | Удар при достижении полностью закрытого положения                 |
-| `_lockedClip`    | Подёргивание запертой двери                                       |
+| `_lockedClip`    | Подёргивание запертой двери, не чаще раза в `_lockedSoundCooldown` |
 | `_unlockClip`    | Щелчок замка при `UnlockAndOpen` (вводе правильного кода)         |
 
 

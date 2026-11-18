@@ -96,6 +96,9 @@ public class GameManager : MonoBehaviour
 
         if (_isPaused)
         {
+            // Checkpoint save: pausing is a natural save point — the snapshot
+            // captures all minor state accumulated since the last checkpoint.
+            SaveManager.Instance?.Save();
             UIManager.Instance?.OpenPanel(menuUI);
             MusicDirector.PlayMenuMusic();
         }

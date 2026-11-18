@@ -1749,6 +1749,10 @@ PrefabInstance:
       value: door_bathroom_toiletbox1
       objectReference: {fileID: 0}
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
+      propertyPath: _openMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _maxOpenAngle
       value: -90
       objectReference: {fileID: 0}
@@ -6160,7 +6164,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 100004, guid: c5b23923553254244aa1270acf852199, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 100004, guid: c5b23923553254244aa1270acf852199, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -6287,6 +6291,7 @@ MonoBehaviour:
   _showBlockedHint: 0
   _lockedHintKey: ui.interact.door_locked
   _lockedHintCooldown: 2
+  _lockedSoundCooldown: 1.5
   _pivot: {fileID: 5752597229142812644}
   _rotationAxis: 0
   _maxOpenAngle: 100
@@ -7887,7 +7892,23 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3417167236939309572, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
       propertyPath: _maxDistance
-      value: 9
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 3417167236939309572, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+      propertyPath: _minDistance
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3417167236939309572, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+      propertyPath: _muffleFullDistance
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 3417167236939309572, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+      propertyPath: _muffleStartDistance
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3417167236939309572, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+      propertyPath: _farOccludedVolumeFactor
+      value: 0.2
       objectReference: {fileID: 0}
     - target: {fileID: 5698923177461168102, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
       propertyPath: m_RenderingLayerMask
@@ -7961,12 +7982,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9088773678523812043, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6153017970622645131}
-    - targetCorrespondingSourceObject: {fileID: 9088773678523812043, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 5863387212338377473, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3527700611942281393}
-    - targetCorrespondingSourceObject: {fileID: 9088773678523812043, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 4347033550682098161}
+      addedObject: {fileID: 5316556201480243188}
   m_SourcePrefab: {fileID: 100100000, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
 --- !u!1 &1764657245986713752 stripped
 GameObject:
@@ -7989,38 +8007,27 @@ MonoBehaviour:
   _occludedCutoffHz: 400
   _occlusionCheckInterval: 0.15
   _sourceIgnoreRadius: 0.5
---- !u!114 &3527700611942281393
+--- !u!1 &3963856453087873874 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5863387212338377473, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
+  m_PrefabInstance: {fileID: 7375943926413162579}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5316556201480243188
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1764657245986713752}
+  m_GameObject: {fileID: 3963856453087873874}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2466c2b16a8f2243a09e52a7e04bdbe, type: 3}
+  m_Script: {fileID: 11500000, guid: 97aa83ea57010584da0122682f4aef18, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AudioSourceOcclusion
-  _occludedVolumeFactor: 0.1
-  _occludedCutoffHz: 400
-  _occlusionCheckInterval: 0.15
-  _sourceIgnoreRadius: 0.5
---- !u!114 &4347033550682098161
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1764657245986713752}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b2466c2b16a8f2243a09e52a7e04bdbe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AudioSourceOcclusion
-  _occludedVolumeFactor: 0.1
-  _occludedCutoffHz: 400
-  _occlusionCheckInterval: 0.15
-  _sourceIgnoreRadius: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::DuckToiletTrigger
+  _pantryDuckBody: {fileID: 0}
+  _triggerDelay: 0
+  _startGracePeriod: 2
+  _eventDuck: {fileID: 0}
 --- !u!4 &5656476502058448787 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2892237313151586240, guid: bf3d9800a81abcc46997e9598aafb553, type: 3}
@@ -8674,6 +8681,10 @@ PrefabInstance:
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _saveId
       value: door_bathroom_toiletbox2
+      objectReference: {fileID: 0}
+    - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
+      propertyPath: _openMode
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 513726195590899998, guid: 5db30886d99ce2643881ef9a689c807b, type: 3}
       propertyPath: _maxOpenAngle

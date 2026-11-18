@@ -217,7 +217,8 @@ namespace EscapeOf.Puzzle.Laptop
             if (Keyboard.current != null)
                 Keyboard.current.onTextInput -= OnCharacterTyped;
 
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: exiting the OS is minor state — captured by
+            // the next checkpoint, pause save or quiet autosave.
             _windowManager?.PauseMediaAll();
         }
 

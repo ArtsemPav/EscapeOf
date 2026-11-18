@@ -93,7 +93,8 @@ public class JournalSystem : MonoBehaviour, ISaveable
         _unlocked.Add(data);
         _unlockedList.Add(data);
         OnEntryAdded?.Invoke(data);
-        SaveManager.Instance?.Save();
+        // Checkpoint-only saving: a read note is minor state — captured by the next
+        // checkpoint (puzzle/item/key), pause save or quiet autosave.
     }
 
     /// <summary>True if the document has been read (unlocked in the journal).</summary>

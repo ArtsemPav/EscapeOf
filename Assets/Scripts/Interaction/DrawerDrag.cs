@@ -44,6 +44,8 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     [SerializeField] private float _lockedSnapBackSpeed = 10f;
     [Tooltip("Sound played when the player tries to pull a locked drawer.")]
     [SerializeField] private AudioClip _lockedClip;
+    [Tooltip("Minimum pause between repeated locked-drawer rattles (seconds), so rapid LMB presses do not stack the same sound.")]
+    [SerializeField] [Min(0f)] private float _lockedSoundCooldown = 1.5f;
     [Tooltip("Sound played when the drawer is unlocked via Unlock().")]
     [SerializeField] private AudioClip _unlockClip;
 
@@ -62,6 +64,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     // Locked-drag state
     private bool _isLockedDrag;
     private bool _snappingBack;
+    private float _lastLockedSoundTime = -999f; // время последнего звука дёрганого запертого ящика
 
     // Direction tracking for mid-drag sound retrigger
     private int   _lastDragSign;
@@ -157,8 +160,7 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
         if (_isLockedDrag)
         {
             ProgressLogger.Log("drag_locked", $"ящик {name}: заперт");
-            if (_lockedClip != null)
-                _audioSource.PlayOneShot(_lockedClip, _openVolume);
+            PlayLockedSound();
         }
         else
         {
@@ -230,9 +232,8 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
             {
                 if (_isLockedDrag)
                 {
-                    // Locked drawer rattle — replay the locked sound on each jerk.
-                    if (_lockedClip != null)
-                        _audioSource.PlayOneShot(_lockedClip, _openVolume);
+                    // Locked drawer rattle — replay the locked sound on each jerk (cooled).
+                    PlayLockedSound();
                 }
                 else if (_openClip != null)
                 {
@@ -385,6 +386,17 @@ public class DrawerDrag : MonoBehaviour, IInteractable, IDraggable
     }
 
     // ── Private helpers ─────────────────────────────────────────────────────────
+
+    /// <summary>Plays the locked-drawer rattle, respecting _lockedSoundCooldown
+    /// so rapid LMB presses on a shut locked drawer do not stack the same one-shot.</summary>
+    private void PlayLockedSound()
+    {
+        if (Time.unscaledTime - _lastLockedSoundTime < _lockedSoundCooldown) return;
+
+        _lastLockedSoundTime = Time.unscaledTime;
+        if (_lockedClip != null && _audioSource != null)
+            _audioSource.PlayOneShot(_lockedClip, _openVolume);
+    }
 
     private void ApplyPosition()
     {

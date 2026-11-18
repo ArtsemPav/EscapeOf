@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using Escape.Core;
 using UnityEngine;
 using UnityEngine.Events;
+using Random = UnityEngine.Random;
 
 /// <summary>
 /// Invisible poltergeist that patrols the house along a waypoint graph and
@@ -84,49 +86,28 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     [Header("Switch Pranks")]
 
-    [Tooltip("Chance (0-1) that the ghost decides to play with a light switch. Evaluated periodically while dwelling at a waypoint. 0 = never, 1 = always.")]
-    [SerializeField, Range(0f, 1f)] private float _switchFlipChance = 0.35f;
-
-    [Tooltip("Share (0-1) of prank attempts that prefer turning lights OFF. The rest prefer turning them ON. If the nearest switch is already in the preferred state, the ghost flips it to the opposite anyway.")]
-    [SerializeField, Range(0f, 1f)] private float _switchOffPreference = 0.7f;
-
-    [Tooltip("Max distance from the waypoint to search for a LightSwitch (uses its Collider).")]
-    [SerializeField] private float _switchInteractRadius = 5f;
+    [Tooltip("Requires the player to have visited the switch's room at least once (RoomVisibilityManager room history). 0 disables the prank entirely.")]
+    [SerializeField, Range(0f, 1f)] private float _switchFlipChance = 0.15f;
 
     [Tooltip("Global cooldown between switch flips, seconds.")]
-    [SerializeField] private float _switchFlipCooldown = 30f;
+    [SerializeField] private float _switchFlipCooldown = 600f;
 
-    [Tooltip("Seconds between prank attempts while dwelling at a waypoint.")]
-    [SerializeField] private float _switchPrankInterval = 8f;
+    [Tooltip("Seconds between prank attempts while dwelling at a waypoint. High value = the ghost rarely even considers a flip.")]
+    [SerializeField] private float _switchPrankInterval = 120f;
 
     [Header("Poltergeist Throws")]
 
     [Tooltip("Chance (0-1) that the ghost decides to hurl a nearby draggable object. Evaluated periodically while dwelling at a waypoint. 0 = never.")]
-    [SerializeField, Range(0f, 1f)] private float _throwChance = 0.4f;
+    [SerializeField, Range(0f, 1f)] private float _throwChance = 0.35f;
 
     [Tooltip("Max distance from the waypoint to search for a PhysicsDraggable to throw (uses its Collider).")]
     [SerializeField] private float _throwSearchRadius = 6f;
 
-    [Tooltip("Horizontal launch speed of a thrown object, m/s.")]
-    [SerializeField] private Vector2 _throwSpeedRange = new Vector2(4f, 7f);
-
-    [Tooltip("Upward launch speed of a thrown object, m/s. Adds an arc to the throw.")]
-    [SerializeField] private Vector2 _throwUpwardSpeedRange = new Vector2(1.5f, 3.5f);
-
-    [Tooltip("Max mass of an object the ghost is willing to throw. Heavier furniture stays put.")]
-    [SerializeField] private float _maxThrowableMass = 15f;
-
-    [Tooltip("Objects closer than this distance to each other count as one pile, meters.")]
-    [SerializeField] private float _pileDetectionRadius = 2f;
-
-    [Tooltip("How many objects together count as a pile. A found pile is scattered all at once; fewer objects are thrown one at a time as usual.")]
-    [SerializeField] private int _pileMinCount = 3;
-
     [Tooltip("Global cooldown between poltergeist throws, seconds.")]
-    [SerializeField] private float _throwCooldown = 45f;
+    [SerializeField] private float _throwCooldown = 480f;
 
-    [Tooltip("Seconds between throw attempts while dwelling at a waypoint.")]
-    [SerializeField] private float _throwAttemptInterval = 10f;
+    [Tooltip("Seconds between throw attempts while dwelling at a waypoint. High value = the ghost rarely even considers a throw.")]
+    [SerializeField] private float _throwAttemptInterval = 150f;
 
     [Header("Door Pranks")]
 
@@ -136,28 +117,24 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     [Tooltip("Max distance from the waypoint to search for a DoorInteraction (uses its Collider).")]
     [SerializeField] private float _doorSearchRadius = 8f;
 
-    [Tooltip("Share (0-1) of door pranks that SLAM the door fully open/shut. The rest give it a short nudge ajar or shut.")]
-    [SerializeField, Range(0f, 1f)] private float _doorSlamChance = 0.4f;
-
-    [Tooltip("How far a nudged door swings (share of max angle, 0-1). A nudge is quick, so the creak plays once, clean.")]
-    [SerializeField] private Vector2 _nudgeFractionRange = new Vector2(0.25f, 0.5f);
-
-    [Tooltip("Duration of a nudge (partial swing), seconds — roughly the normal door speed.")]
-    [SerializeField] private Vector2 _nudgeDurationRange = new Vector2(0.8f, 1.5f);
-
-    [Tooltip("Duration of a full slam, seconds.")]
-    [SerializeField] private Vector2 _slamDurationRange = new Vector2(0.6f, 1f);
-
     [Tooltip("Global cooldown between door pranks, seconds.")]
-    [SerializeField] private float _doorCooldown = 60f;
+    [SerializeField] private float _doorCooldown = 420f;
 
-    [Tooltip("Seconds between door attempts while dwelling at a waypoint.")]
-    [SerializeField] private float _doorAttemptInterval = 12f;
+    [Tooltip("Seconds between door attempts while dwelling at a waypoint. High value = the ghost rarely even considers a door.")]
+    [SerializeField] private float _doorAttemptInterval = 120f;
 
     [Header("Hunt Unlock")]
 
     [Tooltip("Puzzle that unlocks the hunt. While unsolved, the ghost only patrols, stomps and flips switches — it never chases the player. Assign the clock puzzle's PuzzleModeController here. Leave empty to hunt from the start.")]
     [SerializeField] private PuzzleModeController _huntUnlockPuzzle;
+
+    [Header("Manifestation Limit")]
+
+    [Tooltip("Max mist reveals within the rolling window below. The ghost still hunts normally — only the visible mist is suppressed. 0 = unlimited.")]
+    [SerializeField, Min(0)] private int _manifestationLimitPerWindow = 6;
+
+    [Tooltip("Length of the rolling manifestation window in seconds. 14400 = 4 hours.")]
+    [SerializeField, Min(1f)] private float _manifestationWindowSeconds = 14400f;
 
     [Header("Performance")]
 
@@ -190,6 +167,11 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     private float _throwAttemptTimer;
     private float _doorAttemptTimer;
 
+    /// <summary>Room the player stood in when the current encounter (chase)
+    /// began. While the player remains inside it the spirit will not press the
+    /// hunt — the player was there first.</summary>
+    private string _playerRoomAtEncounterStart;
+
     /// <summary>Recently visited waypoints, newest first — excluded from
     /// <see cref="PickNextWaypoint"/> so the ghost does not ping-pong between
     /// two rooms.</summary>
@@ -198,6 +180,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     /// <summary>Next Time.time at which the patrol/search vision check runs.</summary>
     private float _nextVisionCheckTime;
+
+    /// <summary>Timestamps (Time.time) of recent manifestations inside the rolling window.</summary>
+    private readonly List<float> _manifestationTimes = new List<float>();
 
     /// <summary>Reusable buffer for the vision raycast (no per-frame allocations).</summary>
     private static readonly RaycastHit[] VisionHits = new RaycastHit[24];
@@ -219,6 +204,49 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// <summary>True while the ghost has just caught the player and its chase is
     /// on cooldown — it keeps patrolling and pranking during this time.</summary>
     public bool IsHuntOnCooldown => _huntCooldownTimer > 0f;
+
+    /// <summary>
+    /// Raised when the spirit manifests visibly: ONLY when the hunt starts
+    /// (the player walked in on the ghost and is being chased). Waypoint
+    /// arrivals stay invisible. Listeners (e.g. <see cref="GhostMistReveal"/>)
+    /// show the ghost's cloud of vapor.
+    /// </summary>
+    public event Action OnAgentManifested;
+
+    /// <summary>
+    /// Raises OnAgentManifested safely (no listeners is fine). Suppressed while
+    /// the rolling manifestation window is full: the ghost still hunts and
+    /// catches the player, but the visible mist reveal stays hidden. Time
+    /// checks use unscaled time semantics via Time.time (pauses included) so
+    /// cutscenes/pauses do not consume the budget while the game is frozen.
+    /// </summary>
+    private void Manifest()
+    {
+        PruneManifestationWindow();
+
+        if (_manifestationTimes.Count >= _manifestationLimitPerWindow)
+        {
+            if (_debugLogging)
+            {
+                Debug.Log($"[GhostPatrol] Manifest suppressed — limit {_manifestationLimitPerWindow} per {_manifestationWindowSeconds:F0}s window reached.", this);
+            }
+            return;
+        }
+
+        _manifestationTimes.Add(Time.time);
+
+        OnAgentManifested?.Invoke();
+        if (_debugLogging)
+        {
+            Debug.Log("[GhostPatrol] Manifested (mist reveal).", this);
+        }
+    }
+
+    /// <summary>Drops manifestation timestamps that fell outside the rolling window.</summary>
+    private void PruneManifestationWindow()
+    {
+        _manifestationTimes.RemoveAll(t => Time.time - t > _manifestationWindowSeconds);
+    }
 
     private void Awake()
     {
@@ -264,7 +292,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         }
     }
 
-    /// <summary>Places the agent at a random waypoint and starts dwelling there.</summary>
+    /// <summary>
+    /// Places the agent at a random waypoint and starts dwelling there.
+    /// </summary>
     private void SpawnAtRandomWaypoint()
     {
         _current = _waypoints[Random.Range(0, _waypoints.Count)];
@@ -296,8 +326,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             {
                 Debug.Log($"[GhostPatrol] Power on — active.", this);
             }
-        }
-        else if (!isPowered && _state != GhostState.Unpowered)
+        }        else if (!isPowered && _state != GhostState.Unpowered)
         {
             // Power cut — the spirit dissolves until the lights come back.
             if (_debugLogging)
@@ -390,24 +419,6 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         MoveTowards(_target.transform.position, _speed * _currentSpeedMultiplier);
 
-        // In-flight poltergeist: while passing waypoints the ghost may hurl an
-        // object from the room it is flying over (cooldown still applies).
-        _throwAttemptTimer -= Time.deltaTime;
-        if (_throwAttemptTimer <= 0f)
-        {
-            _throwAttemptTimer = _throwAttemptInterval;
-            TryThrowNearbyObject(_target.transform.position);
-        }
-
-        // In-flight door pranks: long flights between distant waypoints used to
-        // be dead time for door manipulation — use the waypoint being approached.
-        _doorAttemptTimer -= Time.deltaTime;
-        if (_doorAttemptTimer <= 0f)
-        {
-            _doorAttemptTimer = _doorAttemptInterval;
-            TryToggleNearbyDoor(_target.transform.position);
-        }
-
         if (HasArrived(_target.transform.position))
         {
             _current = _target;
@@ -463,7 +474,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         // Find the closest switch with a collider within range of the waypoint.
         Collider[] hits = Physics.OverlapSphere(
-            _current.transform.position, _switchInteractRadius);
+            _current.transform.position, 5f);
         LightSwitch closest = null;
         float closestDistance = float.MaxValue;
         foreach (Collider hit in hits)
@@ -471,6 +482,11 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             LightSwitch sw = hit.GetComponentInParent<LightSwitch>();
             if (sw == null || !sw.CanInteract()) continue;
             if (!IsOnGhostFloor(sw.transform)) continue;
+
+            // Only rooms the player has already opened up — the flick happens
+            // where the light's absence is meaningful, never behind locked doors.
+            if (!RoomHistory.ContainsRoom(sw.transform.position)) continue;
+
             float distance = Vector3.Distance(
                 _current.transform.position, hit.transform.position);
             if (distance < closestDistance)
@@ -490,9 +506,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         bool currentState = LightingSystem.Instance != null
             && LightingSystem.Instance.GetZoneSwitchState(closest.GetZoneId());
 
-        // The ghost's decision: mostly it prefers darkness, sometimes light.
-        // Either way it flips the switch — the prank is the flip itself.
-        bool wantsOff = Random.value < _switchOffPreference;
+        // The ghost always prefers darkness — the flick is a threat, not a quirk.
         closest.Interact();
 
         _switchFlipTimer = _switchFlipCooldown;
@@ -501,7 +515,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         bool newState = !currentState;
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] {(wantsOff ? "Prefers darkness" : "Prefers light")} — flipped a switch (zone now {(newState ? "ON" : "OFF")}) near '{_current.name}'.", this);
+            Debug.Log($"[GhostPatrol] Prefers darkness — flipped a switch (zone now {(newState ? "ON" : "OFF")}) near '{_current.name}'.", this);
         }
     }
 
@@ -509,16 +523,16 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     /// Poltergeist behaviour: the ghost periodically considers hurling nearby
     /// draggable objects. A clumped pile (see _pileMinCount) is scattered all
     /// at once; loose objects are thrown one at a time — the closest one.
-    /// While dwelling, the search centers on the current
-    /// waypoint; while flying between waypoints, on the target waypoint (the
-    /// room it is passing over). The throw is a
-    /// plain physics impulse in a random horizontal direction with a slight
-    /// upward arc — the object flies, tumbles and lands on its own; scrape and
-    /// impact sounds are produced by <see cref="PhysicsDraggable"/> itself.
-    /// Objects the player is currently holding are never touched.
+    /// The search is ALWAYS centered on the player's room (the spirit does not
+    /// perform into empty space), evaluated from wherever the ghost dwells.
+    /// The throw is a plain physics impulse in a random horizontal direction
+    /// with a slight upward arc — the object flies, tumbles and lands on its
+    /// own; scrape and impact sounds are produced by <see cref="PhysicsDraggable"/>
+    /// itself. Objects the player is currently holding are never touched.
     /// </summary>
-    private void TryThrowNearbyObject() => TryThrowNearbyObject(
-        _current != null ? _current.transform.position : _agentRoot.position);
+    private void TryThrowNearbyObject() => TryThrowNearbyObject(_player != null
+        ? _player.transform.position
+        : (_current != null ? _current.transform.position : _agentRoot.position));
 
     private void TryThrowNearbyObject(Vector3 searchCenter)
     {
@@ -537,7 +551,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
             Rigidbody body = draggable.Body;
             if (body == null || body.isKinematic) continue;
-            if (body.mass > _maxThrowableMass) continue;
+
+            const float maxThrowableMass = 15f;
+            if (body.mass > maxThrowableMass) continue;
             if (!IsOnGhostFloor(draggable.transform)) continue;
 
             // Never yank an object out of the player's hands.
@@ -558,7 +574,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         // A pile the player stacked gets scattered all at once — angrier.
         List<PhysicsDraggable> pile = FindLargestPile(throwables);
-        if (pile.Count >= _pileMinCount)
+        if (pile.Count >= 3)
         {
             foreach (PhysicsDraggable draggable in pile) Hurl(draggable);
             _throwCooldownTimer = _throwCooldown;
@@ -595,12 +611,12 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
     }
 
     /// <summary>
-    /// Groups the candidates into clumps of objects lying within
-    /// <see cref="_pileDetectionRadius"/> of each other (flood-fill) and
-    /// returns the largest clump.
+    /// Groups the candidates into clumps of objects lying within a fixed 2 m
+    /// radius of each other (flood-fill) and returns the largest clump.
     /// </summary>
     private List<PhysicsDraggable> FindLargestPile(List<PhysicsDraggable> candidates)
     {
+        const float pileDetectionRadius = 2f;
         List<PhysicsDraggable> remaining = new List<PhysicsDraggable>(candidates);
         List<PhysicsDraggable> largest = new List<PhysicsDraggable>();
 
@@ -619,7 +635,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
                     foreach (PhysicsDraggable member in clump)
                     {
                         if (Vector3.Distance(member.transform.position, remaining[i].transform.position)
-                            <= _pileDetectionRadius)
+                            <= pileDetectionRadius)
                         {
                             clump.Add(remaining[i]);
                             remaining.RemoveAt(i);
@@ -644,10 +660,12 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         // Random horizontal direction (the spirit does not aim — it rages),
         // plus an upward component for a nice tumbling arc.
+        const float throwSpeedMin = 4f, throwSpeedMax = 7f;
+        const float throwUpwardMin = 1.5f, throwUpwardMax = 3.5f;
         float angle = Random.Range(0f, Mathf.PI * 2f);
         Vector3 direction = new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle));
-        Vector3 velocity = direction * Random.Range(_throwSpeedRange.x, _throwSpeedRange.y)
-                         + Vector3.up * Random.Range(_throwUpwardSpeedRange.x, _throwUpwardSpeedRange.y);
+        Vector3 velocity = direction * Random.Range(throwSpeedMin, throwSpeedMax)
+                         + Vector3.up * Random.Range(throwUpwardMin, throwUpwardMax);
 
         body.linearVelocity = velocity;
         body.angularVelocity = Random.insideUnitSphere * 5f;
@@ -655,9 +673,9 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
     /// <summary>
     /// Door prank: the ghost periodically considers playing with a nearby
-    /// unlocked door. Most of the time it creeps the door open (or shuts it
-    /// fully, latch click included) slowly with a long creak; sometimes it
-    /// SLAMS it. Locked doors are left alone — the spirit cannot turn a key.
+    /// unlocked door. It creeps the door open (or shuts it fully, latch click
+    /// included) slowly with a long creak. Locked doors are left alone — the
+    /// spirit cannot turn a key.
     /// Uses DoorInteraction.GhostMove, so motion loops, the latch click and
     /// occlusion portals all behave exactly like a normal door move.
     /// </summary>
@@ -701,31 +719,13 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             return;
         }
 
-        // Two prank flavors: a quick nudge (door swings part-way ajar or shut
-        // at roughly normal door speed — the creak plays once, clean) or a
-        // violent full slam.
-        bool slam = Random.value < _doorSlamChance;
-        float duration;
-        bool moved;
-        if (slam)
-        {
-            // Full swing to the opposite extreme.
-            float fraction = closest.IsFullyClosed ? 1f : 0f;
-            duration = Random.Range(_slamDurationRange.x, _slamDurationRange.y);
-            moved = closest.GhostMove(fraction, duration);
-        }
-        else
-        {
-            // Partial swing in whichever direction leaves it NOT where it is:
-            // a closed door creeps ajar, a half-open door shuts fully so the
-            // latch click fires (CheckLatch needs openFraction to reach 0).
-            bool ajar = closest.IsFullyClosed;
-            float fraction = ajar
-                ? Random.Range(_nudgeFractionRange.x, _nudgeFractionRange.y)
-                : 0f;
-            duration = Random.Range(_nudgeDurationRange.x, _nudgeDurationRange.y);
-            moved = closest.GhostMove(fraction, duration);
-        }
+        // Partial swing in whichever direction leaves it NOT where it is:
+        // a closed door creeps ajar, a half-open door shuts fully so the
+        // latch click fires (CheckLatch needs openFraction to reach 0).
+        bool ajar = closest.IsFullyClosed;
+        float fraction = ajar ? Random.Range(0.25f, 0.5f) : 0f;
+        float duration = Random.Range(0.8f, 1.5f);
+        bool moved = closest.GhostMove(fraction, duration);
 
         if (!moved)
         {
@@ -739,7 +739,7 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
 
         if (_debugLogging)
         {
-            Debug.Log($"[GhostPatrol] {(slam ? "SLAMMED" : "Nudged")} the door '{closest.name}' in {duration:F1}s near ({searchCenter.x:F0},{searchCenter.y:F0},{searchCenter.z:F0}).", this);
+            Debug.Log($"[GhostPatrol] Nudged the door '{closest.name}' in {duration:F1}s near ({searchCenter.x:F0},{searchCenter.y:F0},{searchCenter.z:F0}).", this);
         }
     }
 
@@ -832,7 +832,29 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
             return;
         }
 
+        // Hospitality rule: the player was here first. The spirit only hunts
+        // someone who walked in on IT — chasing a person inside their own room
+        // (the room they were already in when the spirit arrived) is off.
+        if (PlayerOwnsCurrentRoom())
+        {
+            SetState(GhostState.Patrol);
+            return;
+        }
+
         MoveTowards(_lastSeenPosition, _speed);
+    }
+
+    /// <summary>
+    /// True while the player stands in the room they occupied when the spirit
+    /// started its approach — the room the spirit flew INTO, i.e. the player's
+    /// "home turf" where a chase is forbidden.
+    /// </summary>
+    private bool PlayerOwnsCurrentRoom()
+    {
+        return _playerRoomAtEncounterStart != null
+            && RoomVisibilityManager.Instance != null
+            && string.Equals(RoomVisibilityManager.Instance.CurrentRoomName,
+                _playerRoomAtEncounterStart, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -896,6 +918,12 @@ public class GhostPatrol : MonoBehaviour, IPowerConsumer
         {
             _lastSeenPosition = _player.transform.position;
             _lostSightTimer = 0f;
+            // Remember whose room this encounter started in: if the player
+            // stays inside it, the spirit breaks off instead of cornering them.
+            _playerRoomAtEncounterStart = RoomVisibilityManager.Instance != null
+                ? RoomVisibilityManager.Instance.CurrentRoomName
+                : null;
+            Manifest(); // the hunt is the one moment the spirit shows itself
             SetState(GhostState.Chase);
             return true;
         }

@@ -61,6 +61,10 @@ public class FlashlightController : MonoBehaviour, ISaveable
     [Tooltip("Layers checked by the proximity cast. Default = everything.")]
     [SerializeField] private LayerMask proximityMask = ~0;
 
+    [Tooltip("Layers the proximity probes ignore. Put Draggable here so props carried in front " +
+             "of the camera are never mistaken for walls.")]
+    [SerializeField] private LayerMask probeIgnoreMask;
+
     [Header("Close Range Compensation")]
     [Tooltip("Caps the surface brightness when the beam hits a wall up close. Illuminance on a surface " +
              "grows like 1/d², so point-blank walls blow out (and Bloom flares). When enabled, intensity is " +
@@ -71,11 +75,17 @@ public class FlashlightController : MonoBehaviour, ISaveable
              "this receive quadratically less intensity so their illumination never exceeds the reference level.")]
     [SerializeField] [Min(0.3f)] private float closeRangeReferenceDistance = 1.5f;
 
-    /// <summary>Lower bound for the close-range compensation so the light never fully blacks out at zero distance.</summary>
-    private const float MinCompensation = 0.05f;
+    /// <summary>Lower bound for the close-range compensation so the light never fully blacks out
+    /// at zero distance. Raised from 0.05: a point-blank wall was nearly invisible —
+    /// 0.15 keeps it dimly lit without a Bloom flare.</summary>
+    private const float MinCompensation = 0.15f;
 
     /// <summary>How much faster the flashlight dims than brightens (see Update()).</summary>
     private const float DimSpeedMultiplier = 4f;
+
+    /// <summary>Small vertical spread (degrees) of the outer fan probes so the floor is sampled
+    /// without a separate probe set.</summary>
+    private const float ProbeVerticalSpreadDegrees = 5f;
 
     /// <summary>Fired whenever the active mode changes. Passes the new mode.</summary>
     public event Action<FlashlightMode> OnModeChanged;
@@ -98,7 +108,6 @@ public class FlashlightController : MonoBehaviour, ISaveable
     private float _targetIntensity;
     private float _proximityScale = 1f;
     private float _proximityScaleVelocity;
-    private float _closeRangeComp = 1f; // inverse-square compensation applied on top of proximity dimming
     private int _modeIndex;
 
     private float _webDimScale = 1f; // external dimming (e.g. spider web touch), multiplies final intensity
@@ -223,9 +232,8 @@ public class FlashlightController : MonoBehaviour, ISaveable
         if (_flickering) return; // flicker coroutine owns intensity right now
 
         UpdateProximityScale();
-        UpdateCloseRangeCompensation();
 
-        float targetIntensity = _targetIntensity * _proximityScale * _webDimScale * _closeRangeComp;
+        float targetIntensity = _targetIntensity * _proximityScale * _webDimScale;
         // Dimming must react as fast as the close-range compensation drop does —
         // otherwise a fast approach to a wall shows full brightness first and only
         // then fades down. Brightening keeps the normal (slower) transition speed.
@@ -239,14 +247,25 @@ public class FlashlightController : MonoBehaviour, ISaveable
         );
     }
 
-    private const int ProbeCount = 5;
+    private const int ProbeCount = 6;
     private const int ProbeMajority = 3;
 
     /// <summary>
-    /// Casts a fan of thin rays from the camera and scales down the target intensity
-    /// only when a majority of probes hit a surface within proximityRange.
-    /// This prevents false triggers from glancing hits on stairs, pillars, and side walls.
-    /// Uses SmoothDamp to prevent flickering from brief hits.
+    /// Single unified proximity system: casts one fan of thin rays from the camera and
+    /// produces a combined dim factor that covers BOTH former systems — the majority-rule
+    /// proximity dimming and the inverse-square close-range compensation.
+    ///
+    /// Fan layout: center probe + four probes at ±probeFanHalfAngle horizontally and
+    /// ±ProbeVerticalSpreadDegrees vertically, so walls straight ahead AND the floor below
+    /// the beam are sampled by one ray set.
+    ///
+    /// Dim factor per hit = majority dim curve × inverse-square compensation. The product is
+    /// intentional: illuminance grows like 1/d², so point-blank surfaces need compensation ON
+    /// TOP of the proximity floor (proximityMinScale) or they blow out with Bloom flare.
+    /// The single SmoothDamp below (instead of the former instant compensation) is what
+    /// prevents the two effects from pumping against each other.
+    ///
+    /// Objects on probeIgnoreMask (e.g. the Draggable layer) are never treated as walls.
     /// </summary>
     private void UpdateProximityScale()
     {
@@ -263,7 +282,7 @@ public class FlashlightController : MonoBehaviour, ISaveable
         Vector3 up     = proximityRayOrigin != null ? proximityRayOrigin.up       : transform.up;
 
         int hits = 0;
-        float closestDist = proximityRange;
+        float dimFactor = 1f; // darkest single-hit dim across the fan
 
         for (int i = 0; i < ProbeCount; i++)
         {
@@ -272,21 +291,39 @@ public class FlashlightController : MonoBehaviour, ISaveable
             if (i == 2) dir = Quaternion.AngleAxis(-probeFanHalfAngle, up) * fwd;
             if (i == 3) dir = Quaternion.AngleAxis( probeFanHalfAngle, right) * fwd;
             if (i == 4) dir = Quaternion.AngleAxis(-probeFanHalfAngle, right) * fwd;
+            // Slight vertical spread so the floor and low props are caught without a full cone.
+            if (i == 5) dir = Quaternion.AngleAxis(-ProbeVerticalSpreadDegrees, right) * fwd;
 
-            if (Physics.Raycast(origin, dir, out RaycastHit hit, proximityRange, proximityMask, QueryTriggerInteraction.Ignore))
+            if (!Physics.Raycast(origin, dir, out RaycastHit hit, closeRangeReferenceDistance,
+                                 proximityMask & ~probeIgnoreMask, QueryTriggerInteraction.Ignore))
+                continue;
+
+            hits++;
+
+            // Majority dim curve: distance normalized by the far proximity range.
+            float t = Mathf.Clamp01(hit.distance / proximityRange);
+            float majorityDim = Mathf.Lerp(proximityMinScale, 1f, Mathf.Pow(t, proximityFalloff));
+
+            // Inverse-square compensation: saturate((d/ref)²) — caps blow-out on point-blank walls.
+            // Applied ON TOP of the majority curve (product): illuminance grows like 1/d², so the
+            // proximity floor alone (proximityMinScale) cannot keep a point-blank surface from
+            // flaring. Skipped entirely when closeRangeCompensation is disabled in the Inspector.
+            float closeCompDim = 1f;
+            if (closeRangeCompensation)
             {
-                hits++;
-                if (hit.distance < closestDist)
-                    closestDist = hit.distance;
+                float d = Mathf.Max(hit.distance, 0.05f);
+                float rt = (d / closeRangeReferenceDistance) * (d / closeRangeReferenceDistance);
+                closeCompDim = Mathf.Max(Mathf.Clamp01(rt), MinCompensation);
             }
+
+            // Product: both curves apply — compensation must sit ON TOP of the proximity
+            // floor or a point-blank wall flares (illuminance ~ 1/d²).
+            dimFactor = Mathf.Min(dimFactor, majorityDim * closeCompDim);
         }
 
-        float targetScale = 1f;
-        if (hits >= ProbeMajority)
-        {
-            float t = Mathf.Clamp01(closestDist / proximityRange);
-            targetScale = Mathf.Lerp(proximityMinScale, 1f, Mathf.Pow(t, proximityFalloff));
-        }
+        // Majority rule still gates the dimming: fewer hits than the threshold → no dim at all,
+        // which prevents false triggers from glancing hits on stairs, pillars, and side walls.
+        float targetScale = hits >= ProbeMajority ? dimFactor : 1f;
 
         _proximityScale = Mathf.SmoothDamp(
             _proximityScale,
@@ -294,49 +331,6 @@ public class FlashlightController : MonoBehaviour, ISaveable
             ref _proximityScaleVelocity,
             1f / proximitySmoothSpeed
         );
-    }
-
-    private const int CloseCompProbes = 3;
-
-    /// <summary>
-    /// Inverse-square compensation: illuminance on a surface grows like intensity / d²,
-    /// so point-blank walls receive far more light than distant ones and blow out
-    /// (with Bloom flaring on top). For hit distances below closeRangeReferenceDistance
-    /// intensity is scaled by (d / reference)², capped by MinCompensation, so a surface
-    /// never receives more illumination than it would at the reference distance.
-    /// Uses the closest of the center probes (no fan — walls matter most straight ahead).
-    /// </summary>
-    private void UpdateCloseRangeCompensation()
-    {
-        if (!_isOn || !closeRangeCompensation)
-        {
-            _closeRangeComp = 1f;
-            return;
-        }
-
-        Vector3 origin = proximityRayOrigin != null ? proximityRayOrigin.position : transform.position;
-        Vector3 fwd    = proximityRayOrigin != null ? proximityRayOrigin.forward  : transform.forward;
-        Vector3 right  = proximityRayOrigin != null ? proximityRayOrigin.right    : transform.right;
-
-        float comp = 1f;
-        for (int i = 0; i < CloseCompProbes; i++)
-        {
-            // Slight vertical spread to catch the floor and low props without a full fan.
-            Vector3 dir = i == 0 ? fwd
-                        : i == 1 ? Quaternion.AngleAxis( 5f, right) * fwd
-                                 : Quaternion.AngleAxis(-5f, right) * fwd;
-
-            if (Physics.Raycast(origin, dir, out RaycastHit hit, closeRangeReferenceDistance, proximityMask, QueryTriggerInteraction.Ignore))
-            {
-                // Illumination relative to the reference: saturate((d/ref)²).
-                float d = Mathf.Max(hit.distance, 0.05f);
-                float t = Mathf.Clamp01((d / closeRangeReferenceDistance) * (d / closeRangeReferenceDistance));
-                comp = Mathf.Min(comp, Mathf.Max(t, MinCompensation));
-            }
-        }
-
-        // Applied instantly — the outer MoveTowards on intensity already smooths the result.
-        _closeRangeComp = comp;
     }
 
     /// <summary>
@@ -529,9 +523,8 @@ public class FlashlightController : MonoBehaviour, ISaveable
             }
         }
 
-        if (wasOn != on && !_restoringState)
-            SaveManager.Instance?.Save();
-
+        // Checkpoint-only saving: flashlight state is minor — captured by the next
+        // checkpoint (puzzle/item/key), pause save or quiet autosave.
         OnModeChanged?.Invoke(CurrentMode);
     }
 

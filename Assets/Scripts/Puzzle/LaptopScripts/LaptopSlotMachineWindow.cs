@@ -110,7 +110,8 @@ namespace EscapeOf.Puzzle.Laptop
             if (_decreaseBetButton != null) _decreaseBetButton.onClick.RemoveAllListeners();
             if (_paytableButton != null) _paytableButton.onClick.RemoveAllListeners();
 
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: closing the window is minor state — captured
+            // by the next checkpoint, pause save or quiet autosave.
         }
 
         /// <summary>
@@ -489,7 +490,8 @@ namespace EscapeOf.Puzzle.Laptop
             if (_isSpinning || _betOptions == null || _betOptions.Length == 0) return;
             _betIndex = Mathf.Clamp(_betIndex + direction, 0, _betOptions.Length - 1);
             RefreshHud();
-            SaveManager.Instance?.Save();
+            // Checkpoint-only saving: bet changes are minor state — captured by the
+            // next checkpoint, pause save or quiet autosave.
         }
 
         /// <summary>Shows the full paytable of the current config in the popup.</summary>
