@@ -13,6 +13,15 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
 {
     private const string SaveIdValue = "chemical_puzzle_earthquake";
 
+    /// <summary>
+    /// Стартовало землетрясение: параметры (duration, fadeIn, fadeOut) в секундах —
+    /// общая огибающая для слушателей (например, EarthquakePhysicsProp на предметах).
+    /// </summary>
+    public static event System.Action<float, float, float> ShakeStarted;
+
+    /// <summary>Землетрясение закончилось (или было прервано) — слушатели снимают эффекты.</summary>
+    public static event System.Action ShakeEnded;
+
     [Header("Shake (Perlin noise)")]
     [Tooltip("Множитель амплитуды шума во время землетрясения. Итоговая амплитуда = амплитуды профиля × это значение.")]
     [SerializeField, Min(0f)] private float _shakeAmplitude = 1f;
@@ -158,6 +167,7 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
             StopCoroutine(_effectRoutine);
 
         _effectRoutine = StartCoroutine(EffectRoutine());
+        ShakeStarted?.Invoke(_duration, _fadeIn, _fadeOut);
     }
 
     /// <summary>
@@ -261,5 +271,7 @@ public class EarthquakeFOVPulse : MonoBehaviour, ISaveable
             _effectRoutine = null;
             ResetCamera();
         }
+
+        ShakeEnded?.Invoke();
     }
 }
