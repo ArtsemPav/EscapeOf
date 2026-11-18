@@ -267,15 +267,29 @@ public class ChainCutPuzzleController : MonoBehaviour,
         Vector2 mousePos = Mouse.current.position.ReadValue();
         if (Camera.main == null) return false;
 
-        Ray ray = Camera.main.ScreenPointToRay(mousePos);
-        if (Physics.Raycast(ray, out RaycastHit hit, RaycastDistance, ~0, QueryTriggerInteraction.Ignore))
-        {
-            return hit.collider == _chainCollider ||
-                   (hit.collider.transform != null && hit.collider.transform.IsChildOf(_chainCollider.transform));
-        }
+        return RaycastHitsChain(Camera.main.ScreenPointToRay(mousePos));
+    }
 
+    /// <summary>
+    /// Луч засчитывает цепь, если она попала в ЛЮБОЙ хит вдоль луча, а не только в ближайший:
+    /// коллайдеры створок двери перед цепью иначе перехватывают наведение и дроп.
+    /// </summary>
+    private bool RaycastHitsChain(Ray ray)
+    {
+        if (_chainCollider == null) return false;
+
+        int hitCount = Physics.RaycastNonAlloc(ray, RayHits, RaycastDistance, ~0, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hitCount; i++)
+        {
+            var hit = RayHits[i];
+            if (hit.collider == _chainCollider ||
+                (hit.collider.transform != null && hit.collider.transform.IsChildOf(_chainCollider.transform)))
+                return true;
+        }
         return false;
     }
+
+    private static readonly RaycastHit[] RayHits = new RaycastHit[32];
 
     private void SetGhostVisible(bool visible)
     {
@@ -641,14 +655,7 @@ public class ChainCutPuzzleController : MonoBehaviour,
 
     private bool PerformRaycast(Vector2 screenPos)
     {
-        if (Camera.main == null || _chainCollider == null) return false;
-
-        Ray ray = Camera.main.ScreenPointToRay(screenPos);
-        if (Physics.Raycast(ray, out RaycastHit hit, RaycastDistance, ~0, QueryTriggerInteraction.Ignore))
-        {
-            return hit.collider == _chainCollider ||
-                   (hit.collider.transform != null && hit.collider.transform.IsChildOf(_chainCollider.transform));
-        }
-        return false;
+        if (Camera.main == null) return false;
+        return RaycastHitsChain(Camera.main.ScreenPointToRay(screenPos));
     }
 }
