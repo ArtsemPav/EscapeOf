@@ -94,6 +94,7 @@ public static class LocalizationKeys
     public const string DropSwipeCard = "ui.drop.swipe_card";
     public const string DropInsertGenerator = "ui.drop.insert_generator";
     public const string DropUseScrewdriver = "ui.drop.use_screwdriver";
+    public const string DropUseChainCutter = "ui.drop.use_chain_cutter";
     public const string DropInsertReel = "ui.drop.insert_reel";
     public const string DropOnSafe = "ui.drop.on_safe";
 

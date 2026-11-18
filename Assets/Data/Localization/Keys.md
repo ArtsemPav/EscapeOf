@@ -83,6 +83,7 @@
 | `ui.drop.swipe_card` | Провести картой | CardLockPuzzleController._dropHint (fallback: Inspector) |
 | `ui.drop.insert_generator` | Установить в генератор | GeneratorPuzzleController._dropHint (fallback: Inspector) |
 | `ui.drop.use_screwdriver` | Использовать отвёртку | ScrewdriverRepairController._dropHint (fallback: Inspector) |
+| `ui.drop.use_chain_cutter` | Перекусить цепь | ChainCutPuzzleController.GetDropHint |
 | `ui.drop.insert_reel` | Установить бабину | FilmProjectorPuzzleController._dropHint (fallback: Inspector) |
 | `ui.drop.on_safe` | на сейф | LockDial.GetDropHint |
 | `ui.tooltip.rune_pouch` | Мешочек с рунами | RunePouchUI (константа заменена ключом) |
