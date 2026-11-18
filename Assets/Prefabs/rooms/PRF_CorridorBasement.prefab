@@ -9679,6 +9679,14 @@ PrefabInstance:
       propertyPath: m_RenderingLayerMask
       value: 2560
       objectReference: {fileID: 0}
+    - target: {fileID: 2832961745183345836, guid: 51cdede088e39e340813671e33401883, type: 3}
+      propertyPath: m_Size.y
+      value: 1.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 2832961745183345836, guid: 51cdede088e39e340813671e33401883, type: 3}
+      propertyPath: m_Size.z
+      value: 1.83
+      objectReference: {fileID: 0}
     - target: {fileID: 3106476551492531938, guid: 51cdede088e39e340813671e33401883, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -9742,13 +9750,109 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7732762521265395053, guid: 51cdede088e39e340813671e33401883, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7260867343494683224}
+    - targetCorrespondingSourceObject: {fileID: 7732762521265395053, guid: 51cdede088e39e340813671e33401883, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2323420292452159398}
+    - targetCorrespondingSourceObject: {fileID: 7732762521265395053, guid: 51cdede088e39e340813671e33401883, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5868694400337310938}
+    - targetCorrespondingSourceObject: {fileID: 7732762521265395053, guid: 51cdede088e39e340813671e33401883, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8112019938129147948}
   m_SourcePrefab: {fileID: 100100000, guid: 51cdede088e39e340813671e33401883, type: 3}
 --- !u!4 &1825560420873894414 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3106476551492531938, guid: 51cdede088e39e340813671e33401883, type: 3}
   m_PrefabInstance: {fileID: 3623667554749877484}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6420322147822197121 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7732762521265395053, guid: 51cdede088e39e340813671e33401883, type: 3}
+  m_PrefabInstance: {fileID: 3623667554749877484}
+  m_PrefabAsset: {fileID: 0}
+--- !u!54 &7260867343494683224
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6420322147822197121}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &2323420292452159398
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6420322147822197121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5076d7c48e17a394cbbc2e4c13f22cda, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ImpactSoundEmitter
+  _impactClips:
+  - {fileID: 8300000, guid: 33633b657492016439e80460e8199e2b, type: 3}
+  _minVolume: 0.6
+  _maxVolume: 1
+  _minImpactVelocity: 1
+  _maxImpactVelocity: 6
+  _cooldown: 0.15
+  _skipWhilePlaying: 1
+  _spatialBlend: 0
+  _minDistance: 5
+  _maxDistance: 25
+--- !u!114 &5868694400337310938
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6420322147822197121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75350dc177953b444ab57e1df7587d6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodyStateSaver
+  _saveId: vent_grill_001_2_pose
+  _saveVelocities: 0
+--- !u!114 &8112019938129147948
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6420322147822197121}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4d4764a7cd0cd04f9b6aa298ee950b5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VentGrillPusher
+  _rigidbody: {fileID: 0}
+  _pushStrength: 1.5
+  _spinStrength: 2
 --- !u!1001 &3641880032287489764
 PrefabInstance:
   m_ObjectHideFlags: 0

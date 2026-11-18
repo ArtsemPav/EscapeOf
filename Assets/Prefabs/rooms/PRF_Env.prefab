@@ -754,7 +754,7 @@ MonoBehaviour:
   _soundFadeDuration: 1.5
   _musicRestoreFadeDuration: 3
   _musicMuteFadeDuration: 2
-  _ownsBackgroundMusic: 1
+  _ownsBackgroundMusic: 0
   _musicMuteTimeout: 30
   _interactableObject: {fileID: 0}
   _onActivated:
@@ -2714,6 +2714,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5820905796346846162, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
+      propertyPath: _triggerZones.Array.data[2].VisibleRooms.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5820905796346846162, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
       propertyPath: '_triggerZones.Array.data[0].VisibleRooms.Array.data[0]'
       value: 
       objectReference: {fileID: 4234533341629323153}
@@ -2741,11 +2745,24 @@ PrefabInstance:
       propertyPath: '_triggerZones.Array.data[2].VisibleRooms.Array.data[1]'
       value: 
       objectReference: {fileID: 4234533341629323153}
+    - target: {fileID: 5820905796346846162, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
+      propertyPath: '_triggerZones.Array.data[2].VisibleRooms.Array.data[2]'
+      value: 
+      objectReference: {fileID: 8479196830118734615}
+    - target: {fileID: 6408535144539903009, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
+      propertyPath: _boxRigidbody
+      value: 
+      objectReference: {fileID: 1129144237842017416}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
+--- !u!1 &4165064018055387768 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 113795439651600763, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
+  m_PrefabInstance: {fileID: 4060294068348773123}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &7534817990010337489 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5820905796346846162, guid: 7524c5992732d1b4fa9774cd9280c9fc, type: 3}
@@ -2903,6 +2920,10 @@ PrefabInstance:
       propertyPath: _placeholder
       value: 
       objectReference: {fileID: 1992328474481067238}
+    - target: {fileID: 8750277527650201493, guid: 5b8637f3e45a4cc4db07fedaa3245923, type: 3}
+      propertyPath: _target
+      value: 
+      objectReference: {fileID: 4165064018055387768}
     - target: {fileID: 8964021924778095919, guid: 5b8637f3e45a4cc4db07fedaa3245923, type: 3}
       propertyPath: m_LocalPosition.x
       value: -41.896805
@@ -3040,10 +3061,6 @@ PrefabInstance:
       propertyPath: '_triggerZones.Array.data[0].VisibleRooms.Array.data[4]'
       value: 
       objectReference: {fileID: 4945191820833085533}
-    - target: {fileID: 3476119700466840376, guid: 9b3bd92ada7202f41835e4eb8aaf51a5, type: 3}
-      propertyPath: OnPuzzleSolved.m_PersistentCalls.m_Calls.Array.data[2].m_Target
-      value: 
-      objectReference: {fileID: 7397014049461902044}
     - target: {fileID: 5406914510320583589, guid: 9b3bd92ada7202f41835e4eb8aaf51a5, type: 3}
       propertyPath: m_Name
       value: Room 4
@@ -3815,6 +3832,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b87ceb4e16f3f9e4481ee0f213c06867, type: 3}
+--- !u!54 &1129144237842017416 stripped
+Rigidbody:
+  m_CorrespondingSourceObject: {fileID: 7260867343494683224, guid: b87ceb4e16f3f9e4481ee0f213c06867, type: 3}
+  m_PrefabInstance: {fileID: 7739522626690528976}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &4234533341629323153 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5885179355023384897, guid: b87ceb4e16f3f9e4481ee0f213c06867, type: 3}

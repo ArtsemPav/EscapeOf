@@ -5628,13 +5628,33 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 6322905576431527145, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3368374354672269319}
   m_SourcePrefab: {fileID: 100100000, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
 --- !u!4 &1206534416247856618 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4008090468313799915, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
   m_PrefabInstance: {fileID: 2819782932825473281}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &8115091512482342376 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 6322905576431527145, guid: 034875ec4a71e2746b1223b0ba9f1499, type: 3}
+  m_PrefabInstance: {fileID: 2819782932825473281}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3368374354672269319
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8115091512482342376}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6c91817974dfb54d8e5ac3a4b4a38c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameObjectActiveSetter
 --- !u!1001 &2956912939128216952
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5951,8 +5971,30 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1284733586385132, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7293497411282331638}
   m_SourcePrefab: {fileID: 100100000, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
+--- !u!1 &3212738507091931692 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1284733586385132, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
+  m_PrefabInstance: {fileID: 3211454469290252992}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7293497411282331638
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3212738507091931692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75350dc177953b444ab57e1df7587d6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodyStateSaver
+  _saveId: drag_pillow_ward3
+  _saveVelocities: 0
 --- !u!4 &3215496133447530718 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4182960130155038, guid: ad2e00a29b893684badcf4a95835b385, type: 3}
@@ -5966,6 +6008,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1199574573489911994}
     m_Modifications:
+    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4118868574131736382, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
       propertyPath: m_LocalScale.x
       value: 1
@@ -6027,10 +6073,6 @@ PrefabInstance:
       value: ScandicAlphabet
       objectReference: {fileID: 0}
     - target: {fileID: 8732660922886064280, guid: bd63dd294e5424c4c9f1b292da5c56d2, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 2164184621878352312, guid: 0a1f108a5e26c204e840823a798933ed, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
@@ -6273,26 +6315,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8545183401566505420}
     m_Modifications:
-    - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 4492372440869039146, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 4492372440869039146, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
-    - target: {fileID: 6146684655915795732, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 7877143702991089789, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
-      propertyPath: m_fontSize
-      value: 6
-      objectReference: {fileID: 0}
     - target: {fileID: 1801278519735074, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_Name
       value: Paper
@@ -6364,6 +6386,26 @@ PrefabInstance:
     - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 4451360623482977459, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 4492372440869039146, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 4492372440869039146, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 532a957c924ab9a488fce7f134baa35e, type: 2}
+    - target: {fileID: 6146684655915795732, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 7877143702991089789, guid: 33c41e16e62b3e144bc18f10a755ac92, type: 3}
+      propertyPath: m_fontSize
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 908391112148685839, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
@@ -10773,6 +10815,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2384499858500058675, guid: 73166540841e3e7448760f987ea2ea3c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 9081248732812298608}
+    - targetCorrespondingSourceObject: {fileID: 2384499858500058675, guid: 73166540841e3e7448760f987ea2ea3c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1847991763386955524}
   m_SourcePrefab: {fileID: 100100000, guid: 73166540841e3e7448760f987ea2ea3c, type: 3}
 --- !u!4 &1733134772053609486 stripped
 Transform:
@@ -10866,6 +10911,20 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 7048563205274074021, guid: e5fb092419dff6f46a8477c4813b3895, type: 3}
+--- !u!114 &1847991763386955524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4996006918419718876}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75350dc177953b444ab57e1df7587d6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodyStateSaver
+  _saveId: drag_helmet_ward3
+  _saveVelocities: 0
 --- !u!1001 &7231928548275140105
 PrefabInstance:
   m_ObjectHideFlags: 0
