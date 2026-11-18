@@ -91,6 +91,9 @@ public class ChainCuttable : MonoBehaviour
     /// <summary>Цепь уже срезана?</summary>
     public bool IsCut => _isCut;
 
+    /// <summary>Вызывается, когда цепь после среза улеглась на пол и физика заморожена.</summary>
+    public event System.Action OnCutSettled;
+
     // ── Unity lifecycle ─────────────────────────────────────────────────────────
 
     /// <summary>Демо-режим: любая отслеживаемая дверь начала открываться → рывок → разрыв цепи.</summary>
@@ -443,5 +446,43 @@ public class ChainCuttable : MonoBehaviour
             body.isKinematic = true; // заморозка позы — физика цепи закончена
         }
         Debug.Log($"[{nameof(ChainCuttable)}] Цепь улеглась и заморожена ({bodies.Count} звеньев).", this);
+        OnCutSettled?.Invoke();
+    }
+
+    // ── Restored state (save load) ───────────────────────────────────────────────
+
+    private const string RestoredNodeName = "chainRestored";
+
+    /// <summary>
+    /// Мгновенно переводит цепь в «срезанное» состояние при загрузке сейва:
+    /// висящая цепь прячется, вместо неё показывается узел-двойник
+    /// <c>chainRestored</c> (лежащая на полу поза, запечённая в префабе).
+    /// Физика не включается, падение не проигрывается.
+    /// </summary>
+    public void SetCutRestored()
+    {
+        if (_isCut)
+            return;
+        _isCut = true;
+        _demoArmed = false; // при решённой загадке рывок двери не рвёт цепь
+
+        Transform restored = transform.parent != null
+            ? transform.parent.Find(RestoredNodeName)
+            : null;
+
+        Transform linksNode = FindLinksNode();
+        if (restored != null)
+        {
+            restored.gameObject.SetActive(true);
+            if (linksNode != null && linksNode != transform)
+                linksNode.gameObject.SetActive(false);
+        }
+        else
+        {
+            // Двойника нет — оставляем висящую цепь видимой (деградация без падения).
+            Debug.LogWarning($"[{nameof(ChainCuttable)}] Узел '{RestoredNodeName}' не найден — цепь осталась висеть.", this);
+        }
+
+        Debug.Log($"[{nameof(ChainCuttable)}] Цепь восстановлена в застывшей позе (без падения).", this);
     }
 }
