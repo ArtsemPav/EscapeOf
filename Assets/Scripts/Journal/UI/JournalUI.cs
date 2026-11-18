@@ -460,7 +460,11 @@ public class JournalUI : MonoBehaviour
 
     private void ShowPage(int index)
     {
-        if (_pages.Count == 0) return;
+        if (_pages.Count == 0)
+        {
+            UpdateEdgeZoneAvailability(); // empty category — hide both arrows
+            return;
+        }
 
         index = Mathf.Clamp(index, 0, _pages.Count - 1);
         _currentPage = index;

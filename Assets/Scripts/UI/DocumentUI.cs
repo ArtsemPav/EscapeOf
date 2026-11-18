@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -14,6 +15,9 @@ using UnityEngine.UI;
 public class DocumentUI : MonoBehaviour
 {
     public static DocumentUI Instance { get; private set; }
+
+    /// <summary>Raised in FinishClose while the closed document's data is still set.</summary>
+    public event Action<DocumentData> OnDocumentClosed;
 
     // ── Inspector: UI References ──────────────────────────────────────────────
 
@@ -875,6 +879,9 @@ public class DocumentUI : MonoBehaviour
     /// <summary>Finalizes the close: undarkens screen, closes panel, destroys 3D objects.</summary>
     private void FinishClose()
     {
+        if (_documentData != null)
+            OnDocumentClosed?.Invoke(_documentData);
+
         if (ScreenFader.Instance != null)
             ScreenFader.Instance.FadeOut(_darkenDuration);
 

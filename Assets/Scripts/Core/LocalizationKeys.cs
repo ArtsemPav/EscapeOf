@@ -24,6 +24,7 @@ public static class LocalizationKeys
     public const string InteractRotate = "ui.interact.rotate";
     public const string InteractPull = "ui.interact.pull";
     public const string InteractRead = "ui.interact.read";
+    public const string InteractPickUp = "ui.interact.pick_up";
     public const string InteractInspect = "ui.interact.inspect";
     public const string InteractInspectSkull = "ui.interact.inspect_skull";
     public const string InteractOpenDoor = "ui.interact.open_door";
@@ -116,6 +117,10 @@ public static class LocalizationKeys
     public const string PuzzleFifteenMove = "ui.puzzle.fifteen.move";
     public const string PuzzleGeneratorFirst = "ui.puzzle.generator_first";
     public const string PuzzleNoFuse = "ui.puzzle.no_fuse";
+
+    // ── Journal: pickup notifications ───────────────────────────────────────
+    public const string JournalNoteAdded = "ui.journal.note_added";
+    public const string JournalDocumentAdded = "ui.journal.document_added";
 
     // ── Journal category labels ─────────────────────────────────────────────
     /// <summary>Prefix for journal category labels: journal.category.&lt;categoryNameKey&gt;.</summary>

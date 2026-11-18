@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 5 -->
 
 # Plan: Journal System — Доска с зажимом (редизайн)
 
@@ -86,7 +86,7 @@ public class JournalSystem : MonoBehaviour, ISaveable
 **Логика:**
 
 - `_unlocked: HashSet<DocumentData>` (+ параллельный `List<DocumentData>` для стабильного порядка сейва).
-- `AddEntry`: `null`/уже разблокирован → выход; иначе добавить в обе коллекции, `OnEntryAdded?.Invoke(data)`, `SaveManager.Instance?.Save()`.
+- `AddEntry`: `null`/уже разблокирован → выход; иначе добавить в обе коллекции, `OnEntryAdded?.Invoke(data)`. **Мгновенного `SaveManager.Save()` нет** — сейв чекпойнтный: прочитанные записки фиксируются на следующем чекпойнте, паузе или тихом автосейве.
 - `OpenJournal` / `CloseJournal` — открытие блокируется, если `_unlockedList.Count == 0` (журнал заблокирован, пока игрок не прочитал ни одной записки) или открыт любой другой panel; закрытие в обратном порядке.
 - **SaveData (ISaveable):** без изменений — `SaveId = "journal"`, `List<string> entryIds` из `DocumentData.name`, восстановление через `Resources.FindObjectsOfTypeAll<DocumentData>()` без вызова `OnEntryAdded`/`Save`. Формат данных прежний — старые сейвы совместимы.
 - Категории НЕ сериализуются в сейв (фиксированные, задаются в инспекторе).
@@ -146,7 +146,7 @@ public class JournalUI : MonoBehaviour
 3. **Листание:** мгновенное, без анимации — `FlipRight()`/`FlipLeft()` вызывают `ShowPage(_currentPage ± 1)`; корутина `FlipRoutine`, `_isFlipping`, `_flipDuration`, `_flipCurve` удалены. На границах клики игнорируются.
 4. **Edge-click:** `_rightClickZone`/`_leftClickZone` — видимые `Image` со спрайтом рун (`T_Runes.png` / `Runes_17`), полноценные кнопки: `Button` с `Transition.ColorTint` (`targetGraphic` привязан явно), подсветка при наведении `(1, 0.92, 0.7)` и затемнение при нажатии `(0.7, 0.7, 0.7)`, `fadeDuration = 0.1`. Стрелка скрывается (`button.interactable = false` + `zone.enabled = false`), если страницы в эту сторону нет — `UpdateEdgeZoneAvailability()` в конце `ShowPage`.
 5. **Кнопки категорий:** при `OnEnable`/`OnEntryAdded`/открытии панели — пересобрать контейнер: для каждой категории `Instantiate(_categoryButtonPrefab)`, вызов `Setup(categoryName, () => SelectCategory(i))`. Активная категория подсвечивается (`ColorBlock`/выбранный спрайт). Если в категории 0 разблокированных документов — кнопка скрыта.
-6. **Клавиатура:** `Update()` по образцу `DocumentUI.Update` (строки 179–206): `←/A` → `FlipLeft`, `→/D/Space` → `FlipRight`, `Escape` → `CloseJournal`. J/Tab обрабатывается `InputManager.OnJournalPerformed` (уже есть).
+6. **Клавиатура:** `Update()` по образцу `DocumentUI.Update` (строки 179–206): `←/A` → `FlipLeft`, `→/D/Space` → `FlipRight`, `Escape` → `CloseJournal`. Переключение J — прямой поллинг `Keyboard.jKey` в `JournalSystem.Update` (JournalUI живёт на неактивной панели и не получает Update, когда закрыт; `InputManager` не используется).
 7. **Камера:** создание/настройка `RenderTexture` и позиции камеры — скопировать из `DocumentUI.Awake`/`Open` (строки 127–168); `_boardRawImage.texture` = RT.
 8. **Закрытие:** уничтожить инстанцированные страницы (`_pageContainer`), снять выделение категории.
 
@@ -245,7 +245,8 @@ Canvas
 
 ## Implementation Notes
 
-- **Регистрация записи — при первом прочтении:** единственная точка — хук в `DocumentInteraction.Interact()`. Документ не исчезает из мира; `AddEntry` идемпотентен — повторные чтения безопасны.
+- **Регистрация записи — при первом прочтении:** единственная точка — хук в `DocumentInteraction.Interact()`. Документ не исчезает из мира (кроме пикап-режима, см. ниже); `AddEntry` идемпотентен — повторные чтения безопасны.
+- **Пикап-документы (`DocumentData.pickUpToJournal`):** сначала читаются через `DocumentUI` как обычно; при закрытии панели (`DocumentUI.OnDocumentClosed`) добавляются в журнал через `AddEntry`, показывают попап («Записка/Документ добавлен в журнал — открыть: J», ключи `ui.journal.note_added` / `ui.journal.document_added`, всплывает через существующий `PopupMessageSystem`) и уничтожаются — дальше читаются только из журнала. В журнале доступны только разблокированные — непрочитанные пикап-записки в стопке не появляются. Флаг включён у всех записок (DairyRoom*, Note*), кроме FTUE-обучения и книг — они читаются как раньше.
 - **Журнал не зависит от инвентаря:** `ItemData`/`PickableItem` не изменяются; предметы, которые нужно показать в журнале, оформляются как `DocumentInteraction` + `DocumentData` (префаб страницы уже лежит в `/Assets/Prefabs/Notes` и `/Assets/Prefabs/books`).
 - **Старые сейвы:** формат `journal` (список имён `DocumentData`) не меняется — миграция не нужна. Смысл записей меняется (теперь это документы, прочитанные через `DocumentInteraction`) — старые записи останутся разблокированными, это приемлемо.
 - **Страницы категории = склейка документов:** порядок страниц строго по порядку `documents` в категории; внутри документа — по `Page_N`. Пересборка стопки при каждом `SelectCategory` (инстансы уничтожаются при закрытии панели/смене категории).
@@ -255,7 +256,7 @@ Canvas
 - **Выделение кнопок категорий:** подсветку сохраняет `JournalCategoryButton` (подкласс `Button`, форсирует `selectedColor`); `JournalUI` хранит `_categoryButtonIndices` — индексы только видимых категорий.
 - **Арт доски/зажима:** временно плейсхолдер-Image; финальные спрайты (доска, зажим, скрепки кнопок) подставит пользователь — структура UI их уже предполагает (фон панели, фон кнопок).
 - **Edge-зоны:** теперь видимые кнопки-стрелки со спрайтом рун; не должны перекрывать кнопки категорий (зоны только над областью стопки).
-- **J-логика не меняется:** `InputManager.OnJournalPerformed` и действие `Journal` в `.inputactions` уже реализованы — пункт старого плана G выполнен и удаляется из объёма.
+- **J-логика не меняется:** переключение J — прямой поллинг `Keyboard.jKey` в `JournalSystem.Update` (JournalUI на неактивной панели не получает Update); сгенерированные файлы Input System не редактируются.
 
 ## TODO
 
@@ -278,7 +279,7 @@ Canvas
 - **Инспектор `/JournalUIRoot` (сцена `Game.unity`):** `_stackRightShift = 0.16`, `_pileShift = 1`, `_pageStackOffset = 0.1`, `_framingMultiplier = 2.2`, `_fixedBoundsSize = (0.44, 0.025, 0.31)`.
 - **Кнопки категорий:** `JournalCategoryButton` хранит форс-выделение; `JournalUI` мапит видимые кнопки на индексы категорий через `_categoryButtonIndices`.
 - **Документы:** поворот превью из `DocumentData.previewRotation` (`GetPreviewRotation`), масштаб `previewScale` + нормализация в фиксированный кадр (`FitInstanceIntoFixedFrame`).
-- **Крайний случай:** категория без разблокированных страниц — стрелки не обновятся (ранний `return` в `ShowPage`); при появлении таких категорий перенести `UpdateEdgeZoneAvailability` до возврата.
+- **Крайний случай (исправлен):** `ShowPage` при пустой категории вызывает `UpdateEdgeZoneAvailability()` до раннего `return` — обе стрелки скрываются.
 - **Play Mode не прогонялся** после последних итераций — проверить визуально: листание, подсветку стрелок, вид стопок.
 
 &nbsp;
