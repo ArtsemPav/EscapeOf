@@ -55,8 +55,28 @@ public class SplashController : MonoBehaviour
     private Coroutine _sequence;
     private bool _splashFinishedRaised;
 
+    // Static: survives scene reloads within one app run (resets on app start).
+    private static bool _splashPlayedThisSession;
+
+#if UNITY_EDITOR
+    // Domain reload can be disabled in Editor — reset the flag on every Play.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSessionFlag() => _splashPlayedThisSession = false;
+#endif
+
     private void Start()
     {
+        if (_splashPlayedThisSession)
+        {
+            // Return from gameplay (pause menu / credits): skip the logo sequence,
+            // but still fire the splash-finished beats so the camera arrival plays —
+            // the menu opens with the same dolly move as on first launch.
+            if (_splashGroup != null) _splashGroup.alpha = 0f;
+            if (_splashRoot != null) _splashRoot.SetActive(false);
+            RaiseSplashFinished();
+            return;
+        }
+
         // Menu keyboard/gamepad input stays dead until the menu is revealed;
         // mouse clicks are already blocked by the splash background image.
         if (_eventSystem != null) _eventSystem.enabled = false;
@@ -107,6 +127,7 @@ public class SplashController : MonoBehaviour
         if (_eventSystem != null) _eventSystem.enabled = true;
 
         RaiseSplashFinished();
+        _splashPlayedThisSession = true;
     }
 
     /// <summary>Fires the splash-finished beats exactly once per sequence run.</summary>
