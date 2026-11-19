@@ -58,6 +58,7 @@ public class ClockHand : MonoBehaviour, ISaveable
     private bool       _isDragging;
     private bool       _isGrabbed;     // true only while THIS hand was clicked on
     private bool       _isHovered;     // true while cursor is over this hand's collider
+    private bool       _uiActive;      // true while THIS hand is currently driving the crosshair UI
     private float      _previousMouseAngle;
     private float      _angleAccumulator;
     private float      _dragRotationDelta;
@@ -199,12 +200,30 @@ public class ClockHand : MonoBehaviour, ISaveable
             if (!_puzzleMode.IsActive || _puzzleMode.IsSolved) return;
 
             UpdateHover();
-            UpdateUI();
         }
         else if (_isHovered)
         {
             SetHover(false);
         }
+    }
+
+    private void LateUpdate()
+    {
+        // Cursor feedback must be applied in LateUpdate: PuzzleCursor.Update runs
+        // every frame and resets the crosshair to Default via SetHint(false) whenever
+        // its own raycast misses — running later here guarantees Hand/Grab wins
+        // (same pattern as ElectricPuzzleController).
+        if (_puzzleMode == null || !_puzzleMode.IsActive || _puzzleMode.IsSolved)
+        {
+            if (_uiActive)
+            {
+                _uiActive = false;
+                InteractionUI.Instance?.SetHint(false);
+            }
+            return;
+        }
+
+        UpdateUI();
     }
 
     // ── Hover ──────────────────────────────────────────────────────────────────
@@ -221,6 +240,14 @@ public class ClockHand : MonoBehaviour, ISaveable
     {
         _isHovered = hovered;
         OnHoverChanged?.Invoke(_isHovered);
+
+        // Losing hover while not holding must clear the hint this hand set.
+        // While holding, the Grab crosshair stays until release.
+        if (!hovered && !_isGrabbed && _uiActive)
+        {
+            _uiActive = false;
+            InteractionUI.Instance?.SetHint(false);
+        }
     }
 
     // ── Input ──────────────────────────────────────────────────────────────────
@@ -381,25 +408,40 @@ public class ClockHand : MonoBehaviour, ISaveable
     private void HandlePuzzleExited()
     {
         if (_isHovered) SetHover(false);
+        _uiActive = false;
         InteractionUI.Instance?.SetHint(false);
         InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
     }
 
+    /// <summary>
+    /// Drives the crosshair for this hand: Hand while hovered, Grab while held,
+    /// and resets to Default exactly once when this hand stops driving the UI.
+    /// A non-hovered, non-held hand never touches the UI — the other hand owns it.
+    /// </summary>
     private void UpdateUI()
     {
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        bool isHolding     = _isGrabbed && mouse.leftButton.isPressed;
-        CrosshairMode mode = isHolding ? CrosshairMode.Grab : CrosshairMode.Hand;
-        string hint = Localization.Get(LocalizationKeys.InteractRotate);
-        if (!isHolding)
-        {
-            hint = Localization.Get(LocalizationKeys.InteractPress);
-        }
+        bool isHolding = _isGrabbed && mouse.leftButton.isPressed;
 
-        InteractionUI.Instance?.SetCrosshair(mode);
-        InteractionUI.Instance?.SetHint(true, hint, false, mode);
+        if (isHolding)
+        {
+            _uiActive = true;
+            InteractionUI.Instance?.SetCrosshair(CrosshairMode.Grab);
+            InteractionUI.Instance?.SetHint(true, Localization.Get(LocalizationKeys.InteractRotate), false, CrosshairMode.Grab);
+        }
+        else if (_isHovered)
+        {
+            _uiActive = true;
+            InteractionUI.Instance?.SetCrosshair(CrosshairMode.Hand);
+            InteractionUI.Instance?.SetHint(true, Localization.Get(LocalizationKeys.InteractPress), false, CrosshairMode.Hand);
+        }
+        else if (_uiActive)
+        {
+            _uiActive = false;
+            InteractionUI.Instance?.SetHint(false);
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
