@@ -6617,17 +6617,33 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7089578131820268115}
     m_Modifications:
+    - target: {fileID: 264873671647624501, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      propertyPath: destroyOnPass
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 264873671647624501, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      propertyPath: speedMultiplier
+      value: 0.603
+      objectReference: {fileID: 0}
+    - target: {fileID: 264873671647624501, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      propertyPath: flashlightDimScale
+      value: 0.396
+      objectReference: {fileID: 0}
+    - target: {fileID: 264873671647624501, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      propertyPath: flashlightDimDuration
+      value: 4.25
+      objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.35
+      value: 0.22802499
       objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.35
+      value: 0.22802499
       objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.35
+      value: 0.22802499
       objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -6635,11 +6651,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 5.228
+      value: 5.01
       objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 7.282
+      value: 6.87
       objectReference: {fileID: 0}
     - target: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -6673,16 +6689,47 @@ PrefabInstance:
       propertyPath: m_Name
       value: SpiderWeb
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 2825961664243061275, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 83
+      objectReference: {fileID: 0}
+    - target: {fileID: 3218125131157619535, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 516
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 264873671647624501, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+    - {fileID: 5519517649875300192, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2825961664243061275, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2161284331375432326}
   m_SourcePrefab: {fileID: 100100000, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
 --- !u!4 &2907667537695716934 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2720208137521999110, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
   m_PrefabInstance: {fileID: 980099012242283328}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &3075351558829754715 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2825961664243061275, guid: 5a532199d0ea4564780d05003cc9c06d, type: 3}
+  m_PrefabInstance: {fileID: 980099012242283328}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2161284331375432326
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3075351558829754715}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a58d8c472b3b0c4693109aa429c3333, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FogFlashlightReceiver
+  _flashlightPath: /Flashlight
 --- !u!1001 &980143956078078825
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6691,14 +6738,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 7089578131820268115}
     m_Modifications:
-    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
-    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 520
-      objectReference: {fileID: 0}
     - target: {fileID: 1778788841025573016, guid: 618a0fe482f89b74c9a66c33ff386e66, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 516
@@ -6770,6 +6809,14 @@ PrefabInstance:
     - target: {fileID: 8080731795301837119, guid: 618a0fe482f89b74c9a66c33ff386e66, type: 3}
       propertyPath: m_RenderingLayerMask
       value: 516
+      objectReference: {fileID: 0}
+    - target: {fileID: 23502731156243544, guid: 0b7451c289c0d9547a21ba7eb3340776, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
+      objectReference: {fileID: 0}
+    - target: {fileID: 2316750379601970024, guid: 5ff72317ee8eef849a60b01bcceaddd2, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 520
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -10739,6 +10786,10 @@ PrefabInstance:
     - target: {fileID: 7794984299364735196, guid: 9a9094e820cd52d4d9d87510625752f0, type: 3}
       propertyPath: m_Name
       value: HalfWallWindow
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878236307787942173, guid: 9a9094e820cd52d4d9d87510625752f0, type: 3}
+      propertyPath: m_RenderingLayerMask
+      value: 516
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

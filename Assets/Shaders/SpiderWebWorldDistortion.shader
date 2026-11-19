@@ -9,6 +9,9 @@ Shader "EscapeOf/SpiderWebWorldDistortion"
         _RippleStrength ("Ripple Strength", Range(0, 0.05)) = 0.01
         _RippleScale ("Ripple Scale", Range(1, 100)) = 20
         _SwayStrength ("Sway Strength", Range(0, 0.05)) = 0.005
+        _AmbientVisibility ("Ambient Visibility (видимость в темноте)", Range(0, 1)) = 0.0
+        _FlashlightBoost ("Flashlight Boost", Range(0.5, 4)) = 1.0
+        _MaxLitDistance ("Max Flashlight Distance (м)", Float) = 4.0
         [Toggle(_DISTORT_BACKGROUND)] _DistortBackground ("Distort Background (нужен Opaque Texture)", Float) = 0
         _BackgroundDistortion ("Background Distortion Strength", Range(0, 0.2)) = 0.05
     }
@@ -47,6 +50,7 @@ Shader "EscapeOf/SpiderWebWorldDistortion"
                 float2 uv : TEXCOORD0;
                 float3 positionWS : TEXCOORD1;
                 float4 screenPos : TEXCOORD2;
+                half fogFactor : TEXCOORD3;
             };
 
             TEXTURE2D(_BaseMap);
@@ -60,7 +64,55 @@ Shader "EscapeOf/SpiderWebWorldDistortion"
                 half _RippleScale;
                 half _SwayStrength;
                 half _BackgroundDistortion;
+                half _AmbientVisibility;
+                half _FlashlightBoost;
+                float _MaxLitDistance;
             CBUFFER_END
+
+            // Flashlight properties — set by FogFlashlightReceiver script (same as FloorFog)
+            float3 _FlashlightPos;
+            float3 _FlashlightDir;
+            half3  _FlashlightColor;
+            float  _FlashlightIntensity;
+            float  _FlashlightRange;
+            float  _FlashlightSpotAngle;
+            float  _FlashlightInnerAngle;
+            float  _FlashlightEnabled;
+
+            // Ручной расчёт прожектора фонарика (те же _Flashlight*, что у FloorFog).
+            // Per-pixel additional lights URP не использует: пер-объектный culling
+            // не отдаёт фонарик на этот объект (unity_LightData.y = 0).
+            half3 ComputeFlashlight(float3 worldPos)
+            {
+                if (_FlashlightEnabled < 0.5)
+                    return half3(0, 0, 0);
+
+                float3 toFrag = worldPos - _FlashlightPos;
+                float dist = length(toFrag);
+                float3 fragDir = toFrag / dist;
+
+                // Physical inverse-square falloff: свет заметен только вблизи,
+                // с расстояния быстро гаснет (квадрат расстояния).
+                float distAtten = 1.0 / (dist * dist + 1.0);
+
+                // Дальность подсветки паутины: за _MaxLitDistance свет гаснет
+                // полностью, на подходе — плавное затухание (дальняя треть).
+                float litWindow = saturate(1.0 - (dist / max(_MaxLitDistance, 0.01)));
+                litWindow = saturate(litWindow * 3.0);
+
+                // Smooth cutoff за пределами range фонарика — дальний край не обрывается резко
+                float rangeWindow = saturate(1.0 - (dist / _FlashlightRange));
+                distAtten *= rangeWindow * rangeWindow * litWindow;
+
+                // Spot cone attenuation
+                float cosOuter = cos(radians(_FlashlightSpotAngle * 0.5));
+                float cosInner = cos(radians(_FlashlightInnerAngle * 0.5));
+                float cosDir = dot(fragDir, _FlashlightDir);
+                float spotAtten = saturate((cosDir - cosOuter) / max(cosInner - cosOuter, 0.0001));
+                spotAtten = spotAtten * spotAtten;
+
+                return _FlashlightColor * _FlashlightIntensity * distAtten * spotAtten;
+            }
 
             Varyings vert (Attributes IN)
             {
@@ -71,6 +123,10 @@ Shader "EscapeOf/SpiderWebWorldDistortion"
                 OUT.positionWS = posInputs.positionWS;
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
                 OUT.screenPos = ComputeScreenPos(posInputs.positionCS);
+                // Туман считаем в вершинном шейдере от клипспейс-Z (канонический паттерн URP),
+                // а не во фрагменте от SV_Position.z — иначе при малом near/far глубина
+                // конвертируется неверно и весь объект уходит в цвет тумана.
+                OUT.fogFactor = ComputeFogFactor(posInputs.positionCS.z);
                 return OUT;
             }
 
@@ -97,8 +153,11 @@ Shader "EscapeOf/SpiderWebWorldDistortion"
 
                 half alpha = strand * _BaseColor.a;
 
-                // Unlit: цвет нитей = текстура × тинт, без какой-либо реакции на источники света
-                half3 col = tex.rgb * _BaseColor.rgb;
+                // Видимость нитей: ambient floor (видимость в темноте) + ручная
+                // подсветка от фонарика (FogFlashlightReceiver → _Flashlight*).
+                half3 baseStrand = tex.rgb * _BaseColor.rgb;
+                half3 flashlight = ComputeFlashlight(IN.positionWS) * _FlashlightBoost;
+                half3 col = baseStrand * (_AmbientVisibility + flashlight);
 
             #if _DISTORT_BACKGROUND
                 // искажаем фон за паутиной: там, где нити нет, виден «дрожащий» мир
@@ -106,9 +165,9 @@ Shader "EscapeOf/SpiderWebWorldDistortion"
                 float2 bgOffset = (ripple * centered + sway) * 10.0;
                 half3 bg = SampleSceneColor(screenUV + bgOffset * _BackgroundDistortion);
                 col = lerp(bg, col, alpha);
-                return half4(MixFog(col, ComputeFogFactor(IN.positionCS.z)), 1.0);
+                return half4(MixFog(col, IN.fogFactor), 1.0);
             #else
-                return half4(MixFog(col, ComputeFogFactor(IN.positionCS.z)), alpha);
+                return half4(MixFog(col, IN.fogFactor), alpha);
             #endif
             }
             ENDHLSL
