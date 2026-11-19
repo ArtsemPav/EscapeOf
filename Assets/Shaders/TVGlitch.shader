@@ -13,6 +13,8 @@ Shader "Custom/TVGlitch"
         [Header(Noise)]
         _NoiseAmount        ("Noise Amount",            Range(0,1))   = 0.12
         _NoiseSpeed         ("Noise Speed",             Range(1,60))  = 30
+        _NoiseBrightness    ("Noise Brightness",        Range(0,1))   = 0.35
+        _NoiseTint          ("Noise Tint",              Color)        = (0.85,0.85,0.8,1)
 
         [Header(Emission)]
         _EmissionStrength   ("Screen Brightness",       Range(0,10))  = 2.5
@@ -57,6 +59,8 @@ Shader "Custom/TVGlitch"
                 float4 _EmissionColor;
                 float  _NoiseAmount;
                 float  _NoiseSpeed;
+                float  _NoiseBrightness;
+                float4 _NoiseTint;
             CBUFFER_END
 
             struct Attributes
@@ -128,7 +132,13 @@ Shader "Custom/TVGlitch"
                 // малыми и sin() на GPU не терял точность на больших числах.
                 float frame = floor(time * _NoiseSpeed);
                 float noise = hash21(frac(IN.uv + frame * float2(0.1731339, 0.3170697)));
-                col.rgb     = lerp(col.rgb, noise.xxx, _NoiseAmount);
+
+                // Шум — тёплый серый под палитру ТВ с ограниченной яркостью:
+                // пик (1 * tint * brightness * emission) ≈ 0.75, поэтому всплеск
+                // статики не уходит в HDR и не ловит bloom, а по гамме совпадает
+                // с картинкой вместо белого пересвета.
+                half3 noiseCol = noise.xxx * _NoiseTint.rgb * _NoiseBrightness;
+                col.rgb = lerp(col.rgb, noiseCol, _NoiseAmount);
 
                 // ── Emission ──────────────────────────────────────────────────
                 // _EmissionStrength — яркость RT-контента на экране

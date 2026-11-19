@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -65,6 +66,12 @@ public class PeepholeTVCamera : MonoBehaviour
 
     /// <summary>Index of the currently active camera in the <see cref="_cameras"/> list.</summary>
     public int CurrentCameraIndex => _currentIndex;
+
+    /// <summary>Raised after the active TV camera switches. The int parameter is the new camera index (0-based, in <see cref="_cameras"/> order).</summary>
+    public event Action<int> CameraSwitched;
+
+    /// <summary>The normal ambient noise level of the screen (from Inspector settings). Used to restore the screen after a forced static burst.</summary>
+    public float NoiseAmount => _noiseAmount;
 
     // ── Unity Lifecycle ────────────────────────────────────────────────────────
 
@@ -184,6 +191,7 @@ public class PeepholeTVCamera : MonoBehaviour
 
         int next = (_currentIndex + 1) % _cameras.Count;
         ActivateCamera(next);
+        CameraSwitched?.Invoke(next);
     }
 
     // ── Private ────────────────────────────────────────────────────────────────

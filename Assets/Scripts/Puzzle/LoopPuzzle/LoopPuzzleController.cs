@@ -49,6 +49,9 @@ public class LoopPuzzleController : MonoBehaviour, ISaveable, IPowerConsumer
              "solved cinematic finishes. Auto-found in children if left empty.")]
     [SerializeField] private PuzzleModeController _puzzleMode;
 
+    /// <summary>The puzzle mode controller of this puzzle (on the ControlPanel). Used by the physical buttons for the puzzle-mode interaction gate.</summary>
+    public PuzzleModeController PuzzleMode => _puzzleMode;
+
     [Header("Power — General Electricity")]
     [Tooltip("TV camera controller. Disabled (blackout) when general power is off.")]
     [SerializeField] private PeepholeTVCamera _tvCamera;

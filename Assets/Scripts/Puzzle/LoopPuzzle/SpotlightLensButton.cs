@@ -17,6 +17,10 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 
     [Header("Interaction")]
 
+    [Header("Puzzle Mode")]
+    [Tooltip("PuzzleModeController this button belongs to. The button only responds while that puzzle mode is active. If not assigned, taken from the LoopPuzzleController in parents.")]
+    [SerializeField] private PuzzleModeController _puzzleMode;
+
     [Header("Target Spotlight")]
     [Tooltip("The spotlight (L1, L2 or L4) whose lens this button controls.")]
     [SerializeField] private PaintingSpotlight _targetSpotlight;
@@ -74,6 +78,12 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
 
     private void Start()
     {
+        if (_puzzleMode == null)
+        {
+            var controller = GetComponentInParent<LoopPuzzleController>(true);
+            _puzzleMode = controller != null ? controller.PuzzleMode : null;
+        }
+
         SnapRotation();
         ApplyCurrentLens();
     }
@@ -91,6 +101,8 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     /// <summary>Advances to the next step (0→1→2→3→0), rotates the button, and updates the spotlight lens.</summary>
     public void Interact()
     {
+        // Puzzle mode gate: the button only responds inside the puzzle view.
+        if (_puzzleMode != null && !_puzzleMode.IsActive) return;
         if (_isLocked) return;
 
         _currentStep = (_currentStep + 1) % StepCount;
@@ -108,6 +120,9 @@ public class SpotlightLensButton : MonoBehaviour, IInteractable, ISaveable
     {
         if (_isLocked)
             return Localization.Get(LocalizationKeys.InteractBlocked);
+
+        if (_puzzleMode != null && !_puzzleMode.IsActive)
+            return Localization.Get(LocalizationKeys.InteractInspect);
 
         return Localization.Get(LocalizationKeys.InteractLensChange);
     }

@@ -12,6 +12,10 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     private static readonly int EmissionMapId   = Shader.PropertyToID("_EmissionMap");
     private static readonly int BaseMapId       = Shader.PropertyToID("_BaseMap");
 
+    [Header("Puzzle Mode")]
+    [Tooltip("PuzzleModeController this button belongs to. The button only responds while that puzzle mode is active. If not assigned, found automatically via LoopPuzzleController in parents.")]
+    [SerializeField] private PuzzleModeController _puzzleMode;
+
     [Header("Interaction")]
     [Tooltip("Localization key for the idle hint. Override per instance for a specific label (e.g. 'Рубильник S1'). Empty value uses the generic press hint.")]
     [SerializeField] private string _interactTextKey = LocalizationKeys.InteractPress;
@@ -31,6 +35,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     private Material _indicatorMaterial;
     private Texture  _albedoTexture;
+    private bool     _puzzleModeResolved;
 
     /// <summary>Current active state of this button.</summary>
     public bool IsActive { get; private set; }
@@ -51,6 +56,43 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
         }
 
         ApplyVisual();
+    }
+
+    private void Start()
+    {
+        ResolvePuzzleMode();
+    }
+
+    /// <summary>
+    /// Finds the owning PuzzleModeController (lazy, cached). The controller sits on
+    /// the ControlPanel — a sibling of the button parents — so it is resolved via
+    /// LoopPuzzleController on the PaintPuzzle root, not via GetComponentInParent.
+    /// </summary>
+    private bool ResolvePuzzleMode()
+    {
+        if (_puzzleMode == null)
+        {
+            var controller = GetComponentInParent<LoopPuzzleController>(true);
+            _puzzleMode = controller != null ? controller.PuzzleMode : null;
+        }
+        if (_puzzleMode == null)
+            _puzzleMode = GetComponentInParent<PuzzleModeController>(true);
+        _puzzleModeResolved = _puzzleMode != null;
+        return _puzzleModeResolved;
+    }
+
+    /// <summary>
+    /// True when the owning puzzle mode is active. Buttons without a
+    /// PuzzleModeController in parents are always allowed (backwards compatible).
+    /// </summary>
+    private bool PuzzleModeAllowsInteraction
+    {
+        get
+        {
+            if (_puzzleMode == null && !_puzzleModeResolved)
+                ResolvePuzzleMode();
+            return _puzzleMode == null || _puzzleMode.IsActive;
+        }
     }
 
     // ── State control ──────────────────────────────────────────────────────────
@@ -111,6 +153,10 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        // Puzzle mode gate: the physical buttons only respond while the player
+        // is inside the puzzle view (PuzzleModeController.IsActive).
+        if (!PuzzleModeAllowsInteraction) return;
+
         // General power off (enabled set by LoopPuzzleController.OnPowerStateChanged).
         // The button press animation still plays so the player sees the button respond.
         if (!enabled) return;
@@ -126,6 +172,7 @@ public class LoopPuzzleButton : MonoBehaviour, IInteractable
     {
         if (!enabled)       return Localization.Get(LocalizationKeys.InteractNoPower);
         if (IsLocked)       return Localization.Get(LocalizationKeys.InteractLocked);
+        if (!PuzzleModeAllowsInteraction) return Localization.Get(LocalizationKeys.InteractInspect);
         return Localization.Get(string.IsNullOrEmpty(_interactTextKey)
             ? LocalizationKeys.InteractPress
             : _interactTextKey);

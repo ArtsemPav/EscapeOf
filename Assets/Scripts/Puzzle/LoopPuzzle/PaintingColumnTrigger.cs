@@ -29,6 +29,10 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
              "Column stays locked until ALL spotlights are powered (the switch part of the puzzle is solved).")]
     [SerializeField] private LoopPuzzleController _puzzleController;
 
+    [Header("Puzzle Mode")]
+    [Tooltip("PuzzleModeController this button belongs to. The button only responds while that puzzle mode is active. If not assigned, taken from the LoopPuzzleController.")]
+    [SerializeField] private PuzzleModeController _puzzleMode;
+
     [Header("Indicator")]
     [SerializeField] private Renderer _indicatorRenderer;
 
@@ -93,6 +97,9 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
         {
             Debug.LogWarning("[PaintingColumnTrigger] LoopPuzzleController not found in parents. Spotlight lock disabled.", this);
         }
+
+        if (_puzzleMode == null)
+            _puzzleMode = _puzzleController != null ? _puzzleController.PuzzleMode : null;
     }
 
     private void OnDestroy()
@@ -174,6 +181,9 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
 
     public void Interact()
     {
+        // Puzzle mode gate: the button only responds inside the puzzle view.
+        if (_puzzleMode != null && !_puzzleMode.IsActive) return;
+
         // General power off (enabled set by LoopPuzzleController.OnPowerStateChanged).
         // The button press animation still plays so the player sees the button respond.
         if (!enabled) return;
@@ -199,6 +209,7 @@ public class PaintingColumnTrigger : MonoBehaviour, IInteractable
         if (_isLockedByPuzzle || PaintingColumn.IsAnyMoving) return Localization.Get(LocalizationKeys.InteractLocked);
         if (_isLockedBySpotlights)                           return Localization.Get(LocalizationKeys.InteractLocked);
         if (_isLockedByPower)                                return Localization.Get(LocalizationKeys.InteractNoPower);
+        if (_puzzleMode != null && !_puzzleMode.IsActive)    return Localization.Get(LocalizationKeys.InteractInspect);
         return Localization.Get(string.IsNullOrEmpty(_interactTextKey)
             ? LocalizationKeys.InteractPress
             : _interactTextKey);
