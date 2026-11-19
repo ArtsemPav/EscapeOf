@@ -447,6 +447,19 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
             HandleMouseRelease(mouse.position.ReadValue());
     }
 
+    private void LateUpdate()
+    {
+        // Cursor feedback must be applied in LateUpdate: PuzzleCursor.Update runs
+        // every frame and resets the crosshair to Default via SetHint(false) whenever
+        // its own raycast misses — running later here guarantees Hand/Grab wins.
+        if (!_isOpen) return;
+
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+
+        UpdateCursor(mouse);
+    }
+
     /// <summary>
     /// Shows or hides the fuse mesh as a semi-transparent ghost preview at the anchor position
     /// while the player drags an accepted fuse item from the PuzzleInventoryBar over the anchor.
@@ -600,6 +613,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
 
         CancelActiveDrag();
         _lever?.SetInteractionEnabled(false);
+        ResetCursor();
 
         if (_panel != null)
             UIManager.Instance?.ClosePanel(_panel);
@@ -739,6 +753,65 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
                               _activeColoredTerminal.transform.position);
         if (plane.Raycast(ray, out float enter))
             _activeWire.SetDragPoint(ray.GetPoint(enter));
+    }
+
+    // ── Cursor feedback ───────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Mirrors the crosshair feedback used by other puzzles (ClockHand, LockDial):
+    /// Hand when hovering an interactive terminal or lever, Grab while a wire is held.
+    /// While a wire is dragged the cursor stays Grab — the release target is the
+    /// visible terminal highlight, so hover feedback is not needed there.
+    /// </summary>
+    private void UpdateCursor(Mouse mouse)
+    {
+        // Don't fight the inventory drag cursor (fuse ghost drag from PuzzleInventoryBar).
+        if (PuzzleInventoryBar.IsDragging) return;
+
+        bool holding = _activeWire != null && mouse.leftButton.isPressed;
+        CrosshairMode mode;
+
+        if (holding)
+        {
+            mode = CrosshairMode.Grab;
+        }
+        else
+        {
+            mode = IsInteractiveUnderCursor(mouse.position.ReadValue())
+                ? CrosshairMode.Hand
+                : CrosshairMode.Default;
+        }
+
+        InteractionUI.Instance?.SetCrosshair(mode);
+    }
+
+    /// <summary>
+    /// True when the cursor is over something that reacts to a click:
+    /// a terminal that can start/pick up a wire, or the lever while it is clickable.
+    /// </summary>
+    private bool IsInteractiveUnderCursor(Vector2 screenPos)
+    {
+        if (Camera.main == null) return false;
+
+        var ray = Camera.main.ScreenPointToRay(screenPos);
+        if (!Physics.Raycast(ray, out RaycastHit hit, 50f, _terminalLayer, QueryTriggerInteraction.Collide))
+            return false;
+
+        var terminal = hit.collider.GetComponentInParent<ElectricTerminal>();
+        if (terminal != null)
+        {
+            return terminal.Type == ElectricTerminal.TerminalType.Colored
+                || !terminal.IsFree;
+        }
+
+        var lever = hit.collider.GetComponentInParent<ElectricLever>();
+        return lever != null && lever.CanInteract();
+    }
+
+    /// <summary>Resets the crosshair to default (called on puzzle exit).</summary>
+    private void ResetCursor()
+    {
+        InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
     }
 
     // ── Wire lifecycle ────────────────────────────────────────────────────────
@@ -928,6 +1001,7 @@ public class ElectricPuzzleController : MonoBehaviour, ISaveable, IPuzzleDropHan
         // ── Phase 0: Hide puzzle UI before the fade so it disappears seamlessly ─
         PuzzleInventoryBar.Instance?.Hide();
         UI.PuzzleCursor.Instance?.Hide();
+        ResetCursor();
 
         // ── Phase 1: Quick fade to black (sharp cut) ───────────────────────────
         if (ScreenFader.Instance != null)
