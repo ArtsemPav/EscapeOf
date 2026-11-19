@@ -1,4 +1,4 @@
-<!-- version: 8 -->
+<!-- version: 9 -->
 
 ## Обзор
 
@@ -17,7 +17,7 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (
 │   ├── Cube                  ← визуальная заглушка глазка
 │   ├── TVCamera..TVCamera6   ← Camera (чистые, без скриптов)
 ├── tv
-│   └── TV_CCTV_01            ← PeepholeTVCamera, TVGlitchEffect
+│   └── TV_CCTV_01            ← PeepholeTVCamera, TVGlitchEffect, TvMaidScareController
 │       ├── PositionSwitch    ← TVChannelButton, ButtonPressAnimation, слой Interactable Layer
 │       ├── pPlane1           ← экран; runtime-материал TVGlitch (slot 0)
 │       └── TV_CCTV_02        ← корпус телевизора
@@ -44,26 +44,29 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (
 
 ## Скрипты
 
-| Файл | Назначение |
-| --- | --- |
-| `LensColor.cs` | Enum: `None / Red / Blue / Yellow / Green` |
-| `PaintingSpotlight.cs` | Прожектор с линзой и синтезом |
-| `SpotlightLensButton.cs` | Кнопка смены линзы: 4 такта (0→1→2→3→0), поворот физического объекта, ISaveable |
-| `LoopPuzzleButton.cs` | Рубильник питания S1–S6, текстурированный emission-гло, блокируется при решении |
-| `LoopPuzzlePowerCircuit.cs` | Схема питания, Lights Out каскад, `LockAllSwitches()`, события `OnPowerChanged` и `OnMasterToggled` |
-| `LoopPuzzleController.cs` | Центральный контроллер условий (ISaveable, IPowerConsumer), `AutoSolve()` для читов, `RandomizeColumns()` с инвариантом решаемости, сброс при выключении S6 |
-| `LoopPuzzleHiddenDoor.cs` | Скользящая дверь (ISaveable) |
-| `PaintingColumn.cs` | Ниша с изменяемой высотой (ISaveable), глобальный счётчик `IsAnyMoving`, события `OnMoveFinished` / `OnHeightChanged` |
-| `PaintingColumnTrigger.cs` | Кнопка смены высоты: glow во время движения, флаги блокировки. `CanInteract() => enabled` |
-| `PaintingRoomLightSwitch.cs` | Выключатель света, блокируется при решении |
-| `SymbolFader.cs` | Плавное появление символа с настраиваемым HDR-цветом свечения |
-| `LightsOutPanel.cs` | Кастомный Inspector для `LoopPuzzlePowerCircuit` — визуальный редактор матрицы смежности (в `Assets/Scripts/Editor/`) |
-| `SolvedLightFade.cs` | Плавный фейд света решённой комнаты (`SolvedLight`) |
-| `ButtonPressAnimation.cs` | Физическое нажатие кнопки |
-| `PeepholeTVCamera.cs` | RenderTexture, циклический переключатель TV-камер, TVGlitch-материал на экране, blackout при отсутствии питания |
-| `TVGlitchEffect.cs` | Случайные глитч-события: анимирует `_GlitchAmount` на материале экрана |
-| `TVChannelButton.cs` | `IInteractable` на кнопке ТВ; вызывает `PeepholeTVCamera.NextCamera()` |
-| `PaintCinematicSignals.cs` | Мост Animation Events кинематика → ящики, свет, выход из режима загадки |
+
+| Файл                         | Назначение                                                                                                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LensColor.cs`               | Enum: `None / Red / Blue / Yellow / Green`                                                                                                                  |
+| `PaintingSpotlight.cs`       | Прожектор с линзой и синтезом                                                                                                                               |
+| `SpotlightLensButton.cs`     | Кнопка смены линзы: 4 такта (0→1→2→3→0), поворот физического объекта, ISaveable                                                                             |
+| `LoopPuzzleButton.cs`        | Рубильник питания S1–S6, текстурированный emission-гло, блокируется при решении                                                                             |
+| `LoopPuzzlePowerCircuit.cs`  | Схема питания, Lights Out каскад, `LockAllSwitches()`, события `OnPowerChanged` и `OnMasterToggled`                                                         |
+| `LoopPuzzleController.cs`    | Центральный контроллер условий (ISaveable, IPowerConsumer), `AutoSolve()` для читов, `RandomizeColumns()` с инвариантом решаемости, сброс при выключении S6 |
+| `LoopPuzzleHiddenDoor.cs`    | Скользящая дверь (ISaveable)                                                                                                                                |
+| `PaintingColumn.cs`          | Ниша с изменяемой высотой (ISaveable), глобальный счётчик `IsAnyMoving`, события `OnMoveFinished` / `OnHeightChanged`                                       |
+| `PaintingColumnTrigger.cs`   | Кнопка смены высоты: glow во время движения, флаги блокировки. `CanInteract() => enabled`                                                                   |
+| `PaintingRoomLightSwitch.cs` | Выключатель света, блокируется при решении                                                                                                                  |
+| `SymbolFader.cs`             | Плавное появление символа с настраиваемым HDR-цветом свечения                                                                                               |
+| `LightsOutPanel.cs`          | Кастомный Inspector для `LoopPuzzlePowerCircuit` — визуальный редактор матрицы смежности (в `Assets/Scripts/Editor/`)                                       |
+| `SolvedLightFade.cs`         | Плавный фейд света решённой комнаты (`SolvedLight`)                                                                                                         |
+| `ButtonPressAnimation.cs`    | Физическое нажатие кнопки                                                                                                                                   |
+| `PeepholeTVCamera.cs`        | RenderTexture, циклический переключатель TV-камер, TVGlitch-материал на экране, blackout при отсутствии питания                                             |
+| `TVGlitchEffect.cs`          | Случайные глитч-события: анимирует `_GlitchAmount` на материале экрана                                                                                      |
+| `TVChannelButton.cs`         | `IInteractable` на кнопке ТВ; вызывает `PeepholeTVCamera.NextCamera()`; работает только в режиме паззла                                                     |
+| `TvMaidScareController.cs`   | Одноразовый хоррор-скример: манекен горничной в кадре TV-камеры, ISaveable                                                                                  |
+| `PaintCinematicSignals.cs`   | Мост Animation Events кинематика → ящики, свет, выход из режима загадки                                                                                     |
+
 
 ---
 
@@ -130,14 +133,18 @@ PaintPuzzle                   ← LoopPuzzlePowerCircuit, LoopPuzzleController (
 Три независимых источника блокировки `PaintingColumnTrigger` (Q1–Q4):
 
 
-| Флаг                     | Причина                        | Кто ставит                                                |
-| ------------------------ | ------------------------------ | --------------------------------------------------------- |
-| `_isLockedByPower`       | S6 выключен                    | `OnMasterToggled` из `LoopPuzzlePowerCircuit`             |
-| `_isLockedBySpotlights`  | Не все 4 прожектора запитаны   | `OnAllSpotlightsPoweredChanged` из `LoopPuzzleController` |
-| `_isLockedByPuzzle`      | Загадка решена                 | `LoopPuzzleController` → `SetLocked(true)`                |
+| Флаг                    | Причина                      | Кто ставит                                                |
+| ----------------------- | ---------------------------- | --------------------------------------------------------- |
+| `_isLockedByPower`      | S6 выключен                  | `OnMasterToggled` из `LoopPuzzlePowerCircuit`             |
+| `_isLockedBySpotlights` | Не все 4 прожектора запитаны | `OnAllSpotlightsPoweredChanged` из `LoopPuzzleController` |
+| `_isLockedByPuzzle`     | Загадка решена               | `LoopPuzzleController` → `SetLocked(true)`                |
 
 
 Фаза с высотами картин недоступна, пока не решена фаза рубильников.
+
+### Гейт режима паззла
+
+Все физические кнопки (`LoopPuzzleButton`, `PaintingColumnTrigger`, `SpotlightLensButton`, `TVChannelButton`) дополнительно проверяют `PuzzleModeController.IsActive` — взаимодействие запрещено, пока игрок не вошёл в режим паззла через ControlPanel. Контроллеры читаются через `LoopPuzzleController.PuzzleMode`. При отсутствии ссылки — обратная совместимость (кнопка работает).
 
 При решении `LoopPuzzleController.LockAllInteractions()` блокирует: S1–S6 (`_powerCircuit.LockAllSwitches()`), выключатель света `_roomLightSwitch`, все Q1–Q4 и линз-кнопки в детях.
 
@@ -206,9 +213,35 @@ Play Mode → `PaintPuzzle` → Inspector на `LoopPuzzleController` → **Rese
 
 Глазок на `PaintPuzzle` открывает вид через `PeepholeCamera` (CinemachineCamera): `UIManager.PushModalState()` блокирует движение игрока; выход — LMB / WASD / Esc через собственные `InputAction` (Player map отключён).
 
-ТВ (`PeepholeTVCamera` на `TV_CCTV_01`): циклически активирует одну из N камер, рендерит в shared `RenderTexture` на экран `pPlane1` через шейдер `Assets/Shaders/TVGlitch.shader` (`Custom/TVGlitch`: `_BaseMap`, `_ScanlineCount`, `_NoiseAmount`, `_EmissionStrength`, `_GlitchAmount` и др.). `TVChannelButton` на `PositionSwitch` переключает камеры (`NextCamera()`). Символы на слое `TVOnly` видны только TV-камерам (`Main Camera` исключает слой в `Awake`).
+ТВ (`PeepholeTVCamera` на `TV_CCTV_01`): циклически активирует одну из N камер, рендерит в shared `RenderTexture` на экран `pPlane1` через шейдер `Assets/Shaders/TVGlitch.shader` (`Custom/TVGlitch`: `_BaseMap`, `_ScanlineCount`, `_NoiseAmount`, `_EmissionStrength`, `_GlitchAmount`, `_NoiseBrightness`, `_NoiseTint` и др.). `TVChannelButton` на `PositionSwitch` переключает камеры (`NextCamera()`). Символы на слое `TVOnly` видны только TV-камерам (`Main Camera` исключает слой в `Awake`).
 
 Настройка яркости экрана: тускло — подними `_emissionStrength` (4–8); свечение — `_emissionColor` HDR > 1; `_noiseAmount` держи в 0.03–0.15.
+
+### Шейдер TVGlitch — яркость и гамма шума
+
+Слой шума не должен попадать в HDR, иначе всплеск статики ловит bloom и выбивается белым из тёмной CCTV-картинки. Пик шума = `1 × _NoiseTint × _NoiseBrightness × _EmissionStrength`; при дефолтах ≈ 0.75 (< 1, bloom не подхватывается).
+
+- `_NoiseBrightness` (default 0.35) — относительная яркость статики. Поднимай, если шум слишком тусклый, но следи, чтобы пик оставался < 1.
+- `_NoiseTint` (default тёплый серый 0.85/0.85/0.8) — тинт под палитру ТВ-картинки, чтобы шум не смотрелся нейтрально-белым.
+
+---
+
+## Хоррор-событие: манекен горничной (TvMaidScareController)
+
+Одноразовый скример на `TV_CCTV_01`. Игрок N раз (`_switchesUntilScare`, default 4) должен попасть на камеру с манекеном (`_maidCameraIndex`, default 1 = TVCamera2) — манекен (`MaidHolder`) появляется стоя в кадре (`Animator`: параметр `State`, поза Stand = `_standStateValue` 3), звучит скример `S_DduckJump`, через `_standDuration` (1 с) — исчезновение за всплеском полного статика.
+
+### Правила срабатывания
+
+- **Одноразовость**: флаг `hasFired` сохраняется через `ISaveable` (`_saveId = "paint_tv_maid_scare"`). Прерванный показ тоже считается сработавшим (`_hasFired || _running`). После загрузки сейва — не повторяется никогда.
+- **Переключение канала во время показа** — тихая отмена (`CancelScareQuietly`): манекен скрывается без всплеска помех, экран сбрасывается к нормальному шуму, но **скример доигрывает до конца** — звук играет на выделенном `AudioSource` (не через `AudioManager.PlaySFX`, который нельзя остановить выборочно). Событие всё равно считается сработавшим.
+- Счётчик переключений учитывает только попадания на камеру манекена; само переключение каналов не модифицируется (`CameraSwitched` — событие-наблюдатель).
+
+### Важные детали реализации
+
+- `MaidHolder` в префабе начинается неактивным; контроллер дополнительно скрывает манекен в `Awake`/`OnEnable`.
+- Порядок проверок в `OnCameraSwitched` критичен: отмена (`_maidVisible`) проверяется **до** гейта `_hasFired`, т.к. `StartScare` ставит флаг сразу при старте показа.
+- Помехи при исчезновении: `_GlitchAmount` → `_staticPeak` (1) **и** `_NoiseAmount` → 1, затем плавный возврат к `_NoiseAmount` экрана за `_staticFadeOut` (0.6 с). Один `_GlitchAmount` плотного шума не даёт.
+- Камеры: TVCamera (индекс 0), TVCamera2 (индекс 1) — манекен стоит в кадре второй.
 
 ---
 

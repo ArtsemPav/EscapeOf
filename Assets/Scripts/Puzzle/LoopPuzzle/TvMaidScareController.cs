@@ -140,17 +140,18 @@ public class TvMaidScareController : MonoBehaviour, ISaveable
     /// </summary>
     private void OnCameraSwitched(int cameraIndex)
     {
-        // One-shot: once fired (or interrupted mid-show), the scare never plays again.
-        if (_hasFired) return;
-
-        // The player chickened out (or just switched away) while the maid was
-        // standing — cancel the scare quietly: hide her, no static burst.
-        // The fired flag is still set, so she never appears again this game.
+        // The maid is currently shown and the player switched away mid-show:
+        // cancel quietly (hide her, cut the scream, no static burst). This MUST
+        // be checked before the one-shot gate — StartScare sets _hasFired the
+        // moment the show begins, so the gate would swallow the cancel otherwise.
         if (_maidVisible)
         {
             CancelScareQuietly();
             return;
         }
+
+        // One-shot: once fired (and nothing is currently showing), never again.
+        if (_hasFired) return;
 
         if (_running || cameraIndex != _maidCameraIndex) return;
         _switchCount++;
@@ -158,7 +159,11 @@ public class TvMaidScareController : MonoBehaviour, ISaveable
         StartScare();
     }
 
-    /// <summary>Hides the maid and cuts the scream off. The event stays fired forever.</summary>
+    /// <summary>
+    /// Hides the maid without any static. The scream keeps playing to the end —
+    /// the player earned the jump scare by triggering the show. The event stays
+    /// fired forever.
+    /// </summary>
     private void CancelScareQuietly()
     {
         _maidVisible = false;
@@ -170,9 +175,6 @@ public class TvMaidScareController : MonoBehaviour, ISaveable
             StopCoroutine(_scareRoutine);
             _scareRoutine = null;
         }
-
-        if (_scareAudioSource != null)
-            _scareAudioSource.Stop();
 
         if (_maid != null)
             _maid.SetActive(false);
@@ -239,6 +241,7 @@ public class TvMaidScareController : MonoBehaviour, ISaveable
             screenMaterial.SetFloat(NoiseAmountID, 1f);
         }
         _maid.SetActive(false);
+        _maidVisible = false; // switches during the fade-out are no longer a "cancel"
 
         // Static fades out, TV returns to normal.
         yield return StartCoroutine(FadeStaticOut(screenMaterial, normalNoise));
