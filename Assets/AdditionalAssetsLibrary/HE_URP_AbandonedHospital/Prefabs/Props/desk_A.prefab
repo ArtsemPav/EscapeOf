@@ -246,12 +246,10 @@ MonoBehaviour:
   _openMode: 0
   _openDuration: 1
   _requiredKey: {fileID: 11400000, guid: 12223394d6fd5fc4db4beca63c07366a, type: 2}
-  _openText: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
-  _closeText: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C \u0434\u0432\u0435\u0440\u044C"
   _showBlockedHint: 0
-  _lockedHintText: "\u0414\u0432\u0435\u0440\u044C \u0437\u0430\u043F\u0435\u0440\u0442\u0430.
-    \u041D\u0443\u0436\u0435\u043D \u043A\u043B\u044E\u0447."
+  _lockedHintKey: ui.interact.door_locked
   _lockedHintCooldown: 2
+  _lockedSoundCooldown: 1.5
   _pivot: {fileID: 3767529904480082173}
   _rotationAxis: 1
   _maxOpenAngle: 90
@@ -268,6 +266,7 @@ MonoBehaviour:
   _unlockAjarFraction: 0.12
   _unlockAjarSpeed: 0.6
   _motionVolume: 0.7
+  _motionLoopMaxDistance: 15
   _occlusionPortal: {fileID: 0}
   _onDoorClosed:
     m_PersistentCalls:
@@ -310,7 +309,8 @@ Transform:
   m_LocalPosition: {x: -0.771, y: 1.178113, z: -0.101}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 7122033996325342448}
   m_Father: {fileID: 8014013074551413617}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3300004
@@ -411,14 +411,13 @@ MonoBehaviour:
   _snapSpeed: 8
   _snapThreshold: 0.25
   _isLocked: 0
-  _lockedHint: "\u0417\u0430\u043F\u0435\u0440\u0442\u043E"
   _lockedJiggleAmount: 0.05
   _lockedSnapBackSpeed: 10
   _lockedClip: {fileID: 0}
+  _lockedSoundCooldown: 1.5
   _unlockClip: {fileID: 0}
   _openClip: {fileID: 8300000, guid: d036e5fdebf99c94594e146b4ffaa85c, type: 3}
   _openVolume: 0.8
-  _interactText: "\u041F\u043E\u0442\u044F\u043D\u0443\u0442\u044C"
 --- !u!1 &282390755519534158
 GameObject:
   m_ObjectHideFlags: 0
@@ -482,6 +481,59 @@ Transform:
   - {fileID: 400002}
   m_Father: {fileID: 400000}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6531280918798110196
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7122033996325342448}
+  - component: {fileID: 4176577205124420657}
+  m_Layer: 0
+  m_Name: colider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7122033996325342448
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6531280918798110196}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 192.15912, y: 233.93275, z: 233.93275}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 400004}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &4176577205124420657
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6531280918798110196}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.0036352326, y: 0.004163613, z: 0.000038185015}
+  m_Center: {x: -0.000022983884, y: -0.0006977235, z: -0.00039699124}
 --- !u!1 &7449695953507734130
 GameObject:
   m_ObjectHideFlags: 0
