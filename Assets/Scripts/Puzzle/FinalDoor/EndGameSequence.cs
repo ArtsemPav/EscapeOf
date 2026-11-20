@@ -78,6 +78,16 @@ public class EndGameSequence : MonoBehaviour
     [SerializeField] private string _shadowTurnStateName = "Turn";
     [SerializeField] private string _shadowWalkStateName = "Walk";
     [SerializeField, Min(0.1f)] private float _shadowWalkSpeed = 1.45f;
+    [Tooltip("Upper bound for the WalkPace animator multiplier. The walk would " +
+             "otherwise always pace itself to arrive EXACTLY on the final chord; " +
+             "the cap makes the departure slower - if the doctor does not reach " +
+             "the portal in time, the chord's dark screen covers the rest.")]
+    [SerializeField, Range(0.15f, 1.2f)] private float _shadowMaxWalkPace = 0.7f;
+    [Tooltip("How far the doctor actually walks toward the portal (meters). " +
+             "He departs this short mournful stretch, then stops and stands " +
+             "while the farewell beats play out - the chord's dark screen " +
+             "covers the rest of the way.")]
+    [SerializeField, Min(0.5f)] private float _shadowMaxWalkDistance = 3f;
     [SerializeField] private Transform _portalWalkTarget;
     [SerializeField, Min(0.05f)] private float _shadowArrivalDistance = 0.5f;
     [SerializeField, Min(2f)] private float _shadowMaxWalkDuration = 30f;
@@ -98,7 +108,7 @@ public class EndGameSequence : MonoBehaviour
 
     [Tooltip("How many seconds BEFORE the final chord the doctor starts his turn. " +
              "The walk then fills the rest of the time (its pace adapts automatically).")]
-    [SerializeField, Min(2f)] private float _turnLeadTime = 12f;
+    [SerializeField, Min(2f)] private float _turnLeadTime = 15f;
 
     [Header("Portal")]
     [SerializeField] private PortalFunnelController _portal;
@@ -715,8 +725,8 @@ public class EndGameSequence : MonoBehaviour
     /// <summary>
     /// The ending's last beats, driven by the MUSIC's own clock (the track's
     /// remaining time to the final chord):
-    ///   remaining <= 3.5s - the screen dims (not to full black);
-    ///   remaining <= 2.5s - the crowd bursts into sparks and dissolves;
+    ///   remaining <= 4.5s - the screen dims (not to full black);
+    ///   remaining <= 3.5s - the crowd bursts into sparks and dissolves;
     ///   remaining <= 1s   - the final dip to full black;
     ///   0                 - the final chord lands on the black screen.
     /// Without music the beats run on a nominal 10 s countdown instead of
@@ -763,12 +773,12 @@ public class EndGameSequence : MonoBehaviour
                 lastKnownRemaining = remaining;
             }
 
-            if (!dimStarted && remaining <= 3.5f)
+            if (!dimStarted && remaining <= 4.5f)
             {
                 dimStarted = true;
                 StartCoroutine(FadeToDimRoutine(_fadeDuration));
             }
-            if (!burstStarted && remaining <= 2.5f)
+            if (!burstStarted && remaining <= 3.5f)
             {
                 burstStarted = true;
                 StartCoroutine(CrowdDissolveRoutine());
@@ -860,6 +870,11 @@ public class EndGameSequence : MonoBehaviour
         flat.y = 0f;
         float distance = flat.magnitude;
 
+        // The doctor only walks a short mournful stretch toward the portal -
+        // the cap keeps the departure slow and leaves the rest of the way to
+        // the dark screen.
+        float walkDistance = Mathf.Min(distance, _shadowMaxWalkDistance);
+
         // The time budget: everything left until the final chord. Without the
         // music this is the walk's own budget - the departure still plays out.
         float timeToChord = GetChordTimeRemaining();
@@ -867,9 +882,11 @@ public class EndGameSequence : MonoBehaviour
 
         // The walk clip's loop must carry him the whole distance in that time.
         // WalkPace = clip playback multiplier (the authored stride speed is
-        // the serialized _shadowWalkSpeed).
+        // the serialized _shadowWalkSpeed). The MAX cap slows the departure:
+        // a pace above the cap is dropped, the chord's black screen covers
+        // whatever distance remains.
         float strideSpeed = _shadowWalkSpeed;
-        float pace = Mathf.Clamp(distance / timeToChord / strideSpeed, 0.15f, 1.2f);
+        float pace = Mathf.Clamp(walkDistance / timeToChord / strideSpeed, 0.15f, _shadowMaxWalkPace);
         _shadowAnimator.SetFloat("WalkPace", pace);
 
         _shadowAnimator.SetTrigger(_shadowWalkStateName);
@@ -894,6 +911,8 @@ public class EndGameSequence : MonoBehaviour
         }
 
         float elapsed = 0f;
+        float walked = 0f;
+        bool stretchDone = false;
         while (elapsed < _shadowMaxWalkDuration)
         {
             if (_skipRequested) yield break;
@@ -907,17 +926,34 @@ public class EndGameSequence : MonoBehaviour
             if (remaining >= 0f && (remaining <= 0f || elapsed >= timeToChord))
                 break;
 
+            // The mournful stretch is done - he stops and stands while the
+            // farewell beats play out to the chord.
+            if (walked >= walkDistance)
+            {
+                stretchDone = true;
+                break;
+            }
+
             Vector3 toTarget = _portalWalkTarget.position - _shadow.position;
             toTarget.y = 0f;
             float distNow = toTarget.magnitude;
 
             if (distNow <= _shadowArrivalDistance)
+            {
+                stretchDone = true;
                 break;
+            }
 
-            Vector3 step = toTarget.normalized * Mathf.Min(_shadowWalkSpeed * pace * Time.deltaTime, distNow);
-            _shadow.position += step;
+            float stepSize = Mathf.Min(_shadowWalkSpeed * pace * Time.deltaTime, distNow, walkDistance - walked);
+            _shadow.position += toTarget.normalized * stepSize;
+            walked += stepSize;
             yield return null;
         }
+
+        // Back to the grieving Idle (short crossfade) - never walk in place
+        // while the farewell beats play out.
+        if (stretchDone)
+            _shadowAnimator.CrossFade(_shadowIdleStateName, 0.3f);
     }
 
     /// <summary>
