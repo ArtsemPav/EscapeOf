@@ -1,4 +1,4 @@
-<!-- version: 4 -->
+<!-- version: 5 -->
 
 ## Обзор
 
@@ -72,7 +72,7 @@ OnPuzzleSolved (UnityEvent):
 
 ### Восстановление после загрузки
 
-При загрузке сейва с решённой загадкой падение НЕ повторяется: `ChainCutPuzzleController.RestoreSolvedState` вызывает `ChainCuttable.SetCutRestored()` — та прячет висящую цепь (`/chain/chain`) и показывает узел-двойник `/chainRestored` (лежащая на полу поза, физики нет — просто меши). Узел-двойник запечён в `PRF_Tambur.prefab` (inactive, 22 звена `Chain1…Chain23`, без срезанного `Chain0`).
+При загрузке сейва с решённой загадкой падение НЕ повторяется: `ChainCutPuzzleController.RestoreSolvedState` вызывает `ChainCuttable.SetCutRestored()` — та прячет висящую цепь (`/chain/chain`) и показывает узел-двойник `/chainRestored` на корне префаба (лежащая на полу поза, физики нет — просто меши). Узел-двойник запечён в `PRF_Tambur.prefab` (inactive, 22 звена `Chain1…Chain23`, без срезанного `Chain0`). Скрипт ищет двойника через `transform.parent.Find` — то есть строго на корне префаба, не в под-узлах.
 
 ## Запекание лежачей позы (`chainRestored`)
 
@@ -93,16 +93,18 @@ OnPuzzleSolved (UnityEvent):
 /PRF_Tambur/chain            ← ChainCuttable (демо off) + PuzzleModeController + ChainCutPuzzleController + BoxCollider (цель рейкаста)
 ├── chain                    ← узел со звеньями (висящая поза)
 │   ├── Chain0 … Chain23     ← MeshRenderer'ы, инстансы Chain1/2/3
-├── chainRestored            ← лежащая на полу поза (запечён, inactive, 22 звена)
 ├── bolt_cutter              ← модель кусачков + Animator (ACChainCut), inactive
 ├── ChainCutPoint            ← точка перекусывания
 ├── CutterStartPoint         ← точка старта подлёта
 ├── chainEnter               ← вход по E: BoxCollider (не триггер) + PuzzleInteractable, слой Interactable Layer
 ├── chainCut                 ← авто-вход: BoxCollider (триггер) + PuzzleModeTrigger
 └── ChainCamera              ← CinemachineCamera загадки
+
+/PRF_Tambur/chainRestored    ← лежащая на полу поза (запечён, inactive, 22 звена)
 ```
 
 - `Chain0` — точка среза (скрывается при срезе).
+- **Read/Write на `Assets/Models/chain/chain.fbx` ОБЯЗАТЕЛЕН (Read/Write = вкл на импортере модели).** Без него билд падает: колайдеры звеньев пустые, цепь падает «палкой» без физики звеньев. В редакторе это не проявляется.
 - Коллайдеры ручек — `BoxCollider` на створках двери (`doors_wide_wing_L/R`).
 - Двери тамбура заперты (`_isLocked = true`), отпираются `UnlockAndOpen` при решении.
 - Дверь морга (`Env/Basement/Morgue/Walls/doors_A/Doormesh`) заперта; при решении привязка из сцены `Game.unity` (override на инстансе `Tambur`, источник `PRF_Env.prefab`): `OnPuzzleSolved → Unlock()`, `OnPuzzleSolvedRestored → Unlock()`. Дверь не распахивается — игрок открывает сам.
@@ -160,3 +162,4 @@ OnPuzzleSolved (UnityEvent):
 - «Распад на сегменты» → суставы по порядку иерархии (смежность совпадает с порядком расстановки); пространственная сортировка опциональна (`Link Order`).
 - «Виснет на ручках» → физматериал без трения + стартовая скорость вниз.
 - «Ползает по полу» → заморозка по факту касания пола всеми звеньями.
+- «В билде падает без физики звеньев (палкой)» → Read/Write на `chain.fbx`. convex `MeshCollider` печётся в рантайме и требует CPU-доступа к мешу; в билде без Read/Write лог пестрит `CollisionMeshData couldn't be created because the mesh has been marked as non-accessible`, коллайдеры звеньев пустые. В редакторе не воспроизводится.
