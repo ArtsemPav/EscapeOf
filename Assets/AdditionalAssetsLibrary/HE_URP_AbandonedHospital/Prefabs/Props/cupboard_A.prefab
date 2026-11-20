@@ -127,7 +127,6 @@ GameObject:
   - component: {fileID: 2300002}
   - component: {fileID: 6500000}
   - component: {fileID: 2757594986582919189}
-  - component: {fileID: 8805863484879740965}
   m_Layer: 6
   m_Name: cupboard_drawer
   m_TagString: Untagged
@@ -147,7 +146,8 @@ Transform:
   m_LocalPosition: {x: -0.004300196, y: 0.8002478, z: -0.104}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 6390989609261482816}
   m_Father: {fileID: 400000}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &3300002
@@ -251,30 +251,10 @@ MonoBehaviour:
   _lockedJiggleAmount: 0.05
   _lockedSnapBackSpeed: 10
   _lockedClip: {fileID: 8300000, guid: c40f82dd819ee134c9acc7537eddb1dd, type: 3}
+  _lockedSoundCooldown: 1.5
   _unlockClip: {fileID: 0}
   _openClip: {fileID: 8300000, guid: d036e5fdebf99c94594e146b4ffaa85c, type: 3}
   _openVolume: 0.8
---- !u!65 &8805863484879740965
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 100002}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.7, y: 0.01, z: 0.73}
-  m_Center: {x: 0.000018194321, y: -0.08, z: 0.056077898}
 --- !u!1 &100004
 GameObject:
   m_ObjectHideFlags: 0
@@ -409,6 +389,7 @@ MonoBehaviour:
   _showBlockedHint: 0
   _lockedHintKey: ui.interact.door_locked
   _lockedHintCooldown: 2
+  _lockedSoundCooldown: 1.5
   _pivot: {fileID: 400004}
   _rotationAxis: 1
   _maxOpenAngle: 120
@@ -436,3 +417,56 @@ MonoBehaviour:
   _onUnlocked:
     m_PersistentCalls:
       m_Calls: []
+--- !u!1 &3426558051812103463
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6390989609261482816}
+  - component: {fileID: 888282763908552247}
+  m_Layer: 0
+  m_Name: colider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6390989609261482816
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3426558051812103463}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
+  m_LocalPosition: {x: -0.002, y: -0.08, z: 0.076}
+  m_LocalScale: {x: 20.000013, y: 20, z: 20}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 400002}
+  m_LocalEulerAnglesHint: {x: -90, y: 0, z: 90}
+--- !u!65 &888282763908552247
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3426558051812103463}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.040115908, y: 0.033733513, z: 0.00013131647}
+  m_Center: {x: -0.0007140142, y: 5.5843326e-11, z: 0}
