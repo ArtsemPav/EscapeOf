@@ -19,7 +19,7 @@ public class SaveManager : MonoBehaviour
     public static SaveManager Instance { get; private set; }
 
     [Header("Auto-Save")]
-    [Tooltip("Seconds between automatic safety-net saves. Set to 0 to disable. Silent: does not fire OnSaved (no indicator, no log).")]
+    [Tooltip("Seconds between automatic safety-net saves. Set to 0 to disable. Fires OnSilentSaved instead of OnSaved (only the save indicator listens to it).")]
     [SerializeField] private float autoSaveInterval = 600f;
 
     [Header("Save Debounce")]
@@ -148,8 +148,15 @@ public class SaveManager : MonoBehaviour
     private readonly Queue<Action> _mainThreadCallbacks = new();
     private int _isWriting; // 0 = idle, 1 = write in progress (Interlocked)
 
-    /// <summary>Fired after every successful write. SaveIndicatorUI subscribes to show the on-screen label.</summary>
+    /// <summary>Fired after every successful non-silent write (checkpoints, pause save, debounced flush).</summary>
     public event Action OnSaved;
+
+    /// <summary>
+    /// Fired only by silent writes (periodic auto-save). The save indicator
+    /// listens to THIS event — it shows the "Сохранение" label for the
+    /// safety-net autosave instead of every gameplay checkpoint.
+    /// </summary>
+    public event Action OnSilentSaved;
 
     private void Awake()
     {
@@ -236,7 +243,7 @@ public class SaveManager : MonoBehaviour
             {
                 _autoSaveTimer = 0f;
                 var snapshot = BuildSnapshot();
-                if (WriteToFile(_activeSlot, snapshot, fireOnSaved: false))
+                if (WriteToFile(_activeSlot, snapshot, fireOnSaved: false, fireSilentSaved: true))
                 {
                     _pendingSave     = false;
                     _pendingSnapshot = null;
@@ -474,14 +481,15 @@ public class SaveManager : MonoBehaviour
 
     /// <summary>
     /// Serializes data on the main thread, then offloads backup rotation and file
-    /// writing to a background thread. OnSaved is queued back to the main thread
-    /// after the write completes (unless fireOnSaved: false — silent writes such
-    /// as the safety-net autosave). Skips if a previous write is still in flight.
+    /// writing to a background thread. Callbacks are queued back to the main thread
+    /// after the write completes: OnSaved for regular writes, OnSilentSaved for
+    /// silent ones (fireOnSaved: false — the periodic auto-save). Skips if a
+    /// previous write is still in flight.
     /// Pass synchronous: true for the OnApplicationQuit path.
     /// Returns true if the write was performed (or started in background),
     /// false if it was skipped because a previous write was still in flight.
     /// </summary>
-    private bool WriteToFile(int slot, GameSaveData data, bool synchronous = false, bool fireOnSaved = true)
+    private bool WriteToFile(int slot, GameSaveData data, bool synchronous = false, bool fireOnSaved = true, bool fireSilentSaved = false)
     {
         string json      = JsonUtility.ToJson(data, prettyPrint: false);
         string savePath  = GetSavePath(slot);
@@ -504,6 +512,7 @@ public class SaveManager : MonoBehaviour
 
             PerformWrite(slot, savePath, dir, backupPaths, json);
             if (fireOnSaved) OnSaved?.Invoke();
+            else if (fireSilentSaved) OnSilentSaved?.Invoke();
             return true;
         }
 
@@ -523,6 +532,7 @@ public class SaveManager : MonoBehaviour
             {
                 Interlocked.Exchange(ref _isWriting, 0);
                 if (fireOnSaved) _mainThreadCallbacks.Enqueue(() => OnSaved?.Invoke());
+                else if (fireSilentSaved) _mainThreadCallbacks.Enqueue(() => OnSilentSaved?.Invoke());
             }
         });
         return true;

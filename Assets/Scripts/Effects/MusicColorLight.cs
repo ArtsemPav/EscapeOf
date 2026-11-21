@@ -120,6 +120,11 @@ public class MusicColorLight : MonoBehaviour
             _light.color = _baseColor;
             _light.intensity = _baseIntensity;
         }
+        // Restore the extra room lights here as well: the component is
+        // deactivated mid-sequence (effects cutoff / instance removal), and a
+        // disabled Update never runs the restore path — without this the room
+        // light keeps the last disco color/intensity after the event ends.
+        DriveExtraLights(0f, restoreOnly: true);
     }
 
     private void OnBeat(int _)
@@ -230,6 +235,16 @@ public class MusicColorLight : MonoBehaviour
         _light.intensity = _baseIntensity;
         _lastCatPosition = null; // re-anchor when the dance resumes
         DriveExtraLights(0f, restoreOnly: true);
+    }
+
+    /// <summary>
+    /// Restores this light and the extra room lights to their Awake-captured
+    /// original state. Called from FinishSequence via OnDisable-safe path.
+    /// </summary>
+    public void RestoreAll()
+    {
+        if (_light == null) return;
+        RestoreOriginal();
     }
 
     /// <summary>

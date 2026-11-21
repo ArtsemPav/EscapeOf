@@ -4,7 +4,8 @@ using UnityEngine;
 /// <summary>
 /// Shows a "Сохранение" label on the right side of the screen for a few seconds then fades it out.
 /// Attach to a Canvas UI element that has a CanvasGroup component.
-/// Subscribes to SaveManager.OnSaved automatically via OnEnable/OnDisable.
+/// Subscribes to SaveManager.OnSilentSaved automatically via OnEnable/OnDisable —
+/// only the periodic auto-save lights it up, gameplay checkpoints stay quiet.
 ///
 /// SETUP: Create a UI Image or Panel anchored to the right side, add a TextMeshProUGUI child with "Сохранение",
 /// add a CanvasGroup to the root, then attach this script to the root.
@@ -37,16 +38,16 @@ public class SaveIndicatorUI : MonoBehaviour
     private void OnEnable()
     {
         if (SaveManager.Instance != null)
-            SaveManager.Instance.OnSaved += Show;
+            SaveManager.Instance.OnSilentSaved += Show;
     }
 
     private void OnDisable()
     {
         if (SaveManager.Instance != null)
-            SaveManager.Instance.OnSaved -= Show;
+            SaveManager.Instance.OnSilentSaved -= Show;
     }
 
-    /// <summary>Displays the save indicator. Called automatically when SaveManager fires OnSaved.</summary>
+    /// <summary>Displays the save indicator. Called automatically when SaveManager fires OnSilentSaved.</summary>
     public void Show()
     {
         if (_activeRoutine != null)

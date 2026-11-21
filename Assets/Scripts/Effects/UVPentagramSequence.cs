@@ -548,6 +548,16 @@ public class UVPentagramSequence : MonoBehaviour, ISaveable
 
         _onMusicFinished?.Invoke();
 
+        // Restore every event-driven light (including the extra room lights
+        // driven by MusicColorLight) BEFORE the instance is deactivated —
+        // a disabled MusicColorLight can no longer restore them itself.
+        foreach (MusicColorLight effect in _catHorrorInstance != null
+                     ? _catHorrorInstance.GetComponentsInChildren<MusicColorLight>(true)
+                     : Array.Empty<MusicColorLight>())
+        {
+            effect.RestoreAll();
+        }
+
         // Pentagram and cat are gone for good — hide the whole instance.
         if (_catHorrorInstance != null)
             _catHorrorInstance.SetActive(false);
