@@ -22,6 +22,13 @@ public static class SystemSettings
     public const string TargetFrameRatePref = "Settings_TargetFrameRate";
     public const string FullScreenModePref = "Settings_FullScreenMode";
 
+    /// <summary>Saved mouse-look sensitivity multiplier (1 = the tuned in-editor default feel).</summary>
+    public const string MouseSensitivityPref = "Settings_MouseSensitivity";
+    /// <summary>Sensitivity multiplier for players who never touched the slider.</summary>
+    public const float DefaultMouseSensitivity = 1f;
+    public const float MinMouseSensitivity = 0.1f;
+    public const float MaxMouseSensitivity = 2f;
+
     /// <summary>
     /// Borderless fullscreen: letterboxes resolutions whose aspect ratio differs
     /// from the monitor's, so non-native modes show black bars instead of stretching.
@@ -40,18 +47,36 @@ public static class SystemSettings
     /// <summary>True while the sound-effects volume was never changed by the player (the default is active).</summary>
     public static bool IsSfxVolumeDefault => !PlayerPrefs.HasKey(SfxVolumePref);
 
+    /// <summary>Saved mouse-look sensitivity multiplier applied on top of the controller's tuned base value.</summary>
+    public static float MouseSensitivity => PlayerPrefs.GetFloat(MouseSensitivityPref, DefaultMouseSensitivity);
+
+    /// <summary>True while the mouse sensitivity was never changed by the player (the default is active).</summary>
+    public static bool IsMouseSensitivityDefault => !PlayerPrefs.HasKey(MouseSensitivityPref);
+
     /// <summary>
-    /// Resets both volumes to their defaults: deletes the saved preferences so
-    /// the code defaults apply again (the sliders did not write anything yet).
-    /// Returns the reset volumes so the caller can refresh its sliders.
+    /// Resets all adjustable settings to their defaults. When
+    /// <paramref name="includeVideoSettings"/> is false, only the audio
+    /// volumes and mouse sensitivity are cleared — for panels that do not
+    /// show the video block (e.g. the pause menu), so the player never has
+    /// video settings changed invisibly.
     /// </summary>
-    public static (float music, float sfx) ResetVolumesToDefaults()
+    public static void ResetToDefaults(bool includeVideoSettings = true)
     {
         PlayerPrefs.DeleteKey(MusicVolumePref);
         PlayerPrefs.DeleteKey(SfxVolumePref);
+        PlayerPrefs.DeleteKey(MouseSensitivityPref);
+        if (includeVideoSettings)
+        {
+            PlayerPrefs.DeleteKey(ResolutionWidthPref);
+            PlayerPrefs.DeleteKey(ResolutionHeightPref);
+            PlayerPrefs.DeleteKey(TargetFrameRatePref);
+            PlayerPrefs.DeleteKey(FullScreenModePref);
+            VideoSettingOptions.ResolutionOption defaultResolution = VideoSettingOptions.DefaultResolution;
+            Screen.SetResolution(defaultResolution.Width, defaultResolution.Height, DefaultFullScreenMode);
+            ApplyTargetFrameRate(VideoSettingOptions.DefaultFrameRate);
+        }
         ApplyMusicVolume();
         ApplySfxVolume();
-        return (MusicVolume, SfxVolume);
     }
 
     /// <summary>Converts a normalized loudness (0–1) to AudioMixer decibels.</summary>
@@ -89,6 +114,11 @@ public static class SystemSettings
         AudioMixer mixer = ResolveMixer();
         if (mixer != null) mixer.SetFloat("SFXVolume", ToDecibels(SfxVolume));
     }
+
+    /// <summary>Sets the mouse-look sensitivity multiplier, persists it and clamps it to the supported range.</summary>
+    public static void SetMouseSensitivity(float value)
+        => PlayerPrefs.SetFloat(MouseSensitivityPref,
+            Mathf.Clamp(value, MinMouseSensitivity, MaxMouseSensitivity));
 
     /// <summary>The AudioManager's mixer, when the manager exists in this scene.</summary>
     private static AudioMixer ResolveMixer()

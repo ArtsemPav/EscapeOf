@@ -1,4 +1,4 @@
-<!-- version: 8 -->
+<!-- version: 14 -->
 
 ## Обзор
 
@@ -197,9 +197,11 @@ Singleton на Canvas с `CanvasGroup`. Полноэкранный фейд-ов
 
 ### `SystemSettings` — `Assets/Scripts/Core/SystemSettings.cs`
 
-Статический класс настроек игрока в PlayerPrefs. Громкости (`MusicVolume` / `SfxVolume`, 0–1) пишутся в dB в exposed-параметры микшера (`ToDecibels`: 0 → −80 dB), слайдеры применяются мгновенно через `AudioManager.ResolveMixerExternal()`. Ключи префов: `Settings_MusicVolume`, `Settings_SfxVolume`, `Settings_QualityLevel`, `Settings_ResolutionWidth/Height`, `Settings_TargetFrameRate`, `Settings_FullScreenMode`.
+Статический класс настроек игрока в PlayerPrefs. Громкости (`MusicVolume` / `SfxVolume`, 0–1) пишутся в dB в exposed-параметры микшера (`ToDecibels`: 0 → −80 dB), слайдеры применяются мгновенно через `AudioManager.ResolveMixerExternal()`. Ключи префов: `Settings_MusicVolume`, `Settings_SfxVolume`, `Settings_MouseSensitivity`, `Settings_QualityLevel`, `Settings_ResolutionWidth/Height`, `Settings_TargetFrameRate`, `Settings_FullScreenMode`.
 
-- `SetMusicVolume` / `SetSfxVolume` / `SetQualityLevel` / `SetResolution` / `SetTargetFrameRate` / `SetFullScreenMode` — применяют и сохраняют.
+- `SetMusicVolume` / `SetSfxVolume` / `SetMouseSensitivity` / `SetQualityLevel` / `SetResolution` / `SetTargetFrameRate` / `SetFullScreenMode` — применяют и сохраняют.
+- `MouseSensitivity` — множитель 0.1–2.0 (дефолт 1.0) поверх базовой чувствительности `FPSController.mouseSensitivity`; читается в `FPSController.HandleLook()` каждый кадр, поэтому применяется мгновенно.
+- `ResetToDefaults(includeVideoSettings)` — сброс к дефолтам; громкости и чувствительность всегда, разрешение/частота кадров/оконный режим — только когда `includeVideoSettings` true (панель показывает видеоблок).
 - `ApplyAtStartup()` — восстановление quality, window mode, разрешения и frame rate при запуске.
 - Дефолтный window mode — borderless `FullScreenWindow`: несовпадающие пропорции letterbox'ятся чёрными полосами вместо растяжения. Exclusive fullscreen никогда не восстанавливается (ремапится в borderless).
 - Разрешение хранится размерами (не индексом списка) — выбор переживает смену монитора; есть fallback на legacy-преф `Settings_ResolutionIndex`.
@@ -211,6 +213,19 @@ Singleton на Canvas с `CanvasGroup`. Полноэкранный фейд-ов
 ### `ResolutionManager` — `Assets/Scripts/Core/ResolutionManager.cs`
 
 Singleton, `[DefaultExecutionOrder(-50)]` — в `Awake` вызывает `SystemSettings.ApplyAtStartup()` в каждой сцене, чтобы видеонастройки применились раньше, чем их прочитает геймплей. Сама логика настроек — в `SystemSettings`, UI — в `SettingsPanelController` (`Assets/Scripts/UI/SettingsPanelController.cs`).
+
+### Панель настроек Start.unity (`/MainMenuCanvas/SettingsPanel`)
+
+Верхняя часть — звук: слайдеры «ГРОМКОСТЬ МУЗЫКИ», «ГРОМКОСТЬ ЭФФЕКТОВ» и «ЧУВСТВИТЕЛЬНОСТЬ МЫШИ» (с числовым значением справа). Ниже — `VerticalLayout` (spacing 4, LowerCenter, `MenuHoverEffect` + `MenuSelectionLines`):
+
+1. `ResolutionButton` — «РАЗРЕШЕНИЕ: W x H» → `CycleResolution()`
+2. `FrameRateButton` — «КАДРЫ В СЕКУНДУ: N» → `CycleFrameRate()`
+3. `WindowModeButton` — «ОКНО: …» → `CycleWindowMode()`
+4. `ResetSettingsBtn` — «СБРОСИТЬ НАСТРОЙКИ» (`ui.settings.reset_sound`) → `SettingsPanelController.ResetToDefaults()`
+5. `LanguageBtn` — «ЯЗЫК: …» → `CycleLanguage()`
+6. `Btn_Back` — «НАЗАД» → `OnSettingsClosed()`
+
+Порядок циклических кнопок в VerticalLayout образует видеоблок (пункты 1–3), за ним — сброс и язык.
 
 ---
 
@@ -229,7 +244,9 @@ Singleton, `[DefaultExecutionOrder(-50)]` — в `Awake` вызывает `Syste
 Меню паузы стилизовано под стартовое меню — те же текстовые пункты, hover-сдвиги и линии-разделители:
 
 - Пункты — `Button` с прозрачным фоном (`Image` alpha 0) и `Text (TMP)`: Arial SDF Bold, UpperCase, 26pt, characterSpacing 5. ColorTint вешается на текст (беж `#E6D9B8` → белый на hover), навигация None.
-- Порядок пунктов: Продолжить, Настройки звука, В главное меню.
+- Порядок пунктов: Продолжить, Настройки (`SoundSettingsBtn`, ключ `ui.menu.settings`), В главное меню. Панель настроек (`SoundSettingsPanel`) открывается этой кнопкой; заголовок панели — тоже `ui.menu.settings` («НАСТРОЙКИ»).
+- Панель настроек содержит два слайдера громкостей и слайдер `SensitivitySlider` («ЧУВСТВИТЕЛЬНОСТЬ МЫШИ», `ui.settings.sensitivity`, диапазон 0.1–2.0) — все с лейблами с суффиксом «(по умолчанию)», пока значение не менялось; справа от слайдера чувствительности — числовое значение (`ValueText`, формат `0.00`).
+- Кнопка «СБРОСИТЬ НАСТРОЙКИ» (`ResetSettingsBtn`, ключ `ui.settings.reset_sound`, y=-250, сразу под слайдером чувствительности) сбрасывает только громкости и чувствительность: у контроллера паузы `_resetIncludesVideoSettings = false`, видеоблока в панели нет (разрешение, частота кадров и оконный режим — только в Start.unity); «НАЗАД» (`BackBtn`, y=-320) — внизу панели.
 - Debug-группа `MenuRoot/DebugSection` (Сохранить, Загрузить, Удалить дебаг-сейв, Сбросить прогресс, Выход) с приглушённым заголовком `DEBUG`. Скрытием группы управляет один `DebugButtonsBlocker` на самой `DebugSection` — в не-dev сборках (`#if !UNITY_EDITOR && !DEVELOPMENT_BUILD`) группа целиком деактивируется.
 - На `MenuRoot`: `VerticalLayoutGroup` (spacing 8, MiddleCenter) + `MenuHoverEffect` (slide 10) + `MenuSelectionLines` (Line_Top / Line_Bottom, цвет беж с alpha 0.5) — компоненты переиспользованы из стартового меню, работают на unscaled time, то есть анимируются при `Time.timeScale = 0`.
 - `MenuSelectionLines` выбирает первую кнопку при старте — при открытии паузы линии всегда обрамляют один из пунктов, а не весь список.
