@@ -383,8 +383,9 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
     private int _analyzerOriginSlot   = -1;
 
     // Counts how many _amptyColba placeholders the mixer has placed in inventory
-    // (one per portion poured). Decremented on mid-process retrieval; cleared when
-    // the mixer completes so OnMixerComplete knows how many to remove up-front.
+    // (one per portion poured). Decremented on mid-process retrieval; consumed by
+    // OnMixerComplete: one placeholder becomes the result flask, the rest are removed —
+    // after mixing the player is always left with exactly one flask.
     private int _mixerPendingAmpties;
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -1213,12 +1214,12 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
         if (result == null) return;
         ItemData finalResult = RandomizeSlag(result);
 
-        // Each portion poured into the mixer left an empty flask (_amptyColba) in the
-        // player's inventory. Combining the liquids yields ONE mixed flask, which fills
-        // exactly ONE of those empties — the remaining empty flasks stay in inventory.
-        // So we hand the result back via a replace-in-place against _amptyColba instead
-        // of removing every placeholder. This conserves the player's glassware: pouring
-        // two filled flasks leaves them with one mixed flask + one empty flask.
+        // Every portion poured into the mixer left one _amptyColba placeholder in the
+        // player's inventory (the glass stayed, the liquid went into the mix). The mix
+        // produces exactly ONE result flask: it replaces one placeholder in place
+        // (PlacePendingResult), and the remaining placeholders are consumed on pickup —
+        // the "one flask" invariant: mixing must never leave spare empty flasks behind.
+        int amptiesToConsume = Mathf.Max(1, _mixerPendingAmpties);
         _mixerPendingAmpties = 0;
 
         // Drain the liquid after the player picks up the result.
@@ -1228,7 +1229,19 @@ public class ChemicalSynthesisController : MonoBehaviour, IPuzzleDropHandler, IS
             item          = finalResult,
             originSlot    = -1,
             replaceTarget = _amptyColba,
-            onPickup      = () => mixerRef?.ResetLiquid()
+            onPickup      = () =>
+            {
+                // PlacePendingResult already swapped ONE placeholder for the result —
+                // remove the rest so exactly one flask remains after the mix.
+                if (InventorySystem.Instance != null)
+                {
+                    for (int i = 1; i < amptiesToConsume; i++)
+                    {
+                        if (!InventorySystem.Instance.RemoveItem(_amptyColba)) break;
+                    }
+                }
+                mixerRef?.ResetLiquid();
+            }
         });
         TryShowNextResult();
     }

@@ -272,7 +272,10 @@ public class PuzzleInventoryBar : MonoBehaviour
             _pendingSwapTarget = null;
 
             if (replacement != null)
-                InventorySystem.Instance?.ReplaceItem(_dragItem, replacement);
+                // Replace the SOURCE slot in place — never a scan-by-reference, which
+                // could hit a duplicate copy of the same ItemData in another slot and
+                // leave the dragged flask in the inventory while the device holds its liquid.
+                InventorySystem.Instance?.ReplaceItemAt(sourceSlotIndex, replacement);
             else
                 // Clear the slot and compact so items pack left with no gaps.
                 InventorySystem.Instance?.ClearSlot(sourceSlotIndex);

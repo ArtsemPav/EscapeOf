@@ -374,6 +374,22 @@ public class InventorySystem : MonoBehaviour, ISaveable
         return false;
     }
 
+    /// <summary>
+    /// Replaces the item at the exact <paramref name="slotIndex"/> with <paramref name="to"/>.
+    /// Unlike <see cref="ReplaceItem(ItemData, ItemData)"/> (which scans for the first slot
+    /// holding a reference equal to <paramref name="from"/>), this never touches other slots —
+    /// safe when duplicate ItemData assets occupy several slots. Returns true on success.
+    /// </summary>
+    public bool ReplaceItemAt(int slotIndex, ItemData to)
+    {
+        if (to == null) return false;
+        if (slotIndex < 0 || slotIndex >= _slots.Length || _slots[slotIndex] == null) return false;
+        _slots[slotIndex] = to;
+        OnInventoryChanged?.Invoke();
+        NotifyStateChanged();
+        return true;
+    }
+
     /// <summary>Returns true if the inventory contains the given item.</summary>
     public bool HasItem(ItemData item)
     {
