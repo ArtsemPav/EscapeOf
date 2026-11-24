@@ -1,4 +1,4 @@
-<!-- version: 8 -->
+<!-- version: 11 -->
 
 ## Audio System
 
@@ -188,6 +188,6 @@ ScriptableObject-дескриптор трека (меню `Audio/Music Track`, 
 - **Мьют всей сцены (финальная катсцена):** `AudioManager.MuteAmbience` — глушит всё, кроме музыки директора и one-shot SFX, включая эмбиент, появляющийся во время катсцены.
 - **Слои:** `PlayBackgroundLayer`/`StopBackgroundLayer` для независимых 2D-слоёв с фейдами.
 - **Стетоскоп (загадка сейфа):** при применении стетоскопа `LockDial` вызывает `AudioManager.EnterStethoscopeMode` — музыка и все SFX-шины фейдятся в тишину, а тики/звук корректного шага и `_puzzleBackgroundLayer` идут через шину `Safe` (`PlaySafeSFX`/`RouteSourceToSafeGroup`) и остаются слышимыми. Выход из паззла — `ExitStethoscopeMode`, громкости восстанавливаются. Требует шину `Master/Safe` в `SFX.mixer` и назначенное поле `_safeGroup` у `AudioManager` (в сцене `Game.unity` уже назначено).
-- **Громкости:** `SystemSettings` пишет в exposed-параметры микшера (`SFXVolume` / `MusicVolume`), изменения применяются мгновенно к играющему звуку.
+- **Громкости:** `SystemSettings` пишет в exposed-параметры микшера (`SFXVolume` / `MusicVolume`), изменения применяются мгновенно к играющему звуку. Там же хранится чувствительность мыши (`Settings_MouseSensitivity`, 0.1–2.0) — не аудио-настройка, но живёт в том же классе. Кнопка «СБРОСИТЬ НАСТРОЙКИ» (`SettingsPanelController.ResetToDefaults`) сбрасывает громкости и чувствительность; в Start.unity (панель с видеоблоком, `_resetIncludesVideoSettings = true`) — также разрешение, частоту кадров и оконный режим, в меню паузы — только звук и чувствительность.
 
 &nbsp;

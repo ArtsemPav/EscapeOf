@@ -344,7 +344,10 @@ public class FPSController : MonoBehaviour, ISaveable
         if (_cinematicControl)
             return;
         Vector2 lookInput = InputManager.Instance != null ? InputManager.Instance.LookInput : Vector2.zero;
+        // Player-facing sensitivity multiplier from the settings menu sits on top
+        // of the tuned per-controller base value and the situational multipliers.
         float sensitivity = mouseSensitivity
+            * SystemSettings.MouseSensitivity
             * ((_currentDraggable != null || _isPhysicsGrabbing) ? _dragCameraSensitivityMultiplier : 1f)
             * (CameraZoom.Instance != null ? CameraZoom.Instance.SensitivityMultiplier : 1f);
         float mouseX = lookInput.x * sensitivity;

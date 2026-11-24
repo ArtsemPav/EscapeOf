@@ -49,8 +49,10 @@
 | `ui.settings.resolution` | РАЗРЕШЕНИЕ: | SettingsPanelController |
 | `ui.settings.framerate` | КАДРЫ В СЕКУНДУ: | SettingsPanelController |
 | `ui.settings.default_suffix` | " (по умолчанию)" | SettingsPanelController |
+| `ui.settings.reset_sound` | СБРОСИТЬ НАСТРОЙКИ / RESET SETTINGS | ResetSettingsBtn (LocalizedTMP) — кнопка сбрасывает все настройки |
 | `ui.settings.music_volume` | ГРОМКОСТЬ МУЗЫКИ / Музыка | Start.unity MusicLabel + SettingsPanelController |
 | `ui.settings.sfx_volume` | ГРОМКОСТЬ ЭФФЕКТОВ / Звуки | Start.unity SfxLabel + SettingsPanelController |
+| `ui.settings.sensitivity` | ЧУВСТВИТЕЛЬНОСТЬ МЫШИ / MOUSE SENSITIVITY | SettingsPanelController (кнопка/панель переименованы в ui.menu.settings) |
 | `ui.settings.language` | ЯЗЫК: | SettingsPanelController |
 | `ui.settings.language_name.Ru` | РУССКИЙ | SettingsPanelController (самоназвание языка) |
 | `ui.settings.language_name.En` | ENGLISH | SettingsPanelController (самоназвание языка) |

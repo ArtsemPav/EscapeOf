@@ -5,8 +5,9 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// Main-menu settings panel: music volume, SFX volume, resolution, frame rate
-/// and a back action. Values apply immediately and persist in PlayerPrefs.
+/// Main-menu settings panel: music volume, SFX volume, mouse sensitivity,
+/// resolution, frame rate, window mode and a back action. Values apply
+/// immediately and persist in PlayerPrefs.
 /// The resolution list is display-driven: options are the current display's
 /// supported modes at the display's aspect ratio, so fullscreen never stretches.
 /// </summary>
@@ -16,8 +17,15 @@ public class SettingsPanelController : MonoBehaviour
     [SerializeField] private Slider _sfxSlider;
     [SerializeField] private TMP_Text _musicLabel;
     [SerializeField] private TMP_Text _sfxLabel;
-    [Tooltip("Optional button that resets both volumes to their defaults (clears the saved preferences).")]
-    [SerializeField] private Button _resetSoundButton;
+    [Tooltip("Mouse-look sensitivity multiplier slider (0.1–2.0).")]
+    [SerializeField] private Slider _sensitivitySlider;
+    [SerializeField] private TMP_Text _sensitivityLabel;
+    [Tooltip("Optional numeric readout (e.g. \"1.25\") shown next to the sensitivity slider.")]
+    [SerializeField] private TMP_Text _sensitivityValueLabel;
+    [Tooltip("Optional button that resets all settings (volumes, mouse sensitivity, resolution, frame rate, window mode) to their defaults.")]
+    [SerializeField] private Button _resetButton;
+    [Tooltip("When false, the reset button clears only audio volumes and mouse sensitivity — for panels without the video block (e.g. the pause menu), so video settings are never changed invisibly.")]
+    [SerializeField] private bool _resetIncludesVideoSettings = true;
     [SerializeField] private Button _resolutionButton;
     [SerializeField] private TMP_Text _resolutionLabel;
     [SerializeField] private Button _frameRateButton;
@@ -50,8 +58,16 @@ public class SettingsPanelController : MonoBehaviour
             _sfxSlider.onValueChanged.AddListener(SystemSettings.SetSfxVolume);
             _sfxSlider.onValueChanged.AddListener(_ => RefreshVolumeLabels());
         }
-        if (_resetSoundButton != null)
-            _resetSoundButton.onClick.AddListener(ResetSoundToDefaults);
+        if (_sensitivityLabel != null && string.IsNullOrEmpty(_sensitivityBaseText))
+            _sensitivityBaseText = Localization.Get("ui.settings.sensitivity");
+        if (_sensitivitySlider != null)
+        {
+            _sensitivitySlider.SetValueWithoutNotify(SystemSettings.MouseSensitivity);
+            _sensitivitySlider.onValueChanged.AddListener(SystemSettings.SetMouseSensitivity);
+            _sensitivitySlider.onValueChanged.AddListener(_ => RefreshVolumeLabels());
+        }
+        if (_resetButton != null)
+            _resetButton.onClick.AddListener(ResetToDefaults);
         if (_languageButton != null)
             _languageButton.onClick.AddListener(CycleLanguage);
         LocalizationSettings.LanguageChanged += OnLanguageChanged;
@@ -69,7 +85,8 @@ public class SettingsPanelController : MonoBehaviour
     {
         if (_musicSlider != null) _musicSlider.onValueChanged.RemoveListener(SystemSettings.SetMusicVolume);
         if (_sfxSlider != null) _sfxSlider.onValueChanged.RemoveListener(SystemSettings.SetSfxVolume);
-        if (_resetSoundButton != null) _resetSoundButton.onClick.RemoveListener(ResetSoundToDefaults);
+        if (_sensitivitySlider != null) _sensitivitySlider.onValueChanged.RemoveListener(SystemSettings.SetMouseSensitivity);
+        if (_resetButton != null) _resetButton.onClick.RemoveListener(ResetToDefaults);
         if (_languageButton != null) _languageButton.onClick.RemoveListener(CycleLanguage);
         LocalizationSettings.LanguageChanged -= OnLanguageChanged;
     }
@@ -81,6 +98,7 @@ public class SettingsPanelController : MonoBehaviour
         // the next refresh uses the localized volume label templates instead.
         _musicBaseText = _musicLabel != null ? Localization.Get("ui.settings.music_volume") : null;
         _sfxBaseText = _sfxLabel != null ? Localization.Get("ui.settings.sfx_volume") : null;
+        _sensitivityBaseText = _sensitivityLabel != null ? Localization.Get("ui.settings.sensitivity") : null;
         RefreshVolumeLabels();
         RefreshWindowModeLabel();
         RefreshResolutionLabel();
@@ -88,16 +106,31 @@ public class SettingsPanelController : MonoBehaviour
         RefreshLanguageLabel();
     }
 
-    /// <summary>Clears both saved volume preferences and refreshes the sliders to the defaults.</summary>
-    public void ResetSoundToDefaults()
+    /// <summary>
+    /// Resets the settings shown in this panel to their defaults: volumes and
+    /// mouse sensitivity always; resolution, frame rate and window mode only
+    /// when the panel displays the video block (<see cref="_resetIncludesVideoSettings"/>).
+    /// </summary>
+    public void ResetToDefaults()
     {
-        (float music, float sfx) = SystemSettings.ResetVolumesToDefaults();
-        if (_musicSlider != null) _musicSlider.SetValueWithoutNotify(music);
-        if (_sfxSlider != null) _sfxSlider.SetValueWithoutNotify(sfx);
+        bool includeVideo = _resetIncludesVideoSettings;
+        SystemSettings.ResetToDefaults(includeVideo);
+        if (_musicSlider != null) _musicSlider.SetValueWithoutNotify(SystemSettings.MusicVolume);
+        if (_sfxSlider != null) _sfxSlider.SetValueWithoutNotify(SystemSettings.SfxVolume);
+        if (_sensitivitySlider != null) _sensitivitySlider.SetValueWithoutNotify(SystemSettings.MouseSensitivity);
         RefreshVolumeLabels();
+        if (includeVideo)
+        {
+            _initialized = true;
+            VideoSettingOptions.ResolutionOption defaultResolution = VideoSettingOptions.DefaultResolution;
+            _resolutionIndex = Mathf.Max(0, VideoSettingOptions.IndexOfResolution(defaultResolution));
+            RefreshResolutionLabel();
+            RefreshFrameRateLabel();
+            RefreshWindowModeLabel();
+        }
     }
 
-    /// <summary>Marks untouched volume labels with a "(default)" hint so the player sees which values are defaults.</summary>
+    /// <summary>Marks untouched labels with a "(default)" hint so the player sees which values are defaults.</summary>
     private void RefreshVolumeLabels()
     {
         string suffix = Localization.Get("ui.settings.default_suffix");
@@ -105,9 +138,17 @@ public class SettingsPanelController : MonoBehaviour
             _musicLabel.text = (SystemSettings.IsMusicVolumeDefault ? _musicBaseText + suffix : _musicBaseText);
         if (_sfxLabel != null)
             _sfxLabel.text = (SystemSettings.IsSfxVolumeDefault ? _sfxBaseText + suffix : _sfxBaseText);
+        if (_sensitivityLabel != null)
+            _sensitivityLabel.text = (SystemSettings.IsMouseSensitivityDefault
+                ? _sensitivityBaseText + suffix
+                : _sensitivityBaseText);
+        if (_sensitivityValueLabel != null)
+            _sensitivityValueLabel.text = SystemSettings.MouseSensitivity.ToString("0.00",
+                System.Globalization.CultureInfo.InvariantCulture);
     }
     private string _musicBaseText;
     private string _sfxBaseText;
+    private string _sensitivityBaseText;
 
     /// <summary>Switches to the next selectable resolution and applies it immediately.</summary>
     public void CycleResolution()
