@@ -263,13 +263,15 @@ public class InventorySystem : MonoBehaviour, ISaveable
             return true;
         }
 
-        ShiftSlotsRight();
-
-        if (_slots[0] != null)
+        // Reject BEFORE shifting: shifting would drop the rightmost item — a silent
+        // item loss on a failed add.
+        if (IsFull)
         {
             Debug.LogWarning("Inventory is full — cannot add item.", this);
             return false;
         }
+
+        ShiftSlotsRight();
 
         _slots[0] = item;
         OnInventoryChanged?.Invoke();

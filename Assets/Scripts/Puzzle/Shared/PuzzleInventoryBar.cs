@@ -271,14 +271,39 @@ public class PuzzleInventoryBar : MonoBehaviour
             _pendingSwapSource = null;
             _pendingSwapTarget = null;
 
+            // Guard: the inventory may have changed mid-drag (e.g. a device returned
+            // an item and shifted slots). If the source slot no longer holds the
+            // dragged item, fall back to reference-based removal — clearing by the
+            // stale index would hit the wrong item (dupe or loss).
             if (replacement != null)
-                // Replace the SOURCE slot in place — never a scan-by-reference, which
-                // could hit a duplicate copy of the same ItemData in another slot and
-                // leave the dragged flask in the inventory while the device holds its liquid.
-                InventorySystem.Instance?.ReplaceItemAt(sourceSlotIndex, replacement);
+            {
+                var inv = InventorySystem.Instance;
+                if (inv != null)
+                {
+                    if (inv.GetItemAt(sourceSlotIndex) == _dragItem)
+                        // Replace the SOURCE slot in place — never a scan-by-reference, which
+                        // could hit a duplicate copy of the same ItemData in another slot and
+                        // leave the dragged flask in the inventory while the device holds its liquid.
+                        inv.ReplaceItemAt(sourceSlotIndex, replacement);
+                    else
+                    {
+                        inv.RemoveItem(_dragItem);
+                        inv.AddItem(replacement);
+                    }
+                }
+            }
             else
-                // Clear the slot and compact so items pack left with no gaps.
-                InventorySystem.Instance?.ClearSlot(sourceSlotIndex);
+            {
+                var inv = InventorySystem.Instance;
+                if (inv != null)
+                {
+                    if (inv.GetItemAt(sourceSlotIndex) == _dragItem)
+                        // Clear the slot and compact so items pack left with no gaps.
+                        inv.ClearSlot(sourceSlotIndex);
+                    else
+                        inv.RemoveItem(_dragItem);
+                }
+            }
             // RefreshSlots will be called by OnInventoryChanged event
         }
         // ── 2. Device didn't take it — execute pending slot swap/craft ────────
