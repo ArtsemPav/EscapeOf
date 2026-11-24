@@ -728,6 +728,9 @@ public class SaveManager : MonoBehaviour
         // reloads — the flag must be set here explicitly.
         RequestWakeUpIntro();
 
+        // A new game rolls fresh random codes for all CodeLocks.
+        CodeLock.ResetCodeRegistry();
+
         Debug.Log($"[SaveManager] StartNewGame: cleared slot {slot}.");
     }
     private string GetBackupPath(int slot, int n) => Path.Combine(SaveDir, $"{FilePrefix}{slot}_bk{n}{FileExtension}");

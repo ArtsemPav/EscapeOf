@@ -25,7 +25,7 @@ namespace EscapeOf.Puzzle.Laptop
 
         [Header("Password Input")]
         [Tooltip("Maximum number of characters allowed in the password field.")]
-        [SerializeField] private int _maxPasswordLength = 12;
+        [SerializeField] private int _maxPasswordLength = 10;
 
         [Header("Screens")]
         [SerializeField] private GameObject _loginScreen;

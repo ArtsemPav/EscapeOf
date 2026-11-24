@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 using UnityEngine.Events;
@@ -42,6 +43,8 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
     [Header("Save")]
     [Tooltip("Stable unique ID for the save system. Right-click → Generate Save ID to auto-fill.")]
     [SerializeField] private string _saveId;
+
+    private const string CodesRegistryKey = "codelock_codes";
 
     private string _activeCode;
     private Collider _collider;
@@ -103,11 +106,78 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
     private void Awake()
     {
         _activeCode = _randomizeOnStart
-            ? GenerateRandomCode(_codeLength)
+            ? LoadOrGenerateRandomCode()
             : _secretCode;
 
         _collider = GetComponent<Collider>();
         SaveManager.Instance?.Register(this);
+    }
+
+    /// <summary>
+    /// Returns the code stored in the cross-session registry, generating and
+    /// storing a new one only on the very first run (or after a New Game reset).
+    /// The code then stays the same regardless of save files or restarts.
+    /// </summary>
+    private string LoadOrGenerateRandomCode()
+    {
+        var registry = LoadCodesRegistry();
+        string id = string.IsNullOrEmpty(_saveId) ? gameObject.name : _saveId;
+
+        if (registry.TryGetValue(id, out string stored) &&
+            !string.IsNullOrEmpty(stored) && stored.Length == _codeLength)
+            return stored;
+
+        string code = GenerateRandomCode(_codeLength);
+        registry[id] = code;
+        SaveCodesRegistry(registry);
+        return code;
+    }
+
+    private static System.Collections.Generic.Dictionary<string, string> LoadCodesRegistry()
+    {
+        var registry = new System.Collections.Generic.Dictionary<string, string>();
+        string json = PlayerPrefs.GetString(CodesRegistryKey, string.Empty);
+        if (string.IsNullOrEmpty(json)) return registry;
+
+        try
+        {
+            var entries = JsonUtility.FromJson<CodesRegistry>(json);
+            if (entries.items == null) return registry;
+            foreach (var entry in entries.items)
+                if (!string.IsNullOrEmpty(entry.id))
+                    registry[entry.id] = entry.code;
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[CodeLock] Failed to read code registry: {e.Message}");
+        }
+        return registry;
+    }
+
+    private static void SaveCodesRegistry(System.Collections.Generic.Dictionary<string, string> registry)
+    {
+        var entries = new CodesRegistry
+        {
+            items = registry.Select(pair => new CodeRegistryEntry { id = pair.Key, code = pair.Value }).ToArray(),
+        };
+        PlayerPrefs.SetString(CodesRegistryKey, JsonUtility.ToJson(entries));
+        PlayerPrefs.Save();
+    }
+
+    /// <summary>Removes all stored lock codes — called on New Game so locks roll fresh codes.</summary>
+    public static void ResetCodeRegistry() => PlayerPrefs.DeleteKey(CodesRegistryKey);
+
+    [Serializable]
+    private struct CodeRegistryEntry
+    {
+        public string id;
+        public string code;
+    }
+
+    [Serializable]
+    private struct CodesRegistry
+    {
+        public CodeRegistryEntry[] items;
     }
 
     private void OnDestroy()
