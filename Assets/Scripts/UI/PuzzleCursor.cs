@@ -30,6 +30,7 @@ namespace UI
         private bool _isOverUI; // New flag to block 3D hover from overriding UI hover
         private ItemData _draggedItem;
         private IPuzzleDropTarget _hoveredDropTarget;
+        private IPuzzleHoverTarget _hoveredRetrieveTarget;
 
         private void Awake()
         {
@@ -128,6 +129,7 @@ namespace UI
                     InteractionUI.Instance?.SetHint(false);
                     InteractionUI.Instance?.SetCrosshair(CrosshairMode.Default);
                     EndHover();
+                    EndRetrieveHover();
                 }
                 return;
             }
@@ -205,8 +207,41 @@ namespace UI
             _hoveredDropTarget = null;
         }
 
+        /// <summary>
+        /// Clears the retrievable-slot hover state: removes the highlight on the
+        /// previously hovered slot and restores the default crosshair.
+        /// </summary>
+        private void EndRetrieveHover()
+        {
+            if (_hoveredRetrieveTarget != null)
+                _hoveredRetrieveTarget.SetHover(false);
+            _hoveredRetrieveTarget = null;
+        }
+
         private void HandleStandardInteraction(Ray ray, LayerMask mask)
         {
+            // Retrievable puzzle slots (coins in holes/eyes) use a long raycast —
+            // puzzle close-up cameras can sit farther than _interactDistance.
+            if (Physics.Raycast(ray, out RaycastHit slotHit, RetrieveHoverDistance, mask))
+            {
+                var retrieveTarget = slotHit.collider.GetComponentInParent<IPuzzleHoverTarget>();
+                if (retrieveTarget != null && retrieveTarget.CanRetrieve)
+                {
+                    if (_hoveredRetrieveTarget != retrieveTarget)
+                    {
+                        EndRetrieveHover();
+                        _hoveredRetrieveTarget = retrieveTarget;
+                        retrieveTarget.SetHover(true);
+                    }
+
+                    InteractionUI.Instance?.SetHint(false);
+                    InteractionUI.Instance?.SetCrosshair(retrieveTarget.HoverCrosshair);
+                    return;
+                }
+            }
+
+            EndRetrieveHover();
+
             if (Physics.Raycast(ray, out RaycastHit hit, _interactDistance, mask))
             {
                 IInteractable interactable = hit.collider.GetComponent<IInteractable>();
@@ -235,6 +270,15 @@ namespace UI
             InteractionUI.Instance?.SetHint(false);
         }
 
+        /// <summary>Raycast range for retrievable puzzle slots (puzzle cameras are close-ups).</summary>
+        private const float RetrieveHoverDistance = 50f;
+
+        /// <summary>
+        /// Called by FinalDoorPuzzleController when the puzzle mode exits, so a
+        /// hovered slot's highlight never survives leaving the puzzle view.
+        /// </summary>
+        public void ClearRetrieveHover() => EndRetrieveHover();
+
         // ── Public API ─────────────────────────────────────────────────────────
 
         /// <summary>
@@ -249,6 +293,7 @@ namespace UI
             if (!isDragging)
             {
                 EndHover();
+                EndRetrieveHover();
                 InteractionUI.Instance?.HideDragHint();
             }
         }

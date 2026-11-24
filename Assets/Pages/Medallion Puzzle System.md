@@ -1,4 +1,4 @@
-<!-- version: 1 -->
+<!-- version: 2 -->
 
 Загадка с китайской шкатулкой: игрок подбирает 5 медальонов стихий, открывает шкатулку и раскладывает монеты по лункам в правильном порядке. Состояние полностью сохраняется через [@ id="/Pages/Private/Save System.md" label="Save System"].
 
@@ -251,6 +251,8 @@ public bool HandleDrop(ItemData item, Vector2 screenPosition, out ItemData repla
 
 
 **Как работает подсветка:** при `Fill` / `FillImmediate` инстанцируется коин, кешируется его `Renderer`, на нём включается `_EMISSION` (per-instance материал). `Highlight()` меняет `_EmissionColor` через `MaterialPropertyBlock` без аллокаций. При `Retrieve()` подсветка сбрасывается, ссылка на рендерер обнуляется.
+
+**`IPuzzleHoverTarget` (v2):** `MedallionHole` реализует интерфейс ховер-слота (`CanRetrieve` = `IsFilled`, `HoverCrosshair` = `Hand`, `SetHover(on)` → `Highlight(on)`). `PuzzleCursor` в puzzle mode показывает курсор-руку и включает подсветку при наведении на занятую лунку; подсветка снимается при уходе курсора / выходе из паззла (`PuzzleCursor.ClearRetrieveHover`). Подробно — см. страницу «Final Door System», раздел «Ховер-слоты».
 
 ---
 

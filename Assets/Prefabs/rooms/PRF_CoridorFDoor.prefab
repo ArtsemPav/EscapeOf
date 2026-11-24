@@ -5701,6 +5701,7 @@ MonoBehaviour:
   _jawOpenVolume: 1
   _pourVolume: 1
   _colbaSmashVolume: 1
+  _eyeHighlightEmission: {r: 0.55, g: 0.42, b: 0.08, a: 1}
 --- !u!1 &1029075281347252487
 GameObject:
   m_ObjectHideFlags: 0
@@ -123143,12 +123144,32 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3977869267442766616, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
       insertIndex: -1
       addedObject: {fileID: 108213582449884221}
+    - targetCorrespondingSourceObject: {fileID: 8570978433120906201, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 611223858674348932}
+    - targetCorrespondingSourceObject: {fileID: 3713008619063208473, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5928770363550916309}
   m_SourcePrefab: {fileID: 100100000, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
 --- !u!1 &960667719248923699 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 8570978433120906201, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
   m_PrefabInstance: {fileID: 8910021437355517930}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &611223858674348932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 960667719248923699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103442cf22e44bd458dd49be7d0892ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScullEyeHoverTarget
+  _phase: {fileID: 0}
+  _eyeIndex: 0
 --- !u!4 &5177216402307558984 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4359462077319793058, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
@@ -123159,6 +123180,20 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 3713008619063208473, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}
   m_PrefabInstance: {fileID: 8910021437355517930}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &5928770363550916309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5197577146964970995}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 103442cf22e44bd458dd49be7d0892ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ScullEyeHoverTarget
+  _phase: {fileID: 0}
+  _eyeIndex: 1
 --- !u!1 &5517747714222093554 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3977869267442766616, guid: 9dedae1049b0c0f4285d26cd003215ed, type: 3}

@@ -20,7 +20,7 @@ using UnityEngine.Rendering;
 /// hole's final position. <see cref="HideGhost"/> removes it. The preview is replaced by
 /// the real drop animation when <see cref="Fill"/> is called.</para>
 /// </summary>
-public class MedallionHole : MonoBehaviour
+public class MedallionHole : MonoBehaviour, IPuzzleHoverTarget
 {
     // URP/Lit shader property IDs for runtime transparency.
     private static readonly int SurfacePropId       = Shader.PropertyToID("_Surface");
@@ -193,6 +193,17 @@ public class MedallionHole : MonoBehaviour
         OnRetrieved?.Invoke();
         return item;
     }
+
+    // ── IPuzzleHoverTarget ─────────────────────────────────────────────────────
+
+    /// <summary>True when a coin sits in this hole and can be retrieved.</summary>
+    public bool CanRetrieve => IsFilled;
+
+    /// <summary>Crosshair shown by PuzzleCursor when hovering this hole.</summary>
+    public CrosshairMode HoverCrosshair => CrosshairMode.Hand;
+
+    /// <summary>Turns the hover highlight on or off (called by PuzzleCursor).</summary>
+    public void SetHover(bool on) => Highlight(on);
 
     /// <summary>
     /// Applies or removes a hover highlight on the placed coin using emission.

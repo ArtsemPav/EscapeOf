@@ -1,4 +1,4 @@
-<!-- version: 4 -->
+<!-- version: 5 -->
 
 ## Обзор
 
@@ -208,6 +208,20 @@ Activate()  ← вызывается из FinalDoorPuzzleInteraction после 
 ```
 
 Ghost-превью монет и колбы делаются инстансом префаба с прозрачным URP-материалом (`_Surface`, alpha 0.4). Извлечение монеты из глазницы — по ЛКМ, с проверкой места в инвентаре.
+
+**Ховер монет (v5):** глазницы получили компонент `ScullEyeHoverTarget` (eye 0/1 на `coinLeft`/`CoinRight`) — при наведении на вставленную монету курсор-рука и emission-подсветка через `ScullPuzzlePhase.SetEyeHover` (`_eyeHighlightEmission`, `_EMISSION` включается на материале монеты в `ShowEyeVisual`). Подсветка снимается при уходе курсора и при выходе из паззла (`ExitPuzzleMode`/`ExitPuzzleModeInstant` вызывают `PuzzleCursor.ClearRetrieveHover()`).
+
+### Ховер-слоты (`IPuzzleHoverTarget`, v5)
+
+Файлы: `Assets/Scripts/Puzzle/Shared/IPuzzleHoverTarget.cs`, `Assets/Scripts/UI/PuzzleCursor.cs`, `Assets/Scripts/Puzzle/Medallion/MedallionHole.cs`, `Assets/Scripts/Puzzle/FinalDoor/ScullEyeHoverTarget.cs`.
+
+Единый механизм для всех слотов «вставил — забрал»: `PuzzleCursor` в puzzle mode отдельным рейкастом по слою `PuzzleInteractable` на 50 м (`RetrieveHoverDistance` — close-up камеры паззла дальше стандартных 2.5 м курсора) ищет под курсором `IPuzzleHoverTarget`. Если `CanRetrieve` — показывает курсор-руку (`HoverCrosshair`) и вызывает `SetHover(true)` (подсветка). Уход курсора, вход в UI, конец драга или выход из паззла — `SetHover(false)` + прицел Default.
+
+- Ховер-слот проверяется **до** обычных `IInteractable` — иначе `ScullPuzzlePhase` через `GetComponentInParent` перехватывал бы наведение на глаз с подсказкой «Осмотреть череп».
+- Реализации: `MedallionHole` (фаза 1 + шкатулка медальонов, `CanRetrieve` = `IsFilled`) и `ScullEyeHoverTarget` → `ScullPuzzlePhase` (фаза 2).
+- Клик-забирание остаётся на стороне `FinalDoorPuzzleUI.TryRetrieveFromHole` / `ScullPuzzlePhase.TryRetrieveFromEye`.
+
+**Фикс залипшей подсветки (v5):** раньше `FinalDoorPuzzleUI.Update` переставал работать при `!IsActive`, а `ClearHover` вызывался только в `OnDisable` (компонент при выходе не выключается) — emission оставался на монете навсегда. Теперь: `FinalDoorPuzzleUI` подписан на `controller.OnExited` → `ClearHover` + `ClearGhost`; контроллер при выходе дергает `PuzzleCursor.ClearRetrieveHover()`.
 
 ### `EndGameSequence`
 

@@ -96,7 +96,27 @@ public class FinalDoorPuzzleUI : MonoBehaviour, IPuzzleDropHandler
             TryRetrieveFromHole(mousePos);
     }
 
+    private void OnEnable()
+    {
+        if (_controller != null)
+            _controller.OnExited += HandleControllerExited;
+    }
+
     private void OnDisable()
+    {
+        if (_controller != null)
+            _controller.OnExited -= HandleControllerExited;
+
+        ClearHover();
+        ClearGhost();
+    }
+
+    /// <summary>
+    /// When puzzle mode exits, the Update loop stops running (IsActive == false)
+    /// but this component stays enabled — without an explicit reset the hovered
+    /// hole's highlight would stay stuck on the coin after leaving the view.
+    /// </summary>
+    private void HandleControllerExited()
     {
         ClearHover();
         ClearGhost();

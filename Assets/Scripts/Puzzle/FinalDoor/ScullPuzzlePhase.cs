@@ -815,6 +815,11 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
             {
                 rend.renderingLayerMask = _coinRenderingLayerMask;
                 rend.enabled = true;
+
+                // Enable emission on a per-instance material so SetEyeHover can
+                // drive _EmissionColor via a property block (same approach as MedallionHole).
+                if (rend.enabled)
+                    rend.material.EnableKeyword("_EMISSION");
             }
         }
     }
@@ -839,6 +844,48 @@ public class ScullPuzzlePhase : MonoBehaviour, IInteractable, IPuzzleDropHandler
     {
         if (_eye0Collider != null) _eye0Collider.enabled = false;
         if (_eye1Collider != null) _eye1Collider.enabled = false;
+    }
+
+    // ── Eye Hover (IPuzzleHoverTarget via ScullEyeHoverTarget) ────────────────────
+
+    [Tooltip("HDR emission colour applied to a placed coin when the cursor hovers over it.")]
+    [ColorUsage(false, true)]
+    [SerializeField] private Color _eyeHighlightEmission = new Color(0.55f, 0.42f, 0.08f);
+
+    private Renderer[] _eyeRenderers = new Renderer[2];
+    private MaterialPropertyBlock _eyePropBlock;
+    private bool[] _eyeHovered = new bool[2];
+
+    /// <summary>True when a coin is currently placed in the given eye (retrievable).</summary>
+    public bool IsCoinInEye(int eyeIndex)
+        => eyeIndex == 0 || eyeIndex == 1 ? _eyeItems[eyeIndex] != null : false;
+
+    /// <summary>
+    /// Applies or removes the hover highlight on the coin placed in the given eye.
+    /// Called by ScullEyeHoverTarget through IPuzzleHoverTarget.
+    /// </summary>
+    public void SetEyeHover(int eyeIndex, bool on)
+    {
+        if (eyeIndex != 0 && eyeIndex != 1) return;
+        _eyeHovered[eyeIndex] = on;
+        ApplyEyeEmission(eyeIndex);
+    }
+
+    private void ApplyEyeEmission(int eyeIndex)
+    {
+        var obj = eyeIndex == 0 ? _eye0Object : _eye1Object;
+        if (obj == null) return;
+
+        if (_eyeRenderers[eyeIndex] == null)
+            _eyeRenderers[eyeIndex] = obj.GetComponentInChildren<Renderer>(true);
+        var rend = _eyeRenderers[eyeIndex];
+        if (rend == null) return;
+
+        _eyePropBlock ??= new MaterialPropertyBlock();
+        rend.GetPropertyBlock(_eyePropBlock);
+        _eyePropBlock.SetColor("_EmissionColor",
+            _eyeHovered[eyeIndex] && _eyeItems[eyeIndex] != null ? _eyeHighlightEmission : Color.black);
+        rend.SetPropertyBlock(_eyePropBlock);
     }
 
     private void EnableScullDropCollider()

@@ -197,7 +197,10 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         UIManager.Instance?.PopModalState();
         SetCursorState(false);
         if (UI.PuzzleCursor.Instance != null)
+        {
+            UI.PuzzleCursor.Instance.ClearRetrieveHover();
             UI.PuzzleCursor.Instance.Hide();
+        }
 
         RestoreFlashlight();
 
@@ -293,7 +296,10 @@ public class FinalDoorPuzzleController : MonoBehaviour, ISaveable, IInteractable
         UIManager.Instance?.PopModalState();
         SetCursorState(false);
         if (UI.PuzzleCursor.Instance != null)
+        {
+            UI.PuzzleCursor.Instance.ClearRetrieveHover();
             UI.PuzzleCursor.Instance.Hide();
+        }
 
         RestoreFlashlight();
 
