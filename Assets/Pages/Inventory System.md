@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 3 -->
 
 Инвентарь — это три независимых слоя: **данные** (ScriptableObjects), **логика** (`InventorySystem`) и **UI** (`InventoryUI` + слоты). Слои общаются через событие `OnInventoryChanged` — UI не знает о логике, логика не знает о UI.
 
@@ -155,6 +155,7 @@ UI подписывается в `Start` и отписывается в `OnDisab
 | `bool ClearSlot(slotIndex, bool reserve = false)` | Очищает слот и компактирует (`reserve` — legacy-параметр, механизм резерваций удалён)                  |
 | `bool PlaceItemAt(slotIndex, item)`               | Кладёт в указанный пустой слот; при занятом — фолбэк в `AddItem`                                       |
 | `bool ReplaceItem(from, to)`                      | Заменяет предмет в первом найденном слоте, позиция сохраняется (компакции нет)                         |
+| `bool ReplaceItemAt(slotIndex, item)`             | Заменяет предмет строго в указанном непустом слоте (без скана по ссылке — безопасно при дублях ItemData) |
 | `void Compact()`                                  | Компакция всех слотов + `OnInventoryChanged` (после отложенного крафта)                                 |
 | `void ReleaseAllReservations()`                   | No-op для обратной совместимости (резервации удалён)                                                   |
 | `void ClearAll()`                                 | Очищает все слоты и руны (сброс сохранения)                                                            |
@@ -611,7 +612,8 @@ public interface IPuzzleDropHandler
   └─ OnEndDrag (PuzzleInventoryBar)
        ├─ Панель инспекции открыта → дроп блокируется, визуал восстанавливается
        ├─ 1. HandleDrop(item, pos, out replacement) — приоритет у устройства
-       │      ├─ true + replacement != null → InventorySystem.ReplaceItem(dragged, replacement)
+       │      ├─ true + replacement != null → InventorySystem.ReplaceItemAt(sourceIndex, replacement)
+       │      │    (замена строго в слоте-источнике, не скан по ссылке — см. ReplaceItemAt)
        │      ├─ true + replacement == null → InventorySystem.ClearSlot(sourceIndex) + компакция
        │      └─ false → шаг 2
        ├─ 2. Был дроп на слот бара → ExecutePendingSlotDrop()

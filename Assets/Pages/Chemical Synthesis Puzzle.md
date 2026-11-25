@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 3 -->
 
 ## Что делает загадка
 
@@ -140,7 +140,7 @@ UnknownCleanColba  +  UnknownStabilazerColba  (ингредиент из мир�
 AnalyzerController.AnalyzeCoroutine:
   1. OnSuccess?.Invoke()          → _isSolved = true, _pendingInventoryCleanup = true, играет звук
   2. OnFlaskReturned?.Invoke()    → колба ставится в очередь _pendingResults
-       → после инспекции (клик по панели):
+       → после подтверждения предмета в инспекции (LMB-пикап или Esc; onPickup-колбэк):
             ├─ ClearPuzzleItemsFromInventory() — удаляет все предметы из _puzzleItems
             ├─ _pendingResults.Clear()
             ├─ InventorySystem.Compact()
@@ -200,19 +200,21 @@ InventorySystem.AddItem(result)
 
 ## Hover Preview
 
+Подсветка — всегда при наведении на устройство; ghost-превью — только при активном drag принятого предмета и свободном устройстве (полные условия в `UpdateDeviceHover` → `Update*HoverState` в `ChemicalSynthesisController`).
 
-| Кадр                    | Метод                       | Условие показа                        |
-| ----------------------- | --------------------------- | ------------------------------------- |
-| `UpdateCentrifugeHover` | `centrifugaWheel` + дети    | `Accepts(item) && !IsFull && !IsBusy` |
-| `UpdateMixerHover`      | `_mixerSlot` коллайдер      | `Accepts(item) && !IsFull && !IsBusy` |
-| `UpdateBurnerHover`     | `BurnerController` в parent | `CanDrop(item) && !IsBusy`            |
-| `UpdateAnalyzerHover`   | `_analyzerSlot` коллайдер   | `CanDrop(item) && !_isSolved`         |
-| Trash                   | drop-zone / TrashController | `IsPuzzleItem(item)`                  |
+
+| Кадр                       | Метод                       | Условие показа                                            |
+| -------------------------- | --------------------------- | --------------------------------------------------------- |
+| `UpdateCentrifugeHover`    | `centrifugaWheel` + дети    | drag + `Accepts(item)` + свободный слот + `!IsBusy`       |
+| `UpdateMixerHover`         | `_mixerSlot` коллайдер      | только подсветка — ghost-превью у миксера нет             |
+| `UpdateBurnerHover`        | `BurnerController` в parent | drag + `CanDrop(item)` + `!IsBusy`                        |
+| `UpdateAnalyzerHover`      | `_analyzerSlot` коллайдер   | drag + `!_isSolved` + `CanDrop(item)` + `!IsBusy && !HasFlask` |
+| Trash                      | drop-zone / TrashController | `IsPuzzleItem(item)` — только тултип                      |
 
 
 Ghost-превью строится из `item.inspectionPrefab` с опциональным `_ghostMaterial`. Коллайдеры на ghost отключены. Центрифуга и анализатор дополнительно анимируют ghost bob-движением.
 
-`UpdateClickRetrieve` — ЛКМ без drag → raycast → возвращает колбу из центрифуги или анализатора пока устройство idle.
+`UpdateClickRetrieve` — ЛКМ без drag → raycast → возвращает колбу из центрифуги или анализатора пока устройство idle (миксер — 1:1 своп пустая↔колба; забор блокирован при открытой инспекции или непустой очереди результатов).
 
 ---
 
