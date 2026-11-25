@@ -6,16 +6,11 @@ using UnityEngine;
 /// <see cref="DocumentData.pickUpToJournal"/>:
 ///  - normal: opens the DocumentUI panel; the object stays in the scene;
 ///  - pickup: the document is first read through DocumentUI; when the reading panel
-///    closes, it is added to the journal (with a popup notification) and the world
+///    closes, it is added to the journal (JournalIndicatorUI lights up) and the world
 ///    object is destroyed — afterwards it is readable only from the journal (J).
 /// </summary>
 public class DocumentInteraction : MonoBehaviour, IInteractable
 {
-    private const float JournalPopupCooldown = 600f; // seconds — suppress the hint for 10 minutes
-
-    // Time of the last journal popup (unscaled), shared across all document instances.
-    private static float _lastJournalPopupTime = float.NegativeInfinity;
-
     [SerializeField, Tooltip("Иконка прицела при наведении на документ. Выбирается из списка режимов — спрайты задаются в InteractionUI (Crosshair Sprites).")]
     private CrosshairMode _crosshairMode = CrosshairMode.Read;
 
@@ -90,24 +85,14 @@ public class DocumentInteraction : MonoBehaviour, IInteractable
 
     /// <summary>
     /// Called when any document reading panel closes. For this component's pickup
-    /// document: registers the journal entry, shows the popup and removes the world object.
+    /// document: registers the journal entry (the indicator reacts via OnEntryAdded)
+    /// and removes the world object.
     /// </summary>
     private void HandleDocumentClosed(DocumentData data)
     {
         if (data != _documentData || !_documentData.pickUpToJournal) return;
 
         JournalSystem.Instance?.AddEntry(_documentData);
-
-        string message = _documentData.isNote
-            ? Localization.Get(LocalizationKeys.JournalNoteAdded)
-            : Localization.Get(LocalizationKeys.JournalDocumentAdded);
-
-        // Don't spam the hint: suppress if a journal popup was shown recently.
-        if (Time.unscaledTime - _lastJournalPopupTime >= JournalPopupCooldown)
-        {
-            PopupMessageSystem.Instance?.Show(message, PopupMessageType.Hint);
-            _lastJournalPopupTime = Time.unscaledTime;
-        }
 
         Destroy(gameObject);
     }
