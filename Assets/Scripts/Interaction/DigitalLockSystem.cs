@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
@@ -16,6 +17,9 @@ public class DigitalLockSystem : MonoBehaviour
 
     [Tooltip("Number of digits for the randomly generated code.")]
     [SerializeField] private int _randomCodeLength = 4;
+
+    [Tooltip("Stable ID used to persist the random code across sessions. Must be unique per lock. Falls back to the GameObject name when empty.")]
+    [SerializeField] private string _codeId;
 
     [Tooltip("Maximum number of digits that can be entered.")]
     [SerializeField] private int _maxCodeLength = 8;
@@ -66,8 +70,29 @@ public class DigitalLockSystem : MonoBehaviour
         _activeCode = _correctCode;
         if (_useRandomCode)
         {
-            GenerateRandomCode();
+            _activeCode = LoadOrGenerateRandomCode();
         }
+    }
+
+    /// <summary>
+    /// Returns the code stored in the cross-session registry, generating and
+    /// storing a new one only on the very first run (or after a New Game reset).
+    /// Shares the registry with CodeLock — SaveManager.StartNewGame wipes both.
+    /// </summary>
+    private string LoadOrGenerateRandomCode()
+    {
+        string id = string.IsNullOrEmpty(_codeId) ? gameObject.name : _codeId;
+        Dictionary<string, string> registry = CodeLock.LoadCodesRegistry();
+        int length = Mathf.Clamp(_randomCodeLength, MIN_RANDOM_CODE_LENGTH, MAX_RANDOM_CODE_LENGTH);
+
+        if (registry.TryGetValue(id, out string stored) &&
+            !string.IsNullOrEmpty(stored) && stored.Length == length)
+            return stored;
+
+        GenerateRandomCode();
+        registry[id] = _activeCode;
+        CodeLock.SaveCodesRegistry(registry);
+        return _activeCode;
     }
 
     private void Start()
