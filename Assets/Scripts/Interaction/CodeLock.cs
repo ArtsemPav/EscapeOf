@@ -133,7 +133,7 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
         return code;
     }
 
-    private static System.Collections.Generic.Dictionary<string, string> LoadCodesRegistry()
+    public static System.Collections.Generic.Dictionary<string, string> LoadCodesRegistry()
     {
         var registry = new System.Collections.Generic.Dictionary<string, string>();
         string json = PlayerPrefs.GetString(CodesRegistryKey, string.Empty);
@@ -154,7 +154,7 @@ public class CodeLock : MonoBehaviour, IInteractable, ISaveable
         return registry;
     }
 
-    private static void SaveCodesRegistry(System.Collections.Generic.Dictionary<string, string> registry)
+    public static void SaveCodesRegistry(System.Collections.Generic.Dictionary<string, string> registry)
     {
         var entries = new CodesRegistry
         {
