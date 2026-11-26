@@ -152,6 +152,7 @@
 | `world.uv.room3` | Каждый новый виток растет по закону чисел | UVText (1), PRF_Room3 (LocalizedTMP) |
 | `world.uv.room5` | Я искала путь среди развилок, забыв о корнях | UVText (1), PRF_Room5 (LocalizedTMP) |
 | `world.uv.room6` | Прежняя форма исчезает. Жизнь принимает новую | UVText (1), PRF_Room6 (LocalizedTMP) |
+| `world.uv.room4` | Лишь трое в этой комнате говорят правду. | UVText (1), PRF_Room4 (LocalizedTMP) |
 | `world.notes.clock` | Нужно найти время... Установи правильное время... | Content, Paperclock.prefab (LocalizedTMP) |
 | `world.chem.centrifuge_ready` / `world.chem.awaiting_sample` | Готова / Ожидание образца | Экраны центрифуги и анализатора (LocalizedTMP) |
 
