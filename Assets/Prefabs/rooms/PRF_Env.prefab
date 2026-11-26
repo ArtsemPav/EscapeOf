@@ -773,7 +773,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8437657390395463328
 Transform:
   m_ObjectHideFlags: 0
@@ -783,7 +783,7 @@ Transform:
   m_GameObject: {fileID: 5188678135218186462}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.599, y: 6.15665, z: 0.244}
+  m_LocalPosition: {x: -1.599, y: 6.15665, z: 0.329}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -829,12 +829,12 @@ MonoBehaviour:
   _playerTag: Player
   _activationDelay: 0
   _puzzleToWatch: {fileID: 0}
-  _requiredPowerState: 1
+  _requiredPowerState: 0
   _requiredZoneId: 
   _requiredZoneState: 1
-  _effectType: 2
+  _effectType: 1
   _target: {fileID: 1618530786835574423}
-  _disappearDelay: 1.2
+  _disappearDelay: 1
   _playerCamera: {fileID: 0}
   _lookAtThreshold: 0.7
   _lookAwayThreshold: 0
@@ -864,9 +864,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WindowGazeTrigger
   _playerTag: Player
-  _eventId: window7_figure
+  _eventId: window3_figure
   _lookTarget: {fileID: 6893893836048302642}
-  _lookAtThreshold: 0.7
+  _lookAtThreshold: 0.6
   _playerCamera: {fileID: 0}
   _onFired:
     m_PersistentCalls:
@@ -1335,12 +1335,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HorrorEvent
   _eventId: window7_figure
-  _triggerType: 3
+  _triggerType: 2
   _requiredItem: {fileID: 0}
   _playerTag: Player
   _activationDelay: 0.6
   _puzzleToWatch: {fileID: 0}
-  _requiredPowerState: 1
+  _requiredPowerState: 0
   _requiredZoneId: 
   _requiredZoneState: 1
   _effectType: 1
@@ -1455,7 +1455,7 @@ MonoBehaviour:
   _playerTag: Player
   _activationDelay: 0
   _puzzleToWatch: {fileID: 0}
-  _requiredPowerState: 1
+  _requiredPowerState: 0
   _requiredZoneId: 
   _requiredZoneState: 1
   _effectType: 0
@@ -1475,9 +1475,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 5188678135218186462}
-        m_TargetAssemblyTypeName: 
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
         m_MethodName: SetActive
-        m_Mode: 4
+        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -1485,7 +1485,7 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 1
-        m_CallState: 2
+        m_CallState: 1
   _onDeactivated:
     m_PersistentCalls:
       m_Calls: []
@@ -2081,6 +2081,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Room 3
       objectReference: {fileID: 0}
+    - target: {fileID: 471153441906426560, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4422893320943167139, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7275976703043431691, guid: bfecec84331b71645b55792d35a905ba, type: 3}
       propertyPath: m_IsActive
       value: 1
@@ -2124,6 +2132,50 @@ PrefabInstance:
     - target: {fileID: 7604397819750959709, guid: bfecec84331b71645b55792d35a905ba, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.379
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.119
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.05099999
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.13490757
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.9908582
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -180
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: -15.507
+      objectReference: {fileID: 0}
+    - target: {fileID: 7878205008351599051, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8391110235162088977, guid: bfecec84331b71645b55792d35a905ba, type: 3}
       propertyPath: '_triggerZones.Array.data[0].VisibleRooms.Array.data[0]'
