@@ -25,7 +25,19 @@ using UnityEngine;
 [DefaultExecutionOrder(-5)]
 public class LightingSystem : MonoBehaviour, ISaveable
 {
-    public static LightingSystem Instance { get; private set; }
+    // Lazy fallback: under Enter Play Mode without domain reload (or unusual load
+    // orders) the static field can be stale/null while the scene component is alive.
+    public static LightingSystem Instance
+    {
+        get
+        {
+            if (_instance == null)
+                _instance = FindFirstObjectByType<LightingSystem>();
+            return _instance;
+        }
+        private set => _instance = value;
+    }
+    private static LightingSystem _instance;
 
     [Header("Fade")]
     [Tooltip("How long lights take to turn on/off in seconds. 0 = instant.")]
@@ -433,6 +445,81 @@ public class LightingSystem : MonoBehaviour, ISaveable
             if (zone == null) continue;
             zone.SetIntensityMultiplier(multiplier);
             zone.SetActive(enabled);
+        }
+    }
+
+    // ── Shadow budget ─────────────────────────────────────────────────────────
+
+    [Header("Shadow Budget")]
+    [Tooltip("How many of the currently visible zones closest to the player may cast shadows. " +
+             "0 = every visible zone casts (more shadows, more draw calls).")]
+    [SerializeField, Min(0)] private int _maxShadowZones = 2;
+
+    [Tooltip("Extra zones that always cast shadows regardless of the budget, by ZoneId. " +
+             "E.g. 'Corridor' if shadows in the corridor matter visually.")]
+    [SerializeField] private string[] _alwaysShadowZones;
+
+    // Zones currently allowed to cast shadows — used to detect changes.
+    private readonly HashSet<string> _shadowZones = new();
+
+    // False until the first shadow synchronization has applied the tracked set
+    // to the actual lights (lamps may carry authored shadows from the scene
+    // that the empty initial set knows nothing about).
+    private bool _shadowZonesInitialized = false;
+
+    /// <summary>
+    /// Keeps shadow casting on the N visible zones closest to the player (plus
+    /// always-shadow zones); all other lamps keep their light but lose their
+    /// shadows. Each shadowed light costs hundreds of shadow-atlas draw calls,
+    /// so on connected floors (wide trigger lists) the budget is the main
+    /// draw-call lever.
+    /// </summary>
+    public void UpdateShadowZones(ISet<string> visibleZones, Vector3 playerPosition)
+    {
+        var allowed = new HashSet<string>(_alwaysShadowZones ?? System.Array.Empty<string>());
+
+        // Rank visible zones by proximity of their nearest lamp to the player.
+        var ranked = new List<(string zoneId, float sqrDistance)>();
+        if (visibleZones != null)
+        {
+            foreach (var zoneId in visibleZones)
+            {
+                if (string.IsNullOrEmpty(zoneId)) continue;
+                if (!_zones.TryGetValue(zoneId, out var lights) || lights == null || lights.Count == 0) continue;
+
+                float best = float.MaxValue;
+                foreach (var zone in lights)
+                    if (zone is Lamp lamp)
+                    {
+                        float d = lamp.SqrDistanceTo(playerPosition);
+                        if (d < best) best = d;
+                    }
+
+                if (best < float.MaxValue)
+                    ranked.Add((zoneId, best));
+            }
+        }
+
+        ranked.Sort((a, b) => a.sqrDistance.CompareTo(b.sqrDistance));
+        for (int i = 0; i < ranked.Count && allowed.Count < _maxShadowZones; i++)
+            allowed.Add(ranked[i].zoneId);
+
+        // First run is always a full pass: the tracked set starts empty while
+        // scene lamps may already cast shadows.
+        bool fullPass = !_shadowZonesInitialized;
+        _shadowZonesInitialized = true;
+
+        foreach (var zoneId in _zones.Keys)
+        {
+            bool shouldShadow = allowed.Contains(zoneId);
+            bool wasShadow = _shadowZones.Contains(zoneId);
+            if (!fullPass && shouldShadow == wasShadow) continue;
+
+            if (shouldShadow) _shadowZones.Add(zoneId); else _shadowZones.Remove(zoneId);
+
+            if (_zones.TryGetValue(zoneId, out var lights))
+                foreach (var zone in lights)
+                    zone?.SetShadowsActive(shouldShadow);
         }
     }
 }

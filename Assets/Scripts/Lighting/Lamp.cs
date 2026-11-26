@@ -56,6 +56,10 @@ public class Lamp : MonoBehaviour, ILampZone
     [Header("Flicker")]
     [SerializeField] private FlickerMode _flickerMode = FlickerMode.None;
 
+    [Tooltip("How long shadows fade in/out when the shadow budget toggles them (seconds). " +
+             "0 = instant. Fade masks the shadow pop-in when entering rooms.")]
+    [SerializeField, Min(0f)] private float _shadowFadeDuration = 0.6f;
+
     [Tooltip("Minimum intensity multiplier during a flicker dip (0 = total blackout, 0.5 = half brightness).")]
     [SerializeField] [Range(0f, 1f)] private float _flickerMinMultiplier = 0.1f;
 
@@ -114,11 +118,15 @@ public class Lamp : MonoBehaviour, ILampZone
     {
         public Light Light;
         public float OriginalIntensity;
+        public LightShadows OriginalShadows;
+        public float OriginalShadowStrength;
 
         public LightEntry(Light light)
         {
             Light = light;
             OriginalIntensity = light != null ? light.intensity : 0f;
+            OriginalShadows = light != null ? light.shadows : LightShadows.None;
+            OriginalShadowStrength = light != null ? light.shadowStrength : 1f;
         }
     }
 
@@ -137,6 +145,7 @@ public class Lamp : MonoBehaviour, ILampZone
     private LightEntry[] _entries;
     private Material[] _materials;
     private Coroutine _flickerCoroutine;
+    private Coroutine _shadowFadeCoroutine;
     private float _multiplier = 1f;
     private AudioSource _audioSource;
 
@@ -261,6 +270,102 @@ public class Lamp : MonoBehaviour, ILampZone
             if (entry.Light != null)
                 entry.Light.intensity = entry.OriginalIntensity;
         }
+    }
+
+    /// <summary>
+    /// Squared distance from the given position to this lamp (nearest controlled light).
+    /// Used by the shadow budget to rank zones by proximity to the player.
+    /// </summary>
+    public float SqrDistanceTo(Vector3 position)
+    {
+        float best = float.MaxValue;
+        foreach (var entry in _entries)
+        {
+            if (entry.Light == null) continue;
+            float d = (entry.Light.transform.position - position).sqrMagnitude;
+            if (d < best) best = d;
+        }
+        return best;
+    }
+
+    /// <summary>
+    /// Enables or disables shadow casting on all controlled lights without
+    /// touching the light itself (it stays on). The transition is smoothed via
+    /// <see cref="Light.shadowStrength"/> fade — shadows grow/die over
+    /// <see cref="_shadowFadeDuration"/> instead of popping in. Only after the
+    /// fade completes is the light removed from / added to the shadow atlas
+    /// (light.shadows), so the atlas cost follows the visual state.
+    /// </summary>
+    public void SetShadowsActive(bool on)
+    {
+        if (_shadowFadeCoroutine != null)
+        {
+            StopCoroutine(_shadowFadeCoroutine);
+            _shadowFadeCoroutine = null;
+        }
+
+        // Snap without fade when nothing to transition (e.g. lamp just spawned).
+        bool anyShadowLight = false;
+        foreach (var entry in _entries)
+        {
+            if (entry.Light == null || entry.OriginalShadows == LightShadows.None) continue;
+            anyShadowLight = true;
+            break;
+        }
+
+        if (!anyShadowLight) return;
+
+        _shadowFadeCoroutine = StartCoroutine(FadeShadows(on));
+    }
+
+    private IEnumerator FadeShadows(bool on)
+    {
+        // Enable atlas participation immediately when fading in (strength starts
+        // at 0, so shadows are invisible while the map is drawn); disable only
+        // after the fade-out completes.
+        foreach (var entry in _entries)
+        {
+            if (entry.Light == null || entry.OriginalShadows == LightShadows.None) continue;
+            if (on)
+            {
+                entry.Light.shadows = entry.OriginalShadows;
+                entry.Light.shadowStrength = 0f;
+            }
+        }
+
+        if (_shadowFadeDuration <= 0f)
+        {
+            foreach (var entry in _entries)
+            {
+                if (entry.Light == null || entry.OriginalShadows == LightShadows.None) continue;
+                entry.Light.shadowStrength = on ? entry.OriginalShadowStrength : 0f;
+                if (!on) entry.Light.shadows = LightShadows.None;
+            }
+            _shadowFadeCoroutine = null;
+            yield break;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < _shadowFadeDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / _shadowFadeDuration);
+            float strength = on ? t : 1f - t;
+            foreach (var entry in _entries)
+            {
+                if (entry.Light == null || entry.OriginalShadows == LightShadows.None) continue;
+                entry.Light.shadowStrength = strength * entry.OriginalShadowStrength;
+            }
+            yield return null;
+        }
+
+        foreach (var entry in _entries)
+        {
+            if (entry.Light == null || entry.OriginalShadows == LightShadows.None) continue;
+            entry.Light.shadowStrength = on ? entry.OriginalShadowStrength : 0f;
+            if (!on) entry.Light.shadows = LightShadows.None;
+        }
+        _shadowFadeCoroutine = null;
     }
 
     // ── Audio ─────────────────────────────────────────────────────────────────

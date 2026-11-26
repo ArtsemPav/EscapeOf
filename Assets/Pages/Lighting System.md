@@ -1,4 +1,4 @@
-<!-- version: 5 -->
+<!-- version: 6 -->
 
 ## Overview
 
@@ -126,6 +126,9 @@ LightingSystem.Instance.InitializeZoneSwitch("Room1", true);
 LightingSystem.Instance.SetZoneRenderSuppressed("Corridor", true);
 bool suppressed = LightingSystem.Instance.IsZoneRenderSuppressed("Corridor");
 
+// Runtime shadow budget (used by RoomVisibilityManager, not persisted to saves)
+LightingSystem.Instance.UpdateShadowZones(ISet<string> visibleZones, Vector3 playerPosition);
+
 // Power consumer registration
 LightingSystem.Instance.RegisterConsumer(myConsumer);
 LightingSystem.Instance.UnregisterConsumer(myConsumer);
@@ -172,6 +175,7 @@ FillLight (Light — Lamp)        # Emission Mode = None, light-only
 | Field                         | Description                                                                                                                  |
 | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `Zone Id`                     | Zone name, e.g. `"Corridor"`, `"Room1"`. Case-sensitive.                                                                     |
+| `Shadow Fade Duration`        | Seconds for shadows to fade in/out when the runtime budget toggles them. 0 = instant.                                        |
 | `Extra Lights`                | Additional lights OUTSIDE this hierarchy that the lamp also controls. Child lights are always found automatically — list only foreign ones.  |
 | `Flicker Mode`                | `None` / `Constant` / `Occasional`                                                                                           |
 | `Flicker Min Multiplier`      | How dark flicker dips get (0 = blackout, 0.5 = half brightness)                                                              |
@@ -194,12 +198,17 @@ With `Emission Mode = SyncWithLight` each renderer gets an **instantiated materi
 ```csharp
 lamp.SetActive(bool on);                    // on/off + flicker control (preferred over Light.enabled)
 lamp.SetIntensityMultiplier(float m);       // fade support, 0..1 of OriginalIntensity
+lamp.SetShadowsActive(bool on);             // shadow casting on/off with smooth fade (shadow budget)
 lamp.StopFlicker();                         // stop flicker, restore full intensity
 
 lamp.ZoneId;                                // zone name
 lamp.IsOn;                                  // true when logically on
 lamp.OriginalIntensity;                     // max authored intensity among controlled lights
 ```
+
+**Shadow fade (runtime shadow budget support):**
+
+`SetShadowsActive` does not snap — shadows fade via `Light.shadowStrength` over the `Shadow Fade Duration` field (default 0.6 s), so the shadow pop-in when entering a room is invisible. On fade-in the light joins the shadow atlas immediately (strength 0 → invisible), on fade-out it leaves the atlas only after the fade completes, so the atlas cost follows the visual state. Lamps with authored `Shadow Type = No Shadows` are never touched.
 
 **Flicker modes:**
 
@@ -389,6 +398,29 @@ ElectricPanel component
 URP shadow atlas fills up quickly with many spotlights. Per zone, designate **1–2 key lamps** to cast shadows (`Shadow Type = Soft Shadows`). Set all remaining lamps to `Shadow Type = No Shadows`.
 
 When a zone is disabled (`light.enabled = false`), those lights exit the shadow atlas entirely, reducing GPU load automatically whenever rooms are unlit.
+
+### Runtime shadow budget (RoomVisibility → LightingSystem)
+
+Every shadow-casting light costs **hundreds of shadow-atlas draw calls** (all geometry in its frustum is re-rendered into the atlas). With ~13 shadow lamps lit across visible rooms this measured **+3200 draw calls per frame** — the single largest render cost in the scene.
+
+The shadow budget solves this at runtime:
+
+- `RoomVisibilityManager.ApplyActiveRooms` (after zone suppression) calls `LightingSystem.UpdateShadowZones(_activeZones, playerPosition)`.
+- `LightingSystem` ranks the **visible** zones by distance from the player to each zone's nearest lamp and keeps shadow casting on the top `Max Shadow Zones` (currently 3 in the scene) + any zones listed in `Always Shadow Zones`.
+- Every other lamp **keeps its light** but loses its shadows (`light.shadows = LightShadows.None`).
+
+Fields on the `LightingSystem` object (`/LightingSystem`):
+
+
+| Field                 | Default | Description                                                                                                         |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
+| `Max Shadow Zones`    | 2       | How many nearest visible zones cast shadows. 0 = budget off (all visible zones cast). 3 ≈ +30% more casters than 2. |
+| `Always Shadow Zones` | —       | ZoneIds that cast shadows regardless of the budget, e.g. `Corridor` if corridor shadows matter visually.            |
+
+
+**Measured draw calls (1st floor, 7 visible rooms):** 5914 batches with all shadows → ~3471 with budget 2. With shadows fully disabled the floor measured 2661 batches (lower bound).
+
+The budget is applied differentially — only zones whose state changed get `SetShadowsActive`. The first application is always a full pass, because scene lamps may carry authored shadows that the initially-empty tracking set knows nothing about.
 
 ---
 

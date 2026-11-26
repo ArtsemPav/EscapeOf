@@ -110,6 +110,10 @@ public class RoomVisibilityManager : MonoBehaviour
     /// </summary>
     private void SyncOccupiedTriggers()
     {
+        // The player may spawn after this manager's Awake (lazy spawn / save load) —
+        // retry the lookup instead of silently disabling room visibility forever.
+        if (_player == null)
+            _player = FindFirstObjectByType<FPSController>();
         if (_player == null || _allRooms == null || _allRooms.Length == 0) return;
 
         Vector3 position = _player.transform.position;
@@ -360,6 +364,11 @@ public class RoomVisibilityManager : MonoBehaviour
         {
             foreach (var zoneId in _allZones)
                 LightingSystem.Instance.SetZoneRenderSuppressed(zoneId, !_activeZones.Contains(zoneId));
+
+            // Shadows follow visibility AND proximity: only the N nearest visible
+            // zones cast, everything else keeps its light but loses its shadows.
+            if (_player != null)
+                LightingSystem.Instance.UpdateShadowZones(_activeZones, _player.transform.position);
         }
 
         LogState(sourceName);
@@ -371,6 +380,8 @@ public class RoomVisibilityManager : MonoBehaviour
     /// </summary>
     private RoomController FindCurrentRoom()
     {
+        if (_player == null)
+            _player = FindFirstObjectByType<FPSController>();
         if (_player == null) return null;
 
         RoomController current = null;

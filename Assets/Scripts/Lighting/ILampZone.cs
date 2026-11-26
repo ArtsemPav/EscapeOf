@@ -26,4 +26,10 @@ public interface ILampZone
 
     /// <summary>Main light intensity as authored in the scene/prefab (max across controlled lights).</summary>
     float OriginalIntensity { get; }
+
+    /// <summary>
+    /// Enables or disables shadow casting on all controlled lights (light stays on).
+    /// Used by the shadow budget: only zones near the player cast shadows.
+    /// </summary>
+    void SetShadowsActive(bool on);
 }

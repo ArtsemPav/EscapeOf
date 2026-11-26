@@ -1,4 +1,4 @@
-<!-- version: 2 -->
+<!-- version: 3 -->
 
 ## Overview
 
@@ -45,6 +45,9 @@ Related: `LightingSystem.SetZoneRenderSuppressed(zoneId, suppressed)` is what ac
 **How it works:**
 
 - `Awake` caches all `RoomController`s (`FindObjectsByType`), all `RoomTrigger`s (including inactive) and all managed `ZoneId`s.
+- The player (`FPSController`) is cached in `Awake`, but if the player spawns later (lazy spawn / save
+  load), `SyncOccupiedTriggers` and `FindCurrentRoom` retry the lookup every frame until found —
+  visibility must never be permanently dead just because the player did not exist at `Awake` time.
 - Maintains `_occupiedTriggers` — a dictionary of every `RoomTrigger` the player currently overlaps,
 mapped to the rooms it keeps visible.
 - `EnterTrigger` / `ExitTrigger` update that dictionary, then `RecomputeActiveRooms` rebuilds the
@@ -54,6 +57,9 @@ active set as the **union** of all occupied triggers' lists.
   bounds containing the player) is **never culled**, regardless of the trigger union.
   - Geometry: `room.SetGeometryActive(activeRooms.Contains(room))` for every room.
   - Lights: a zone is lit if **any** active room owns it; otherwise `LightingSystem` suppresses it.
+  - Shadows: `LightingSystem.UpdateShadowZones(_activeZones, playerPosition)` keeps shadow casting
+  only on the N nearest visible zones (see the Shadow budget section in the
+  Lighting System doc) — lamps in other rooms keep their light but stop casting.
 - If the player leaves all triggers (gap between volumes), the **last** active set is kept to avoid flicker.
 
 **Spawn reconcile:** a player restored from a save directly inside a trigger volume generates no
