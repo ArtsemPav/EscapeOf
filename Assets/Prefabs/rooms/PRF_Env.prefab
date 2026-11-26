@@ -766,13 +766,14 @@ GameObject:
   - component: {fileID: 8437657390395463328}
   - component: {fileID: 7288023150815102163}
   - component: {fileID: 1919905751964268665}
+  - component: {fileID: 2923128566668256179}
   m_Layer: 0
   m_Name: Event_Room3WindowFigure
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &8437657390395463328
 Transform:
   m_ObjectHideFlags: 0
@@ -782,7 +783,7 @@ Transform:
   m_GameObject: {fileID: 5188678135218186462}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.92934656, y: 6.15665, z: -4.242032}
+  m_LocalPosition: {x: -1.599, y: 6.15665, z: 0.244}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -808,7 +809,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3, y: 2, z: 2}
+  m_Size: {x: 1.2, y: 2, z: 0.5}
   m_Center: {x: 0, y: 1, z: 0}
 --- !u!114 &1919905751964268665
 MonoBehaviour:
@@ -832,7 +833,7 @@ MonoBehaviour:
   _requiredZoneId: 
   _requiredZoneState: 1
   _effectType: 2
-  _target: {fileID: 0}
+  _target: {fileID: 1618530786835574423}
   _disappearDelay: 1.2
   _playerCamera: {fileID: 0}
   _lookAtThreshold: 0.7
@@ -848,6 +849,26 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _onDeactivated:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &2923128566668256179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5188678135218186462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ef14cf501feb0d4abed8edbdea5420b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WindowGazeTrigger
+  _playerTag: Player
+  _eventId: window7_figure
+  _lookTarget: {fileID: 6893893836048302642}
+  _lookAtThreshold: 0.7
+  _playerCamera: {fileID: 0}
+  _onFired:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &5348038328832223904
@@ -1256,6 +1277,7 @@ GameObject:
   - component: {fileID: 6667488282931986911}
   - component: {fileID: 9071788101983237499}
   - component: {fileID: 134837200083243813}
+  - component: {fileID: 4647512752340520481}
   m_Layer: 0
   m_Name: Event_Window7Figure
   m_TagString: Untagged
@@ -1272,8 +1294,8 @@ Transform:
   m_GameObject: {fileID: 6808163674543202007}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 17.570654, y: 6.15665, z: 2.8579679}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 13.69, y: 6.15665, z: 2.176}
+  m_LocalScale: {x: 0.5, y: 1, z: 1.2}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4691285903974095313}
@@ -1298,7 +1320,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 3.5, y: 2, z: 2.5}
+  m_Size: {x: 1, y: 2, z: 1}
   m_Center: {x: 0, y: 1, z: 0}
 --- !u!114 &134837200083243813
 MonoBehaviour:
@@ -1322,7 +1344,7 @@ MonoBehaviour:
   _requiredZoneId: 
   _requiredZoneState: 1
   _effectType: 1
-  _target: {fileID: 0}
+  _target: {fileID: 5296358769141967290}
   _disappearDelay: 3
   _playerCamera: {fileID: 0}
   _lookAtThreshold: 0.6
@@ -1338,6 +1360,26 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   _onDeactivated:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &4647512752340520481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6808163674543202007}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ef14cf501feb0d4abed8edbdea5420b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WindowGazeTrigger
+  _playerTag: Player
+  _eventId: window7_figure
+  _lookTarget: {fileID: 7369395089451703134}
+  _lookAtThreshold: 0.6
+  _playerCamera: {fileID: 0}
+  _onFired:
     m_PersistentCalls:
       m_Calls: []
 --- !u!1 &6986000743096745399
@@ -2104,6 +2146,16 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+--- !u!1 &1618530786835574423 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 471153441906426560, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+  m_PrefabInstance: {fileID: 1224964409803615319}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6893893836048302642 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5716182045344738917, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+  m_PrefabInstance: {fileID: 1224964409803615319}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &7245382431193971270 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8391110235162088977, guid: bfecec84331b71645b55792d35a905ba, type: 3}
@@ -4203,6 +4255,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2012712870386870933, guid: 320ebad19a595054081095679a873e59, type: 3}
   m_PrefabInstance: {fileID: 6738973584248544056}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5296358769141967290 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1442795616590328450, guid: 320ebad19a595054081095679a873e59, type: 3}
+  m_PrefabInstance: {fileID: 6738973584248544056}
+  m_PrefabAsset: {fileID: 0}
 --- !u!114 &5620270245178031149 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 1187422837819352853, guid: 320ebad19a595054081095679a873e59, type: 3}
@@ -4659,5 +4716,10 @@ MonoBehaviour:
 --- !u!4 &4656320710698418022 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4569375799012946507, guid: 274ff97defe5ae344b54907df4f6f52d, type: 3}
+  m_PrefabInstance: {fileID: 9220904802556824877}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &7369395089451703134 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1851654384926135923, guid: 274ff97defe5ae344b54907df4f6f52d, type: 3}
   m_PrefabInstance: {fileID: 9220904802556824877}
   m_PrefabAsset: {fileID: 0}
