@@ -475,7 +475,7 @@ Transform:
   m_GameObject: {fileID: 4860169578471331779}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.7, y: 1.45, z: -8.5}
+  m_LocalPosition: {x: 0, y: 1.45, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -604,7 +604,7 @@ Transform:
   m_GameObject: {fileID: 5025828914432645138}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 5.2, y: 1.45, z: 0}
+  m_LocalPosition: {x: 0.344, y: 1.45, z: -1.218}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -621,7 +621,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_Resource: {fileID: 8300000, guid: 36d520bbf1d22ff49aa5d6b22754c410, type: 3}
+  m_Resource: {fileID: 8300000, guid: 1a7df81e10b45a546b4044ec305d4740, type: 3}
   m_PlayOnAwake: 0
   m_Volume: 0.8
   m_Pitch: 1
@@ -632,7 +632,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 20
+  MaxDistance: 5
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -827,14 +827,14 @@ MonoBehaviour:
   _triggerType: 3
   _requiredItem: {fileID: 0}
   _playerTag: Player
-  _activationDelay: 0
+  _activationDelay: 1
   _puzzleToWatch: {fileID: 0}
   _requiredPowerState: 0
   _requiredZoneId: 
   _requiredZoneState: 1
   _effectType: 2
-  _target: {fileID: 0}
-  _disappearDelay: 0.6
+  _target: {fileID: 2759037178901625738}
+  _disappearDelay: 1
   _playerCamera: {fileID: 0}
   _lookAtThreshold: 0.7
   _lookAwayThreshold: 0
@@ -1188,7 +1188,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8771420634485479275
 Transform:
   m_ObjectHideFlags: 0
@@ -1435,7 +1435,7 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 5, y: 2.5, z: 5}
+  m_Size: {x: 2.87, y: 2.5, z: 5}
   m_Center: {x: 0, y: 1, z: 0}
 --- !u!114 &6351485117411408968
 MonoBehaviour:
@@ -2198,6 +2198,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+--- !u!1 &2759037178901625738 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3942306714313938909, guid: bfecec84331b71645b55792d35a905ba, type: 3}
+  m_PrefabInstance: {fileID: 1224964409803615319}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &6893893836048302642 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5716182045344738917, guid: bfecec84331b71645b55792d35a905ba, type: 3}
@@ -4238,10 +4243,6 @@ PrefabInstance:
       propertyPath: _controller
       value: 
       objectReference: {fileID: 7958063013290041199}
-    - target: {fileID: 1442795616590328450, guid: 320ebad19a595054081095679a873e59, type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2012712870386870933, guid: 320ebad19a595054081095679a873e59, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -4285,26 +4286,6 @@ PrefabInstance:
     - target: {fileID: 4464678368518627690, guid: 320ebad19a595054081095679a873e59, type: 3}
       propertyPath: m_Name
       value: Corridor2stF
-      objectReference: {fileID: 0}
-    - target: {fileID: 9212404141531490697, guid: 320ebad19a595054081095679a873e59, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -4.6
-      objectReference: {fileID: 0}
-    - target: {fileID: 9212404141531490697, guid: 320ebad19a595054081095679a873e59, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -4.1409993
-      objectReference: {fileID: 0}
-    - target: {fileID: 9212404141531490697, guid: 320ebad19a595054081095679a873e59, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 9212404141531490697, guid: 320ebad19a595054081095679a873e59, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0.7071068
-      objectReference: {fileID: 0}
-    - target: {fileID: 9212404141531490697, guid: 320ebad19a595054081095679a873e59, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 90
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
