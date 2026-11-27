@@ -115,6 +115,7 @@ public class DocumentUI : MonoBehaviour
     private bool _isOpen;
     private bool _isAnimating;
     private bool _justOpened;
+    private bool _instantSwap;
     private float _singlePageZAngle;
 
     private Canvas _parentCanvas;
@@ -306,6 +307,7 @@ public class DocumentUI : MonoBehaviour
         _isOpen        = true;
         _justOpened    = true;
         _isNote        = data.isNote;
+        _instantSwap   = data.instantPageSwap;
         _singlePageZAngle = 0f;
 
         // Spawn 3D document and set up camera.
@@ -398,25 +400,33 @@ public class DocumentUI : MonoBehaviour
             _pages[i].transform.localPosition = _pageInitialPositions[i];
         }
 
-        // Activate previous at 180° (already-read page, flipped back) at base position.
-        if (index - 1 >= 0)
+        if (_instantSwap)
         {
-            _pages[index - 1].SetActive(true);
-            _pages[index - 1].transform.localRotation = _pageInitialRotations[index - 1] * Quaternion.Euler(0f, 0f, 180f);
-            _pages[index - 1].transform.localPosition = _pageInitialPositions[index - 1];
+            // Journal-style navigation: only the current page is visible.
+            _pages[index].SetActive(true);
         }
-
-        // Activate current at 0° with Y offset (above the stack).
-        _pages[index].SetActive(true);
-        _pages[index].transform.localRotation = _pageInitialRotations[index];
-        _pages[index].transform.localPosition = _pageInitialPositions[index] + new Vector3(0f, _pageStackOffset, 0f);
-
-        // Activate next at 0° at base position.
-        if (index + 1 < _pages.Count)
+        else
         {
-            _pages[index + 1].SetActive(true);
-            _pages[index + 1].transform.localRotation = _pageInitialRotations[index + 1];
-            _pages[index + 1].transform.localPosition = _pageInitialPositions[index + 1];
+            // Activate previous at 180° (already-read page, flipped back) at base position.
+            if (index - 1 >= 0)
+            {
+                _pages[index - 1].SetActive(true);
+                _pages[index - 1].transform.localRotation = _pageInitialRotations[index - 1] * Quaternion.Euler(0f, 0f, 180f);
+                _pages[index - 1].transform.localPosition = _pageInitialPositions[index - 1];
+            }
+
+            // Activate current at 0° with Y offset (above the stack).
+            _pages[index].SetActive(true);
+            _pages[index].transform.localRotation = _pageInitialRotations[index];
+            _pages[index].transform.localPosition = _pageInitialPositions[index] + new Vector3(0f, _pageStackOffset, 0f);
+
+            // Activate next at 0° at base position.
+            if (index + 1 < _pages.Count)
+            {
+                _pages[index + 1].SetActive(true);
+                _pages[index + 1].transform.localRotation = _pageInitialRotations[index + 1];
+                _pages[index + 1].transform.localPosition = _pageInitialPositions[index + 1];
+            }
         }
 
         UpdatePageIndicator(index, _pages.Count);
@@ -458,10 +468,20 @@ public class DocumentUI : MonoBehaviour
             _pageIndicator.text = total > 1 ? $"{index + 1} / {total}" : string.Empty;
     }
 
-    /// <summary>Navigates to the next page with a flip animation. Blocked for notes.</summary>
+    /// <summary>Navigates to the next page: instant swap or flip animation. Blocked for single-page notes.</summary>
     private void NextPage()
     {
         if (_isNote || _pages.Count == 0 || _isAnimating) return;
+
+        // Instant swap mode: no flip animation, just show the target page.
+        if (_instantSwap)
+        {
+            if (_currentPage >= _pages.Count - 1) return;
+            PlayPageTurnSound();
+            ShowPage(_currentPage + 1);
+            return;
+        }
+
         if (_pages.Count == 1)
         {
             PlayPageTurnSound();
@@ -476,10 +496,20 @@ public class DocumentUI : MonoBehaviour
         UpdateNavButtons(_currentPage, _pages.Count);
     }
 
-    /// <summary>Navigates to the previous page with a flip animation. Blocked for notes.</summary>
+    /// <summary>Navigates to the previous page: instant swap or flip animation. Blocked for single-page notes.</summary>
     private void PrevPage()
     {
         if (_isNote || _pages.Count == 0 || _isAnimating) return;
+
+        // Instant swap mode: no flip animation, just show the target page.
+        if (_instantSwap)
+        {
+            if (_currentPage <= 0) return;
+            PlayPageTurnSound();
+            ShowPage(_currentPage - 1);
+            return;
+        }
+
         if (_pages.Count == 1)
         {
             PlayPageTurnSound();
@@ -893,6 +923,7 @@ public class DocumentUI : MonoBehaviour
         _documentData = null;
         _currentPage  = 0;
         _isNote       = false;
+        _instantSwap  = false;
     }
 
     /// <summary>Destroys all spawned 3D inspection objects and deactivates the camera.</summary>
