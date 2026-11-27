@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Timing-мини-игра для загадки генератора.
-/// Ползунок ходит по полоске туда-обратно, ЛКМ фиксирует его позицию.
+/// Ползунок ходит по полоске туда-обратно, ЛКМ или Пробел фиксирует его позицию.
 /// Попадание в зелёную зону проигрывает звук успеха, промах — звук ошибки.
 /// Для завершения нужно попасть в зелёную зону заданное число раз подряд.
 /// </summary>
@@ -211,7 +211,9 @@ public class GeneratorTimingMinigame : MonoBehaviour
             _handle.anchoredPosition = new Vector2(x, _handle.anchoredPosition.y);
         }
 
-        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+        bool mousePressed = Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame;
+        bool spacePressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
+        if (mousePressed || spacePressed)
             Evaluate(t);
     }
 
