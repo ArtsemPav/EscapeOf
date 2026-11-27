@@ -260,6 +260,61 @@ MonoBehaviour:
     VisibleRooms:
     - {fileID: 0}
     - {fileID: 0}
+--- !u!1 &5098803327211351210
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7463606992931606477}
+  - component: {fileID: 8532997200104279973}
+  - component: {fileID: 2465017372631241361}
+  m_Layer: 0
+  m_Name: OcclusionPortal_Room4To5
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7463606992931606477
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5098803327211351210}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.26, y: 3.15, z: 5.74}
+  m_LocalScale: {x: 1.4285713, y: 1.4285713, z: 1.4285713}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8860688086028045943}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!41 &8532997200104279973
+OcclusionPortal:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5098803327211351210}
+  m_Open: 1
+  m_Center: {x: 0.07, y: 0, z: 0}
+  m_Size: {x: 3.5, y: 3.08, z: 1.12}
+--- !u!114 &2465017372631241361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5098803327211351210}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dacfac0fc046d6248b709c4e35089d30, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OcclusionPortalOpener
 --- !u!1 &5976151603113403828
 GameObject:
   m_ObjectHideFlags: 0
@@ -800,6 +855,7 @@ Transform:
   - {fileID: 4766417599686098163}
   - {fileID: 3964640796678896405}
   - {fileID: 358954259582556867}
+  - {fileID: 7463606992931606477}
   - {fileID: 8390199932384137652}
   - {fileID: 7318241619846566898}
   - {fileID: 4971082429097543194}
