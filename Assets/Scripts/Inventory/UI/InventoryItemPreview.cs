@@ -80,7 +80,9 @@ public class InventoryItemPreview : MonoBehaviour, IPointerDownHandler, IDragHan
     {
         if (!_hasModel || _previewPivot == null || _isDragging) return;
         if (_currentItem != null && (_currentItem.disableIdleSpin || _currentItem.lockRotationY)) return;
-        _previewPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
+        float speed = _currentItem != null ? idleSpinSpeed * _currentItem.previewSpinSpeedMultiplier : idleSpinSpeed;
+        if (speed <= 0f) return;
+        _previewPivot.transform.Rotate(Vector3.up, speed * Time.deltaTime, Space.World);
     }
 
     private void OnDestroy()

@@ -44,6 +44,10 @@ public class ItemInspector : MonoBehaviour
     [Tooltip("Continuous rotation speed while the player is not dragging (degrees/sec).")]
     [SerializeField] private float idleSpinSpeed = 40f;
 
+    /// <summary>Idle spin speed for the current item, honoring the per-item multiplier from ItemData.</summary>
+    private float EffectiveIdleSpinSpeed =>
+        _currentItem != null ? idleSpinSpeed * _currentItem.previewSpinSpeedMultiplier : idleSpinSpeed;
+
     [Header("Settings")]
     [SerializeField] private string inspectionLayerName = "Inspection";
     [Tooltip("Multiplier for camera distance from model. Higher = model appears smaller.")]
@@ -187,7 +191,7 @@ private bool _ignoreInputThisFrame;
             }
             else if (_currentItem == null || (!_currentItem.disableIdleSpin && !_currentItem.lockRotationY))
             {
-                _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
+                _inspectionPivot.transform.Rotate(Vector3.up, EffectiveIdleSpinSpeed * Time.deltaTime, Space.World);
             }
 
             if (Mouse.current.leftButton.wasReleasedThisFrame && !_mouseWasDragged)
@@ -225,7 +229,7 @@ private bool _ignoreInputThisFrame;
         else if (_currentItem == null || (!_currentItem.disableIdleSpin && !_currentItem.lockRotationY))
         {
             // Continuous idle spin when not dragging.
-            _inspectionPivot.transform.Rotate(Vector3.up, idleSpinSpeed * Time.deltaTime, Space.World);
+            _inspectionPivot.transform.Rotate(Vector3.up, EffectiveIdleSpinSpeed * Time.deltaTime, Space.World);
         }
 
         if (Keyboard.current.escapeKey.wasPressedThisFrame)

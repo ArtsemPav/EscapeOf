@@ -88,6 +88,9 @@ public class ItemData : ScriptableObject
     [Tooltip("Запретить ручное вращение по оси Y (поворот влево/вправо) во время превью и осмотра.")]
     public bool lockRotationY;
 
+    [Tooltip("Множитель скорости вращения в превью осмотра. 1 = глобальные настройки, >1 быстрее, <1 медленнее. 0 отключает автогивращение (эквивалент disableIdleSpin).")]
+    public float previewSpinSpeedMultiplier = 1f;
+
     [Tooltip("Если включено — предмет не будет привлекать внимание мерцанием (shimmer).")]
     public bool disableShimmer;
 
