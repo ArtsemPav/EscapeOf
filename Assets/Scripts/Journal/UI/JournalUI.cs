@@ -31,6 +31,9 @@ public class JournalUI : MonoBehaviour
     [Header("Hints")]
     [SerializeField] private TextMeshProUGUI _closeHintText;
 
+    [Tooltip("Счётчик страниц 'N / M' при листании стопки категории. Пустая категория — скрывается.")]
+    [SerializeField] private TextMeshProUGUI _pageCounterText;
+
     [Tooltip("Вертикальный сдвиг верхней страницы в стопке.")]
     [SerializeField] private float _pageStackOffset = 0.1f;
 
@@ -429,6 +432,9 @@ public class JournalUI : MonoBehaviour
             ApplyLocalizedPageText(data, page, documentPageIndex);
             documentPageIndex++;
         }
+
+        // A page appended into the open journal: refresh the counter immediately.
+        UpdatePageCounter();
     }
 
     /// <summary>
@@ -462,7 +468,8 @@ public class JournalUI : MonoBehaviour
     {
         if (_pages.Count == 0)
         {
-            UpdateEdgeZoneAvailability(); // empty category — hide both arrows
+            UpdateEdgeZoneAvailability();
+            SetPageCounterVisible(false); // пустая категория — счётчик не нужен
             return;
         }
 
@@ -495,6 +502,7 @@ public class JournalUI : MonoBehaviour
 
         FrameCamera();
         UpdateEdgeZoneAvailability();
+        UpdatePageCounter();
     }
 
     /// <summary>Enables the edge arrows only where a page exists to flip to.</summary>
@@ -513,6 +521,22 @@ public class JournalUI : MonoBehaviour
         zone.enabled = enabled; // hides the sprite as well
     }
 
+    /// <summary>Updates the page counter text to the current stack position.</summary>
+    private void UpdatePageCounter()
+    {
+        if (_pageCounterText == null) return;
+
+        _pageCounterText.text = $"{_currentPage + 1} / {_pages.Count}";
+        _pageCounterText.gameObject.SetActive(true);
+    }
+
+    /// <summary>Shows or hides the page counter.</summary>
+    private void SetPageCounterVisible(bool visible)
+    {
+        if (_pageCounterText != null)
+            _pageCounterText.gameObject.SetActive(visible);
+    }
+
     private void ClearPageStack()
     {
         for (int i = 0; i < _spawnedInstances.Count; i++)
@@ -527,6 +551,8 @@ public class JournalUI : MonoBehaviour
 
         if (_inspectionCamera != null)
             _inspectionCamera.gameObject.SetActive(false);
+
+        SetPageCounterVisible(false);
     }
 
     /// <summary>Pose of a read page in the left pile: fanned out, slid left by _pileShift page widths.</summary>
